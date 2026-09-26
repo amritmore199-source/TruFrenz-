@@ -87,6 +87,14 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-camera",
+      {
+        cameraPermission: "Kindred uses the camera for your optional selfie identity check.",
+        microphonePermission: "Kindred does not record audio during selfie verification.",
+        recordAudioAndroid: false,
+      },
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
