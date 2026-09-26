@@ -9,6 +9,12 @@ export type IncomingNotification = {
 
 export const MAX_NOTIFICATION_PREVIEW_LENGTH = 96;
 
+export function shouldDismissIncomingNotificationSwipe(translationX: number, velocityX: number): boolean {
+  const distance = Math.abs(translationX);
+  const velocity = Math.abs(velocityX);
+  return distance >= 72 || (distance >= 24 && velocity >= 0.62);
+}
+
 function cleanPreview(raw: string): string {
   const compact = raw.trim().replace(/\s+/g, " ");
   if (compact.length <= MAX_NOTIFICATION_PREVIEW_LENGTH) return compact;

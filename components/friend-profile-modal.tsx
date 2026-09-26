@@ -23,6 +23,7 @@ export function FriendProfileModal({ visible, profile, onClose }: { visible: boo
         <BlurView intensity={36} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close friend profile" onPress={onClose} />
         <View style={styles.sheet}>
+          <BlurView intensity={40} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
           <View style={styles.header}>
             <View style={styles.handle} />
             <Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close profile">
@@ -69,7 +70,7 @@ export function FriendProfileModal({ visible, profile, onClose }: { visible: boo
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", paddingHorizontal: 22, backgroundColor: "rgba(80,66,87,0.20)" },
-  sheet: { borderRadius: 25, padding: 18, backgroundColor: "rgba(252,249,252,0.94)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", shadowColor: "#57465C", shadowOpacity: 0.15, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 12 },
+  sheet: { overflow: "hidden", borderRadius: 25, padding: 18, backgroundColor: "rgba(252,249,252,0.82)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#57465C", shadowOpacity: 0.18, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 12 },
   header: { height: 19, alignItems: "center", justifyContent: "center" },
   handle: { width: 34, height: 4, borderRadius: 4, backgroundColor: "rgba(152,137,157,0.35)" },
   close: { position: "absolute", right: -5, top: -4, width: 31, height: 31, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.76)", alignItems: "center", justifyContent: "center" },

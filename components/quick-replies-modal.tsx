@@ -34,6 +34,7 @@ export function QuickRepliesModal({
         <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close quick replies" onPress={onClose} />
         <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
+          <BlurView intensity={39} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
           <View style={styles.handle} />
           <View style={styles.headingRow}>
             <View style={styles.headingIcon}><MaterialIcons name="quickreply" size={18} color="#927591" /></View>
@@ -74,7 +75,7 @@ export function QuickRepliesModal({
 
 const styles = StyleSheet.create({
   shade: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(80,66,87,0.20)" },
-  sheet: { maxHeight: "82%", paddingTop: 10, paddingBottom: 20, paddingHorizontal: 19, borderTopLeftRadius: 27, borderTopRightRadius: 27, backgroundColor: "rgba(252,249,252,0.96)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", shadowColor: "#57465C", shadowOpacity: 0.14, shadowRadius: 24, shadowOffset: { width: 0, height: -7 }, elevation: 14 },
+  sheet: { maxHeight: "82%", overflow: "hidden", paddingTop: 10, paddingBottom: 20, paddingHorizontal: 19, borderTopLeftRadius: 27, borderTopRightRadius: 27, backgroundColor: "rgba(252,249,252,0.84)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#57465C", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -7 }, elevation: 14 },
   handle: { alignSelf: "center", height: 4, width: 34, borderRadius: 4, backgroundColor: "rgba(152,137,157,0.34)", marginBottom: 15 },
   headingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   headingIcon: { width: 36, height: 36, borderRadius: 13, backgroundColor: "#F0E6F1", alignItems: "center", justifyContent: "center" },

@@ -68,7 +68,7 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.scrim}>
-        <BlurView intensity={31} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFillObject} />
+        <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFillObject} />
         <Pressable accessibilityLabel="Close meetup invite" style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <SafeAreaView edges={["bottom", "left", "right"]} style={styles.safeArea}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.keyboard}>
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(53,45,62,0.22)" },
   safeArea: { flex: 1, justifyContent: "flex-end" },
   keyboard: { maxHeight: "94%", width: "100%" },
-  sheet: { maxHeight: "100%", minHeight: 560, width: "100%", overflow: "hidden", borderTopLeftRadius: 26, borderTopRightRadius: 26, borderWidth: 1, borderBottomWidth: 0, borderColor: "rgba(255,255,255,0.92)", backgroundColor: "rgba(250,248,250,0.88)" },
+  sheet: { maxHeight: "100%", minHeight: 560, width: "100%", overflow: "hidden", borderTopLeftRadius: 26, borderTopRightRadius: 26, borderWidth: 1, borderBottomWidth: 0, borderColor: "rgba(255,255,255,0.98)", backgroundColor: "rgba(250,248,250,0.82)" },
   header: { paddingHorizontal: 18, paddingTop: 9, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(220,213,224,0.55)" },
   handle: { width: 34, height: 4, alignSelf: "center", borderRadius: 2, backgroundColor: "rgba(137,125,142,0.38)", marginBottom: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

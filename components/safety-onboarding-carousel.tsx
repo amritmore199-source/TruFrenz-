@@ -46,7 +46,7 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
           if (delta > 55 && index > 0) goBack();
         }}
       >
-        <BlurView intensity={23} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.glassCard}>
+        <BlurView intensity={32} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.glassCard}>
           <View style={styles.cardContent}>
             <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#92768F" /></View>
             <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
@@ -78,13 +78,13 @@ const styles = StyleSheet.create({
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(181,166,185,0.24)" },
   progressTrackActive: { backgroundColor: "#A783A6" },
   slideAnimated: { width: "100%" },
-  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "rgba(255,255,255,0.62)" },
+  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.98)", backgroundColor: "rgba(255,255,255,0.72)" },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
   iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,229,241,0.9)", borderWidth: 1, borderColor: "rgba(255,255,255,0.9)" },
   eyebrow: { color: "#A07E9C", fontSize: 8, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
   title: { color: "#49424F", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
   body: { color: "#89818E", fontSize: 11, lineHeight: 17, marginTop: 7 },
-  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.95)" },
+  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: "rgba(255,255,255,0.81)", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)" },
   ruleIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#F3EAF2", alignItems: "center", justifyContent: "center" },
   ruleCopy: { flex: 1, gap: 3 },
   ruleTitle: { color: "#5B5260", fontSize: 10, fontWeight: "700" },
