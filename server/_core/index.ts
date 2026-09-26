@@ -2,11 +2,14 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import path from "path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { registerAdminRoutes } from "../adminRoutes";
+import { seedAdminDemoData } from "../adminDb";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -62,6 +65,18 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // Internal admin dashboard: its own API and its own login, kept apart from
+  // the consumer app's tRPC surface and phone OTP sign-in.
+  registerAdminRoutes(app);
+
+  // The dashboard is a self-contained static page, deliberately styled as a
+  // dense internal tool rather than matching the consumer app's look.
+  const adminDir = path.resolve(process.cwd(), "admin");
+  app.use("/admin", express.static(adminDir, { extensions: ["html"] }));
+  app.get("/admin", (_req, res) => {
+    res.sendFile(path.join(adminDir, "index.html"));
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -80,6 +95,13 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
   });
+
+  // Populate the dashboard's working dataset on first boot. Safe to re-run.
+  seedAdminDemoData()
+    .then(({ seeded }) => {
+      if (seeded) console.log("[admin] seeded the initial dashboard dataset");
+    })
+    .catch((error) => console.error("[admin] seed failed", error));
 }
 
 startServer().catch(console.error);

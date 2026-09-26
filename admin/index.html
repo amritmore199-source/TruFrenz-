@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Trufrenz Admin — Internal Dashboard</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <!-- ============================ LOGIN ============================ -->
+    <div id="login-screen" class="login-shell">
+      <form id="login-form" class="login-card" autocomplete="off">
+        <div class="login-brand">
+          <span class="brand-mark">TF</span>
+          <div>
+            <h1>Trufrenz Admin</h1>
+            <p class="muted">Internal dashboard · staff access only</p>
+          </div>
+        </div>
+
+        <p class="login-note">
+          This console uses a separate email + password + authenticator sign-in. Member phone OTP
+          credentials do not work here.
+        </p>
+
+        <label class="field">
+          <span>Work email</span>
+          <input id="login-email" type="email" name="email" required placeholder="you@trufrenz.app" />
+        </label>
+
+        <label class="field">
+          <span>Password</span>
+          <input id="login-password" type="password" name="password" required placeholder="••••••••••••" />
+        </label>
+
+        <label class="field">
+          <span>Authenticator code</span>
+          <div class="code-row">
+            <input
+              id="login-code"
+              type="text"
+              name="code"
+              inputmode="numeric"
+              maxlength="6"
+              required
+              placeholder="000000"
+            />
+            <button type="button" id="fill-demo-code" class="btn ghost" title="Fill the current code for the seeded demo account">
+              Use demo code
+            </button>
+          </div>
+        </label>
+
+        <p id="login-error" class="login-error" hidden></p>
+        <button type="submit" id="login-submit" class="btn primary block">Sign in</button>
+
+        <details class="demo-box">
+          <summary>Seeded demo account</summary>
+          <dl>
+            <dt>Email</dt>
+            <dd><code>safety@trufrenz.app</code></dd>
+            <dt>Password</dt>
+            <dd><code>Trufrenz#Safety2026</code></dd>
+            <dt>Authenticator secret</dt>
+            <dd><code>JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP</code></dd>
+          </dl>
+          <p class="tiny">
+            The demo secret is compiled into this page so the console is usable before a real
+            authenticator is enrolled. Replace this account before any production deployment.
+          </p>
+        </details>
+      </form>
+    </div>
+
+    <!-- ============================ DASHBOARD ======================== -->
+    <div id="dashboard" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-mark">TF</span>
+          <div>
+            <strong>Trufrenz Admin</strong>
+            <span class="tiny muted">Internal console</span>
+          </div>
+        </div>
+
+        <nav id="nav" class="nav">
+          <button class="nav-item" data-view="overview">
+            <span class="nav-icon">▦</span> Overview
+          </button>
+          <button class="nav-item" data-view="verification">
+            <span class="nav-icon">✓</span> Verification queue
+            <span class="pill count" id="nav-count-verification">0</span>
+          </button>
+          <button class="nav-item" data-view="moderation">
+            <span class="nav-icon">⚑</span> Reports &amp; moderation
+            <span class="pill count" id="nav-count-moderation">0</span>
+          </button>
+          <button class="nav-item" data-view="members"><span class="nav-icon">☰</span> User management</button>
+          <button class="nav-item" data-view="analytics"><span class="nav-icon">◔</span> Analytics</button>
+          <button class="nav-item" data-view="safety"><span class="nav-icon">⚙</span> Content &amp; safety</button>
+          <button class="nav-item" data-view="subscriptions"><span class="nav-icon">★</span> Subscriptions</button>
+          <button class="nav-item" data-view="audit"><span class="nav-icon">⎔</span> Audit log</button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <div class="who">
+            <strong id="who-name">—</strong>
+            <span class="tiny muted" id="who-email">—</span>
+          </div>
+          <span class="pill role" id="who-role">—</span>
+          <button id="logout" class="btn ghost block small">Sign out</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h2 id="view-title">Overview</h2>
+            <p id="view-sub" class="tiny muted">—</p>
+          </div>
+          <div class="topbar-actions">
+            <span class="env-badge">DEMO DATA</span>
+            <button id="refresh" class="btn ghost small">Refresh</button>
+          </div>
+        </header>
+
+        <div id="toast" class="toast" hidden></div>
+
+        <section id="view-overview" class="view">
+          <div id="overview-tiles" class="tiles"></div>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Daily active users</h3>
+                <span class="tiny muted">Last 14 days</span>
+              </div>
+              <div id="chart-active" class="chart"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h3>New signups</h3>
+                <span class="tiny muted">Last 14 days</span>
+              </div>
+              <div id="chart-signups" class="chart"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Action queue</h3>
+              <span class="tiny muted">Items needing a human decision</span>
+            </div>
+            <div id="overview-queues" class="queue-list"></div>
+          </div>
+        </section>
+
+        <section id="view-verification" class="view" hidden>
+          <div class="toolbar">
+            <label class="inline-field">
+              <span>Status</span>
+              <select id="verification-status">
+                <option value="pending">Pending review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="all">All submissions</option>
+              </select>
+            </label>
+            <label class="inline-field grow">
+              <span>Search</span>
+              <input id="verification-search" type="search" placeholder="Member, submitted name, or area" />
+            </label>
+            <span class="tiny muted" id="verification-count">—</span>
+          </div>
+          <div class="panel flush">
+            <table class="data-table" id="verification-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Submitted name</th>
+                  <th>Date of birth</th>
+                  <th>Risk</th>
+                  <th>Evidence</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th class="right">Decision</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="empty" id="verification-empty" hidden>No submissions match this filter.</p>
+          </div>
+        </section>
+
+        <section id="view-moderation" class="view" hidden>
+          <div class="toolbar">
+            <label class="inline-field">
+              <span>Status</span>
+              <select id="reports-status">
+                <option value="open">Open queue</option>
+                <option value="dismissed">Dismissed</option>
+                <option value="warned">Warned</option>
+                <option value="suspended">Suspended</option>
+                <option value="banned">Banned</option>
+                <option value="all">Everything</option>
+              </select>
+            </label>
+            <span class="tiny muted">Sorted by auto-flag, then report count.</span>
+            <span class="tiny muted" id="reports-count">—</span>
+          </div>
+          <div class="panel flush">
+            <table class="data-table" id="reports-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Type</th>
+                  <th>Reason</th>
+                  <th>Reported content</th>
+                  <th>Reports</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th class="right">Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="empty" id="reports-empty" hidden>Nothing in this queue.</p>
+          </div>
+        </section>
+
+        <section id="view-members" class="view" hidden>
+          <div class="toolbar">
+            <label class="inline-field grow">
+              <span>Search</span>
+              <input id="members-search" type="search" placeholder="Name, handle, or area" />
+            </label>
+            <label class="inline-field">
+              <span>Status</span>
+              <select id="members-status">
+                <option value="all">Any status</option>
+                <option value="active">Active</option>
+                <option value="warned">Warned</option>
+                <option value="suspended">Suspended</option>
+                <option value="banned">Banned</option>
+              </select>
+            </label>
+            <label class="inline-field">
+              <span>Tier</span>
+              <select id="members-tier">
+                <option value="all">Any tier</option>
+                <option value="free">Free</option>
+                <option value="premium">Paid</option>
+              </select>
+            </label>
+            <button id="members-apply" class="btn small">Apply</button>
+          </div>
+          <div class="panel flush">
+            <table class="data-table" id="members-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Age</th>
+                  <th>Home area</th>
+                  <th>Verified</th>
+                  <th>Status</th>
+                  <th>Tier</th>
+                  <th>Reports</th>
+                  <th>Joined</th>
+                  <th class="right">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="empty" id="members-empty" hidden>No members match these filters.</p>
+            <div class="pager">
+              <button id="members-prev" class="btn ghost small">Previous</button>
+              <span class="tiny muted" id="members-page">—</span>
+              <button id="members-next" class="btn ghost small">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-analytics" class="view" hidden>
+          <div id="analytics-tiles" class="tiles"></div>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Verified vs unverified</h3>
+                <span class="tiny muted">Last 14 days</span>
+              </div>
+              <div id="chart-verified" class="chart"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Free vs paid</h3>
+                <span class="tiny muted">Last 14 days</span>
+              </div>
+              <div id="chart-tier" class="chart"></div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Calls made</h3>
+                <span class="tiny muted">Paid feature usage</span>
+              </div>
+              <div id="chart-calls" class="chart"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Active groups</h3>
+                <span class="tiny muted">Last 14 days</span>
+              </div>
+              <div id="chart-groups" class="chart"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-safety" class="view" hidden>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Feature flags</h3>
+                <span class="tiny muted">Incident-response switches</span>
+              </div>
+              <div id="flags-list" class="flag-list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Broadcast announcement</h3>
+                <span class="tiny muted">Safety reminders and notices</span>
+              </div>
+              <form id="broadcast-form" class="stack">
+                <label class="field">
+                  <span>Title</span>
+                  <input id="broadcast-title" required maxlength="160" placeholder="Meet in public places" />
+                </label>
+                <label class="field">
+                  <span>Message</span>
+                  <textarea id="broadcast-body" required rows="4" placeholder="A gentle reminder to choose a public venue for first meetups."></textarea>
+                </label>
+                <label class="field">
+                  <span>Audience</span>
+                  <select id="broadcast-segment">
+                    <option value="all">Everyone</option>
+                    <option value="verified">Verified members only</option>
+                    <option value="unverified">Unverified members only</option>
+                    <option value="free">Free tier</option>
+                    <option value="premium">Paid tier</option>
+                  </select>
+                </label>
+                <button type="submit" class="btn primary">Send announcement</button>
+              </form>
+              <div class="panel-head sub"><h4>Recent broadcasts</h4></div>
+              <ul id="broadcast-list" class="feed"></ul>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Blocked keyword list</h3>
+              <span class="tiny muted">Auto-flags chat and profile content</span>
+            </div>
+            <form id="keyword-form" class="toolbar">
+              <label class="inline-field grow">
+                <span>Keyword or phrase</span>
+                <input id="keyword-input" required placeholder="e.g. crypto investment" />
+              </label>
+              <label class="inline-field">
+                <span>Severity</span>
+                <select id="keyword-severity">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <button type="submit" class="btn small">Add</button>
+            </form>
+            <table class="data-table" id="keyword-table">
+              <thead>
+                <tr>
+                  <th>Keyword</th>
+                  <th>Severity</th>
+                  <th>Matches</th>
+                  <th>Added by</th>
+                  <th class="right">Remove</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-subscriptions" class="view" hidden>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Paid members</h3>
+                <span class="tiny muted" id="paid-count">—</span>
+              </div>
+              <table class="data-table" id="paid-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th class="right">Manage</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+              <p class="empty" id="paid-empty" hidden>No paid members yet.</p>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h3>Grant or revoke access</h3>
+                <span class="tiny muted">Support cases only</span>
+              </div>
+              <form id="subscription-form" class="stack">
+                <label class="field">
+                  <span>Member</span>
+                  <select id="subscription-member"></select>
+                </label>
+                <label class="field">
+                  <span>Action</span>
+                  <select id="subscription-kind">
+                    <option value="grant">Grant paid access</option>
+                    <option value="revoke">Revoke paid access</option>
+                    <option value="refund">Log a refund</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Refund amount (cents)</span>
+                  <input id="subscription-amount" type="number" min="0" value="1299" />
+                </label>
+                <label class="field">
+                  <span>Reason</span>
+                  <textarea id="subscription-reason" required rows="3" placeholder="Duplicate charge confirmed by the payment provider."></textarea>
+                </label>
+                <button type="submit" class="btn primary">Apply change</button>
+              </form>
+            </div>
+          </div>
+          <div class="panel flush">
+            <div class="panel-head">
+              <h3>Subscription &amp; refund log</h3>
+              <label class="inline-field">
+                <span>Filter</span>
+                <select id="events-kind">
+                  <option value="all">All events</option>
+                  <option value="grant">Grants</option>
+                  <option value="revoke">Revokes</option>
+                  <option value="refund">Refunds</option>
+                </select>
+              </label>
+            </div>
+            <table class="data-table" id="events-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Member</th>
+                  <th>Event</th>
+                  <th>Amount</th>
+                  <th>Reason</th>
+                  <th>Staff</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-audit" class="view" hidden>
+          <div class="panel flush">
+            <div class="panel-head">
+              <h3>Audit log</h3>
+              <span class="tiny muted">Every dashboard action, newest first</span>
+            </div>
+            <table class="data-table" id="audit-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Staff</th>
+                  <th>Module</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ============================ DIALOGS ========================== -->
+    <div id="dialog-backdrop" class="dialog-backdrop" hidden>
+      <form id="dialog" class="dialog">
+        <h3 id="dialog-title">Confirm</h3>
+        <p id="dialog-message" class="muted"></p>
+        <label class="field" id="dialog-note-field">
+          <span id="dialog-note-label">Note</span>
+          <textarea id="dialog-note" rows="3"></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button type="button" id="dialog-cancel" class="btn ghost">Cancel</button>
+          <button type="submit" id="dialog-confirm" class="btn primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/admin/app.js"></script>
+  </body>
+</html>
