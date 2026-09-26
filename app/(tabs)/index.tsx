@@ -25,6 +25,10 @@ import { canOpenChat, canRequestFriendship } from "@/lib/social-access";
 import { receiptIcon, receiptLabel } from "@/lib/chat-status";
 import { isInboxMeetupTransition } from "@/lib/ui-transitions";
 import { SelfieVerificationModal } from "@/components/selfie-verification-modal";
+import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carousel";
+import { CreateMeetupInviteModal } from "@/components/create-meetup-invite-modal";
+import { findCommonInterests } from "@/lib/discovery-interests";
+import { formatMeetupInvite, type MeetupInviteDraft } from "@/lib/meetup-invite";
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile";
@@ -128,6 +132,8 @@ export default function KindredApp() {
   const [joined, setJoined] = useState(false);
   const [verificationPrompt, setVerificationPrompt] = useState(false);
   const [selfieModalVisible, setSelfieModalVisible] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [inviteTargetChat, setInviteTargetChat] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [chatFilter, setChatFilter] = useState<"All" | "Unread" | "Groups">("All");
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -227,6 +233,12 @@ export default function KindredApp() {
     });
   }, [search, chatFilter, acceptedFriends, chatMessages]);
 
+  const inviteTargets = useMemo(() => {
+    const seeded = seedConversations.filter((chat) => chat.kind === "friend" && acceptedFriends.includes(chat.id)).map(({ id, name }) => ({ id, name }));
+    const newlyAccepted = suggestions.filter((person) => acceptedFriends.includes(person.id) && !seedConversations.some((chat) => chat.id === person.id)).map(({ id, name }) => ({ id, name }));
+    return [...seeded, ...newlyAccepted];
+  }, [acceptedFriends]);
+
   const filteredSuggestions = useMemo(() => suggestions.filter((person) => {
     const q = search.trim().toLowerCase();
     const searchMatch = !q || `${person.name} ${person.locality} ${person.interests.join(" ")}`.toLowerCase().includes(q);
@@ -260,9 +272,23 @@ export default function KindredApp() {
   };
 
   const prepareMeetupInvite = () => {
-    setMessageDraft("Want to join me for coffee at Juniper Café this week? ☕");
+    const target = selectedChat && inviteTargets.some((contact) => contact.id === selectedChat) ? selectedChat : inviteTargets[0]?.id;
     setActionMenuOpen(false);
-    feedback("Meetup invite added to your draft. Edit it before sending.");
+    if (!target) { feedback("Accept a friend request before sharing a meetup invite."); return; }
+    setInviteTargetChat(target);
+    setInviteModalVisible(true);
+  };
+
+  const shareMeetupInvite = (draft: MeetupInviteDraft, contactId: string) => {
+    const text = formatMeetupInvite(draft);
+    const message: Message = { id: `meetup-${Date.now()}`, from: "me", text, time: "now", receipt: "sent" };
+    setChatMessages((current) => ({ ...current, [contactId]: [...(current[contactId] ?? []), message] }));
+    setInviteModalVisible(false);
+    setInviteTargetChat(contactId);
+    setSelectedChat(contactId);
+    setTab("Chats");
+    const recipient = inviteTargets.find((contact) => contact.id === contactId)?.name ?? "your friend";
+    feedback(`Meetup invite shared in ${recipient}'s chat.`);
   };
 
   const toggleInterest = (tag: string) => {
@@ -294,8 +320,7 @@ export default function KindredApp() {
 
   const newHangout = () => {
     if (!currentThread) return;
-    setMessageDraft("Want to grab a coffee together this week? ☕");
-    feedback("A friendly hangout invite is ready to edit.");
+    prepareMeetupInvite();
   };
 
   const startThread = (id: string) => {
@@ -381,9 +406,9 @@ export default function KindredApp() {
     <View style={styles.friendsTools}><View style={styles.searchBar}><Icon name="search" size={17} color="#968D9A" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name or interest" placeholderTextColor="#A6A1A8" style={styles.searchInput} /><Icon name="tune" size={17} color="#90869A" /></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestFilterRow}>{["Nearby", "Verified", "Coffee", "Books", "Hiking"].map((tag) => <Pressable key={tag} onPress={() => toggleInterest(tag)} style={[styles.filterChip, interestFilter.includes(tag) && styles.filterChipActive]}><Text style={[styles.filterChipText, interestFilter.includes(tag) && styles.filterChipTextActive]}>{tag}</Text></Pressable>)}</ScrollView></View>
     <ScrollView style={styles.friendsScroll} contentContainerStyle={styles.friendsContent} showsVerticalScrollIndicator={false}>
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#9B7D99" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable onPress={() => { setIncomingRequests((current) => current.filter((item) => item !== id)); feedback("Request quietly dismissed."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8F8992" /></Pressable></View></View>; })}</View> : null}
-      <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED</Text><Text style={styles.sectionTitle}>Suggested for you</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#9C789A" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
+      <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#9C789A" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
       {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#7895A5" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
-      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const sent = requestSent.includes(person.id); return <Frosted key={person.id} style={styles.neighborRow}><Image source={person.image} style={styles.neighborAvatar} /><View style={styles.neighborInfo}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text><View style={styles.neighborMeta}><Icon name="place" size={11} color="#938894" /><Text style={styles.neighborMetaText}>{person.locality}</Text><View style={styles.neighborMetaDot} /><Text style={styles.neighborInterest} numberOfLines={1}>{person.interests[0]}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View></View><Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#8D748F"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable></Frosted>; })}
+      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const sent = requestSent.includes(person.id); const sharedInterests = findCommonInterests(joined ? [interest] : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Image source={person.image} style={styles.neighborAvatar} /><View style={styles.neighborInfo}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text><View style={styles.neighborMeta}><Icon name="place" size={11} color="#938894" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#9A7897" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></View><Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#8D748F"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable></Frosted>; })}
       {discoverable && filteredSuggestions.length === 0 ? <View style={styles.noMatches}><Icon name="search-off" size={17} color="#9A899D" /><Text style={styles.noMatchesText}>No neighbors match those filters yet.</Text></View> : null}</View>
       <Frosted style={styles.noPressureCard}><View style={styles.noPressureIcon}><Icon name="favorite-border" size={16} color="#A47C9D" /></View><View style={{ flex: 1 }}><Text style={styles.noPressureTitle}>No open DMs, no awkwardness.</Text><Text style={styles.noPressureText}>Chat starts only after you both accept. Declining is quiet.</Text></View></Frosted>
     </ScrollView>
@@ -395,7 +420,7 @@ export default function KindredApp() {
     <Frosted style={styles.meetupIntroCard}><View style={styles.meetupIntroArt}><View style={styles.artBubblePink} /><View style={styles.artBubbleBlue} /><View style={styles.artCenter}><Icon name="diversity-3" size={22} color="#93738E" /></View></View><View style={{ flex: 1 }}><Text style={styles.meetupIntroTitle}>Better in good company.</Text><Text style={styles.meetupIntroCopy}>Meet in public, bring a friend, leave whenever you like.</Text></View><Icon name="verified-user" size={18} color="#6F9C88" /></Frosted>
     <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#81758B" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
     <ScrollView style={styles.meetupScroll} contentContainerStyle={styles.meetupList} showsVerticalScrollIndicator={false}>{meetupSeeds.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#99819B" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
-      <Pressable onPress={() => { setNewGroupName("Coffee & conversation"); setComposerOpen(true); }} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#947B9B" /><Text style={styles.createPlanText}>Have a plan to share?</Text><Icon name="arrow-forward" size={15} color="#A18AA2" /></Pressable>
+      <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#947B9B" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#A18AA2" /></Pressable>
     </ScrollView>
   </>;
 
@@ -444,11 +469,11 @@ export default function KindredApp() {
               <Text style={styles.pageEyebrow}>{authStep === "welcome" ? "A GOOD PLACE TO BELONG" : authStep === "phone" ? "PHONE VERIFICATION" : authStep === "code" ? "ONE SMALL SAFETY STEP" : "MAKE IT FEEL LIKE YOU"}</Text>
               <Text style={styles.modalTitle}>{authStep === "welcome" ? "People, with a little more heart." : authStep === "phone" ? "Your number.\nYour own account." : authStep === "code" ? "Check your\nphone." : "What should friends call you?"}</Text>
               <Text style={styles.modalSubtitle}>{authStep === "welcome" ? "A standalone neighborhood circle for friendship. Chats open after a mutual yes." : authStep === "phone" ? "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? `A one-time code would be sent to ${phone || "your phone"}. Enter any 6 digits for this prototype.` : "Start with your name, age, and the small things you enjoy. You can change these later."}</Text>
-              {authStep === "welcome" ? <Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted> : null}
+              {authStep === "welcome" ? <><Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted><SafetyOnboardingCarousel onComplete={() => setAuthStep("phone")} /></> : null}
               {authStep === "phone" ? <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#AAA4AC" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : null}
               {authStep === "code" ? <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#AAA4AC" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View> : null}
               {authStep === "profile" ? <><View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={setFullName} placeholder="What do people call you?" placeholderTextColor="#AAA4AC" style={styles.fieldInput} returnKeyType="done" /></View><View style={styles.formField}><Text style={styles.fieldLabel}>AGE</Text><TextInput value={age} onChangeText={(value) => setAge(value.replace(/[^0-9]/g, "").slice(0, 2))} placeholder="Your age" placeholderTextColor="#AAA4AC" keyboardType="number-pad" style={styles.fieldInput} /></View><View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL FOR ACCOUNT RECOVERY · OPTIONAL</Text><TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#AAA4AC" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} style={styles.fieldInput} /></View><Text style={styles.fieldLabel}>SOMETHING YOU ENJOY</Text><View style={styles.interestOptions}>{["Coffee walks", "Bookshops", "Park hangs", "Try something new"].map((item) => <Pressable key={item} onPress={() => setInterest(item)} style={[styles.interestOption, interest === item && styles.interestOptionActive]}><Text style={[styles.interestOptionText, interest === item && styles.interestOptionTextActive]}>{item}</Text></Pressable>)}</View><View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#7A8FA0" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View></> : null}
-              <ActionButton onPress={continueAuth} style={styles.authContinue}><Text style={styles.actionText}>{authStep === "welcome" ? "Set up my account" : authStep === "phone" ? "Send my code" : authStep === "code" ? "Verify & continue" : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
+              {authStep !== "welcome" ? <ActionButton onPress={continueAuth} style={styles.authContinue}><Text style={styles.actionText}>{authStep === "phone" ? "Send my code" : authStep === "code" ? "Verify & continue" : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton> : null}
               {authStep !== "welcome" ? <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#8C7D92" /><Text style={styles.backLinkText}>Back</Text></Pressable> : null}
               <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#8496A3" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
               <Text style={styles.prototypeNote}>Prototype only: phone codes and identity checks are not connected to a live verification service.</Text>
@@ -466,6 +491,7 @@ export default function KindredApp() {
         <Pressable style={styles.actionMenuShade} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.actionMenuBlur}><Pressable onPress={(event) => event.stopPropagation()} style={styles.actionMenuCard}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#9A7796" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Kindred never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></Pressable></BlurView></Pressable>
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
+      <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
     </SafeAreaView>
   );
 }
@@ -607,8 +633,9 @@ const styles = StyleSheet.create({
   neighborAbout: { color: "#8E8791", fontSize: 8 },
   neighborMeta: { flexDirection: "row", alignItems: "center", gap: 3 },
   neighborMetaText: { color: "#968E98", fontSize: 7 },
-  neighborMetaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "#B5AAB7", marginHorizontal: 2 },
-  neighborInterest: { color: "#997D99", fontSize: 7, maxWidth: 67 },
+  commonInterestTags: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 1 },
+  commonInterestTag: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, backgroundColor: "rgba(248,242,249,0.82)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)" },
+  commonInterestTagText: { color: "#967A96", fontSize: 7, fontWeight: "600" },
   phoneOnlyLabel: { color: "#928C94", fontSize: 7, backgroundColor: "#F1EFF2", paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4, overflow: "hidden", marginLeft: 2 },
   compactRequestButton: { minWidth: 60, height: 30, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10, borderWidth: 1, borderColor: "#E3D6E5", backgroundColor: "rgba(246,239,247,0.78)", paddingHorizontal: 6 },
   compactRequestText: { color: "#8D748F", fontSize: 8, fontWeight: "700" },

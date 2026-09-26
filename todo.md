@@ -1,36 +1,25 @@
-# Kindred — feature and follow-up tracker
+# Kindred — feature build tracker
 
-## Implemented in this mobile prototype
+## Delivered in this iteration
 
-- [x] Messaging is the initial landing screen; discovery is not the primary experience.
-- [x] Chats, Unread and Groups filters, conversation search, friend shortcuts, private-group entry, and a local message composer.
-- [x] Direct threads render only for accepted friends; message composition updates local UI and shows sent/read receipts.
-- [x] Short typing indicator when opening a thread or after sending a message (prototype UI cue, not a remote-presence signal).
-- [x] Frosted conversation action sheet for sharing an approximate neighborhood only and preparing an editable meetup-invite draft; no live pin or automatic message send.
-- [x] Smooth cross-tab fade/vertical easing, with a brief frosted skeleton handoff only between Chats and Meetups.
-- [x] Friend requests in a compact contacts-style Friends tab; accept or dismiss actions.
-- [x] Phone-only members can browse but need stronger verification before outbound requests; access-control gates have tests.
-- [x] Standalone phone OTP demo, optional recovery email, profile setup, and prototype-only disclosure.
-- [x] Optional selfie identity flow: disclosure, explicit camera rationale, permission request, capture framing, local scan animation, success feedback, retake, and denied/unsupported fallback.
-- [x] Selfie capture is not treated as verification: no upload or badge change; only a future provider confirmation may grant the stronger badge.
-- [x] Premium frosted cards, warm blush/sky ambient background, compact profile list, safety controls, meetup RSVP state, and custom four-tab navigation.
-- [x] Unit tests cover verification gate, chat/meetup transition routing, camera-permission/capture gating, provider-only badge state, and message receipts.
+| Feature | Status | Notes |
+|---|---|---|
+| Safety onboarding carousel | Complete | Three swipeable/tappable frosted slides explain friendship-only intent, mutual acceptance, quiet declines, public meetups, location privacy, and report/block expectations. Continues into standalone phone signup. |
+| Meetup invite composer | Complete | Frosted bottom sheet supports recipient selection among accepted friends, an editable plan name, four curated public venues, three time options, a live preview, and intentional sharing into the selected chat. No live device location is read. |
+| Calm non-swipe discovery | Complete | Friends remains a vertical compact list (no swipe-card gestures); shared interests are matched and shown as small frosted tags. |
 
-## Verification notes
+## Verification
 
-- [x] Lint, TypeScript, and Vitest pass: 13 tests passed, 1 pre-existing test skipped.
-- [x] Live preview checked for Chats↔Meetups navigation, chat receipts/typing, share menu, and editable invite draft.
-- [x] Live preview checked for signup, profile selfie entry, disclosure, and in-app camera-permission rationale.
-- [ ] A real device/browser camera grant, capture, and native system-permission prompt still need on-device validation; automated preview did not grant camera access.
+- [x] Added unit tests for onboarding slide themes and progression, invite validation/formatting, and shared-interest matching.
+- [x] `pnpm lint` passed.
+- [x] `pnpm check` passed.
+- [x] `pnpm test` passed: 20 tests passed; 1 pre-existing auth test is skipped.
+- [x] Live preview checked: each carousel slide, list-style discovery and shared-interest tags, invite venue/time selection, and sharing the invite to the selected accepted-friend thread.
+- [x] Mobile screenshot review completed at 390 × 844.
 
-## Production integrations / follow-ups
+## Production follow-ups
 
-- [ ] Connect phone OTP to a real auth/SMS provider; replace the local six-digit demo validator.
-- [ ] Persist accounts, consent, preferences, friendships, messages, meetups, groups, and RSVPs to the server/database; current interaction state is local to this prototype.
-- [ ] Add a real selfie/ID-verification provider and signed verification status; keep provider decision as the only way to assign stronger verification.
-- [ ] Add working report/block flows, evidence capture, report-count auto-hide, and moderation review tooling.
-- [ ] Wire meetups to create/join/check-in APIs, venue/location services, and friend invitations.
-- [ ] Connect typing, delivered/read receipts, live location, and voice/video calls to authorized backend services; the current typing/read states are local illustrative UI.
-- [ ] Wire paid features behind server-enforced entitlement.
-- [ ] Add a dedicated preferences sheet for age range, gender, radius, interests, availability, and relationship intent.
-- [ ] Persist availability, discovery visibility, distance privacy, and email recovery preferences across sessions.
+- [ ] Connect phone OTP and account/profile persistence to production auth and server storage; current signup and messaging are prototype-local.
+- [ ] Connect invites to real meetup creation, venue search/geocoding, calendar/notifications, and server-side message delivery; venue/time options are curated demo choices.
+- [ ] Connect real-time presence/typing/read status and keep receipt state authoritative on the server.
+- [ ] Connect identity checks and moderation/report/block workflows to reviewed services.
