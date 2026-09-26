@@ -172,6 +172,110 @@ export async function reportEvents(events: ReportableEvent[]): Promise<void> {
 
 /* ------------------------------ adapters ------------------------------- */
 
+/** The server's view of the member's paid tier, derived from verified receipts. */
+export type RemoteEntitlement = {
+  tier: "free" | "premium";
+  planId: string;
+  renewsOn: string | null;
+  autoRenewing: boolean;
+  cancelledAt: string | null;
+  lastVerifiedAt: string | null;
+  /** "store" for a real verification, "sandbox" while no credentials exist. */
+  verifiedBy: "store" | "sandbox" | null;
+};
+
+export type RemoteReceipt = {
+  id: number;
+  channel: "play" | "app-store";
+  productId: string;
+  planId: string;
+  status: string;
+  expiresAt: string;
+  autoRenewing: boolean;
+  cancelledAt: string | null;
+  verifiedBy: string;
+  lastVerifiedAt: string | null;
+  createdAt: string;
+};
+
+/** A receipt handed back to the server for verification. */
+export type StoreReceiptPayload = {
+  channel: "play" | "app-store";
+  productId: string;
+  purchaseToken: string;
+  signedTransaction?: string | null;
+  originalTransactionId?: string | null;
+};
+
+/* ------------------------------- billing -------------------------------- */
+
+/** The product catalogue and which verification mode the server is running. */
+export async function fetchBillingProducts() {
+  return request<{
+    products: { planId: string; productId: string; chargeInr: number }[];
+    verification: "store" | "sandbox";
+  }>("/api/account/billing/products");
+}
+
+/** The member's real entitlement, straight from the server. */
+export async function fetchEntitlement() {
+  return request<{
+    entitlement: RemoteEntitlement;
+    receipts: RemoteReceipt[];
+    verification: "store" | "sandbox";
+  }>("/api/account/billing/entitlement");
+}
+
+/**
+ * Send a store receipt for verification.
+ *
+ * The receipt is passed through untouched. A rejection carries the store's
+ * reason, which is what the member sees.
+ */
+export async function verifyPurchase(receipt: StoreReceiptPayload) {
+  return request<{
+    ok: boolean;
+    entitlement: RemoteEntitlement;
+    transactionId: string;
+    changed: boolean;
+  }>("/api/account/billing/verify", {
+    method: "POST",
+    body: JSON.stringify(receipt),
+  });
+}
+
+/** Replay the store's purchase history for this account. */
+export async function restorePurchases(receipts: StoreReceiptPayload[]) {
+  return request<{ ok: boolean; restored: boolean; entitlement: RemoteEntitlement }>(
+    "/api/account/billing/restore",
+    { method: "POST", body: JSON.stringify({ receipts }) },
+  );
+}
+
+/** Tell the server the store reported a cancellation. */
+export async function reportStoreCancellation() {
+  return request<{ ok: boolean; entitlement: RemoteEntitlement }>("/api/account/billing/cancel", {
+    method: "POST",
+  });
+}
+
+/** Ask the server to re-check receipts that have gone stale. */
+export async function revalidateEntitlements() {
+  return request<{ ok: boolean; checked: number; lapsed: number }>("/api/account/billing/revalidate", {
+    method: "POST",
+  });
+}
+
+/** Convert a server entitlement into the shape the app's tier model uses. */
+export function subscriptionFromEntitlement(entitlement: RemoteEntitlement): {
+  tier: "free" | "premium";
+  planId: string;
+  renewsOn: string | null;
+} {
+  if (entitlement.tier !== "premium") return { tier: "free", planId: entitlement.planId, renewsOn: null };
+  return { tier: "premium", planId: entitlement.planId, renewsOn: entitlement.renewsOn };
+}
+
 /** Convert a remote account into the shape the access rules expect. */
 export function accountStateFrom(account: RemoteAccount | null): AccountState | null {
   if (!account) return null;

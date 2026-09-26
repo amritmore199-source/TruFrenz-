@@ -38,10 +38,15 @@ type Props = {
   tier: Tier;
   /** Opens the paywall when the plan's group capacity is reached. */
   onUpgrade: (reason: string) => void;
+  /**
+   * The soft upgrade hint for the free group cap. Rendered by the app so the
+   * modal stays unaware of plans and pricing.
+   */
+  nudge?: React.ReactNode;
 };
 
 /** Group Info: members and roles, invite-only adds, settings, and admin tools. */
-export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onClose, onUpdate, onFeedback, onStartGroupCall, onLeave, tier, onUpgrade }: Props) {
+export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onClose, onUpdate, onFeedback, onStartGroupCall, onLeave, tier, onUpgrade, nudge }: Props) {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
   const [renaming, setRenaming] = useState(false);
@@ -122,6 +127,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
               ))}
 
               <Text style={styles.sectionLabel}>ADD A FRIEND · ACCEPTED FRIENDS ONLY</Text>
+              {nudge}
               {candidates.length === 0 ? (
                 <Text style={styles.emptyNote}>Everyone you are friends with is already here. Groups never open to strangers.</Text>
               ) : (

@@ -297,7 +297,41 @@ export const subscriptionEvents = mysqlTable("subscription_events", {
 });
 
 export type SubscriptionEvent = typeof subscriptionEvents.$inferSelect;
-
+/**
+ * Verified store purchases.
+ *
+ * One row per receipt the store has confirmed. This is the only thing that
+ * grants Premium: the member's tier is derived from the unexpired rows here, so
+ * a client that simply claims to be premium changes nothing.
+ */
+export const subscriptionReceipts = mysqlTable("subscription_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** Which store took the payment. */
+  channel: mysqlEnum("channel", ["play", "app-store"]).notNull(),
+  /** The store product id, e.g. trufrenz.premium.annual. */
+  productId: varchar("productId", { length: 120 }).notNull(),
+  /** The plan the product maps to. */
+  planId: varchar("planId", { length: 32 }).notNull(),
+  /** The store's own transaction id. Unique, so a receipt cannot be reused. */
+  transactionId: varchar("transactionId", { length: 200 }).notNull().unique(),
+  /** SHA-256 of the purchase token. The token itself is never stored. */
+  purchaseTokenHash: varchar("purchaseTokenHash", { length: 64 }).notNull(),
+  status: mysqlEnum("status", ["pending", "active", "expired", "revoked"])
+    .default("active")
+    .notNull(),
+  /** When the store says the paid period ends. */
+  expiresAt: timestamp("expiresAt").notNull(),
+  autoRenewing: boolean("autoRenewing").default(true).notNull(),
+  /** Set when the store reports a cancellation that runs to period end. */
+  cancelledAt: timestamp("cancelledAt"),
+  /** Last time the store confirmed this receipt. */
+  lastVerifiedAt: timestamp("lastVerifiedAt"),
+  /** "store" for a real verification, "sandbox" while no credentials exist. */
+  verifiedBy: varchar("verifiedBy", { length: 16 }).default("sandbox").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SubscriptionReceipt = typeof subscriptionReceipts.$inferSelect;
 /** One row per day of product health, used by the Analytics Dashboard. */
 export const dailyMetrics = mysqlTable("daily_metrics", {
   id: int("id").autoincrement().primaryKey(),

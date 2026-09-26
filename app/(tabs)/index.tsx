@@ -58,11 +58,15 @@ import {
   shouldHideTabBarForKeyboard,
 } from "@/lib/chat-layout";
 import { PremiumPaywall } from "@/components/premium-paywall";
+import { ManageSubscriptionModal, type ReceiptSummary } from "@/components/manage-subscription-modal";
+import { UpgradeNudgeCard } from "@/components/upgrade-nudge";
 import {
   BANNER_AD_COPY,
   DEFAULT_SUBSCRIPTION,
+  DEFAULT_PLAN_ID,
   FEATURE_COMPARISON,
   FREE_HANGOUT_PROPOSALS,
+  PLANS,
   SUBSCRIPTION_STORAGE_KEY,
   adFreeGate,
   callingGate,
@@ -70,11 +74,45 @@ import {
   hangoutProposalGate,
   liveMapGate,
   parseSubscription,
+  applyEntitlement,
   startSubscription,
   tierLabel,
   type PlanId,
   type Subscription,
 } from "@/lib/subscription";
+import {
+  EMPTY_USAGE,
+  IDLE_PURCHASE,
+  IDLE_RESTORE,
+  NOTHING_TO_RESTORE,
+  activePlanLine,
+  beginPurchase,
+  beginRestore,
+  beginVerification,
+  chargeForPlan,
+  completePurchase,
+  failPurchase,
+  groupCapacityNudge,
+  parseUsage,
+  productIdForPlan,
+  proposalNudge,
+  purchaseInFlight,
+  restoreFailed,
+  restoredState,
+  type PurchaseState,
+  type RestoreState,
+  type StoreChannel,
+  type UpgradeNudge,
+} from "@/lib/subscription-store";
+import {
+  fetchBillingProducts,
+  fetchEntitlement,
+  reportStoreCancellation,
+  restorePurchases,
+  subscriptionFromEntitlement,
+  verifyPurchase,
+  type StoreReceiptPayload,
+} from "@/lib/account-client";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
@@ -150,6 +188,9 @@ import {
 } from "@/lib/group-management";
 import { INTEREST_SUGGESTIONS, LOCALITY_SUGGESTIONS, ageFromDateOfBirth, firstProfileError, formatDateOfBirth, hasProfileErrors, parseDateOfBirth, toggleInterest as toggleProfileInterest, validateProfileDraft, type ProfileDraftErrors } from "@/lib/onboarding-profile";
 import * as ImagePicker from "expo-image-picker";
+
+/** Narrow an arbitrary plan id string to one of the published plans. */
+const planIdFrom = (value: string): PlanId => PLANS.find((plan) => plan.id === value)?.id ?? DEFAULT_PLAN_ID;
 
 const REQUEST_AUDIENCE_LABEL: Record<RequestAudience, string> = {
   everyone: "Anyone can request",
@@ -364,6 +405,20 @@ export default function TrufrenzApp() {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallReason, setPaywallReason] = useState<string | undefined>(undefined);
   const [paywallPlan, setPaywallPlan] = useState<PlanId | undefined>(undefined);
+  /** The management screen: plan, renewal, restore, and store cancellation. */
+  const [manageOpen, setManageOpen] = useState(false);
+  /** Where the current purchase is in the store -> verify -> unlock sequence. */
+  const [purchase, setPurchase] = useState<PurchaseState>(IDLE_PURCHASE);
+  const [restore, setRestore] = useState<RestoreState>(IDLE_RESTORE);
+  const [restoring, setRestoring] = useState(false);
+  /** Verified purchases on file, straight from the server. */
+  const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
+  /** "store" once the server verifies with the real store API, "sandbox" until then. */
+  const [verification, setVerification] = useState<"store" | "sandbox">("sandbox");
+  /** Limits the member has already been nudged about, so nothing repeats. */
+  const [dismissedNudges, setDismissedNudges] = useState<string[]>([]);
+  /** The store this build sells through. */
+  const storeChannel: StoreChannel = Platform.OS === "ios" ? "app-store" : "play";
   /** How many hangout or meetup proposals this member has sent. */
   const [proposalsSent, setProposalsSent] = useState(0);
   /** Free members see one small banner; dismissing it hides it for the session. */
@@ -406,12 +461,31 @@ export default function TrufrenzApp() {
   const tier = subscription.tier;
   const entitlements = entitlementsFor(tier);
   const paidTier = tier === "premium";
+  /*
+   * Soft upgrade nudges.
+   *
+   * Each one stays hidden until the member is genuinely close to a limit, and a
+   * dismissal is remembered so the same hint never appears twice.
+   */
+  const proposalUpgradeNudge = useMemo(() => {
+    const nudge = proposalNudge(tier, proposalsSent);
+    return dismissedNudges.includes("proposals") ? { ...nudge, level: "hidden" as const } : nudge;
+  }, [dismissedNudges, proposalsSent, tier]);
+  const groupUpgradeNudge = useMemo(() => {
+    const nudge = groupCapacityNudge(tier, group.members.length);
+    return dismissedNudges.includes("group") ? { ...nudge, level: "hidden" as const } : nudge;
+  }, [dismissedNudges, group.members.length, tier]);
+  /** Remember a dismissal for the session so the hint does not repeat. */
+  const dismissNudge = useCallback((key: "proposals" | "group") => {
+    setDismissedNudges((current) => (current.includes(key) ? current : [...current, key]));
+  }, []);
   /** Opens the paywall, optionally explaining which limit was reached. */
   const openPaywall = useCallback((reason?: string, planId?: PlanId) => {
     setPaywallReason(reason);
     setPaywallPlan(planId);
     setPaywallOpen(true);
   }, []);
+
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [createdGroups, setCreatedGroups] = useState<string[]>([]);
@@ -540,6 +614,133 @@ export default function TrufrenzApp() {
     setTimeout(() => setToast(""), 2400);
   };
   const tap = () => { if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); };
+
+  /* ------------------------------- billing -------------------------------- */
+  /*
+   * The store is the source of truth for the paid tier.
+   *
+   * `refreshEntitlement` reads the server's view, which is derived from verified
+   * receipts only. A purchase runs store → verify → unlock, and every failure is
+   * shown rather than swallowed, because a member who paid deserves to know why
+   * Premium did not turn on.
+   */
+  const applyRemoteEntitlement = useCallback(
+    (entitlement: Parameters<typeof subscriptionFromEntitlement>[0]) => {
+      setSubscription(applyEntitlement(entitlement));
+    },
+    [],
+  );
+
+  const refreshEntitlement = useCallback(async () => {
+    const result = await fetchEntitlement();
+    if (!result.ok) return false;
+    setVerification(result.data.verification);
+    setReceipts(
+      result.data.receipts.map((receipt) => ({
+        id: receipt.id,
+        channel: receipt.channel,
+        productId: receipt.productId,
+        status: receipt.status,
+        expiresAt: receipt.expiresAt,
+        autoRenewing: receipt.autoRenewing,
+        cancelledAt: receipt.cancelledAt,
+        verifiedBy: receipt.verifiedBy,
+      })),
+    );
+    applyRemoteEntitlement(result.data.entitlement);
+    return result.data.entitlement.tier === "premium";
+  }, [applyRemoteEntitlement]);
+
+  /**
+   * Ask the store to charge, then let the server decide.
+   *
+   * A native build hands this the real purchase token from Google Play Billing
+   * or StoreKit. Without a bundled store SDK the client cannot mint a real
+   * token, so it derives a per-account demo token and the server records the
+   * receipt as `sandbox` — the verification, entitlement, and restore paths are
+   * the same code a store-connected build would exercise.
+   */
+  const completeStorePurchase = useCallback(
+    async (planId: PlanId) => {
+      setPurchase(beginPurchase(planId));
+      // The store sheet is asynchronous; this stands in for its callback.
+      await new Promise((resolve) => setTimeout(resolve, 650));
+
+      const productId = productIdForPlan(planId);
+      const purchaseToken = `demo-${storeChannel}-${productId}-${phone || "guest"}-${Date.now()}`;
+      setPurchase(beginVerification(planId, purchaseToken));
+
+      const result = await verifyPurchase({
+        channel: storeChannel,
+        productId,
+        purchaseToken,
+        originalTransactionId: purchaseToken,
+      });
+
+      if (!result.ok) {
+        setPurchase(failPurchase(planId, result.error));
+        feedback(result.error);
+        return;
+      }
+
+      setPurchase(completePurchase(planId, result.data.transactionId));
+      setVerification(result.data.entitlement.verifiedBy ?? "sandbox");
+      applyRemoteEntitlement(result.data.entitlement);
+      setPaywallOpen(false);
+      void refreshEntitlement();
+      feedback(
+        `Welcome to Trufrenz Premium. ${planId === "annual" ? "A full year" : planId === "quarterly" ? "Three months" : "One month"} unlocked.`,
+      );
+      void reportEvents([{ eventType: "subscription_started", metadata: { planId, channel: storeChannel } }]);
+    },
+    [applyRemoteEntitlement, feedback, refreshEntitlement, storeChannel],
+  );
+
+  /** Replay the store's own purchase history for this account. */
+  const restoreStorePurchases = useCallback(async () => {
+    setRestoring(true);
+    setRestore(beginRestore());
+    try {
+      // A store-connected build asks the SDK for its receipt history here.
+      const history: StoreReceiptPayload[] = [];
+      const result = await restorePurchases(history);
+      if (!result.ok) {
+        setRestore(restoreFailed(result.error));
+        return;
+      }
+      if (result.data.restored) {
+        applyRemoteEntitlement(result.data.entitlement);
+        setRestore(restoredState(planIdFrom(result.data.entitlement.planId)));
+        void refreshEntitlement();
+        return;
+      }
+      // Nothing in the store: fall back to whatever the server already has.
+      const hadReceipt = await refreshEntitlement();
+      setRestore(hadReceipt ? restoredState(subscription.planId) : NOTHING_TO_RESTORE);
+    } finally {
+      setRestoring(false);
+    }
+  }, [applyRemoteEntitlement, refreshEntitlement, subscription.planId]);
+
+  /** Record a cancellation the member confirmed in their store account. */
+  const reportCancellation = useCallback(async () => {
+    const result = await reportStoreCancellation();
+    if (!result.ok) {
+      feedback(result.error);
+      return;
+    }
+    applyRemoteEntitlement(result.data.entitlement);
+    void refreshEntitlement();
+    feedback("Auto-renew is off. Premium stays on until the end of your paid period.");
+  }, [applyRemoteEntitlement, feedback, refreshEntitlement]);
+
+  /** Load the product catalogue so the app never hard-codes product ids. */
+  useEffect(() => {
+    fetchBillingProducts().then((result) => {
+      if (result.ok) setVerification(result.data.verification);
+    }).catch(() => undefined);
+  }, []);
+
   const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setShowSignup(true); tap(); };
   const closeSignup = () => setShowSignup(false);
   const persistSession = (next: StoredSession) => {
@@ -1504,7 +1705,20 @@ export default function TrufrenzApp() {
           onBlock={blockCurrent}
           onLeaveGroup={() => { closeThread(); feedback("You left the group. Your copy of the history stays on your device."); }}
         />
-        <PlanComposerModal visible={planComposerKind !== null} initialKind={planComposerKind ?? "hangout"} friendName={currentThread.name} onClose={() => setPlanComposerKind(null)} onShare={sharePlan} />
+        <PlanComposerModal
+          visible={planComposerKind !== null}
+          initialKind={planComposerKind ?? "hangout"}
+          friendName={currentThread.name}
+          onClose={() => setPlanComposerKind(null)}
+          onShare={sharePlan}
+          nudge={
+            <UpgradeNudgeCard
+              nudge={proposalUpgradeNudge}
+              onUpgrade={() => { setPlanComposerKind(null); openPaywall(proposalUpgradeNudge.title, proposalUpgradeNudge.planId); }}
+              onDismiss={() => dismissNudge("proposals")}
+            />
+          }
+        />
         <GroupInfoModal
           visible={groupInfoOpen}
           group={group}
@@ -1517,6 +1731,13 @@ export default function TrufrenzApp() {
           onFeedback={feedback}
           onStartGroupCall={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: group.settings.name, peerVerified: true, video: true, direction: "outgoing" }))}
           onLeave={closeThread}
+          nudge={
+            <UpgradeNudgeCard
+              nudge={groupUpgradeNudge}
+              onUpgrade={() => { setGroupInfoOpen(false); openPaywall(groupUpgradeNudge.title, groupUpgradeNudge.planId); }}
+              onDismiss={() => dismissNudge("group")}
+            />
+          }
         />
       </View>;
     }
@@ -1600,7 +1821,7 @@ export default function TrufrenzApp() {
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => { tap(); openPaywall(undefined, subscription.planId); }} accessibilityRole="button" accessibilityLabel={paidTier ? `Trufrenz Premium active, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? "Calls, live map, and read receipts · active" : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable>
+      <Pressable onPress={() => { tap(); if (paidTier) { setManageOpen(true); } else { openPaywall(undefined, subscription.planId); } }} accessibilityRole="button" accessibilityLabel={paidTier ? `Manage Trufrenz Premium, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? `${activePlanLine(subscription)} · manage` : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable>
     </Frosted>
     <Text style={styles.settingsLabel}>APPEARANCE</Text>
     {/*
@@ -1713,11 +1934,31 @@ export default function TrufrenzApp() {
         reason={paywallReason}
         onClose={() => setPaywallOpen(false)}
         onPurchase={(planId) => {
-          // The store confirms the charge; only then does the plan change.
-          setSubscription(startSubscription(planId));
-          setPaywallOpen(false);
-          feedback(`Welcome to Trufrenz Premium. ${planId === "annual" ? "A full year" : planId === "quarterly" ? "Three months" : "One month"} unlocked.`);
+          // Store first, server second: the tier only moves once the receipt is
+          // verified, so a failed charge never unlocks Premium.
+          void completeStorePurchase(planId);
         }}
+      />
+      {/*
+        Manage Subscription.
+        Premium members land here from the same row that sells the plan, so the
+        place they upgraded from is the place they manage it.
+      */}
+      <ManageSubscriptionModal
+        visible={manageOpen}
+        subscription={subscription}
+        receipts={receipts}
+        channel={storeChannel}
+        verification={verification}
+        restore={restore}
+        restoring={restoring}
+        onClose={() => setManageOpen(false)}
+        onChangePlan={(planId) => {
+          setManageOpen(false);
+          openPaywall(undefined, planId);
+        }}
+        onRestore={() => void restoreStorePurchases()}
+        onReportCancelled={reportCancellation}
       />
       {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}

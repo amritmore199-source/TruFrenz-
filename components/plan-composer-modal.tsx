@@ -15,6 +15,11 @@ type Props = {
   /** Which card type the member opened; hangouts are the lighter option. */
   initialKind: PlanKind;
   friendName: string;
+  /**
+   * The soft upgrade hint for the free proposal limit. Rendered by the app so
+   * the composer stays unaware of plans and pricing.
+   */
+  nudge?: React.ReactNode;
   onClose: () => void;
   onShare: (kind: PlanKind, proposal: PlanProposal, note: string) => void;
 };
@@ -32,7 +37,7 @@ function dayLabel(days: number): string {
 }
 
 /** Compose a structured Hangout or Meetup card and share it into the chat. */
-export function PlanComposerModal({ visible, initialKind, friendName, onClose, onShare }: Props) {
+export function PlanComposerModal({ visible, initialKind, friendName, nudge, onClose, onShare }: Props) {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
   const [kind, setKind] = useState<PlanKind>(initialKind);
@@ -134,6 +139,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, onClose, o
                 returnKeyType="done"
               />
 
+              {nudge}
               <Pressable accessibilityRole="button" accessibilityLabel={`Share this ${PLAN_KIND_LABEL[kind].toLowerCase()} card`} onPress={share} style={({ pressed }) => [styles.share, pressed && styles.pressed]}>
                 <MaterialIcons name="send" size={16} color="#FFFFFF" />
                 <Text style={styles.shareText}>Share {PLAN_KIND_LABEL[kind].toLowerCase()} card</Text>

@@ -1,10 +1,41 @@
 # Trufrenz — build tracker
 
-Newest work first.
+## Store billing, Manage Subscription, and upgrade nudges (latest)
 
----
+- [x] Store product catalogue with the three published INR prices and the annual
+      launch charge (₹399 inside the 90-day window, ₹499 after).
+- [x] Server-side receipt verification: `subscription_receipts` table, migration
+      `0003_exotic_dust.sql` applied, `server/billingService.ts`, and six billing
+      routes on `/api/account/billing/*`. The client never grants Premium — the
+      tier is derived from unexpired verified receipts, so a lapsed period reads
+      as free even if the cached column still says premium.
+- [x] Purchase lifecycle, restore states, and usage counters as pure logic in
+      `lib/subscription-store.ts`.
+- [x] Manage Subscription screen (`components/manage-subscription-modal.tsx`),
+      opened from the You-tab premium row: active plan, renewal, auto-renew,
+      receipt verification, receipts on file, restore, plan switching, and
+      cancellation that names the member's own store account.
+- [x] Soft upgrade nudges (`components/upgrade-nudge.tsx`) at the proposal limit
+      and the free group cap, dismissible and never repeating in a session.
+- [x] `Subscription` type extended with `autoRenewing`, `cancelledAt`,
+      `lastVerifiedAt`, `verifiedBy`; `parseSubscription` still falls back to
+      free on anything malformed.
+- [x] 16 new tests in `tests/subscription-store.test.ts`.
 
-# Chat list gestures, attachment preview, and profile legibility
+Verified in the browser: a real purchase wrote a receipt
+(`trufrenz.premium.quarterly`, `verifiedBy: sandbox`, expires 26 Dec 2026),
+entitlement returned premium, and the ad banner disappeared; the management
+screen showed "91 days left in this period" and the Active receipt; the group
+capacity nudge appeared at "2 seats left in this circle" and dismissed cleanly;
+resetting to free restored the ad banner and the paywall route.
+
+Checks: `pnpm check` 0 errors, `pnpm lint` 0 errors (22 pre-existing warnings),
+`pnpm test` 309 passing / 1 skipped, `git diff --check` clean.
+
+Still open: no store SDK bundled (verification paths are real, the client token
+is simulated and recorded as `sandbox`); the paywall still uses its own busy flag
+rather than the tested `purchaseButtonLabel()`; no scheduled receipt
+revalidation job; the proposal counter behind the nudge is not persisted.
 
 ## 1. Swipe-right to archive
 

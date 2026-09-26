@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 
 import * as account from "./accountService";
 import { getDb } from "./db";
+import * as billing from "./billingService";
 import { memberSessions, members, verificationSubmissions } from "../drizzle/schema";
 import { canAccount, type AccountCapability } from "../lib/account-access";
 import { isAnalyticsEventType } from "../lib/analytics-events";
@@ -550,6 +551,170 @@ export function registerAccountRoutes(app: Express) {
     }
 
     res.json({ ok: true, accepted });
+  });
+
+  /* ------------------------------ billing ------------------------------- */
+  /*  The client never grants Premium. It hands the store's receipt to these  */
+  /*  routes, which verify it with the store and only then flip the tier.     */
+
+  /**
+   * The product catalogue.
+   *
+   * The app reads its product ids and prices from here rather than hard-coding
+   * them, so the store listing and the paywall cannot drift apart.
+   */
+  app.get("/api/account/billing/products", async (_req, res) => {
+    res.json({
+      products: billing.storeCatalog(),
+      /** "store" once real credentials exist, "sandbox" until then. */
+      verification: billing.verificationMode(),
+    });
+  });
+
+  /** The member's real entitlement, derived from unexpired verified receipts. */
+  app.get("/api/account/billing/entitlement", requireMember, async (req: MemberRequest, res) => {
+    const entitlement = await billing.entitlementForMember(req.member!.id);
+    const receipts = await billing.listReceiptsForMember(req.member!.id);
+    res.json({
+      entitlement,
+      receipts: receipts.map((receipt) => ({
+        id: receipt.id,
+        channel: receipt.channel,
+        productId: receipt.productId,
+        planId: receipt.planId,
+        status: receipt.status,
+        expiresAt: receipt.expiresAt,
+        autoRenewing: receipt.autoRenewing,
+        cancelledAt: receipt.cancelledAt,
+        verifiedBy: receipt.verifiedBy,
+        lastVerifiedAt: receipt.lastVerifiedAt,
+        createdAt: receipt.createdAt,
+      })),
+      verification: billing.verificationMode(),
+    });
+  });
+
+  /**
+   * Verify a purchase.
+   *
+   * The body carries the store's own receipt untouched. A rejection is returned
+   * with the reason, never a silent success.
+   */
+  app.post("/api/account/billing/verify", requireMember, async (req: MemberRequest, res) => {
+    const body = req.body ?? {};
+    const channel = body.channel === "app-store" ? "app-store" : body.channel === "play" ? "play" : null;
+    const productId = String(body.productId ?? "").trim().slice(0, 120);
+    const purchaseToken = String(body.purchaseToken ?? "").trim().slice(0, 4096);
+    const signedTransaction = body.signedTransaction ? String(body.signedTransaction).slice(0, 16384) : null;
+    const originalTransactionId = body.originalTransactionId
+      ? String(body.originalTransactionId).slice(0, 200)
+      : null;
+
+    if (!channel) {
+      res.status(400).json({ error: "That store is not supported.", code: "unsupported_channel" });
+      return;
+    }
+    if (!productId || !purchaseToken) {
+      res.status(400).json({
+        error: "The store did not return a complete receipt.",
+        code: "missing_receipt",
+      });
+      return;
+    }
+
+    try {
+      const result = await billing.applyReceipt(req.member!.id, {
+        channel,
+        productId,
+        purchaseToken,
+        signedTransaction,
+        originalTransactionId,
+      });
+      await account.recordEvent({
+        eventType: "subscription_started",
+        memberId: req.member!.id,
+        metadata: { planId: result.entitlement.planId, channel, verifiedBy: result.entitlement.verifiedBy },
+      });
+      res.json({
+        ok: true,
+        entitlement: result.entitlement,
+        transactionId: result.transactionId,
+        changed: result.changed,
+      });
+    } catch (error) {
+      if (error instanceof billing.ReceiptRejected) {
+        res.status(422).json({ error: error.message, code: error.code });
+        return;
+      }
+      res.status(500).json({ error: "Trufrenz could not confirm that purchase. Try again shortly." });
+    }
+  });
+
+  /**
+   * Restore purchases.
+   *
+   * The app replays the receipts the store already holds for this account.
+   * Each one is verified exactly like a fresh purchase.
+   */
+  app.post("/api/account/billing/restore", requireMember, async (req: MemberRequest, res) => {
+    const incoming = Array.isArray(req.body?.receipts) ? req.body.receipts : [];
+    const receipts: billing.StoreReceipt[] = [];
+    for (const raw of incoming.slice(0, 25)) {
+      const channel = raw?.channel === "app-store" ? "app-store" : raw?.channel === "play" ? "play" : null;
+      const productId = String(raw?.productId ?? "").trim().slice(0, 120);
+      const purchaseToken = String(raw?.purchaseToken ?? "").trim().slice(0, 4096);
+      if (!channel || !productId || !purchaseToken) continue;
+      receipts.push({
+        channel,
+        productId,
+        purchaseToken,
+        signedTransaction: raw?.signedTransaction ? String(raw.signedTransaction).slice(0, 16384) : null,
+        originalTransactionId: raw?.originalTransactionId ? String(raw.originalTransactionId).slice(0, 200) : null,
+      });
+    }
+
+    if (receipts.length === 0) {
+      res.json({ ok: true, restored: false, entitlement: await billing.entitlementForMember(req.member!.id) });
+      return;
+    }
+
+    const restored = await billing.restoreReceipts(req.member!.id, receipts);
+    const entitlement = restored?.entitlement ?? (await billing.entitlementForMember(req.member!.id));
+    if (restored) {
+      await account.recordEvent({
+        eventType: "subscription_started",
+        memberId: req.member!.id,
+        metadata: { planId: entitlement.planId, restored: true, verifiedBy: entitlement.verifiedBy },
+      });
+    }
+    res.json({ ok: true, restored: Boolean(restored), entitlement });
+  });
+
+  /**
+   * Record a cancellation the store reported.
+   *
+   * Both stores keep the subscription running to the end of the paid period, so
+   * this flags the receipt and leaves the tier in place until it lapses.
+   */
+  app.post("/api/account/billing/cancel", requireMember, async (req: MemberRequest, res) => {
+    const entitlement = await billing.markReceiptCancelled(req.member!.id);
+    await account.recordEvent({
+      eventType: "subscription_cancelled",
+      memberId: req.member!.id,
+      metadata: { planId: entitlement.planId, renewsOn: entitlement.renewsOn },
+    });
+    res.json({ ok: true, entitlement });
+  });
+
+  /**
+   * Re-check receipts that have gone stale.
+   *
+   * A real deployment runs this from a scheduled job; exposing it here keeps the
+   * same code path reviewable and lets the dashboard trigger it by hand.
+   */
+  app.post("/api/account/billing/revalidate", requireMember, async (_req: MemberRequest, res) => {
+    const result = await billing.revalidateDueReceipts();
+    res.json({ ok: true, ...result });
   });
 
   console.log("[account] consumer account API registered at /api/account");

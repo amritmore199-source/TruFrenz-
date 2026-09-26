@@ -310,16 +310,74 @@ export type Subscription = {
   renewsOn: string | null;
   /** True while a purchase is being confirmed with the store. */
   pending: boolean;
+  /** Whether the store will renew this plan when the period ends. */
+  autoRenewing: boolean;
+  /** Set when the store reported a cancellation that runs to period end. */
+  cancelledAt: string | null;
+  /** When the server last confirmed the receipt with the store. */
+  lastVerifiedAt: string | null;
+  /** "store" for a real verification, "sandbox" while no credentials exist. */
+  verifiedBy: "store" | "sandbox" | null;
 };
 
-export const DEFAULT_SUBSCRIPTION: Subscription = { tier: "free", planId: DEFAULT_PLAN_ID, renewsOn: null, pending: false };
+export const DEFAULT_SUBSCRIPTION: Subscription = {
+  tier: "free",
+  planId: DEFAULT_PLAN_ID,
+  renewsOn: null,
+  pending: false,
+  /** Whether the store will renew this plan when the period ends. */
+  autoRenewing: false,
+  /** Set when the store reported a cancellation that runs to period end. */
+  cancelledAt: null,
+  /** When the server last confirmed the receipt with the store. */
+  lastVerifiedAt: null,
+  /** "store" for a real verification, "sandbox" while no credentials exist. */
+  verifiedBy: null,
+};
 
 /** A subscription for a completed purchase, renewing from `now`. */
 export function startSubscription(planId: PlanId, now: Date = new Date()): Subscription {
   const plan = planById(planId);
   const renews = new Date(now.getTime());
   renews.setMonth(renews.getMonth() + plan.months);
-  return { tier: "premium", planId: plan.id, renewsOn: renews.toISOString(), pending: false };
+  return {
+    tier: "premium",
+    planId: plan.id,
+    renewsOn: renews.toISOString(),
+    pending: false,
+    autoRenewing: true,
+    cancelledAt: null,
+    lastVerifiedAt: now.toISOString(),
+    verifiedBy: null,
+  };
+}
+
+/**
+ * Apply a server-verified entitlement.
+ *
+ * This is the only path that turns Premium on from real data: the dates and the
+ * auto-renew flag come from the store's own response, not from the client.
+ */
+export function applyEntitlement(entitlement: {
+  tier: Tier;
+  planId: string;
+  renewsOn: string | null;
+  autoRenewing?: boolean;
+  cancelledAt?: string | null;
+  lastVerifiedAt?: string | null;
+  verifiedBy?: "store" | "sandbox" | null;
+}): Subscription {
+  if (entitlement.tier !== "premium" || !entitlement.renewsOn) return { ...DEFAULT_SUBSCRIPTION };
+  return {
+    tier: "premium",
+    planId: planById(entitlement.planId).id,
+    renewsOn: entitlement.renewsOn,
+    pending: false,
+    autoRenewing: entitlement.autoRenewing ?? true,
+    cancelledAt: entitlement.cancelledAt ?? null,
+    lastVerifiedAt: entitlement.lastVerifiedAt ?? null,
+    verifiedBy: entitlement.verifiedBy ?? null,
+  };
 }
 
 export function cancelSubscription(): Subscription {
@@ -345,5 +403,18 @@ export function parseSubscription(raw: unknown): Subscription {
   if (tier === "free") return { ...DEFAULT_SUBSCRIPTION };
   const plan = planById(typeof value.planId === "string" ? value.planId : DEFAULT_PLAN_ID);
   const renewsOn = typeof value.renewsOn === "string" && !Number.isNaN(new Date(value.renewsOn).getTime()) ? value.renewsOn : null;
-  return { tier, planId: plan.id, renewsOn, pending: false };
+  const isoOrNull = (input: unknown): string | null =>
+    typeof input === "string" && !Number.isNaN(new Date(input).getTime()) ? input : null;
+  const verifiedBy =
+    value.verifiedBy === "store" || value.verifiedBy === "sandbox" ? value.verifiedBy : null;
+  return {
+    tier,
+    planId: plan.id,
+    renewsOn,
+    pending: false,
+    autoRenewing: value.autoRenewing !== false,
+    cancelledAt: isoOrNull(value.cancelledAt),
+    lastVerifiedAt: isoOrNull(value.lastVerifiedAt),
+    verifiedBy,
+  };
 }

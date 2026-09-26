@@ -1,0 +1,107 @@
+# Trufrenz — store billing, entitlement, and upgrade nudges (build notes)
+
+## What this round adds
+
+Three things the previous checkpoint flagged as next steps:
+
+1. **Real store billing path** with server-side receipt verification.
+2. **Manage Subscription screen** in the You tab (plan, renewal, cancel, restore).
+3. **Soft upgrade nudges** at the natural free-plan limits.
+
+## Files
+
+| File | Role |
+|------|------|
+| `lib/subscription.ts` | Published prices, entitlements table, feature comparison, gates. Unchanged this round. |
+| `lib/subscription-store.ts` | **New.** Store product ids, purchase lifecycle, restore states, usage counters, nudge copy, management-screen copy. |
+| `server/billingService.ts` | **New.** Receipt verification (Play Developer API / App Store Server API, plus a sandbox path), entitlement derivation, restore, cancellation, revalidation. |
+| `server/accountRoutes.ts` | **Extended.** `/api/account/billing/{products,entitlement,verify,restore,cancel,revalidate}`. |
+| `drizzle/schema.ts` | **Extended.** `subscription_receipts` table (migration `0003_exotic_dust.sql`, applied). |
+| `components/manage-subscription-modal.tsx` | **New.** The management screen. |
+| `components/upgrade-nudge.tsx` | **New.** The soft nudge card used at the limits. |
+| `lib/account-client.ts` | **Extended.** `fetchBillingProducts`, `fetchEntitlement`, `verifyPurchase`, `restorePurchases`, `reportStoreCancellation`. |
+
+## Entitlement rule (the important part)
+
+The client **never** grants Premium. It hands the store's receipt to
+`POST /api/account/billing/verify`, which:
+
+1. verifies the receipt with the store,
+2. writes a row in `subscription_receipts`,
+3. updates `members.subscriptionTier`,
+4. appends a `subscription_events` row the admin dashboard reads.
+
+`entitlementForMember()` then derives the tier from **unexpired** receipt rows,
+so the store is the clock: a lapsed period reports as free even if the cached
+column still says premium.
+
+## Verification paths
+
+- **Real:** set `GOOGLE_PLAY_PACKAGE_NAME` + `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`,
+  and/or `APPLE_BUNDLE_ID` + `APPLE_ISSUER_ID` + `APPLE_KEY_ID` +
+  `APPLE_PRIVATE_KEY`. Play uses `purchases.subscriptionsv2.get`; Apple decodes
+  and checks the signed JWS transaction claims.
+- **Sandbox:** with no credentials configured, receipts are checked for shape and
+  a deterministic transaction id is derived, and every row is written with
+  `verifiedBy: "sandbox"` so simulated revenue is never mistaken for real
+  revenue. `GET /api/account/billing/products` reports which mode is live.
+
+## Product ids to create before launch
+
+| Plan | Product id | Price |
+|------|-----------|-------|
+| Monthly | `trufrenz.premium.monthly` | ₹49 |
+| Quarterly | `trufrenz.premium.quarterly` | ₹139 |
+| Annual | `trufrenz.premium.annual` | ₹499 (₹399 during the 20% launch window) |
+
+## Remaining limits
+
+- No client SDK is bundled (`expo-iap` / `react-native-iap` is not installed), so
+  the store sheet itself is still simulated on the client; the **verification,
+  entitlement, restore, and cancellation paths are real** and exercise the same
+  server code a native build would call.
+- Apple signature-chain validation against Apple's root certificates is the one
+  added step needed for production; the claim checks are in place.
+- A production deployment should move OTP challenges and revalidation to Redis /
+  a cron worker rather than an in-memory map and an on-demand route.
+
+## Verified in the browser this round
+
+- **Purchase → entitlement → unlock.** Subscribing on the Quarterly plan from the
+  paywall wrote a real receipt row (`productId: trufrenz.premium.quarterly`,
+  `status: active`, `verifiedBy: sandbox`, `expiresAt: 2026-12-26`),
+  `GET /api/account/billing/entitlement` returned `tier: premium`, the cached
+  subscription in `localStorage` updated, and the free-tier ad banner
+  disappeared. The paywall's plan cards show the published INR prices
+  (Monthly ₹49, Quarterly ₹139, Annual ₹499) and the server reports the annual
+  launch charge as ₹399 inside the 90-day window.
+- **Manage Subscription.** Opened from the You tab's premium row (now labelled
+  "Quarterly · ₹139 / 3 months · manage" with a Premium pill) and rendered
+  correctly: "91 days left in this period", "Renews 26 Dec 2026",
+  "Auto-renew On", "Verified (sandbox)", one Active receipt, the two other
+  plans for switching, Restore purchases, and the cancellation copy naming the
+  exact store path.
+- **Free tier unchanged.** Resetting the stored subscription to `free` brought
+  the ad banner back and restored the paywall route from the same You-tab row,
+  so the two tiers stay distinct.
+
+## Test coverage added
+
+`tests/subscription-store.test.ts` — 16 tests over product mapping (plan ↔
+product id, unknown ids refused), the annual launch discount, the purchase
+lifecycle (pending → verifying → active, and failure keeping the plan id for
+retry), button labels per stage, restore (idle / checking / restored / nothing /
+failed), `parseUsage` accepting good data and rejecting nonsense, both nudge
+builders across hidden / near / at-limit for free and premium, and the summary
+lines (`activePlanLine`, `periodLine`, `daysLeftInPeriod`,
+`storeManagementLine`).
+
+Suite total: **309 passing, 1 skipped**, with `pnpm check` and `pnpm lint` clean.
+
+## Still open
+
+- `purchaseButtonLabel()` / `purchaseInFlight()` are tested but the paywall still
+  drives its own `busy` flag; wiring them is a small follow-up.
+- No scheduled revalidation job, so a lapsed renewal is caught when the member
+  opens the management screen or restores.
+- The proposal counter behind the nudge is live state only, not persisted.
