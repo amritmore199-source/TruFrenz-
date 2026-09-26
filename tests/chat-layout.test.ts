@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   CHAT_ROW_ACTION_SIZE,
+  CHAT_ROW_ARCHIVE_REVEAL,
+  archiveSwipeLabel,
+  chatRowArchiveThreshold,
   chatRowRevealWidth,
   chatRowSwipeThreshold,
   composerKeyboardLift,
+  resolveChatRowSwipe,
   shouldHideTabBarForKeyboard,
 } from "../lib/chat-layout";
 
@@ -65,5 +69,49 @@ describe("conversation row swipe actions", () => {
     const threshold = chatRowSwipeThreshold();
     expect(threshold).toBeGreaterThan(0);
     expect(threshold).toBeLessThan(chatRowRevealWidth());
+  });
+});
+
+describe("swipe-right archive gesture", () => {
+  it("archives on a decisive swipe to the right", () => {
+    expect(resolveChatRowSwipe(chatRowArchiveThreshold())).toBe("archive");
+    expect(resolveChatRowSwipe(CHAT_ROW_ARCHIVE_REVEAL)).toBe("archive");
+    expect(resolveChatRowSwipe(200)).toBe("archive");
+  });
+
+  it("still reveals the corner actions on a swipe to the left", () => {
+    expect(resolveChatRowSwipe(-chatRowSwipeThreshold())).toBe("reveal-actions");
+    expect(resolveChatRowSwipe(-200)).toBe("reveal-actions");
+  });
+
+  it("does nothing for a nudge that could just be a scroll", () => {
+    // A row must never be archived because a vertical scroll drifted sideways.
+    expect(resolveChatRowSwipe(0)).toBeNull();
+    expect(resolveChatRowSwipe(12)).toBeNull();
+    expect(resolveChatRowSwipe(-12)).toBeNull();
+    expect(resolveChatRowSwipe(chatRowArchiveThreshold() - 1)).toBeNull();
+    expect(resolveChatRowSwipe(-(chatRowSwipeThreshold() - 1))).toBeNull();
+  });
+
+  it("ignores a malformed measurement", () => {
+    expect(resolveChatRowSwipe(Number.NaN)).toBeNull();
+  });
+
+  it("keeps the archive panel narrower than the two-button reveal", () => {
+    // Archiving is one action, so its panel must not claim more width than the
+    // tray that holds two.
+    expect(CHAT_ROW_ARCHIVE_REVEAL).toBeLessThan(chatRowRevealWidth());
+  });
+
+  it("needs a deliberate swipe before archiving", () => {
+    // Archiving hides the conversation, so it asks for more travel than the
+    // reversible reveal does.
+    expect(chatRowArchiveThreshold()).toBeGreaterThan(chatRowSwipeThreshold() - 20);
+    expect(chatRowArchiveThreshold()).toBeGreaterThanOrEqual(35);
+  });
+
+  it("names the action so the row reads correctly either way", () => {
+    expect(archiveSwipeLabel(false)).toBe("Archive");
+    expect(archiveSwipeLabel(true)).toBe("Restore");
   });
 });

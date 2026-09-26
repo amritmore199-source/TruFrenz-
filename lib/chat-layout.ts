@@ -40,6 +40,49 @@ export function chatRowSwipeThreshold(): number {
 }
 
 /**
+ * How far the row may travel to the right before it commits to archiving.
+ * Archiving is a single action rather than a tray of buttons, so the panel is
+ * narrower than the left-hand reveal.
+ */
+export const CHAT_ROW_ARCHIVE_REVEAL = 76;
+
+/**
+ * Distance a rightward swipe must cover before it archives the conversation.
+ * Kept comfortably above a stray nudge so a row is never archived by accident,
+ * but short enough that the gesture feels light.
+ */
+export function chatRowArchiveThreshold(): number {
+  return Math.round(CHAT_ROW_ARCHIVE_REVEAL * 0.5);
+}
+
+/** The two directions a conversation row can be swiped. */
+export type ChatRowSwipeDirection = "reveal-actions" | "archive";
+
+/**
+ * Decide what a completed swipe means.
+ *
+ * A swipe to the left reveals the Mute and Archive corner buttons; a swipe to
+ * the right commits the archive straight away, because the archive panel shows
+ * only one action and hiding a single button behind a second tap would be
+ * needless. Both directions need the same minimum travel so neither fires on a
+ * scroll that drifted sideways.
+ */
+export function resolveChatRowSwipe(dx: number): ChatRowSwipeDirection | null {
+  if (!Number.isFinite(dx)) return null;
+  if (dx <= -chatRowSwipeThreshold()) return "reveal-actions";
+  if (dx >= chatRowArchiveThreshold()) return "archive";
+  return null;
+}
+
+/**
+ * Copy for the archive swipe, so the row reads correctly in both directions.
+ * An already-archived conversation offers "Restore" instead.
+ */
+export function archiveSwipeLabel(archived: boolean): string {
+  return archived ? "Restore" : "Archive";
+}
+
+/**
  * How far to lift the composer so it sits directly above the keyboard.
  *
  * @param keyboardHeight Height reported by the keyboard events, in points.

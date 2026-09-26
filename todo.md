@@ -4,6 +4,62 @@ Newest work first.
 
 ---
 
+# Chat list gestures, attachment preview, and profile legibility
+
+## 1. Swipe-right to archive
+
+`components/swipeable-chat-row.tsx` now answers both directions:
+
+| Gesture | Result |
+|---|---|
+| Swipe left | Reveals the compact mute / archive corner buttons |
+| Swipe right | Archives the conversation (or restores it from the Archive list) |
+
+The direction decision lives in `lib/chat-layout.ts` as `resolveChatRowSwipe`, so a small
+sideways drift during a vertical scroll returns `null` and can never archive a row by accident.
+Archiving deliberately asks for more travel than the reversible reveal.
+
+The archive panel behind the row is **decorative**: `aria-hidden`, `accessibilityElementsHidden`,
+and `importantForAccessibility="no-hide-descendants"` keep its label out of the accessibility
+tree, because the row's own label and the corner buttons already carry the actions. Verified in
+the browser: 4 panel labels present, 0 exposed.
+
+## 2. Attachment preview above the composer
+
+Photos and voice notes are now held for review before they are sent.
+
+| File | Purpose |
+|---|---|
+| `lib/attachment-preview.ts` | Which kinds need review, the pending model, size/length formatting, draft conversion. |
+| `components/attachment-preview-strip.tsx` | The frosted strip above the input bar. |
+| `tests/attachment-preview.test.ts` | 20 tests. |
+
+Picking a photo, or pressing **Preview** after recording a voice note, parks the attachment in the
+strip. The input placeholder becomes "Add a caption…", the send button turns active, and the
+message goes out as `label — caption`. Place pins still send straight away: the member already
+chose a named public venue, so there is nothing to confirm.
+
+The waiting attachment is cleared on back, sign-out, and menu navigation, so a stale preview can
+never greet the next conversation. `closeThread` and `clearPendingAttachment` are stable
+callbacks so the hardware-back effect does not re-subscribe on every render.
+
+## 3. Profile card legibility
+
+The tall frosted profile cards had their backdrop blur raised to **12.8px** (from 8px) so the
+name, badges, and bio stay crisp over the detailed wallpaper. Verified live: the profile card
+reports `saturate(1.8) blur(12.8px)`.
+
+## Verification
+
+`pnpm check` clean, `pnpm lint` 0 errors (9 pre-existing unused-symbol warnings), **243 tests
+passing** across 24 files, `git diff --check` clean.
+
+Browser-verified end to end: voice-note record → **Preview** → strip shows "Voice note ready to
+send · Length 9s" → send → the bubble appears with its waveform, "9s", and a Sent receipt, and
+the composer resets.
+
+---
+
 # Account service + live analytics
 
 The two gaps left open by the dashboard are now closed: the admin modules act on **real member

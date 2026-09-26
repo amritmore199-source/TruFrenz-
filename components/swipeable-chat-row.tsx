@@ -16,7 +16,13 @@ import { BlurView } from "expo-blur";
 import { glassSurfaceColor } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { availabilityView, displayUnread, type ChatRowState } from "@/lib/chat-extras";
-import { CHAT_ROW_ACTION_SIZE, chatRowRevealWidth, chatRowSwipeThreshold } from "@/lib/chat-layout";
+import {
+  CHAT_ROW_ACTION_SIZE,
+  CHAT_ROW_ARCHIVE_REVEAL,
+  archiveSwipeLabel,
+  chatRowRevealWidth,
+  resolveChatRowSwipe,
+} from "@/lib/chat-layout";
 
 export type ChatRowData = {
   id: string;
@@ -39,21 +45,26 @@ type Props = {
   onToggleArchive: () => void;
 };
 
-/** Distance the row must travel before a swipe commits. */
-const SWIPE_THRESHOLD = chatRowSwipeThreshold();
-
 /** How far the row can travel, so both corner buttons stay reachable. */
 export function swipeRevealWidth(): number {
   return chatRowRevealWidth();
 }
 
+/** How far the row may travel right, so the archive panel stays reachable. */
+export function swipeArchiveWidth(): number {
+  return CHAT_ROW_ARCHIVE_REVEAL;
+}
+
 /**
- * A chat row that reveals compact Mute and Archive buttons in its trailing
- * corners as the member swipes it left.
+ * A chat row with a gesture in each direction.
+ *
+ * Swipe **left** and compact Mute and Archive buttons appear in the row's
+ * trailing corners; swipe **right** and the row archives in one movement, with
+ * the panel behind it naming the action as the thumb passes over it. The row
+ * springs back if a gesture does not commit.
  *
  * The buttons are deliberately small and icon-only so the conversation preview
- * keeps the row's width; the accessible labels still spell out the action. The
- * row springs back if the gesture does not commit.
+ * keeps the row's width; the accessible labels still spell out the action.
  */
 export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute, onToggleArchive }: Props) {
   const { glassOpacity } = useAppAppearance();
@@ -64,6 +75,7 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
   const availability = availabilityView(chat.kind === "group" ? undefined : chat.availability);
   const unread = displayUnread(chat.unread, state);
   const reveal = swipeRevealWidth();
+  const archiveReveal = swipeArchiveWidth();
 
   const settle = (toValue: number) => {
     setRevealed(toValue !== 0);
@@ -81,22 +93,32 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
         onMoveShouldSetPanResponder: (_event, gesture) =>
           Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderMove: (_event, gesture) => {
-          const next = Math.max(-reveal, Math.min(0, gesture.dx));
+          // Left reveals the corner actions, right starts the archive swipe.
+          const next = Math.max(-reveal, Math.min(archiveReveal, gesture.dx));
           translateX.setValue(next);
           offsetRef.current = next;
         },
         onPanResponderRelease: () => {
-          const travelled = offsetRef.current;
-          if (travelled <= -SWIPE_THRESHOLD) {
+          const outcome = resolveChatRowSwipe(offsetRef.current);
+          if (outcome === "reveal-actions") {
             committedRef.current = true;
             settle(-reveal);
+            return;
+          }
+          if (outcome === "archive") {
+            // Archive as the row springs back, so the panel reads as a
+            // confirmation of the gesture rather than a second screen.
+            committedRef.current = true;
+            onToggleArchive();
+            settle(0);
             return;
           }
           settle(0);
         },
         onPanResponderTerminate: () => settle(0),
       }),
-    [reveal, translateX],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reveal, archiveReveal, translateX],
   );
 
   useEffect(() => {
@@ -111,7 +133,7 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
       settle(0);
       return;
     }
-    if (offsetRef.current < -20) {
+    if (offsetRef.current < -20 || offsetRef.current > 20) {
       settle(0);
       return;
     }
@@ -120,6 +142,30 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
 
   return (
     <View style={styles.shell}>
+      {/* Archive panel. It sits behind the row's leading edge and is revealed by
+          a swipe to the right, naming the action as the thumb passes over it.
+          It is decorative: the row's own label and the corner buttons carry the
+          actions for screen readers, so this must not be announced at rest. */}
+      <Animated.View
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          styles.archiveLayer,
+          {
+            opacity: translateX.interpolate({
+              inputRange: [0, 18, archiveReveal],
+              outputRange: [0, 1, 1],
+              extrapolate: "clamp",
+            }),
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#FFFFFF" />
+        <Text style={styles.archiveLabel}>{archiveSwipeLabel(state.archived)}</Text>
+      </Animated.View>
+
       {/* Corner actions. They sit in the row's trailing edge and only become
           visible once the row has slid, so the conversation preview is never
           competing with them for space. Their opacity follows the slide so the
@@ -245,6 +291,19 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
 
 const styles = StyleSheet.create({
   shell: { position: "relative", marginBottom: 6, borderRadius: 16, overflow: "hidden" },
+  archiveLayer: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: CHAT_ROW_ARCHIVE_REVEAL,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: "#9D7E9E",
+  },
+  archiveLabel: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   actionsLayer: {
     position: "absolute",
     top: 0,

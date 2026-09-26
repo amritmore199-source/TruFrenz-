@@ -23,12 +23,18 @@ type Props = {
   onPickPhoto: () => void;
   onSend: (draft: AttachmentDraft) => void;
   onSuggestPlan: (kind: "hangout" | "meetup") => void;
+  /**
+   * Hand a recorded voice note back to the composer so it can be reviewed
+   * above the input bar before it is sent. When omitted the sheet sends the
+   * note itself, which keeps the sheet usable on its own.
+   */
+  onReviewVoice?: (draft: AttachmentDraft) => void;
 };
 
 type Mode = "menu" | "voice" | "location";
 
 /** The "+" sheet: photos, a short voice note, a manual place pin, and plans. */
-export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSuggestPlan }: Props) {
+export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSuggestPlan, onReviewVoice }: Props) {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
   const [mode, setMode] = useState<Mode>("menu");
@@ -78,7 +84,13 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
   const sendVoice = () => {
     stopRecording();
     const duration = clampVoiceSeconds(seconds || 1);
-    onSend({ kind: "voice", durationSeconds: duration, uri: `local-voice-${Date.now()}` });
+    const draft: AttachmentDraft = { kind: "voice", durationSeconds: duration, uri: `local-voice-${Date.now()}` };
+    if (onReviewVoice) {
+      // The composer shows a preview strip; the member confirms there.
+      onReviewVoice(draft);
+    } else {
+      onSend(draft);
+    }
     onClose();
   };
 
@@ -144,9 +156,9 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                     <MaterialIcons name={recording ? "stop" : "mic"} size={16} color="#FFFFFF" />
                     <Text style={styles.primaryText}>{recording ? "Stop" : "Start"}</Text>
                   </Pressable>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Send this voice note" onPress={sendVoice} style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={onReviewVoice ? "Review this voice note before sending" : "Send this voice note"} onPress={sendVoice} style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}>
                     <MaterialIcons name="send" size={15} color="#7C7286" />
-                    <Text style={styles.ghostText}>Send</Text>
+                    <Text style={styles.ghostText}>{onReviewVoice ? "Preview" : "Send"}</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel="Back to attachments" onPress={() => { stopRecording(); setMode("menu"); }} style={styles.ghost}>
                     <Text style={styles.ghostText}>Back</Text>

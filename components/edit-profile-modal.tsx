@@ -94,10 +94,10 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fill}>
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={56} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close edit profile" onPress={onClose} />
           <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252,249,252,0.94)", glassOpacity) }]}>
-            <BlurView intensity={40} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={64} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
             <View style={styles.header}>
               <View style={styles.headerText}>
                 <Text style={styles.eyebrow}>EDIT PROFILE</Text>

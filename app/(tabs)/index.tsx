@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -37,6 +37,7 @@ import { FriendProfileModal } from "@/components/friend-profile-modal";
 import { SwipeableChatRow } from "@/components/swipeable-chat-row";
 import { ChatOverflowMenu } from "@/components/chat-overflow-menu";
 import { AttachmentSheet } from "@/components/attachment-sheet";
+import { AttachmentPreviewStrip } from "@/components/attachment-preview-strip";
 import { PlanComposerModal } from "@/components/plan-composer-modal";
 import { PlanCardView } from "@/components/plan-card-view";
 import { PlanPollCard } from "@/components/plan-poll-card";
@@ -92,6 +93,12 @@ import {
   type MessageKind,
   type Reaction,
 } from "@/lib/chat-extras";
+import {
+  attachmentPreviewLabel,
+  createPendingAttachment,
+  pendingToDraft,
+  type PendingAttachment,
+} from "@/lib/attachment-preview";
 import {
   PLAN_KIND_LABEL,
   castVote,
@@ -348,6 +355,10 @@ export default function TrufrenzApp() {
   const [chatRowStates, setChatRowStates] = useState<Record<string, ChatRowState>>({});
   const [chatPrivacy, setChatPrivacy] = useState(DEFAULT_CHAT_PRIVACY);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  /** An attachment that has been picked but not yet sent. */
+  const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
+  /** Bytes of the picked photo, when the platform reports it. */
+  const [pendingPhotoBytes, setPendingPhotoBytes] = useState<number | undefined>(undefined);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [planComposerKind, setPlanComposerKind] = useState<PlanKind | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -481,9 +492,14 @@ export default function TrufrenzApp() {
     setSession(next);
     AsyncStorage.setItem(SESSION_STORAGE_KEY, serializeSession(next)).catch(() => undefined);
   };
+  const clearPendingAttachment = useCallback(() => {
+    setPendingAttachment(null);
+    setPendingPhotoBytes(undefined);
+  }, []);
   const signOut = () => {
     setSession(null);
     setJoined(false);
+    clearPendingAttachment();
     setSelectedChat(null);
     setTab("Chats");
     AsyncStorage.removeItem(SESSION_STORAGE_KEY).catch(() => undefined);
@@ -896,11 +912,57 @@ export default function TrufrenzApp() {
       if (!permission.granted) { feedback("Allow photo access to send a picture."); return; }
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [4, 3], quality: 0.8 });
       if (result.canceled || !result.assets?.length) return;
-      sendAttachment({ kind: "photo", uri: result.assets[0].uri });
+      const asset = result.assets[0];
+      // Nothing is sent yet: the pick waits in the preview strip above the
+      // input bar so the member can check it before it goes out.
+      setPendingAttachment(createPendingAttachment({ kind: "photo", uri: asset.uri }, () => `att-${Date.now()}`));
+      setPendingPhotoBytes(typeof asset.fileSize === "number" ? asset.fileSize : undefined);
     } catch {
       feedback("The photo picker is unavailable here. Try again on your phone.");
     }
   };
+  /** Hold a recorded voice note in the preview strip until it is sent. */
+  const reviewVoiceNote = (draft: AttachmentDraft) => {
+    setPendingAttachment(createPendingAttachment(draft, () => `att-${Date.now()}`));
+    setPendingPhotoBytes(undefined);
+  };
+  /**
+   * The composer's send action. A pending attachment goes out with the typed
+   * caption as its accompanying text; otherwise the plain message is sent.
+   */
+  const sendComposerContent = () => {
+    const draft = pendingToDraft(pendingAttachment);
+    if (!draft) {
+      sendMessage();
+      return;
+    }
+    if (!selectedChat) return;
+    if (!canSendTo(activeRowState)) { feedback("This conversation is archived. Restore it before sending anything new."); return; }
+    // A suspended account keeps read access but cannot post new messages.
+    if (!allowAction("send-messages")) return;
+    const caption = messageDraft.trim();
+    const preview = attachmentPreviewLabel(pendingAttachment!, { sizeBytes: pendingPhotoBytes });
+    pushMessage({
+      id: `${Date.now()}`,
+      from: "me",
+      text: caption ? `${preview} — ${caption}` : preview,
+      time: "now",
+      receipt: "sent",
+      kind: draft.kind,
+      mediaUri: draft.uri,
+      durationSeconds: draft.durationSeconds,
+      place: draft.place,
+    });
+    void runGuardedAction("message", {
+      thread: selectedChat,
+      groupId: selectedChat.startsWith("group") ? selectedChat : null,
+      attachment: draft.kind,
+    });
+    setMessageDraft("");
+    clearPendingAttachment();
+    tap();
+  };
+
 
   /** Share a structured plan card instead of a plain message. */
   const sharePlan = (kind: PlanKind, proposal: PlanProposal, note: string) => {
@@ -1018,6 +1080,11 @@ export default function TrufrenzApp() {
     feedback(muted ? "Muted. Messages still arrive, just without the badge." : "Unmuted. Notifications are back on.");
   };
 
+  /** Clear any waiting attachment when the member leaves the conversation. */
+  const closeThread = useCallback(() => {
+    clearPendingAttachment();
+    setSelectedChat(null);
+  }, [clearPendingAttachment]);
   const toggleChatArchive = () => {
     if (!selectedChat) return;
     setChatRowStates((current) => toggleArchived(current, selectedChat));
@@ -1197,6 +1264,7 @@ export default function TrufrenzApp() {
 
   const navigateFromMenu = (destination: Tab) => {
     setNavigationMenuOpen(false);
+    clearPendingAttachment();
     setSelectedChat(null);
     setTab(destination);
     tap();
@@ -1232,19 +1300,19 @@ export default function TrufrenzApp() {
       else if (action === "step-back-signup") setAuthStep((current) => current === "profile" ? "code" : current === "code" ? "phone" : "welcome");
       else if (action === "close-signup") setShowSignup(false);
       else if (action === "dismiss-notification") setIncomingNotification(null);
-      else if (action === "close-thread") setSelectedChat(null);
-      else if (action === "go-to-chats") { setSelectedChat(null); setTab("Chats"); }
+      else if (action === "close-thread") closeThread();
+      else if (action === "go-to-chats") { closeThread(); setTab("Chats"); }
       tap();
       return true;
     });
     return () => subscription.remove();
-  }, [actionMenuOpen, authStep, composerOpen, incomingNotification, inviteModalVisible, navigationMenuOpen, profilePerson, quickRepliesOpen, selectedChat, selfieModalVisible, showSignup, tab, verificationPrompt]);
+  }, [actionMenuOpen, authStep, closeThread, composerOpen, incomingNotification, inviteModalVisible, navigationMenuOpen, profilePerson, quickRepliesOpen, selectedChat, selfieModalVisible, showSignup, tab, verificationPrompt]);
 
   const topBar = (thread = false) => (
     <View style={styles.topBar}>
       <View style={styles.brandMark}>
         {thread ? (
-          <Pressable onPress={() => setSelectedChat(null)} accessibilityRole="button" accessibilityLabel="Back to conversations" style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+          <Pressable onPress={closeThread} accessibilityRole="button" accessibilityLabel="Back to conversations" style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
             <Icon name="arrow-back" size={18} color="#6D6178" />
             <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
@@ -1357,8 +1425,9 @@ export default function TrufrenzApp() {
         </ScrollView>
         <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#9C7694" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={styles.inviteLink}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={styles.inviteLink}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={styles.inviteLink}>Poll</Text></Pressable> : null}</View>
         {activeRowState.readOnly ? <View style={styles.readOnlyBar}><Icon name="lock-outline" size={14} color="#9A7796" /><Text style={styles.readOnlyBarText}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
-        <View style={styles.composerRow}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8C8495" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#8E7894" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder="Write a message…" placeholderTextColor="#9B96A1" style={styles.composerInput} onSubmitEditing={sendMessage} returnKeyType="send" /><Pressable onPress={sendMessage} style={({ pressed }) => [styles.sendButton, messageDraft.trim() && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() ? "#FFFFFF" : "#96919D"} /></Pressable></View>
-        <AttachmentSheet visible={attachmentSheetOpen} onClose={() => setAttachmentSheetOpen(false)} onPickPhoto={sendPhoto} onSend={sendAttachment} onSuggestPlan={(kind) => setPlanComposerKind(kind)} />
+        {pendingAttachment ? <AttachmentPreviewStrip pending={pendingAttachment} sizeBytes={pendingPhotoBytes} onRemove={clearPendingAttachment} /> : null}
+        <View style={styles.composerRow}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8C8495" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#8E7894" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor="#9B96A1" style={styles.composerInput} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#FFFFFF" : "#96919D"} /></Pressable></View>
+        <AttachmentSheet visible={attachmentSheetOpen} onClose={() => setAttachmentSheetOpen(false)} onPickPhoto={sendPhoto} onSend={sendAttachment} onReviewVoice={reviewVoiceNote} onSuggestPlan={(kind) => setPlanComposerKind(kind)} />
         <ChatOverflowMenu
           visible={chatMenuOpen}
           chatName={currentThread.name}
@@ -1374,7 +1443,7 @@ export default function TrufrenzApp() {
           onDeleteThread={deleteCurrentThread}
           onReport={() => feedback("Reported to the safety team. Declined requests and reports never notify the other person.")}
           onBlock={blockCurrent}
-          onLeaveGroup={() => { setSelectedChat(null); feedback("You left the group. Your copy of the history stays on your device."); }}
+          onLeaveGroup={() => { closeThread(); feedback("You left the group. Your copy of the history stays on your device."); }}
         />
         <PlanComposerModal visible={planComposerKind !== null} initialKind={planComposerKind ?? "hangout"} friendName={currentThread.name} onClose={() => setPlanComposerKind(null)} onShare={sharePlan} />
         <GroupInfoModal
@@ -1386,7 +1455,7 @@ export default function TrufrenzApp() {
           onUpdate={setGroup}
           onFeedback={feedback}
           onStartGroupCall={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: group.settings.name, peerVerified: true, video: true, direction: "outgoing" }))}
-          onLeave={() => setSelectedChat(null)}
+          onLeave={closeThread}
         />
       </View>;
     }
