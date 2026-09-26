@@ -3,7 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_BIO_LENGTH,
   MAX_PHOTOS,
+  MAX_STATUS_LENGTH,
+  STATUS_LIFETIME_HOURS,
+  STATUS_SUGGESTIONS,
   actionLabel,
+  clampStatus,
+  createStatus,
+  isStatusStale,
+  statusFreshness,
+  statusLabel,
+  visibleStatus,
   addProfilePhoto,
   availableViewerActions,
   canBeDiscovered,
@@ -153,5 +162,52 @@ describe("viewer actions", () => {
     expect(availableViewerActions({ relationship: "request-received", viewerCanRequestFriendship: true, paidTierActive: false })).toContain("accept-request");
     expect(actionLabel("ask-friendship")).toBe("Ask for Friendship");
     expect(actionLabel("meetup")).toBe("Meetup");
+  });
+});
+
+describe("mood status line", () => {
+  const now = new Date("2026-09-26T12:00:00.000Z");
+
+  it("clamps status text to one short line and collapses whitespace", () => {
+    expect(clampStatus("  free   this   weekend ")).toBe("free this weekend");
+    expect(clampStatus("x".repeat(200)).length).toBe(MAX_STATUS_LENGTH);
+  });
+  it("creates a status with an optional emoji and clears it for empty text", () => {
+    const status = createStatus("  looking for a gym buddy ", "🏋️", now);
+    expect(status).toEqual({ text: "looking for a gym buddy", emoji: "🏋️", updatedAt: now.toISOString() });
+    expect(createStatus("   ", "🌿", now)).toBeNull();
+    expect(createStatus("free this weekend", "", now)?.emoji).toBeUndefined();
+  });
+  it("expires stale statuses so old moods do not linger", () => {
+    const fresh = createStatus("free this weekend", "🌿", now);
+    expect(isStatusStale(fresh, now)).toBe(false);
+    const justInside = new Date(now.getTime() + (STATUS_LIFETIME_HOURS - 1) * 3600000);
+    expect(isStatusStale(fresh, justInside)).toBe(false);
+    const justOutside = new Date(now.getTime() + (STATUS_LIFETIME_HOURS + 1) * 3600000);
+    expect(isStatusStale(fresh, justOutside)).toBe(true);
+    expect(visibleStatus(fresh, justOutside)).toBeNull();
+    expect(visibleStatus(fresh, now)?.text).toBe("free this weekend");
+  });
+  it("hides empty or malformed statuses instead of rendering a blank chip", () => {
+    expect(visibleStatus(null, now)).toBeNull();
+    expect(visibleStatus({ text: "   ", updatedAt: now.toISOString() }, now)).toBeNull();
+    expect(isStatusStale({ text: "free", updatedAt: "not-a-date" }, now)).toBe(true);
+  });
+  it("labels statuses with and without an emoji", () => {
+    expect(statusLabel({ text: "free this weekend", emoji: "🌿", updatedAt: now.toISOString() })).toBe("🌿 free this weekend");
+    expect(statusLabel({ text: "free this weekend", updatedAt: now.toISOString() })).toBe("free this weekend");
+    expect(statusLabel(null)).toBe("");
+  });
+  it("describes how recently a status was set", () => {
+    expect(statusFreshness({ text: "free", updatedAt: now.toISOString() }, now)).toBe("Updated just now");
+    expect(statusFreshness({ text: "free", updatedAt: new Date(now.getTime() - 30 * 60000).toISOString() }, now)).toBe("Updated 30 minutes ago");
+    expect(statusFreshness({ text: "free", updatedAt: new Date(now.getTime() - 3 * 3600000).toISOString() }, now)).toBe("Updated 3 hours ago");
+    expect(statusFreshness({ text: "free", updatedAt: new Date(now.getTime() - 50 * 3600000).toISOString() }, now)).toBe("Updated 2 days ago");
+    expect(statusFreshness(null, now)).toBeNull();
+  });
+  it("starts with no status and offers ready-made suggestions", () => {
+    expect(baseProfile.status).toBeNull();
+    expect(STATUS_SUGGESTIONS.length).toBeGreaterThanOrEqual(6);
+    expect(STATUS_SUGGESTIONS.map((item) => item.text)).toContain("looking for a gym buddy");
   });
 });

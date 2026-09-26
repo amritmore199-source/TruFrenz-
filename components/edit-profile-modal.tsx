@@ -15,10 +15,16 @@ import {
   MAX_LANGUAGES,
   MAX_LOOKING_FOR,
   MAX_PHOTOS,
+  MAX_STATUS_LENGTH,
   REQUEST_AUDIENCE_OPTIONS,
+  STATUS_LIFETIME_HOURS,
+  STATUS_SUGGESTIONS,
   clampBio,
+  clampStatus,
+  createStatus,
   firstProfileDetailError,
   profileCompleteness,
+  statusFreshness,
   toggleFromList,
   validateEditableProfile,
   verificationBadge,
@@ -29,6 +35,9 @@ import {
   type ProfilePhoto,
   type RequestAudience,
 } from "@/lib/profile-details";
+
+/** A compact palette of mood markers for the status line. */
+const STATUS_EMOJI_CHOICES: readonly string[] = ["🌿", "🏋️", "☕", "📚", "🎧", "🧺", "🧗", "🎬", "🚶", "🍜"];
 
 type Props = {
   visible: boolean;
@@ -46,6 +55,9 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
   const { glassOpacity } = useAppAppearance();
   const [errors, setErrors] = useState<ProfileErrors>({});
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [statusText, setStatusText] = useState(profile.status?.text ?? "");
+  const [statusEmoji, setStatusEmoji] = useState(profile.status?.emoji ?? "");
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const badge = verificationBadge(profile.verification);
   const completeness = profileCompleteness(profile);
 
@@ -53,8 +65,16 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
     if (!visible) {
       setErrors({});
       setPrivacyOpen(false);
+      setEmojiPickerOpen(false);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (visible) {
+      setStatusText(profile.status?.text ?? "");
+      setStatusEmoji(profile.status?.emoji ?? "");
+    }
+  }, [visible, profile.status]);
 
   const patch = (changes: Partial<EditableProfile>) => onChange({ ...profile, ...changes });
 
@@ -66,6 +86,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
       onNotify(message);
       return;
     }
+    onChange({ ...profile, status: createStatus(statusText, statusEmoji) });
     onSaved();
   };
 
@@ -152,6 +173,74 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 returnKeyType="done"
               />
               {errors.name ? <Text style={styles.fieldError}>{errors.name}</Text> : null}
+
+              <Text style={styles.sectionLabel}>STATUS · {statusText.length}/{MAX_STATUS_LENGTH}</Text>
+              <View style={styles.statusRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Pick a status emoji"
+                  onPress={() => setEmojiPickerOpen((open) => !open)}
+                  style={({ pressed }) => [styles.statusEmojiButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.statusEmojiText}>{statusEmoji || "＋"}</Text>
+                </Pressable>
+                <TextInput
+                  value={statusText}
+                  onChangeText={(value) => setStatusText(clampStatus(value))}
+                  placeholder="free this weekend"
+                  placeholderTextColor="#AAA4AC"
+                  style={[styles.input, styles.statusInput]}
+                  maxLength={MAX_STATUS_LENGTH}
+                  returnKeyType="done"
+                />
+              </View>
+              {emojiPickerOpen ? (
+                <View style={styles.chipWrap}>
+                  {STATUS_EMOJI_CHOICES.map((choice) => (
+                    <Pressable
+                      key={choice}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: statusEmoji === choice }}
+                      accessibilityLabel={`Status emoji ${choice}`}
+                      onPress={() => { setStatusEmoji(choice); setEmojiPickerOpen(false); }}
+                      style={[styles.chip, statusEmoji === choice && styles.chipActive]}
+                    >
+                      <Text style={styles.chipText}>{choice}</Text>
+                    </Pressable>
+                  ))}
+                  <Pressable accessibilityLabel="Remove status emoji" onPress={() => { setStatusEmoji(""); setEmojiPickerOpen(false); }} style={styles.chip}>
+                    <Text style={styles.chipText}>None</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              <Text style={styles.statusPreviewLabel}>EVERYONE SEES</Text>
+              <View style={styles.statusPreview}>
+                <View style={styles.statusPreviewDot} />
+                <Text style={styles.statusPreviewText} numberOfLines={1}>
+                  {statusText.trim() ? `${statusEmoji ? `${statusEmoji} ` : ""}${statusText.trim()}` : "No status set — your name shows on its own."}
+                </Text>
+              </View>
+              <View style={styles.chipWrap}>
+                {STATUS_SUGGESTIONS.slice(0, 6).map((suggestion) => (
+                  <Pressable
+                    key={suggestion.text}
+                    accessibilityLabel={`Use status ${suggestion.text}`}
+                    onPress={() => { setStatusText(suggestion.text); setStatusEmoji(suggestion.emoji); }}
+                    style={({ pressed }) => [styles.chip, statusText === suggestion.text && styles.chipActive, pressed && styles.pressed]}
+                  >
+                    <Text style={[styles.chipText, statusText === suggestion.text && styles.chipTextActive]}>
+                      {suggestion.emoji} {suggestion.text}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {statusText.trim() ? (
+                <Pressable accessibilityLabel="Clear status" onPress={() => { setStatusText(""); setStatusEmoji(""); }} style={styles.statusClear}>
+                  <MaterialIcons name="close" size={13} color="#8C8492" />
+                  <Text style={styles.statusClearText}>Clear status</Text>
+                </Pressable>
+              ) : null}
+              <Text style={styles.hint}>{statusFreshness(profile.status) ? `${statusFreshness(profile.status)} · ` : ""}Statuses quietly fade after {STATUS_LIFETIME_HOURS} hours so nothing feels stale.</Text>
 
               <Text style={styles.sectionLabel}>AGE · LOCKED TO YOUR VERIFIED DATE OF BIRTH</Text>
               <View style={[styles.input, styles.lockedField]}>
@@ -351,6 +440,16 @@ const styles = StyleSheet.create({
   hint: { color: "#9A939E", fontSize: 8, lineHeight: 13, marginTop: 7 },
   input: { minHeight: 40, borderRadius: 13, paddingHorizontal: 12, backgroundColor: "rgba(255,255,255,0.7)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", color: "#5B535F", fontSize: 11 },
   bioInput: { minHeight: 70, paddingTop: 10, textAlignVertical: "top" },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statusEmojiButton: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", shadowColor: "#6B5A73", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  statusEmojiText: { fontSize: 17 },
+  statusInput: { flex: 1 },
+  statusPreviewLabel: { color: "#A79FAB", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9, marginTop: 12 },
+  statusPreview: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(244,236,247,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)" },
+  statusPreviewDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#C79BC0" },
+  statusPreviewText: { flex: 1, color: "#6B6273", fontSize: 10.5, fontWeight: "600" },
+  statusClear: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", marginTop: 8 },
+  statusClearText: { color: "#8C8492", fontSize: 9.5, fontWeight: "600" },
   lockedField: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(238,235,240,0.8)" },
   lockedValue: { color: "#6E6474", fontSize: 12, fontWeight: "700" },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },

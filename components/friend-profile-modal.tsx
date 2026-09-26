@@ -12,6 +12,8 @@ import {
   formatDistance,
   orderInterestsByShared,
   sharedInterestSentence,
+  statusLabel,
+  visibleStatus,
   type DistanceTier,
   type ViewerAction,
   type ViewerRelationship,
@@ -34,6 +36,8 @@ export type FriendProfileDetails = {
   distanceKm?: number | null;
   /** True when the profile owner hides their exact locality. */
   hidesExactLocality?: boolean;
+  /** Short mood/status line shown beside the name; may be empty or stale. */
+  status?: { text: string; emoji?: string; updatedAt: string } | null;
 };
 
 export type FriendProfileActions = {
@@ -93,6 +97,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
   if (!profile) return null;
 
   const verified = profile.verification === "ID + selfie verified";
+  const viewerStatus = visibleStatus(profile.status);
   const { shared, other } = orderInterestsByShared(profile.interests, myInterests);
   const mutualLine = sharedInterestSentence(shared);
   const distance = formatDistance(profile.distanceKm ?? null, viewerTier, profile.hidesExactLocality ?? true);
@@ -159,6 +164,12 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
 
             <View style={styles.identity}>
               <Text style={styles.name}>{profile.name}, {profile.age}</Text>
+              {viewerStatus ? (
+                <View style={styles.statusChip}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.statusChipText} numberOfLines={1}>{statusLabel(viewerStatus)}</Text>
+                </View>
+              ) : null}
               <View style={[styles.badge, !verified && styles.phoneBadge]}>
                 <MaterialIcons name={verified ? "verified-user" : "phone-iphone"} size={13} color={verified ? "#5E947B" : "#7B8D9C"} />
                 <Text style={[styles.badgeText, !verified && styles.phoneText]}>{profile.verification}</Text>
@@ -273,6 +284,9 @@ const styles = StyleSheet.create({
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(150,135,155,0.38)" },
   dotActive: { backgroundColor: "#9D7E9E", width: 14 },
   identity: { alignItems: "center", paddingTop: 11, paddingBottom: 12 },
+  statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(247,239,250,0.78)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#C79BC0" },
+  statusChipText: { flexShrink: 1, color: "#6F6577", fontSize: 10, fontWeight: "650" as any },
   name: { color: "#4B4551", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 },
   badge: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "#EAF4EF", marginTop: 7 },
   phoneBadge: { backgroundColor: "#EDF1F4" },

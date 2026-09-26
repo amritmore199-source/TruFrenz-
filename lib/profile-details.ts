@@ -3,6 +3,78 @@ export const MAX_BIO_LENGTH = 150;
 export const MAX_INTERESTS_DETAIL = 8;
 export const MAX_LANGUAGES = 6;
 export const MAX_LOOKING_FOR = 4;
+export const MAX_STATUS_LENGTH = 60;
+/** A status line quietly expires after this many hours so stale moods do not linger. */
+export const STATUS_LIFETIME_HOURS = 72;
+
+export type StatusMood = {
+  /** The short line shown beside the member's name, e.g. "free this weekend". */
+  text: string;
+  /** Optional emoji or icon-style marker shown before the text. */
+  emoji?: string;
+  /** ISO timestamp of the last edit, used to expire stale statuses. */
+  updatedAt: string;
+};
+
+/** One-tap starting points shown under the status field. */
+export const STATUS_SUGGESTIONS: readonly { emoji: string; text: string }[] = [
+  { emoji: "🌿", text: "free this weekend" },
+  { emoji: "🏋️", text: "looking for a gym buddy" },
+  { emoji: "☕", text: "up for a coffee walk" },
+  { emoji: "📚", text: "studying at the library this week" },
+  { emoji: "🎧", text: "new to the neighborhood" },
+  { emoji: "🧺", text: "planning a park picnic" },
+  { emoji: "🧗", text: "trying bouldering for the first time" },
+  { emoji: "🎬", text: "movie night, anyone?" },
+  { emoji: "🚶", text: "walking most evenings" },
+  { emoji: "🍜", text: "hunting for good noodles" },
+];
+
+/** Trim a status line to the cap, collapsing whitespace so it stays a single short line. */
+export function clampStatus(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, MAX_STATUS_LENGTH);
+}
+
+/** Build a status from free text plus an optional emoji; empty text clears it. */
+export function createStatus(text: string, emoji: string | undefined, now: Date = new Date()): StatusMood | null {
+  const clamped = clampStatus(text);
+  if (!clamped) return null;
+  return { text: clamped, emoji: emoji?.trim() ? emoji.trim().slice(0, 4) : undefined, updatedAt: now.toISOString() };
+}
+
+/** A status is stale once it passes the lifetime window. */
+export function isStatusStale(status: StatusMood | null | undefined, now: Date = new Date()): boolean {
+  if (!status) return false;
+  const updated = Date.parse(status.updatedAt);
+  if (!Number.isFinite(updated)) return true;
+  return now.getTime() - updated > STATUS_LIFETIME_HOURS * 60 * 60 * 1000;
+}
+
+/** The status to display, or null when it is empty or has gone stale. */
+export function visibleStatus(status: StatusMood | null | undefined, now: Date = new Date()): StatusMood | null {
+  if (!status || !status.text.trim()) return null;
+  return isStatusStale(status, now) ? null : status;
+}
+
+/** Short label for a status chip: emoji plus text, or just the text. */
+export function statusLabel(status: StatusMood | null | undefined): string {
+  if (!status) return "";
+  return status.emoji ? `${status.emoji} ${status.text}` : status.text;
+}
+
+/** How long ago the status was set, for the edit screen's helper copy. */
+export function statusFreshness(status: StatusMood | null | undefined, now: Date = new Date()): string | null {
+  if (!status) return null;
+  const updated = Date.parse(status.updatedAt);
+  if (!Number.isFinite(updated)) return null;
+  const minutes = Math.max(0, Math.round((now.getTime() - updated) / 60000));
+  if (minutes < 2) return "Updated just now";
+  if (minutes < 60) return `Updated ${minutes} minutes ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `Updated ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  return `Updated ${days} day${days === 1 ? "" : "s"} ago`;
+}
 
 export type GenderOption = "Woman" | "Man" | "Non-binary" | "Prefer not to say";
 
@@ -66,6 +138,8 @@ export type EditableProfile = {
   primaryPhotoId: string | null;
   verification: "id-selfie" | "phone-only";
   available: boolean;
+  /** Short, self-expiring mood line shown beside the member's name. */
+  status: StatusMood | null;
   privacy: PrivacySettings;
   /** True when the locality was filled from device location rather than typed. */
   localityAutoFilled: boolean;
@@ -86,6 +160,7 @@ export function createInitialProfile(input: { name: string; age: number; localit
     primaryPhotoId: null,
     verification: "phone-only",
     available: true,
+    status: null,
     privacy: { ...DEFAULT_PRIVACY_SETTINGS },
     localityAutoFilled: false,
   };
