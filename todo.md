@@ -256,3 +256,48 @@ fixed build has none across the card interiors.
 **216 passed** (1 pre-existing skip). Browser QA on the live preview confirmed the
 cards render evenly and the rows no longer leak the action buttons. Diagnostics
 are written up in `UI-FIX-NOTES.md`.
+
+## Subscription tiers, INR pricing, and payment UI (done)
+
+- `lib/subscription.ts` holds the single source of truth: the Free/Premium tier
+  split, the three INR plans (Monthly ₹49, Quarterly ₹139, Annual ₹499), the
+  derived effective-per-month and savings figures, the 20% launch discount on
+  Annual, the referral perk, the seasonal-offer slots, and `entitlementsFor()`
+  which every gate in the app reads.
+- `components/premium-paywall.tsx` is the frosted centered paywall: plan
+  selection, the WHAT CHANGES comparison table, the OFFERS cards, and the
+  Google Play Billing / Apple In-App Purchase purchase note. It confirms the
+  charge before the tier changes and explains that the store account is the
+  source of truth.
+- Gates wired to real entitlements instead of the old demo `paidTier` flag:
+  hangout/meetup proposals (first 10 free), group size (5 free, 100 premium),
+  live map and exact distance, voice/video calling, read receipts, and the
+  small dismissible banner ad that free members see above the bottom bar.
+- Group invites route over-cap adds to the paywall instead of failing silently
+  (`components/group-info-modal.tsx` takes the tier and an upgrade callback).
+- Subscription state persists locally under `trufrenz.subscription.v1`.
+
+### Bug found and fixed during verification
+`<PremiumPaywall />` had been mounted *inside the open-conversation branch* of
+the render tree, so it only existed while a chat thread was open and nothing
+appeared when a gate fired from any other screen. It now mounts at the root
+render level next to the incoming-notification banner. Details in
+`PAYWALL-FIX-NOTES.md`.
+
+### Verified in the browser preview
+- Free tier shows the banner ad with a working "See plans" CTA and dismiss.
+- The You tab premium row shows the Free pill; after subscribing it reads
+  "Trufrenz Premium — active" with a Premium pill.
+- The paywall renders all three INR plans, switches the effective line and
+  reveals the launch-discount card when Annual is selected, and the purchase
+  toast confirms "A full year unlocked." and removes the ad banner.
+- Pressing Call on the free tier shows "Calls are part of Trufrenz Premium.
+  Upgrade to call your friends." rather than failing silently.
+- `pnpm check`, `pnpm lint` (0 errors), and `pnpm test` (293 passed, 1 skipped)
+  all pass; `git diff --check` is clean.
+
+### Still prototype-level
+- Purchases are simulated locally: there is no Google Play Billing / StoreKit
+  integration, no receipt validation endpoint, and no server-side tier record,
+  so a real launch needs the store products created and receipts verified
+  server-side before entitlements are granted.

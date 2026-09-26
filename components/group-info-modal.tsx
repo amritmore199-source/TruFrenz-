@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { glassSurfaceColor } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
+import { groupCapacityGate, type Tier } from "@/lib/subscription";
 import {
   addMember,
   groupCallGate,
@@ -33,10 +34,14 @@ type Props = {
   onFeedback: (message: string) => void;
   onStartGroupCall: () => void;
   onLeave: () => void;
+  /** The viewer's plan; free members stop at the free cap. */
+  tier: Tier;
+  /** Opens the paywall when the plan's group capacity is reached. */
+  onUpgrade: (reason: string) => void;
 };
 
 /** Group Info: members and roles, invite-only adds, settings, and admin tools. */
-export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onClose, onUpdate, onFeedback, onStartGroupCall, onLeave }: Props) {
+export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onClose, onUpdate, onFeedback, onStartGroupCall, onLeave, tier, onUpgrade }: Props) {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
   const [renaming, setRenaming] = useState(false);
@@ -124,7 +129,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
                   const friend = friendDirectory.find((item) => item.id === id);
                   if (!friend) return null;
                   return (
-                    <Pressable key={id} accessibilityRole="button" accessibilityLabel={`Add ${friend.name} to this group`} onPress={() => apply(addMember(group, { id: friend.id, name: friend.name, role: "member", paidTier: friend.paidTier }, friendDirectory.map((item) => item.id)))} style={styles.memberRow}>
+                    <Pressable key={id} accessibilityRole="button" accessibilityLabel={`Add ${friend.name} to this group`} onPress={() => { const capacity = groupCapacityGate(tier, group.members.length); if (!capacity.allowed) { if (tier === "free") onUpgrade(capacity.message); else onFeedback(capacity.message); return; } apply(addMember(group, { id: friend.id, name: friend.name, role: "member", paidTier: friend.paidTier }, friendDirectory.map((item) => item.id))); }} style={styles.memberRow}>
                       <View style={styles.memberAvatar}><Text style={styles.memberInitial}>{friend.name.charAt(0).toUpperCase()}</Text></View>
                       <View style={styles.memberCopy}><Text style={styles.memberName} numberOfLines={1}>{friend.name}</Text><Text style={styles.memberRole}>Accepted friend</Text></View>
                       <MaterialIcons name="person-add" size={16} color="#9A7796" />

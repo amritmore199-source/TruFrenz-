@@ -57,6 +57,24 @@ import {
   composerKeyboardLift,
   shouldHideTabBarForKeyboard,
 } from "@/lib/chat-layout";
+import { PremiumPaywall } from "@/components/premium-paywall";
+import {
+  BANNER_AD_COPY,
+  DEFAULT_SUBSCRIPTION,
+  FEATURE_COMPARISON,
+  FREE_HANGOUT_PROPOSALS,
+  SUBSCRIPTION_STORAGE_KEY,
+  adFreeGate,
+  callingGate,
+  entitlementsFor,
+  hangoutProposalGate,
+  liveMapGate,
+  parseSubscription,
+  startSubscription,
+  tierLabel,
+  type PlanId,
+  type Subscription,
+} from "@/lib/subscription";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
@@ -341,7 +359,15 @@ export default function TrufrenzApp() {
   const [profilePerson, setProfilePerson] = useState<Person | null>(null);
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [myProfile, setMyProfile] = useState<EditableProfile>(() => createInitialProfile({ name: "", age: 18, locality: "" }));
-  const [paidTier, setPaidTier] = useState(false);
+  /** The member's plan. Persisted locally; the store is the source of truth. */
+  const [subscription, setSubscription] = useState<Subscription>(DEFAULT_SUBSCRIPTION);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallReason, setPaywallReason] = useState<string | undefined>(undefined);
+  const [paywallPlan, setPaywallPlan] = useState<PlanId | undefined>(undefined);
+  /** How many hangout or meetup proposals this member has sent. */
+  const [proposalsSent, setProposalsSent] = useState(0);
+  /** Free members see one small banner; dismissing it hides it for the session. */
+  const [adDismissed, setAdDismissed] = useState(false);
   const [quickRepliesOpen, setQuickRepliesOpen] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>(DEFAULT_QUICK_REPLIES);
   const [quickRepliesLoaded, setQuickRepliesLoaded] = useState(false);
@@ -377,6 +403,15 @@ export default function TrufrenzApp() {
       ],
     }),
   );
+  const tier = subscription.tier;
+  const entitlements = entitlementsFor(tier);
+  const paidTier = tier === "premium";
+  /** Opens the paywall, optionally explaining which limit was reached. */
+  const openPaywall = useCallback((reason?: string, planId?: PlanId) => {
+    setPaywallReason(reason);
+    setPaywallPlan(planId);
+    setPaywallOpen(true);
+  }, []);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [createdGroups, setCreatedGroups] = useState<string[]>([]);
@@ -430,6 +465,25 @@ export default function TrufrenzApp() {
     AsyncStorage.setItem(QUICK_REPLIES_STORAGE_KEY, JSON.stringify(quickReplies)).catch(() => undefined);
   }, [quickReplies, quickRepliesLoaded]);
 
+  // The plan is restored on launch. A malformed record falls back to free, so
+  // a corrupted value can never hand out Premium by accident.
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(SUBSCRIPTION_STORAGE_KEY).then((serialized) => {
+      if (!active || !serialized) return;
+      try {
+        setSubscription(parseSubscription(JSON.parse(serialized)));
+      } catch {
+        setSubscription(DEFAULT_SUBSCRIPTION);
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  // Only a purchase or cancellation writes, so a restored value is not echoed
+  // back over itself before the store has been consulted.
+  useEffect(() => {
+    AsyncStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(subscription)).catch(() => undefined);
+  }, [subscription]);
   useEffect(() => () => {
     if (notificationTimer.current) clearTimeout(notificationTimer.current);
   }, []);
@@ -820,7 +874,8 @@ export default function TrufrenzApp() {
     if (action === "hangout") { feedback(`Suggested hangout with ${person.name.split(" ")[0]}: a café or park afternoon.`); return; }
     if (action === "meetup") { setInviteTargetChat(inviteTargets.some((contact) => contact.id === person.id) ? person.id : inviteTargets[0]?.id ?? null); setInviteModalVisible(true); return; }
     if (action === "call") {
-      if (!paidTier) { feedback("Calls are part of Trufrenz Premium. Turn on the premium preview in the You tab to try them."); return; }
+      const callPermission = callingGate(tier);
+      if (!callPermission.allowed) { openPaywall(callPermission.message); return; }
       const name = profilePerson?.name ?? currentThread?.name ?? "your friend";
       setProfilePerson(null);
       setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: name, peerVerified: true, video: false, direction: "outgoing" }));
@@ -968,10 +1023,14 @@ export default function TrufrenzApp() {
   const sharePlan = (kind: PlanKind, proposal: PlanProposal, note: string) => {
     if (!selectedChat) return;
     if (!canSendTo(activeRowState)) { feedback("This conversation is archived. Restore it before suggesting a plan."); return; }
+    // Free members get the first ten proposals; after that it is a Premium feature.
+    const planPermission = hangoutProposalGate(tier, proposalsSent);
+    if (!planPermission.allowed) { setPlanComposerKind(null); openPaywall(planPermission.message, "monthly"); return; }
     const id = `plan-${Date.now()}`;
     const card = createPlanCard({ id, kind, title: note.trim() || undefined, proposal, proposedBy: "me" });
     pushMessage({ id, from: "me", text: planPreview(card), time: "now", receipt: "sent", kind: "plan", plan: card });
     setPlanComposerKind(null);
+    setProposalsSent((current) => current + 1);
     feedback(`${PLAN_KIND_LABEL[kind]} card sent. ${currentThread?.name.split(" ")[0] ?? "They"} can accept, decline, or suggest another time.`);
     tap();
   };
@@ -1452,6 +1511,8 @@ export default function TrufrenzApp() {
           viewerId="me"
           friendDirectory={suggestions.filter((person) => acceptedFriends.includes(person.id)).map((person) => ({ id: person.id, name: person.name, paidTier: paidTier }))}
           onClose={() => setGroupInfoOpen(false)}
+          tier={tier}
+          onUpgrade={(reason) => openPaywall(reason, "quarterly")}
           onUpdate={setGroup}
           onFeedback={feedback}
           onStartGroupCall={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: group.settings.name, peerVerified: true, video: true, direction: "outgoing" }))}
@@ -1530,15 +1591,16 @@ export default function TrufrenzApp() {
     <Frosted style={styles.settingsPanel}>
       <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="circle" size={16} color="#75A98F" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Available for a hello</Text><Text style={styles.settingSub}>Let accepted friends know you&apos;re around.</Text></View><View style={styles.toggleFrame}><Switch value={available} onValueChange={(value) => { setAvailable(value); tap(); feedback(value ? "You're showing as available." : "Available status paused."); }} trackColor={{ false: "#DDD9E1", true: "#B8D9CA" }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="visibility-off" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Appear in suggestions</Text><Text style={styles.settingSub}>You can pause discovery any time.</Text></View><View style={styles.toggleFrame}><Switch value={discoverable} onValueChange={(value) => { setDiscoverable(value); tap(); feedback(value ? "You're back in suggestions." : "You've been hidden from suggestions."); }} trackColor={{ false: "#DDD9E1", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="visibility-off" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Appear in suggestions</Text><Text style={styles.settingSub}>You can pause discovery any time.</Text></View><View style={styles.toggleFrame}><Switch value={discoverable} onValueChange={(value) => { setDiscoverable(value); tap(); feedback(value ? "You&apos;re back in suggestions." : "You&apos;ve been hidden from suggestions."); }} trackColor={{ false: "#DDD9E1", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="my-location" size={17} color="#987998" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Soften my distance</Text><Text style={styles.settingSub}>Show a broad area, never an exact pin.</Text></View><View style={styles.toggleFrame}><Switch value={blurDistance} onValueChange={(value) => { setBlurDistance(value); tap(); feedback(value ? "Approximate distance is on." : "Exact location remains hidden until you share with an accepted friend."); }} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" /></View></View>
+      {/* Exact distance is a Premium feature, so turning the softening off offers the upgrade. */}
+      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="my-location" size={17} color="#987998" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Soften my distance</Text><Text style={styles.settingSub}>Show a broad area, never an exact pin.</Text></View><View style={styles.toggleFrame}><Switch value={blurDistance} onValueChange={(value) => { if (!value) { const mapPermission = liveMapGate(tier); if (!mapPermission.allowed) { openPaywall(mapPermission.message, "quarterly"); return; } } setBlurDistance(value); tap(); feedback(value ? "Approximate distance is on." : "Exact distance is visible now."); }} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
     <Text style={styles.settingsLabel}>PRIVACY & LITTLE EXTRAS</Text>
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => { setPaidTier((current) => !current); tap(); feedback(paidTier ? "Premium preview off · distances stay hidden on profiles." : "Premium preview on · distances and calls are visible in this demo."); }} accessibilityRole="switch" accessibilityState={{ checked: paidTier }} accessibilityLabel="Premium preview with distance and calls" style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map, distances, and calls · premium preview</Text></View><View style={styles.toggleFrame}><Switch value={paidTier} onValueChange={() => undefined} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" pointerEvents="none" /></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable>
+      <Pressable onPress={() => { tap(); openPaywall(undefined, subscription.planId); }} accessibilityRole="button" accessibilityLabel={paidTier ? `Trufrenz Premium active, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? "Calls, live map, and read receipts · active" : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable>
     </Frosted>
     <Text style={styles.settingsLabel}>APPEARANCE</Text>
     {/*
@@ -1644,6 +1706,19 @@ export default function TrufrenzApp() {
         onEnd={() => { setCallSession((current) => (current ? endCall(current) : null)); setTimeout(() => setCallSession(null), 500); }}
       />
       {showWelcome ? null : <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />}
+      <PremiumPaywall
+        visible={paywallOpen}
+        subscription={subscription}
+        initialPlanId={paywallPlan}
+        reason={paywallReason}
+        onClose={() => setPaywallOpen(false)}
+        onPurchase={(planId) => {
+          // The store confirms the charge; only then does the plan change.
+          setSubscription(startSubscription(planId));
+          setPaywallOpen(false);
+          feedback(`Welcome to Trufrenz Premium. ${planId === "annual" ? "A full year" : planId === "quarterly" ? "Three months" : "One month"} unlocked.`);
+        }}
+      />
       {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#9B7E9D" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
@@ -1688,6 +1763,18 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       ) : null}
+      {showWelcome || adDismissed || !entitlements.ads ? null : (
+        <View style={styles.adBanner}>
+          <Icon name="workspace-premium" size={15} color="#A27898" />
+          <Text style={styles.adBannerText} numberOfLines={2}>{BANNER_AD_COPY}</Text>
+          <Pressable onPress={() => { tap(); openPaywall(undefined, "quarterly"); }} accessibilityRole="button" accessibilityLabel="See Trufrenz Premium plans" style={({ pressed }) => [styles.adBannerCta, pressed && styles.pressed]}>
+            <Text style={styles.adBannerCtaText}>See plans</Text>
+          </Pressable>
+          <Pressable onPress={() => { setAdDismissed(true); tap(); }} accessibilityRole="button" accessibilityLabel="Dismiss advertisement" hitSlop={8} style={({ pressed }) => [styles.adBannerClose, pressed && styles.pressed]}>
+            <Icon name="close" size={14} color="#9A93A4" />
+          </Pressable>
+        </View>
+      )}
       {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
@@ -2116,6 +2203,15 @@ const styles = StyleSheet.create({
   opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
   opacityScaleText: { color: "#9C949E", fontSize: 7 },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
+  adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.85)", shadowColor: "#5A4A5E", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  adBannerText: { flex: 1, fontSize: 10.5, lineHeight: 14.5, color: "#6F6879" },
+  adBannerCta: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "#A2789B" },
+  adBannerCtaText: { fontSize: 10.5, fontWeight: "700", color: "#FFFFFF" },
+  adBannerClose: { padding: 2 },
+  tierPill: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: "rgba(255,255,255,0.7)", borderWidth: 1, borderColor: "rgba(160,148,166,0.3)" },
+  tierPillActive: { backgroundColor: "#A2789B", borderColor: "rgba(255,255,255,0.6)" },
+  tierPillText: { fontSize: 10.5, fontWeight: "700", color: "#7A7284" },
+  tierPillTextActive: { color: "#FFFFFF" },
   settingIconPink: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#F4EAF2", alignItems: "center", justifyContent: "center" },
   settingIconBlue: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#E9F1F5", alignItems: "center", justifyContent: "center" },
   settingContent: { flex: 1 },
