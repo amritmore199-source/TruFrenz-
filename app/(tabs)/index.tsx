@@ -5,6 +5,7 @@ import {
   BackHandler,
   Easing,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,13 +13,15 @@ import {
   RefreshControl,
   ScrollView,
   StatusBar,
+  type StyleProp,
   StyleSheet,
   Switch,
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -48,6 +51,11 @@ import { mergeMeetupRefresh } from "@/lib/meetup-feed";
 import { resolveChatProfile } from "@/lib/chat-profile";
 import { addQuickReply, DEFAULT_QUICK_REPLIES, parseQuickReplies, removeQuickReply, type QuickReply } from "@/lib/quick-replies";
 import { createIncomingMeetupInviteNotification, createIncomingMessageNotification, type IncomingNotification } from "@/lib/incoming-notifications";
+import {
+  chatRowRevealWidth,
+  composerKeyboardLift,
+  shouldHideTabBarForKeyboard,
+} from "@/lib/chat-layout";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
@@ -229,9 +237,25 @@ const Icon = ({ name, color = "#675D70", size = 20 }: { name: keyof typeof Mater
   <MaterialIcons name={name} color={color} size={size} />
 );
 
-function Frosted({ children, style }: { children: React.ReactNode; style?: object }) {
+function Frosted({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const { glassOpacity } = useAppAppearance();
-  return <View style={[styles.frosted, style, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.79)", glassOpacity) }]}>{children}</View>;
+  // The blur layer is what makes this read as frosted glass. Without it the
+  // translucent fill alone lets the wallpaper's bright areas (white clothing and
+  // faces in the photo) show through as hard-edged white patches inside the card.
+  // Blurring first diffuses the backdrop, then the tint sits on top of it.
+  const flattened = StyleSheet.flatten(style);
+  const radius = flattened?.borderRadius ?? styles.frosted.borderRadius;
+  return (
+    <View style={[styles.frosted, style, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.79)", glassOpacity) }]}>
+      <BlurView
+        intensity={38}
+        tint="light"
+        experimentalBlurMethod="dimezisBlurView"
+        style={[StyleSheet.absoluteFillObject, styles.noninteractive, { borderRadius: radius }]}
+      />
+      {children}
+    </View>
+  );
 }
 
 function ActionButton({ children, onPress, style, secondary = false, disabled = false }: { children: React.ReactNode; onPress: () => void; style?: object; secondary?: boolean; disabled?: boolean }) {
@@ -243,6 +267,9 @@ function ActionButton({ children, onPress, style, secondary = false, disabled = 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity, wallpaperVisible, setGlassOpacity, setWallpaperVisible } = useAppAppearance();
+  // The root SafeAreaView already insets the bottom edge, so the keyboard lift
+  // must discount that inset to avoid over-lifting the composer.
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>("Chats");
   const previousTab = useRef<Tab>("Chats");
   const contentOpacity = useRef(new Animated.Value(1)).current;
@@ -250,6 +277,15 @@ export default function TrufrenzApp() {
   const loaderPulse = useRef(new Animated.Value(0.55)).current;
   const handoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [transitionBusy, setTransitionBusy] = useState(false);
+  /*
+    Keyboard tracking for the chat composer.
+
+    Android runs edge-to-edge here, so the window is not resized when the
+    keyboard opens and the composer would sit underneath it. Measuring the
+    keyboard lets the thread lift the composer by exactly that amount, and lets
+    the bottom tab bar step out of the way while the member is typing.
+  */
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showSignup, setShowSignup] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -1033,6 +1069,19 @@ export default function TrufrenzApp() {
     notificationTimer.current = null;
     setIncomingNotification(null);
   };
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = (event: { endCoordinates?: { height?: number } }) =>
+      setKeyboardHeight(event?.endCoordinates?.height ?? 0);
+    const onHide = () => setKeyboardHeight(0);
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const openIncomingNotification = (notification: IncomingNotification) => {
     dismissIncomingNotification();
@@ -1214,7 +1263,10 @@ export default function TrufrenzApp() {
   const renderChats = () => {
     if (selectedChat && currentThread) {
       const conversationMessages = chatMessages[selectedChat] ?? [];
-      return <View style={styles.threadScreen}>
+      // Lift the composer by the keyboard height, discounting the bottom inset
+      // the root SafeAreaView already applies so it lands just above the keys.
+      const composerLift = composerKeyboardLift(keyboardHeight, insets.bottom);
+      return <View style={[styles.threadScreen, { paddingBottom: composerLift }]}>
         {topBar(true)}
         <View style={styles.threadSafety}><Icon name="lock-outline" size={13} color="#7D8AA0" /><Text style={styles.threadSafetyText}>Only friends can see these messages. Your exact location is never shared.</Text></View>
         <ScrollView style={styles.threadBody} contentContainerStyle={styles.threadContent} showsVerticalScrollIndicator={false}>
@@ -1567,7 +1619,7 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       ) : null}
-      {showWelcome ? null : <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
+      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.92)", glassOpacity) }]}>

@@ -153,3 +153,50 @@ and restored; subscriptions and the audit log both listed their records.
 - **Calling** — premium-gated 1:1 and group entry points, incoming call screen.
 - **Appearance** — user-controlled frosted-glass opacity and wallpaper visibility, persisted.
 - **Safety** — onboarding carousel, report/block, approximate location, verification tiers.
+
+---
+
+# UI fixes — chat rows, keyboard, frosted glass
+
+Three issues reported from a real Android device screenshot of the You tab.
+
+## 1. Mute / Archive took too much of the chat row
+
+`components/swipeable-chat-row.tsx` — the two actions were full-height and 75pt
+wide each, so 150pt of a phone row was consumed.
+
+Now each is a compact 46x29 icon-only button in the row's trailing corners, and
+they only appear once the row has slid: their opacity follows the slide, so the
+translucent row never shows them through early. Reveal width 150 to 100, commit
+threshold 84 to 55. Accessible labels still spell out the action.
+
+## 2. Composer hid behind the keyboard
+
+Android runs edge-to-edge here, so the window is not resized when the keyboard
+opens. The screen now tracks the keyboard via `Keyboard` listeners and lifts the
+conversation by that height, discounting the bottom inset the root SafeAreaView
+already applies. The bottom tab bar steps aside while a chat keyboard is open, so
+the composer sits directly on the keys.
+
+## 3. White patches inside the frosted cards
+
+Root cause: the frosted surfaces had **no backdrop blur at all** — just a
+translucent white fill. With ~20% of the wallpaper showing through and nothing to
+diffuse it, the photo's bright areas appeared as hard-edged white blobs inside
+every card.
+
+`Frosted` now paints a real `BlurView` layer (intensity 38) between the card and
+its tint, and the conversation rows do the same (intensity 34). The member's
+glass-opacity setting still drives the tint.
+
+Measured on the same region as the report: the reference screenshot had 11 abrupt
+brightness steps with a worst-case swing of -28.2 levels inside the cards; the
+fixed build has none across the card interiors.
+
+## Verification
+
+`lib/chat-layout.ts` holds the composer-lift, tab-bar, and row-sizing maths with
+10 new unit tests. `pnpm check` clean, `pnpm lint` 0 errors, `pnpm test`
+**216 passed** (1 pre-existing skip). Browser QA on the live preview confirmed the
+cards render evenly and the rows no longer leak the action buttons. Diagnostics
+are written up in `UI-FIX-NOTES.md`.
