@@ -1,4 +1,4 @@
-# Trufrenz — branding, wallpaper, and mobile navigation
+# Trufrenz — branding, wallpaper, navigation, and responsive glass UI
 
 ## Completed
 
@@ -8,13 +8,15 @@
 - Added a top-bar navigation-options button with direct access to Conversations, Friends, Meetups, and Profile.
 - Upgraded chat navigation with a labeled **Back** button, explicit meetup and conversation-options buttons, and accessibility labels.
 - Added Android hardware-back behavior that closes the active sheet first, steps backward through signup, exits a chat to Conversations, and returns secondary tabs to Conversations before allowing normal app exit.
+- Reused one safe-area-aware responsive frame for centered navigation, chat-share, group-create, verification-prompt, quick-reply, friend-profile, and meetup-invite dialogs. Sheets adapt width, height, gutters, and route layout to narrow or short phones; longer content scrolls inside the panel.
+- Added consistent fine borders and subtle shadows to privacy toggles, tab controls, primary and contextual buttons, chat bubbles, and recent-chat rows.
+- Kept account onboarding and the camera-based selfie check full-screen intentionally; these are complete flows rather than action sheets.
 
 ## Verification
 
-- Resolved Expo config reports `name: Trufrenz`, `slug: trufrenz`, and iOS display name `Trufrenz`.
 - `pnpm check`: passed.
 - `pnpm lint`: passed; only the template’s Node package-module advisory remains.
-- `pnpm test`: 37 passed, 1 existing test skipped.
+- `pnpm test`: 40 passed, 1 existing test skipped; responsive layout tests cover 320×568, 390×844, and wide/constrained viewports.
 - `git diff --check`: passed.
-- Live preview QA confirmed navigation sheet routing, chat Back behavior, Trufrenz copy, and wallpaper continuity across Conversations, chat, Friends, Meetups, and Profile.
-- Final 390×844 capture confirmed readable glass surfaces and the lifted safe-area bottom navigation.
+- Browser QA: refreshed preview, centered navigation popup, chat share menu, quick replies, and meetup-invite composer; meetup and share sheets remain centered with controls visible and scrollable.
+- Phone screenshots at 320×568 and 390×844 confirm that recent-chat cards remain readable and the bottom tab bar stays above system navigation.
