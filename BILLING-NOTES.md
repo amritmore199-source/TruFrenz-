@@ -105,3 +105,44 @@ Suite total: **309 passing, 1 skipped**, with `pnpm check` and `pnpm lint` clean
 - No scheduled revalidation job, so a lapsed renewal is caught when the member
   opens the management screen or restores.
 - The proposal counter behind the nudge is live state only, not persisted.
+
+## Real store SDK, revalidation job, and launch reconciliation (verified)
+
+**Store SDK.** `react-native-iap` v16 is installed and driven through
+`lib/store-client.ts`, which loads the native module lazily so web previews and
+tests never touch it. `lib/store-purchase.ts` holds the pure mapping from a store
+purchase to the receipt the server verifies; it refuses a purchase with no usable
+token and any product the app does not sell, so a malformed store response can
+never become Premium. `app.config.ts` deliberately does **not** list the package
+as a config plugin — it autolinks, and listing it fails the Expo build.
+
+**Receipt revalidation job.** `server/revalidationJob.ts` runs every 6 hours
+(`BILLING_REVALIDATE_INTERVAL_MS`, 0 disables) and expires receipts the store no
+longer honours, downgrading the member to free. It is started on server boot and
+logged as `[billing] receipt revalidation every N minutes`. Verified end to end:
+a receipt forced to look lapsed was marked `expired` and the member's
+`subscriptionTier` moved from `premium` to `free`.
+
+**Launch reconciliation.** The app previously trusted its cached plan forever, so
+a server-side downgrade would not reach the member. It now re-reads
+`/api/account/billing/entitlement` on launch once a member session is restored and
+applies the server's answer, because the server is the source of truth. A failed
+request leaves the cache alone, so being offline never silently drops a plan.
+Verified: with the cache reading `premium` and the server saying `free`, a reload
+dropped the cache to `free` and the free-tier ad banner returned.
+
+**Store purchase path.** Buy → store sheet → receipt verified server-side →
+entitlement applied. On web (and any build without the native module) the app
+falls back to the clearly-labelled sandbox receipt rather than pretending a real
+charge happened. Verified in the browser: the paywall button showed
+"Verifying with Trufrenz…" from the app's real purchase state, and the quarterly
+purchase unlocked Premium, cleared the ad banner, and wrote a receipt row
+(`sandbox:… | trufrenz.premium.quarterly | status=active | by=sandbox`).
+
+**Persisted usage.** `lib/subscription-store.ts` usage counters now survive
+reloads through `trufrenz.usage.v1`, which is what makes the near-limit upgrade
+nudges honest across sessions. Corrupt or tampered values are treated as fresh
+rather than trusted.
+
+**Verification.** `pnpm check` clean, `pnpm lint` 0 errors, `pnpm test`
+338 passed (1 pre-existing skip), `git diff --check` clean.

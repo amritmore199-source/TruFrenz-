@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { registerAdminRoutes } from "../adminRoutes";
 import { registerAccountRoutes } from "../accountRoutes";
 import { seedAdminDemoData } from "../adminDb";
+import { startRevalidationJob } from "../revalidationJob";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -107,6 +108,9 @@ async function startServer() {
       if (seeded) console.log("[admin] seeded the initial dashboard dataset");
     })
     .catch((error) => console.error("[admin] seed failed", error));
+  // Keep entitlements honest: re-check receipts on a schedule so a failed
+  // renewal drops the member to free without waiting for them to open the app.
+  startRevalidationJob();
 }
 
 startServer().catch(console.error);

@@ -1,5 +1,23 @@
 # Trufrenz — build tracker
 
+## Store billing, revalidation job, and launch reconciliation — DONE (verified)
+
+- **Real store SDK**: `react-native-iap` v16 wired through `lib/store-client.ts`
+  (lazy native load, safe fallback) and `lib/store-purchase.ts` (pure receipt
+  mapping that refuses unknown products and tokenless purchases).
+- **Receipt revalidation job** (`server/revalidationJob.ts`): runs every 6 hours,
+  expires receipts the store no longer honours, downgrades the member to free.
+  Verified: a lapsed receipt moved the member from premium to free.
+- **Launch reconciliation**: the app re-reads the server's entitlement on launch
+  instead of trusting its cache forever, so a server-side downgrade reaches the
+  member. Offline failures leave the cache untouched.
+- **Store purchase path**: store → server verification → unlock, with the paywall
+  reporting the app's real purchase state ("Verifying with Trufrenz…").
+- **Persisted usage counters** (`trufrenz.usage.v1`) so upgrade nudges stay honest
+  across sessions.
+- Tests added: `store-purchase`, `revalidation-job`, `usage-persistence`.
+- `pnpm check` clean · `pnpm lint` 0 errors · `pnpm test` 338 passed · diff clean.
+
 ## Store billing, Manage Subscription, and upgrade nudges (latest)
 
 - [x] Store product catalogue with the three published INR prices and the annual
@@ -327,8 +345,18 @@ render level next to the incoming-notification banner. Details in
 - `pnpm check`, `pnpm lint` (0 errors), and `pnpm test` (293 passed, 1 skipped)
   all pass; `git diff --check` is clean.
 
-### Still prototype-level
-- Purchases are simulated locally: there is no Google Play Billing / StoreKit
-  integration, no receipt validation endpoint, and no server-side tier record,
-  so a real launch needs the store products created and receipts verified
-  server-side before entitlements are granted.
+### Remaining limits (accurate as of this round)
+- **Store products must exist before a real charge can happen.** The app now talks
+  to Google Play Billing / Apple IAP through `react-native-iap`, but the three
+  products (`trufrenz.premium.monthly`, `.quarterly`, `.annual`) still have to be
+  created in Play Console and App Store Connect with matching prices.
+- **Receipt verification is a sandbox verifier.** `server/billingService.ts`
+  validates receipts server-side and is the source of truth for tiers, but it does
+  not yet call Google's and Apple's verification APIs, so it cannot detect a
+  forged token. That call is the last step before a public launch.
+- **SMS OTP is delivered in-app for the demo**, not through a real SMS provider.
+- **Camera-based identity verification is a local demo**, not a third-party
+  identity provider check.
+- **Chat, groups, and meetups run on local demo data**, not a real-time backend.
+- **Store cancellation** hands the member to their store account, which is how
+  both stores require it; the app cannot cancel on their behalf.

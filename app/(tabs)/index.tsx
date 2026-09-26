@@ -82,6 +82,7 @@ import {
 } from "@/lib/subscription";
 import {
   EMPTY_USAGE,
+  type UsageCounters,
   IDLE_PURCHASE,
   IDLE_RESTORE,
   NOTHING_TO_RESTORE,
@@ -104,6 +105,15 @@ import {
   type StoreChannel,
   type UpgradeNudge,
 } from "@/lib/subscription-store";
+import {
+  demoReceipt,
+  finishVerifiedPurchase,
+  purchasePlanThroughStore,
+  storeChannelForPlatform,
+  storePurchaseHistory,
+  storeSdkAvailable,
+  type PurchaseOrigin,
+} from "@/lib/store-client";
 import {
   fetchBillingProducts,
   fetchEntitlement,
@@ -252,6 +262,14 @@ type Conversation = {
 };
 type Meetup = { id: string; day: string; title: string; place: string; people: string; image: any; tag: string };
 const QUICK_REPLIES_STORAGE_KEY = "kindred.quick-replies.v1";
+
+/**
+ * What the member has used on the free plan.
+ *
+ * The proposal count decides when the upgrade hint appears, so it has to survive
+ * a reload — otherwise a member could dismiss the limit by closing the app.
+ */
+const USAGE_STORAGE_KEY = "trufrenz.usage.v1";
 
 const friends: Person[] = [
   { id: "maya", name: "Maya Chen", age: 28, locality: "Pacific Heights", interests: ["Coffee walks", "Ceramics"], image: require("../../assets/images/people/maya.jpg"), verification: "ID + selfie verified", about: "Recently discovered the little flower shop on Fillmore." },
@@ -418,9 +436,11 @@ export default function TrufrenzApp() {
   /** Limits the member has already been nudged about, so nothing repeats. */
   const [dismissedNudges, setDismissedNudges] = useState<string[]>([]);
   /** The store this build sells through. */
-  const storeChannel: StoreChannel = Platform.OS === "ios" ? "app-store" : "play";
+  const storeChannel: StoreChannel = storeChannelForPlatform(Platform.OS);
   /** How many hangout or meetup proposals this member has sent. */
-  const [proposalsSent, setProposalsSent] = useState(0);
+  const [usage, setUsage] = useState<UsageCounters>(EMPTY_USAGE);
+  const [usageLoaded, setUsageLoaded] = useState(false);
+  const proposalsSent = usage.proposalsSent;
   /** Free members see one small banner; dismissing it hides it for the session. */
   const [adDismissed, setAdDismissed] = useState(false);
   const [quickRepliesOpen, setQuickRepliesOpen] = useState(false);
@@ -524,6 +544,21 @@ export default function TrufrenzApp() {
 
   useEffect(() => {
     let active = true;
+    AsyncStorage.getItem(USAGE_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        if (serialized) {
+          try {
+            setUsage(parseUsage(JSON.parse(serialized)));
+          } catch {
+            // Unreadable counters are treated as fresh rather than trusted.
+          }
+        }
+        setUsageLoaded(true);
+      })
+      .catch(() => {
+        if (active) setUsageLoaded(true);
+      });
     AsyncStorage.getItem(QUICK_REPLIES_STORAGE_KEY).then((serialized) => {
       if (!active) return;
       setQuickReplies(parseQuickReplies(serialized));
@@ -538,6 +573,10 @@ export default function TrufrenzApp() {
     if (!quickRepliesLoaded) return;
     AsyncStorage.setItem(QUICK_REPLIES_STORAGE_KEY, JSON.stringify(quickReplies)).catch(() => undefined);
   }, [quickReplies, quickRepliesLoaded]);
+  useEffect(() => {
+    if (!usageLoaded) return;
+    AsyncStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(usage)).catch(() => undefined);
+  }, [usage, usageLoaded]);
 
   // The plan is restored on launch. A malformed record falls back to free, so
   // a corrupted value can never hand out Premium by accident.
@@ -663,19 +702,34 @@ export default function TrufrenzApp() {
   const completeStorePurchase = useCallback(
     async (planId: PlanId) => {
       setPurchase(beginPurchase(planId));
-      // The store sheet is asynchronous; this stands in for its callback.
-      await new Promise((resolve) => setTimeout(resolve, 650));
 
-      const productId = productIdForPlan(planId);
-      const purchaseToken = `demo-${storeChannel}-${productId}-${phone || "guest"}-${Date.now()}`;
-      setPurchase(beginVerification(planId, purchaseToken));
+      /*
+       * Store first, server second.
+       *
+       * A native build opens the real Google Play / App Store sheet. The browser
+       * preview and Expo Go have no store, so they mint a demo receipt instead —
+       * which the server records as `sandbox`, never as real revenue. Either way
+       * the tier only moves once the server has verified the receipt.
+       */
+      let receipt: StoreReceiptPayload;
+      let origin: PurchaseOrigin = "demo";
 
-      const result = await verifyPurchase({
-        channel: storeChannel,
-        productId,
-        purchaseToken,
-        originalTransactionId: purchaseToken,
-      });
+      if (storeSdkAvailable()) {
+        const outcome = await purchasePlanThroughStore(planId);
+        if (!outcome.ok) {
+          setPurchase(failPurchase(planId, outcome.error));
+          // A dismissed sheet is not an error worth shouting about.
+          if (!outcome.cancelled) feedback(outcome.error);
+          return;
+        }
+        receipt = outcome.receipt;
+        origin = outcome.origin;
+      } else {
+        receipt = demoReceipt(planId, phone || "guest");
+      }
+
+      setPurchase(beginVerification(planId, receipt.purchaseToken));
+      const result = await verifyPurchase(receipt);
 
       if (!result.ok) {
         setPurchase(failPurchase(planId, result.error));
@@ -683,17 +737,27 @@ export default function TrufrenzApp() {
         return;
       }
 
+      // The store is told only after the server has accepted the receipt, so a
+      // rejected purchase is never acknowledged (Play refunds unacknowledged
+      // subscriptions, which would leave the member charged and unpaid for).
+      void finishVerifiedPurchase(receipt);
+
       setPurchase(completePurchase(planId, result.data.transactionId));
       setVerification(result.data.entitlement.verifiedBy ?? "sandbox");
       applyRemoteEntitlement(result.data.entitlement);
       setPaywallOpen(false);
       void refreshEntitlement();
+      const period = planId === "annual" ? "A full year" : planId === "quarterly" ? "Three months" : "One month";
       feedback(
-        `Welcome to Trufrenz Premium. ${planId === "annual" ? "A full year" : planId === "quarterly" ? "Three months" : "One month"} unlocked.`,
+        origin === "store"
+          ? `Welcome to Trufrenz Premium. ${period} unlocked.`
+          : `Welcome to Trufrenz Premium. ${period} unlocked in preview mode — no store is connected in the browser.`,
       );
-      void reportEvents([{ eventType: "subscription_started", metadata: { planId, channel: storeChannel } }]);
+      void reportEvents([
+        { eventType: "subscription_started", metadata: { planId, channel: storeChannel, origin } },
+      ]);
     },
-    [applyRemoteEntitlement, feedback, refreshEntitlement, storeChannel],
+    [applyRemoteEntitlement, feedback, phone, refreshEntitlement, storeChannel],
   );
 
   /** Replay the store's own purchase history for this account. */
@@ -701,8 +765,9 @@ export default function TrufrenzApp() {
     setRestoring(true);
     setRestore(beginRestore());
     try {
-      // A store-connected build asks the SDK for its receipt history here.
-      const history: StoreReceiptPayload[] = [];
+      // Ask the store for its own purchase history. On web this is empty, so the
+      // server's existing receipts decide the answer.
+      const history: StoreReceiptPayload[] = await storePurchaseHistory();
       const result = await restorePurchases(history);
       if (!result.ok) {
         setRestore(restoreFailed(result.error));
@@ -733,6 +798,33 @@ export default function TrufrenzApp() {
     void refreshEntitlement();
     feedback("Auto-renew is off. Premium stays on until the end of your paid period.");
   }, [applyRemoteEntitlement, feedback, refreshEntitlement]);
+
+  /**
+   * Reconcile the cached plan with the server on launch.
+   *
+   * The revalidation job can expire a receipt while the app is closed — a lapsed
+   * renewal, a refund, or a cancelled subscription — and the cached record would
+   * otherwise keep showing Premium. The server is the source of truth here: if it
+   * says free, the app follows, so a stale cache can never keep a paid feature
+   * unlocked. A failed request leaves the cache alone, because being offline
+   * should not silently drop a member's plan.
+   */
+  useEffect(() => {
+    if (!sessionLoaded || isGuestSession(session)) return;
+    let active = true;
+    fetchEntitlement()
+      .then((result) => {
+        if (!active || !result.ok) return;
+        applyRemoteEntitlement(result.data.entitlement);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+    // Only the session matters: a purchase updates the cache through the
+    // purchase path, and this effect must not fight it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionLoaded, session?.enteredAt]);
 
   /** Load the product catalogue so the app never hard-codes product ids. */
   useEffect(() => {
@@ -1231,7 +1323,7 @@ export default function TrufrenzApp() {
     const card = createPlanCard({ id, kind, title: note.trim() || undefined, proposal, proposedBy: "me" });
     pushMessage({ id, from: "me", text: planPreview(card), time: "now", receipt: "sent", kind: "plan", plan: card });
     setPlanComposerKind(null);
-    setProposalsSent((current) => current + 1);
+    setUsage((current) => ({ ...current, proposalsSent: current.proposalsSent + 1 }));
     feedback(`${PLAN_KIND_LABEL[kind]} card sent. ${currentThread?.name.split(" ")[0] ?? "They"} can accept, decline, or suggest another time.`);
     tap();
   };
@@ -1938,6 +2030,7 @@ export default function TrufrenzApp() {
           // verified, so a failed charge never unlocks Premium.
           void completeStorePurchase(planId);
         }}
+        purchase={purchase}
       />
       {/*
         Manage Subscription.

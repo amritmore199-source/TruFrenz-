@@ -7,6 +7,7 @@ import * as Haptics from "expo-haptics";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { glassSurfaceColor } from "@/lib/appearance-preferences";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
+import { purchaseButtonLabel, purchaseInFlight, type PurchaseState } from "@/lib/subscription-store";
 import {
   FEATURE_COMPARISON,
   LAUNCH_OFFERS,
@@ -31,18 +32,32 @@ type Props = {
   reason?: string;
   onClose: () => void;
   onPurchase: (planId: PlanId) => Promise<void> | void;
+  /**
+   * Where the purchase actually is. The app screen owns this, because it is the
+   * one talking to the store and the server; the paywall only reports it.
+   */
+  purchase: PurchaseState;
 };
 
 /** Padded, honest copy about where the money actually goes. */
 const PAYMENT_NOTE =
   "Subscriptions are bought inside the app through Google Play Billing or Apple In-App Purchase. Your store account is charged at confirmation, and you can cancel any time from the store.";
 
-export function PremiumPaywall({ visible, subscription, initialPlanId, reason, onClose, onPurchase }: Props) {
+export function PremiumPaywall({
+  visible,
+  subscription,
+  initialPlanId,
+  reason,
+  onClose,
+  onPurchase,
+  purchase,
+}: Props) {
   const layout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
   const [selected, setSelected] = useState<PlanId>(initialPlanId ?? "quarterly");
   const [busy, setBusy] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const [launchWindowOpen, setLaunchWindowOpen] = useState(true);
 
   /** Light haptic on deliberate taps; silent on web, as elsewhere in the app. */
   const hapticTap = () => {
@@ -72,8 +87,14 @@ export function PremiumPaywall({ visible, subscription, initialPlanId, reason, o
 
   const rows = showAllFeatures ? FEATURE_COMPARISON : FEATURE_COMPARISON.filter((row) => row.free !== row.premium);
 
+  // The launch window closes once the annual plan is no longer discounted, so
+  // the button never quotes a price the store will not charge.
+  useEffect(() => {
+    setLaunchWindowOpen(discounted !== null);
+  }, [discounted]);
+
   const confirm = async () => {
-    if (busy) return;
+    if (busy || purchaseInFlight(purchase)) return;
     setBusy(true);
     hapticTap();
     try {
@@ -252,7 +273,7 @@ export function PremiumPaywall({ visible, subscription, initialPlanId, reason, o
                   disabled={busy}
                   accessibilityRole="button"
                   accessibilityState={{ disabled: busy, busy }}
-                  accessibilityLabel={`Subscribe to ${selectedPlan.label} for ${formatInr(discounted ? discounted.launch : selectedPlan.priceInr)}`}
+                  accessibilityLabel={purchaseButtonLabel(purchase, selected, launchWindowOpen)}
                   style={({ pressed }) => [styles.primaryButton, busy && styles.primaryButtonBusy, pressed && styles.pressed]}
                 >
                   {busy ? (
@@ -261,7 +282,7 @@ export function PremiumPaywall({ visible, subscription, initialPlanId, reason, o
                     <>
                       <MaterialIcons name="workspace-premium" size={17} color="#FFFFFF" />
                       <Text style={styles.primaryButtonText}>
-                        Subscribe · {formatInr(discounted ? discounted.launch : selectedPlan.priceInr)}
+                        {purchaseButtonLabel(purchase, selected, launchWindowOpen)}
                       </Text>
                     </>
                   )}

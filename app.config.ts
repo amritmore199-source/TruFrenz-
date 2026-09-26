@@ -87,6 +87,9 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    // react-native-iap is autolinked by Expo and ships no config plugin, so it is
+    // deliberately not listed here — adding it fails the build.
+
     [
       "expo-camera",
       {
