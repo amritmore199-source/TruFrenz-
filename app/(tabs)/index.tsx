@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   Easing,
   Image,
   KeyboardAvoidingView,
@@ -38,6 +39,7 @@ import { mergeMeetupRefresh } from "@/lib/meetup-feed";
 import { resolveChatProfile } from "@/lib/chat-profile";
 import { addQuickReply, DEFAULT_QUICK_REPLIES, parseQuickReplies, removeQuickReply, type QuickReply } from "@/lib/quick-replies";
 import { createIncomingMeetupInviteNotification, createIncomingMessageNotification, type IncomingNotification } from "@/lib/incoming-notifications";
+import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile";
@@ -124,7 +126,7 @@ function ActionButton({ children, onPress, style, secondary = false }: { childre
   return <Pressable onPress={onPress} style={({ pressed }) => [styles.actionButton, secondary && styles.actionButtonSecondary, style, pressed && styles.pressed]}>{children}</Pressable>;
 }
 
-export default function KindredApp() {
+export default function TrufrenzApp() {
   const [tab, setTab] = useState<Tab>("Chats");
   const previousTab = useRef<Tab>("Chats");
   const contentOpacity = useRef(new Animated.Value(1)).current;
@@ -172,6 +174,7 @@ export default function KindredApp() {
   const [blurDistance, setBlurDistance] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
   const [typingChat, setTypingChat] = useState<string | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
@@ -460,13 +463,63 @@ export default function KindredApp() {
     feedback("Private group created. Invite accepted friends from the group chat.");
   };
 
+  const navigateFromMenu = (destination: Tab) => {
+    setNavigationMenuOpen(false);
+    setSelectedChat(null);
+    setTab(destination);
+    tap();
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      const action = resolveMobileBackAction({
+        navigationMenuOpen,
+        actionMenuOpen,
+        quickRepliesOpen,
+        profileOpen: !!profilePerson,
+        meetupInviteOpen: inviteModalVisible,
+        selfieVerificationOpen: selfieModalVisible,
+        verificationPromptOpen: verificationPrompt,
+        composerOpen,
+        signupOpen: showSignup,
+        signupCanGoBack: authStep !== "welcome",
+        notificationOpen: !!incomingNotification,
+        threadOpen: !!selectedChat,
+        activeTab: tab,
+      });
+      if (action === "exit-app") return false;
+      if (action === "close-navigation-menu") setNavigationMenuOpen(false);
+      else if (action === "close-action-menu") setActionMenuOpen(false);
+      else if (action === "close-quick-replies") setQuickRepliesOpen(false);
+      else if (action === "close-profile") setProfilePerson(null);
+      else if (action === "close-meetup-invite") setInviteModalVisible(false);
+      else if (action === "close-selfie-verification") setSelfieModalVisible(false);
+      else if (action === "close-verification-prompt") setVerificationPrompt(false);
+      else if (action === "close-composer") setComposerOpen(false);
+      else if (action === "step-back-signup") setAuthStep((current) => current === "profile" ? "code" : current === "code" ? "phone" : "welcome");
+      else if (action === "close-signup") setShowSignup(false);
+      else if (action === "dismiss-notification") setIncomingNotification(null);
+      else if (action === "close-thread") setSelectedChat(null);
+      else if (action === "go-to-chats") { setSelectedChat(null); setTab("Chats"); }
+      tap();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [actionMenuOpen, authStep, composerOpen, incomingNotification, inviteModalVisible, navigationMenuOpen, profilePerson, quickRepliesOpen, selectedChat, selfieModalVisible, showSignup, tab, verificationPrompt]);
+
   const topBar = (thread = false) => (
     <View style={styles.topBar}>
       <View style={styles.brandMark}>
-        {thread ? <Pressable onPress={() => setSelectedChat(null)} style={styles.backButton}><Icon name="arrow-back" size={21} color="#6D6178" /></Pressable> : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#FFFFFF" /></View>}
-        {thread ? <View style={styles.threadHeading}><Pressable onPress={openChatProfile} disabled={currentThread?.kind !== "friend"} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View><Text style={styles.brandWord}>{currentThread?.name ?? "Conversation"}</Text><Text style={styles.topBarSub}>{currentThread?.kind === "group" ? "Private friend group" : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text></View></View> : <Text style={styles.brandWord}>kindred</Text>}
+        {thread ? (
+          <Pressable onPress={() => setSelectedChat(null)} accessibilityRole="button" accessibilityLabel="Back to conversations" style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+            <Icon name="arrow-back" size={18} color="#6D6178" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </Pressable>
+        ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#FFFFFF" /></View>}
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={openChatProfile} disabled={currentThread?.kind !== "friend"} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Text style={styles.threadTitle} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text><Text style={styles.topBarSub} numberOfLines={1}>{currentThread?.kind === "group" ? "Private friend group" : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
       </View>
-      {thread ? <View style={styles.topActions}><Pressable onPress={prepareMeetupInvite} style={styles.roundAction}><Icon name="event-available" size={19} color="#766B82" /></Pressable><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open conversation actions" style={styles.roundAction}><Icon name="more-horiz" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} accessibilityRole="button" accessibilityLabel="Show sample incoming notification" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openSignup} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
+      {thread ? <View style={styles.topActions}><Pressable onPress={prepareMeetupInvite} accessibilityRole="button" accessibilityLabel="Create meetup invite" style={styles.roundAction}><Icon name="event-available" size={19} color="#766B82" /></Pressable><Pressable onPress={() => setActionMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={styles.roundAction}><Icon name="more-vert" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} accessibilityRole="button" accessibilityLabel="Show sample incoming notification" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={() => setNavigationMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open navigation options" style={styles.roundAction}><Icon name="more-vert" size={20} color="#766B82" /></Pressable><Pressable onPress={openSignup} accessibilityRole="button" accessibilityLabel="Open your profile" style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
     </View>
   );
 
@@ -560,7 +613,7 @@ export default function KindredApp() {
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => feedback("Premium preview · live map and voice/video calls are planned paid features.")} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Kindred</Text><Text style={styles.settingSub}>Live map and calls · premium preview</Text></View><View style={styles.premiumLock}><Icon name="lock" size={12} color="#9D7799" /></View></Pressable>
+      <Pressable onPress={() => feedback("Premium preview · live map and voice/video calls are planned paid features.")} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map and calls · premium preview</Text></View><View style={styles.premiumLock}><Icon name="lock" size={12} color="#9D7799" /></View></Pressable>
     </Frosted>
     <Text style={styles.footerNote}>Your space. Your pace. Always friends first.</Text>
   </>;
@@ -584,10 +637,22 @@ export default function KindredApp() {
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#9B7E9D" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#FFFFFF" /><Text style={styles.toastText}>{toast}</Text></View> : null}
       <View style={styles.bottomBar}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>
+      <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
+        <Pressable style={styles.navigationMenuShade} onPress={() => setNavigationMenuOpen(false)}>
+          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.navigationMenuBlur}>
+            <Pressable onPress={(event) => event.stopPropagation()} style={styles.navigationMenuCard}>
+              <View style={styles.actionMenuHandle} />
+              <View style={styles.navigationMenuHeader}><View><Text style={styles.actionMenuEyebrow}>MOVE AROUND</Text><Text style={styles.navigationMenuTitle}>Where would you like to go?</Text></View><Pressable onPress={() => setNavigationMenuOpen(false)} accessibilityLabel="Close navigation options" style={styles.roundAction}><Icon name="close" size={18} color="#746A7D" /></Pressable></View>
+              <View style={styles.navigationMenuGrid}>{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; const active = tab === item && !selectedChat; return <Pressable key={item} onPress={() => navigateFromMenu(item)} accessibilityRole="button" accessibilityLabel={`Go to ${item}`} style={({ pressed }) => [styles.navigationMenuItem, active && styles.navigationMenuItemActive, pressed && styles.pressed]}><View style={[styles.navigationMenuIcon, active && styles.navigationMenuIconActive]}><Icon name={iconName[item]} size={20} color={active ? "#FFFFFF" : "#806F88"} /></View><Text style={[styles.navigationMenuItemText, active && styles.navigationMenuItemTextActive]}>{item === "Chats" ? "Conversations" : item === "You" ? "Profile" : item}</Text></Pressable>; })}</View>
+              <Text style={styles.navigationMenuHint}>Your phone’s Back button also closes sheets, returns from a chat, and takes you back to Conversations.</Text>
+            </Pressable>
+          </BlurView>
+        </Pressable>
+      </Modal>
       <Modal visible={showSignup} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeSignup}>
         <SafeAreaView style={styles.modalSafe} edges={["top", "bottom", "left", "right"]}>
           <KeyboardAvoidingView style={styles.modalKeyboard} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={styles.modalHeader}><View style={styles.brandMark}><View style={styles.brandIcon}><Icon name="spa" size={16} color="#FFFFFF" /></View><Text style={styles.brandWord}>kindred</Text></View><Pressable onPress={closeSignup} style={styles.roundAction}><Icon name="close" size={19} color="#746A7D" /></Pressable></View>
+            <View style={styles.modalHeader}><View style={styles.brandMark}><View style={styles.brandIcon}><Icon name="spa" size={16} color="#FFFFFF" /></View><Text style={styles.brandWord}>Trufrenz</Text></View><Pressable onPress={closeSignup} accessibilityLabel="Close signup" style={styles.roundAction}><Icon name="close" size={19} color="#746A7D" /></Pressable></View>
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "welcome" ? "A GOOD PLACE TO BELONG" : authStep === "phone" ? "PHONE VERIFICATION" : authStep === "code" ? "ONE SMALL SAFETY STEP" : "MAKE IT FEEL LIKE YOU"}</Text>
               <Text style={styles.modalTitle}>{authStep === "welcome" ? "People, with a little more heart." : authStep === "phone" ? "Your number.\nYour own account." : authStep === "code" ? "Check your\nphone." : "What should friends call you?"}</Text>
@@ -611,7 +676,7 @@ export default function KindredApp() {
         <View style={styles.composerModalShade}><Frosted style={styles.groupModal}><View style={styles.modalTopLine}><View style={styles.verificationModalIcon}><Icon name="verified-user" size={19} color="#65947E" /></View><Pressable onPress={() => setVerificationPrompt(false)} style={styles.roundAction}><Icon name="close" size={18} color="#746A7D" /></Pressable></View><Text style={styles.groupModalTitle}>A little extra trust, first.</Text><Text style={styles.groupModalCopy}>Your phone is verified. To send friend requests, add a live-selfie match or ID check for the stronger badge. You can keep browsing until then.</Text><View style={styles.verificationStep}><Icon name="phone-iphone" size={16} color="#7C94A5" /><Text style={styles.verificationStepText}>Phone verification · complete</Text><Icon name="check-circle" size={15} color="#72A58B" /></View><View style={styles.verificationStep}><Icon name="face" size={16} color="#987C9B" /><Text style={styles.verificationStepText}>Selfie match or ID check · optional</Text><Icon name="lock-outline" size={14} color="#A8A1AA" /></View><ActionButton onPress={() => { setVerificationPrompt(false); setSelfieModalVisible(true); }} style={styles.groupCreateButton}><Text style={styles.actionText}>Start selfie check</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setVerificationPrompt(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Maybe later</Text></Pressable></Frosted></View>
       </Modal>
       <Modal visible={actionMenuOpen} transparent animationType="fade" onRequestClose={() => setActionMenuOpen(false)}>
-        <Pressable style={styles.actionMenuShade} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.actionMenuBlur}><Pressable onPress={(event) => event.stopPropagation()} style={styles.actionMenuCard}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#9A7796" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Kindred never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></Pressable></BlurView></Pressable>
+        <Pressable style={styles.actionMenuShade} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.actionMenuBlur}><Pressable onPress={(event) => event.stopPropagation()} style={styles.actionMenuCard}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#9A7796" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></Pressable></BlurView></Pressable>
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
@@ -625,13 +690,13 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FAF8F7", overflow: "hidden" },
   noninteractive: { pointerEvents: "none" },
   backgroundImageWrap: { ...StyleSheet.absoluteFillObject },
-  backgroundImage: { width: "100%", height: "100%", opacity: 0.1 },
-  backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250,248,247,0.48)" },
+  backgroundImage: { width: "100%", height: "100%", opacity: 0.27 },
+  backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250,248,247,0.24)" },
   screenContent: { flex: 1 },
   ambient: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  ambientPink: { position: "absolute", top: 120, right: -140, height: 330, width: 330, borderRadius: 170, backgroundColor: "rgba(250,220,234,0.30)" },
-  ambientBlue: { position: "absolute", top: 390, left: -180, height: 320, width: 320, borderRadius: 170, backgroundColor: "rgba(208,231,246,0.32)" },
-  ambientLilac: { position: "absolute", top: 640, right: -180, height: 270, width: 270, borderRadius: 140, backgroundColor: "rgba(231,221,241,0.20)" },
+  ambientPink: { position: "absolute", top: 120, right: -140, height: 330, width: 330, borderRadius: 170, backgroundColor: "rgba(250,220,234,0.18)" },
+  ambientBlue: { position: "absolute", top: 390, left: -180, height: 320, width: 320, borderRadius: 170, backgroundColor: "rgba(208,231,246,0.17)" },
+  ambientLilac: { position: "absolute", top: 640, right: -180, height: 270, width: 270, borderRadius: 140, backgroundColor: "rgba(231,221,241,0.12)" },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 19, paddingTop: 8, paddingBottom: 18, flexGrow: 1 },
   topBar: { minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
@@ -639,8 +704,11 @@ const styles = StyleSheet.create({
   brandIcon: { width: 31, height: 31, borderRadius: 12, backgroundColor: "#957A99", alignItems: "center", justifyContent: "center" },
   brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#4E4856" },
   topBarSub: { marginTop: 2, color: "#8F8993", fontSize: 9 },
-  backButton: { height: 37, width: 34, justifyContent: "center" },
-  threadHeading: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
+  backButtonText: { color: "#6D6178", fontSize: 9, fontWeight: "700" },
+  threadHeading: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 7 },
+  threadHeadingCopy: { flex: 1, minWidth: 0 },
+  threadTitle: { color: "#4E4856", fontSize: 14, fontWeight: "700" },
   threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.95)", padding: 1, backgroundColor: "rgba(255,255,255,0.8)" },
   threadAvatar: { width: "100%", height: "100%", borderRadius: 12 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -678,7 +746,7 @@ const styles = StyleSheet.create({
   listHeading: { height: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, borderBottomWidth: 1, borderBottomColor: "rgba(211,204,212,0.42)" },
   chatListScroll: { flex: 1 },
   chatList: { paddingBottom: 13 },
-  chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderBottomWidth: 1, borderBottomColor: "rgba(225,220,227,0.52)", backgroundColor: "rgba(255,255,255,0.36)", paddingVertical: 8 },
+  chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderBottomWidth: 1, borderBottomColor: "rgba(225,220,227,0.58)", backgroundColor: "rgba(255,255,255,0.52)", paddingVertical: 8 },
   rowPressed: { opacity: 0.74 },
   chatAvatarWrap: { position: "relative", width: 48, height: 48 },
   chatAvatar: { width: 48, height: 48, borderRadius: 18, backgroundColor: "#EEE7EF" },
@@ -862,7 +930,7 @@ const styles = StyleSheet.create({
   settingDivider: { height: 1, backgroundColor: "rgba(220,214,222,0.50)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#F3E7F1", alignItems: "center", justifyContent: "center" },
   footerNote: { color: "#A19AA4", fontSize: 8, textAlign: "center", marginTop: 15 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "rgba(251,249,248,0.87)", borderTopWidth: 1, borderTopColor: "rgba(218,211,222,0.62)", flexDirection: "row", alignItems: "center", justifyContent: "space-around" },
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "rgba(251,249,248,0.76)", borderTopWidth: 1, borderTopColor: "rgba(218,211,222,0.68)", flexDirection: "row", alignItems: "center", justifyContent: "space-around" },
   tabButton: { width: "25%", alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
   tabIconWrap: { height: 26, minWidth: 45, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   tabIconActive: { backgroundColor: "#F0E5F0" },
@@ -936,6 +1004,19 @@ const styles = StyleSheet.create({
   typingText: { color: "#958997", fontSize: 8 },
   selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.92)" },
   selfieEntryIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#F0E7F1", alignItems: "center", justifyContent: "center" },
+  navigationMenuShade: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(54,47,61,0.18)" },
+  navigationMenuBlur: { width: "100%", borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: "hidden", backgroundColor: "rgba(249,247,250,0.67)", borderWidth: 1, borderBottomWidth: 0, borderColor: "rgba(255,255,255,0.95)" },
+  navigationMenuCard: { paddingHorizontal: 18, paddingTop: 9, paddingBottom: 20, backgroundColor: "rgba(250,248,251,0.52)" },
+  navigationMenuHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 13 },
+  navigationMenuTitle: { color: "#504A56", fontSize: 17, fontWeight: "700", marginTop: 4 },
+  navigationMenuGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
+  navigationMenuItem: { width: "48%", minHeight: 64, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, backgroundColor: "rgba(255,255,255,0.68)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
+  navigationMenuItemActive: { backgroundColor: "rgba(241,230,242,0.92)", borderColor: "rgba(225,207,228,0.98)" },
+  navigationMenuIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,231,241,0.86)" },
+  navigationMenuIconActive: { backgroundColor: "#987A9A" },
+  navigationMenuItemText: { flex: 1, color: "#716676", fontSize: 10, fontWeight: "700" },
+  navigationMenuItemTextActive: { color: "#765F7C" },
+  navigationMenuHint: { color: "#8E8793", fontSize: 8, lineHeight: 13, textAlign: "center", marginTop: 14, paddingHorizontal: 12 },
   actionMenuShade: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(64,55,70,0.16)" },
   actionMenuBlur: { minHeight: 295, maxHeight: "72%", width: "100%", borderTopLeftRadius: 25, borderTopRightRadius: 25, overflow: "hidden", backgroundColor: "rgba(250,248,251,0.62)", borderWidth: 1, borderBottomWidth: 0, borderColor: "rgba(255,255,255,0.92)" },
   actionMenuCard: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 13, backgroundColor: "rgba(250,248,251,0.58)" },

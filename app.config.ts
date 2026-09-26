@@ -28,8 +28,8 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "Kindred — Nearby, More Human",
-  appSlug: "kindred-nearby",
+  appName: "Trufrenz",
+  appSlug: "trufrenz",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
   logoUrl: "",
@@ -51,6 +51,7 @@ const config: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
     "infoPlist": {
+        "CFBundleDisplayName": "Trufrenz",
         "ITSAppUsesNonExemptEncryption": false
       }
   },
@@ -89,8 +90,8 @@ const config: ExpoConfig = {
     [
       "expo-camera",
       {
-        cameraPermission: "Kindred uses the camera for your optional selfie identity check.",
-        microphonePermission: "Kindred does not record audio during selfie verification.",
+        cameraPermission: "Trufrenz uses the camera for your optional selfie identity check.",
+        microphonePermission: "Trufrenz does not record audio during selfie verification.",
         recordAudioAndroid: false,
       },
     ],

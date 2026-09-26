@@ -109,7 +109,7 @@ export function SelfieVerificationModal({
       <View style={styles.heroIcon}><MaterialIcons name="face-retouching-natural" size={29} color={colors.purple} /></View>
       <Text style={styles.kicker}>OPTIONAL IDENTITY CHECK</Text>
       <Text style={styles.title}>A small step for a little more trust.</Text>
-      <Text style={styles.description}>Take a fresh front-camera selfie. A real identity provider would check it against your profile before Kindred grants the stronger badge.</Text>
+      <Text style={styles.description}>Take a fresh front-camera selfie. A real identity provider would check it against your profile before Trufrenz grants the stronger badge.</Text>
       <View style={styles.promiseCard}>
         <MaterialIcons name="lock-outline" size={18} color="#7C92A1" />
         <View style={styles.promiseCopy}>
@@ -151,12 +151,12 @@ export function SelfieVerificationModal({
       <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#7894A4" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS</Text>
       <Text style={styles.title}>Your camera stays off until you say yes.</Text>
-      <Text style={styles.description}>Kindred needs the front camera for one fresh selfie. We never turn it on in the background, and you can leave this step any time.</Text>
+      <Text style={styles.description}>Trufrenz needs the front camera for one fresh selfie. We never turn it on in the background, and you can leave this step any time.</Text>
       <View style={styles.promiseCard}>
         <MaterialIcons name="lock-outline" size={18} color="#7C92A1" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Camera access is optional.</Text>
-          <Text style={styles.promiseText}>If you choose Allow, a camera preview opens. If you choose Don’t Allow, you can still use Kindred without a selfie badge.</Text>
+          <Text style={styles.promiseText}>If you choose Allow, a camera preview opens. If you choose Don’t Allow, you can still use Trufrenz without a selfie badge.</Text>
         </View>
       </View>
       <ActionButton onPress={askForCamera} icon="camera-alt" title="Request camera access" />
@@ -169,7 +169,7 @@ export function SelfieVerificationModal({
       <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#8E8292" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS PAUSED</Text>
       <Text style={styles.title}>No rush. You’re still welcome here.</Text>
-      <Text style={styles.description}>To try the selfie check, enable camera access in device settings. You can keep using Kindred without it.</Text>
+      <Text style={styles.description}>To try the selfie check, enable camera access in device settings. You can keep using Trufrenz without it.</Text>
       <ActionButton onPress={() => { if (Platform.OS === "web") setError("Please allow camera access in your browser’s site settings, then try again."); else void Linking.openSettings(); }} icon="settings" title={Platform.OS === "web" ? "Camera settings help" : "Open device settings"} />
       <Pressable onPress={onClose} style={styles.secondaryButton}><Text style={styles.secondaryText}>Not now</Text></Pressable>
     </View>
@@ -209,7 +209,7 @@ export function SelfieVerificationModal({
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom", "left", "right"]}>
         <View style={styles.background}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /></View>
         <View style={styles.header}>
-          <View style={styles.headerBrand}><View style={styles.brandMark}><MaterialIcons name="spa" size={15} color="#FFFFFF" /></View><View><Text style={styles.brandText}>kindred</Text><Text style={styles.headerSub}>Selfie identity check</Text></View></View>
+          <View style={styles.headerBrand}><View style={styles.brandMark}><MaterialIcons name="spa" size={15} color="#FFFFFF" /></View><View><Text style={styles.brandText}>Trufrenz</Text><Text style={styles.headerSub}>Selfie identity check</Text></View></View>
           <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#72697A" /></Pressable>
         </View>
         <View style={styles.body}>
