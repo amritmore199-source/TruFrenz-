@@ -31,6 +31,14 @@ import { SelfieVerificationModal } from "@/components/selfie-verification-modal"
 import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carousel";
 import { CreateMeetupInviteModal } from "@/components/create-meetup-invite-modal";
 import { FriendProfileModal } from "@/components/friend-profile-modal";
+import { SwipeableChatRow } from "@/components/swipeable-chat-row";
+import { ChatOverflowMenu } from "@/components/chat-overflow-menu";
+import { AttachmentSheet } from "@/components/attachment-sheet";
+import { PlanComposerModal } from "@/components/plan-composer-modal";
+import { PlanCardView } from "@/components/plan-card-view";
+import { PlanPollCard } from "@/components/plan-poll-card";
+import { GroupInfoModal } from "@/components/group-info-modal";
+import { CallScreen } from "@/components/call-screen";
 import { EditProfileModal } from "@/components/edit-profile-modal";
 import { QuickRepliesModal } from "@/components/quick-replies-modal";
 import { IncomingNotificationBanner } from "@/components/incoming-notification-banner";
@@ -49,6 +57,62 @@ import { createGuestSession, createMemberSession, isGuestSession, parseSession, 
 import { addProfilePhoto, createInitialProfile, statusLabel, visibleStatus, type EditableProfile, type RequestAudience, type ViewerRelationship } from "@/lib/profile-details";
 
 import { guestUpsellMessage } from "@/lib/guest-mode";
+import {
+  DEFAULT_CHAT_PRIVACY,
+  DEFAULT_CHAT_ROW_STATE,
+  REACTION_CHOICES,
+  availabilityView,
+  applyReaction,
+  archiveOnUnfriend,
+  callGate,
+  canSendTo,
+  clampVoiceSeconds,
+  displayUnread,
+  emptyChatsCopy,
+  messagePreview,
+  outgoingReceipt,
+  rowStateFor,
+  summariseReactions,
+  shouldShowReceipt,
+  splitByArchive,
+  toggleArchived,
+  toggleMuted,
+  type AttachmentDraft,
+  type ChatRowState,
+  type MessageKind,
+  type Reaction,
+} from "@/lib/chat-extras";
+import {
+  PLAN_KIND_LABEL,
+  castVote,
+  createPlanCard,
+  createPoll,
+  checkInSafetyNote,
+  checkInToPlan,
+  canCheckIn,
+  planPreview,
+  planTiming,
+  pollResults,
+  respondToPlan,
+  winningProposal,
+  type PlanCard,
+  type PlanKind,
+  type PlanPoll,
+  type PlanProposal,
+  type PlanResponse,
+} from "@/lib/plan-cards";
+import {
+  createCallSession,
+  createGroup,
+  endCall,
+  markMissed,
+  answerCall,
+  declineCall,
+  groupVoterIds,
+  type CallSession,
+  type Group,
+  type GroupMember,
+} from "@/lib/group-management";
 import { INTEREST_SUGGESTIONS, LOCALITY_SUGGESTIONS, ageFromDateOfBirth, firstProfileError, formatDateOfBirth, hasProfileErrors, parseDateOfBirth, toggleInterest as toggleProfileInterest, validateProfileDraft, type ProfileDraftErrors } from "@/lib/onboarding-profile";
 import * as ImagePicker from "expo-image-picker";
 
@@ -61,7 +125,24 @@ const REQUEST_AUDIENCE_LABEL: Record<RequestAudience, string> = {
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile" | "photo" | "about";
 type AuthIntent = "signup" | "login";
-type Message = { id: string; from: "me" | "them"; text: string; time: string; receipt?: "sending" | "sent" | "delivered" | "read" };
+type Message = {
+  id: string;
+  from: "me" | "them";
+  text: string;
+  time: string;
+  receipt?: "sending" | "sent" | "delivered" | "read";
+  /** Text is the default; attachments and plan cards render differently. */
+  kind?: MessageKind;
+  /** Local uri for photos and voice notes. */
+  mediaUri?: string;
+  durationSeconds?: number;
+  place?: string;
+  /** Structured plan card carried by the message. */
+  plan?: PlanCard;
+  /** Group poll carried by the message. */
+  poll?: PlanPoll;
+  reactions?: Reaction[];
+};
 type Person = {
   id: string;
   name: string;
@@ -79,6 +160,8 @@ type Person = {
   distanceKm?: number | null;
   /** Short mood/status line shown beside the name. */
   status?: { text: string; emoji?: string; updatedAt: string } | null;
+  /** Reachability dot on chat rows; defaults to available. */
+  available?: boolean;
 };
 type Conversation = {
   id: string;
@@ -214,6 +297,27 @@ export default function TrufrenzApp() {
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
   const [typingChat, setTypingChat] = useState<string | null>(null);
+  const [chatRowStates, setChatRowStates] = useState<Record<string, ChatRowState>>({});
+  const [chatPrivacy, setChatPrivacy] = useState(DEFAULT_CHAT_PRIVACY);
+  const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [planComposerKind, setPlanComposerKind] = useState<PlanKind | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [pollComposerOpen, setPollComposerOpen] = useState(false);
+  const [reactionTarget, setReactionTarget] = useState<string | null>(null);
+  const [callSession, setCallSession] = useState<CallSession | null>(null);
+  const [groupInfoOpen, setGroupInfoOpen] = useState(false);
+  const [group, setGroup] = useState<Group>(() =>
+    createGroup({
+      id: "group-sunday-walk",
+      name: "Sunday Walk Club",
+      creator: { id: "me", name: "You", role: "admin", paidTier: true },
+      members: [
+        { id: "maya", name: "Maya Chen", role: "member", paidTier: true },
+        { id: "sam", name: "Sam Rivera", role: "member", paidTier: false },
+      ],
+    }),
+  );
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [createdGroups, setCreatedGroups] = useState<string[]>([]);
@@ -399,11 +503,40 @@ export default function TrufrenzApp() {
     const accepted = [...staticAccepted, ...newlyAccepted];
     const q = search.trim().toLowerCase();
     return accepted.filter((chat) => {
+      const state = rowStateFor(chatRowStates, chat.id);
+      if (state.archived !== showArchived) return false;
       const queryMatch = !q || `${chat.name} ${chat.lastMessage}`.toLowerCase().includes(q);
-      const filterMatch = chatFilter === "All" || (chatFilter === "Unread" ? chat.unread > 0 : chat.kind === "group");
+      const unread = displayUnread(chat.unread, state);
+      const filterMatch = chatFilter === "All" || (chatFilter === "Unread" ? unread > 0 : chat.kind === "group");
       return queryMatch && filterMatch;
     });
-  }, [search, chatFilter, acceptedFriends, chatMessages, suggestions]);
+  }, [search, chatFilter, acceptedFriends, chatMessages, suggestions, chatRowStates, showArchived]);
+
+  /** Archived threads are counted separately so the inbox stays calm. */
+  const archivedCount = useMemo(
+    () => Object.values(chatRowStates).filter((state) => state.archived).length,
+    [chatRowStates],
+  );
+
+  const chatEmptyCopy = useMemo(
+    () => emptyChatsCopy({ hasAcceptedFriends: acceptedFriends.length > 0, filter: chatFilter, search, archivedCount }),
+    [acceptedFriends.length, chatFilter, search, archivedCount],
+  );
+
+  /** Every plan card shared in a chat, surfaced for follow-up from Meetups. */
+  const sharedPlans = useMemo(() => {
+    const collected: { chatId: string; chatName: string; card: PlanCard }[] = [];
+    for (const [chatId, messages] of Object.entries(chatMessages)) {
+      for (const message of messages) {
+        if (message.plan) {
+          const chat = seedConversations.find((item) => item.id === chatId);
+          const person = suggestions.find((item) => item.id === chatId);
+          collected.push({ chatId, chatName: chat?.name ?? person?.name ?? "Friend", card: message.plan });
+        }
+      }
+    }
+    return collected.sort((a, b) => a.card.proposal.date.localeCompare(b.card.proposal.date));
+  }, [chatMessages, suggestions]);
 
   const inviteTargets = useMemo(() => {
     const seeded = seedConversations.filter((chat) => chat.kind === "friend" && acceptedFriends.includes(chat.id)).map(({ id, name }) => ({ id, name }));
@@ -417,6 +550,13 @@ export default function TrufrenzApp() {
     const interestMatch = interestFilter.length === 0 || interestFilter.some((tag) => tag === "Verified" ? person.verification === "ID + selfie verified" : tag === "Nearby" ? person.locality.includes("Pacific Heights") : person.interests.some((value) => value.toLowerCase().includes(tag.toLowerCase())));
     return discoverable && searchMatch && interestMatch && !acceptedFriends.includes(person.id) && !incomingRequests.includes(person.id);
   }), [search, interestFilter, acceptedFriends, incomingRequests, discoverable, suggestions]);
+
+  const threadAvailabilityLabel = (() => {
+    if (!selectedChat) return null;
+    const person = suggestions.find((item) => item.id === selectedChat);
+    if (!person) return "Private friend group";
+    return availabilityView(person.available === false ? "unavailable" : "available").label;
+  })();
 
   const threadFriendStatus = (() => {
     if (!selectedChat) return null;
@@ -493,7 +633,13 @@ export default function TrufrenzApp() {
     if (action === "chat") { setSelectedChat(person.id); setTab("Chats"); return; }
     if (action === "hangout") { feedback(`Suggested hangout with ${person.name.split(" ")[0]}: a café or park afternoon.`); return; }
     if (action === "meetup") { setInviteTargetChat(inviteTargets.some((contact) => contact.id === person.id) ? person.id : inviteTargets[0]?.id ?? null); setInviteModalVisible(true); return; }
-    if (action === "call") { feedback("Calls are a premium preview for this prototype."); return; }
+    if (action === "call") {
+      if (!paidTier) { feedback("Calls are part of Trufrenz Premium. Turn on the premium preview in the You tab to try them."); return; }
+      const name = profilePerson?.name ?? currentThread?.name ?? "your friend";
+      setProfilePerson(null);
+      setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: name, peerVerified: true, video: false, direction: "outgoing" }));
+      return;
+    }
     if (action === "report") { feedback("Report sent to the safety team. They follow up within a day."); return; }
     setAcceptedFriends((current) => current.filter((id) => id !== person.id));
     setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, person.id] } }));
@@ -540,6 +686,197 @@ export default function TrufrenzApp() {
     if (typingTimer.current) clearTimeout(typingTimer.current);
     typingTimer.current = setTimeout(() => setTypingChat(null), 2200);
     tap();
+  };
+
+  const pushMessage = (message: Message) => {
+    if (!selectedChat) return;
+    setChatMessages((current) => ({ ...current, [selectedChat]: [...(current[selectedChat] ?? []), message] }));
+  };
+
+  const activeRowState = selectedChat ? rowStateFor(chatRowStates, selectedChat) : DEFAULT_CHAT_ROW_STATE;
+
+  /** Send a photo, voice note, or manual place pin into the current chat. */
+  const sendAttachment = (draft: AttachmentDraft) => {
+    if (!selectedChat) return;
+    if (!canSendTo(activeRowState)) { feedback("This conversation is archived. Restore it before sending anything new."); return; }
+    const preview = messagePreview(draft.kind, { durationSeconds: draft.durationSeconds, place: draft.place });
+    pushMessage({
+      id: `${Date.now()}`,
+      from: "me",
+      text: preview,
+      time: "now",
+      receipt: "sent",
+      kind: draft.kind,
+      mediaUri: draft.uri,
+      durationSeconds: draft.durationSeconds,
+      place: draft.place,
+    });
+    tap();
+  };
+
+  const sendPhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) { feedback("Allow photo access to send a picture."); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+      if (result.canceled || !result.assets?.length) return;
+      sendAttachment({ kind: "photo", uri: result.assets[0].uri });
+    } catch {
+      feedback("The photo picker is unavailable here. Try again on your phone.");
+    }
+  };
+
+  /** Share a structured plan card instead of a plain message. */
+  const sharePlan = (kind: PlanKind, proposal: PlanProposal, note: string) => {
+    if (!selectedChat) return;
+    if (!canSendTo(activeRowState)) { feedback("This conversation is archived. Restore it before suggesting a plan."); return; }
+    const id = `plan-${Date.now()}`;
+    const card = createPlanCard({ id, kind, title: note.trim() || undefined, proposal, proposedBy: "me" });
+    pushMessage({ id, from: "me", text: planPreview(card), time: "now", receipt: "sent", kind: "plan", plan: card });
+    setPlanComposerKind(null);
+    feedback(`${PLAN_KIND_LABEL[kind]} card sent. ${currentThread?.name.split(" ")[0] ?? "They"} can accept, decline, or suggest another time.`);
+    tap();
+  };
+
+  /** Respond to a plan that the friend proposed. */
+  const respondToPlanCard = (messageId: string, response: PlanResponse) => {
+    if (!selectedChat) return;
+    setChatMessages((current) => {
+      const list = current[selectedChat] ?? [];
+      return {
+        ...current,
+        [selectedChat]: list.map((message) => {
+          if (message.id !== messageId || !message.plan) return message;
+          const proposal = response === "propose-new-time"
+            ? { ...message.plan.proposal, time: message.plan.proposal.time === "6:30 PM" ? "4:30 PM" : "6:30 PM" }
+            : undefined;
+          const next = respondToPlan(message.plan, response, { proposal });
+          return { ...message, plan: next, text: planPreview(next) };
+        }),
+      };
+    });
+    const copy = response === "accept" ? "Accepted. A reminder will arrive on the day." : response === "decline" ? "Declined quietly — no reply is expected." : "New time suggested. They can confirm or offer another.";
+    feedback(copy);
+    tap();
+  };
+
+  /** The day-of arrival check-in from the safety flow. */
+  const checkInToPlanCard = (messageId: string) => {
+    if (!selectedChat) return;
+    setChatMessages((current) => {
+      const list = current[selectedChat] ?? [];
+      return {
+        ...current,
+        [selectedChat]: list.map((message) => {
+          if (message.id !== messageId || !message.plan) return message;
+          return { ...message, plan: checkInToPlan(message.plan) };
+        }),
+      };
+    });
+    feedback(checkInSafetyNote(currentThread?.name ?? "Your friend"));
+  };
+
+  /** Tap-to-react on any bubble; tapping the same emoji removes it. */
+  const reactToMessage = (messageId: string, emoji: string) => {
+    if (!selectedChat) return;
+    setChatMessages((current) => {
+      const list = current[selectedChat] ?? [];
+      return { ...current, [selectedChat]: list.map((message) => (message.id === messageId ? { ...message, reactions: applyReaction(message.reactions ?? [], emoji) } : message)) };
+    });
+    tap();
+  };
+
+  /** Start a group poll for deciding a plan together. */
+  const startPlanPoll = () => {
+    if (!selectedChat) return;
+    const today = new Date();
+    const label = (days: number, time: string) => {
+      const date = new Date(today);
+      date.setDate(date.getDate() + days);
+      return `${date.toISOString().slice(0, 10)} ${time}`;
+    };
+    const poll = createPoll({
+      id: `poll-${Date.now()}`,
+      question: "When works for everyone?",
+      options: [label(2, "11:00 AM"), label(4, "6:30 PM"), label(7, "4:30 PM")],
+      voterIds: groupVoterIds(group),
+    });
+    pushMessage({ id: poll.id, from: "me", text: "🗳️ Group poll · When works for everyone?", time: "now", receipt: "sent", kind: "plan", poll });
+    setPollComposerOpen(false);
+    feedback("Poll shared. Everyone in this group can vote, and change their vote.");
+    tap();
+  };
+
+  const voteInPoll = (messageId: string, optionId: string) => {
+    if (!selectedChat) return;
+    setChatMessages((current) => {
+      const list = current[selectedChat] ?? [];
+      return {
+        ...current,
+        [selectedChat]: list.map((message) => {
+          if (message.id !== messageId || !message.poll) return message;
+          const next = castVote(message.poll, optionId, "me");
+          const preview = `🗳️ Group poll · ${next.options.reduce((sum, option) => sum + option.votes.length, 0)} votes`;
+          return { ...message, poll: next, text: preview };
+        }),
+      };
+    });
+  };
+
+  const applyWinningPollOption = (messageId: string) => {
+    if (!selectedChat) return;
+    const list = chatMessages[selectedChat] ?? [];
+    const message = list.find((item) => item.id === messageId);
+    const proposal = message?.poll ? winningProposal(message.poll) : null;
+    if (!proposal) { feedback("No single leading option yet. Break the tie first."); return; }
+    const id = `plan-${Date.now()}`;
+    const card = createPlanCard({ id, kind: "hangout", title: "Decided together in the group", proposal, proposedBy: "me" });
+    pushMessage({ id, from: "me", text: planPreview(card), time: "now", receipt: "sent", kind: "plan", plan: card });
+    feedback("Plan card created from the winning option.");
+  };
+
+  const toggleChatMute = () => {
+    if (!selectedChat) return;
+    setChatRowStates((current) => toggleMuted(current, selectedChat));
+    const muted = !rowStateFor(chatRowStates, selectedChat).muted;
+    feedback(muted ? "Muted. Messages still arrive, just without the badge." : "Unmuted. Notifications are back on.");
+  };
+
+  const toggleChatArchive = () => {
+    if (!selectedChat) return;
+    setChatRowStates((current) => toggleArchived(current, selectedChat));
+    feedback(rowStateFor(chatRowStates, selectedChat).archived ? "Moved back to your inbox." : "Archived. Find it again under Archived.");
+  };
+
+  const unfriendCurrent = () => {
+    if (!selectedChat) return;
+    const name = currentThread?.name ?? "them";
+    setChatRowStates((current) => archiveOnUnfriend(current, selectedChat));
+    setAcceptedFriends((current) => current.filter((id) => id !== selectedChat));
+    feedback(`You unfriended ${name.split(" ")[0]}. The conversation is archived and read-only, and your messages stay on your device.`);
+    tap();
+  };
+
+  const blockCurrent = () => {
+    if (!selectedChat) return;
+    const name = currentThread?.name ?? "them";
+    setChatRowStates((current) => archiveOnUnfriend(current, selectedChat));
+    setAcceptedFriends((current) => current.filter((id) => id !== selectedChat));
+    setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, selectedChat] } }));
+    feedback(`${name.split(" ")[0]} is blocked and can no longer reach you anywhere in Trufrenz.`);
+  };
+
+  const deleteCurrentThread = () => {
+    if (!selectedChat) return;
+    setChatMessages((current) => ({ ...current, [selectedChat]: [] }));
+    feedback("Messages deleted from this device.");
+  };
+
+  const startCall = (video = false) => {
+    const name = currentThread?.name ?? "your friend";
+    const gate = callGate({ viewerPaid: paidTier, recipientPaid: paidTier });
+    if (!gate.allowed) { feedback(gate.message); return; }
+    setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: name, peerVerified: Boolean(currentThread?.verified), video, direction: "outgoing" }));
   };
 
   const showIncomingNotification = (next: IncomingNotification) => {
@@ -718,9 +1055,9 @@ export default function TrufrenzApp() {
             <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
         ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#FFFFFF" /></View>}
-        {thread ? <View style={styles.threadHeading}><Pressable onPress={openChatProfile} disabled={currentThread?.kind !== "friend"} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Text style={styles.threadTitle} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text><Text style={styles.topBarSub} numberOfLines={1}>{currentThread?.kind === "group" ? "Private friend group" : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text>{threadFriendStatus ? <Text style={styles.threadStatus} numberOfLines={1}>{threadFriendStatus}</Text> : null}</View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={styles.threadTitle} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={styles.topBarSub} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><Text style={styles.threadStatus} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
       </View>
-      {thread ? <View style={styles.topActions}><Pressable onPress={prepareMeetupInvite} accessibilityRole="button" accessibilityLabel="Create meetup invite" style={styles.roundAction}><Icon name="event-available" size={19} color="#766B82" /></Pressable><Pressable onPress={() => setActionMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={styles.roundAction}><Icon name="more-vert" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} accessibilityRole="button" accessibilityLabel="Show sample incoming notification" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={() => setNavigationMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open navigation options" style={styles.roundAction}><Icon name="more-vert" size={20} color="#766B82" /></Pressable><Pressable onPress={openSignup} accessibilityRole="button" accessibilityLabel="Open your profile" style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
+      {thread ? <View style={styles.topActions}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="call" size={18} color="#766B82" /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="videocam" size={19} color="#766B82" /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={styles.roundAction}><Icon name="more-vert" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={() => setNavigationMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open navigation options" style={styles.roundAction}><Icon name="more-vert" size={20} color="#766B82" /></Pressable><Pressable onPress={openSignup} accessibilityRole="button" accessibilityLabel="Open your profile" style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
     </View>
   );
 
@@ -739,13 +1076,121 @@ export default function TrufrenzApp() {
           <View style={styles.dayDivider}><View style={styles.dividerLine} /><Text style={styles.dayLabel}>TODAY</Text><View style={styles.dividerLine} /></View>
           <View style={styles.sharedInterest}><Icon name="auto-awesome" size={15} color="#A77C9A" /><Text style={styles.sharedInterestText}>You both like slow weekend mornings</Text></View>
           {conversationMessages.map((message) => {
-            const receipt = message.receipt ?? (message.from === "me" ? "sent" : null);
-            return <View key={message.id} style={[styles.messageRow, message.from === "me" && styles.myMessageRow]}><View style={[styles.messageBubble, message.from === "me" ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(message.from === "me" ? "rgba(234,223,235,0.94)" : "rgba(255,255,255,0.91)", glassOpacity) }]}><Text style={[styles.messageText, message.from === "me" && styles.myMessageText]}>{message.text}</Text><View style={styles.messageMeta}><Text style={[styles.messageTime, message.from === "me" && styles.myMessageTime]}>{message.time}</Text>{receipt ? <View accessibilityLabel={receiptLabel(receipt)} style={styles.receiptWrap}><Icon name={receiptIcon(receipt)} size={12} color={receipt === "read" ? "#62A4A0" : "#927C96"} /><Text style={[styles.receiptText, receipt === "read" && styles.receiptReadText]}>{receiptLabel(receipt)}</Text></View> : null}</View></View></View>;
+            const receipt = outgoingReceipt(message.receipt ?? (message.from === "me" ? "sent" : undefined), chatPrivacy.shareReadReceipts);
+            const showReceipt = shouldShowReceipt({ from: message.from, receipt: message.receipt ?? (message.from === "me" ? "sent" : undefined) }, chatPrivacy.shareReadReceipts) && receipt;
+            const mine = message.from === "me";
+            const visibleReactions = summariseReactions(message.reactions ?? []);
+            return (
+              <View key={message.id} style={[styles.messageRow, mine && styles.myMessageRow]}>
+                <View style={styles.messageColumn}>
+                  {currentThread.kind === "group" && !mine && message.kind !== "plan" ? <Text style={styles.senderLabel}>{currentThread.name.split(" ")[0]} · {message.from === "them" ? "Member" : "You"}</Text> : null}
+                  {message.plan ? (
+                    <PlanCardView
+                      card={message.plan}
+                      viewer={mine ? "them" : "me"}
+                      friendName={currentThread.name}
+                      onRespond={(response) => respondToPlanCard(message.id, response)}
+                      onCheckIn={() => checkInToPlanCard(message.id)}
+                      onCopyLink={() => feedback("Plan link copied. It opens this card from the Meetups tab.")}
+                    />
+                  ) : message.poll ? (
+                    <PlanPollCard
+                      poll={message.poll}
+                      viewerId="me"
+                      onVote={(optionId) => voteInPoll(message.id, optionId)}
+                      onUseWinning={() => applyWinningPollOption(message.id)}
+                    />
+                  ) : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${mine ? "You" : currentThread.name.split(" ")[0]} said ${message.text}. Long press to react.`}
+                      onLongPress={() => setReactionTarget(message.id)}
+                      delayLongPress={280}
+                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(mine ? "rgba(234,223,235,0.94)" : "rgba(255,255,255,0.91)", glassOpacity) }]}
+                    >
+                      {message.kind === "voice" ? (
+                        <View style={styles.voiceRow}>
+                          <View style={styles.voicePlay}><Icon name="play-arrow" size={16} color="#8E7894" /></View>
+                          <View style={styles.voiceWave}>{[7, 13, 18, 10, 16, 21, 12, 9, 15, 19, 11, 14].map((height, index) => <View key={index} style={[styles.voiceBar, { height }]} />)}</View>
+                          <Text style={styles.voiceTime}>{clampVoiceSeconds(message.durationSeconds ?? 1)}s</Text>
+                        </View>
+                      ) : message.kind === "location" ? (
+                        <View style={styles.locationRow}>
+                          <Icon name="place" size={15} color="#6E9C86" />
+                          <View style={styles.locationCopy}>
+                            <Text style={[styles.messageText, mine && styles.myMessageText]} numberOfLines={2}>{message.place ?? message.text}</Text>
+                            <Text style={styles.locationNote}>Manual share · never live</Text>
+                          </View>
+                        </View>
+                      ) : message.kind === "photo" && message.mediaUri ? (
+                        <Image source={{ uri: message.mediaUri }} style={styles.photoBubble} />
+                      ) : (
+                        <Text style={[styles.messageText, mine && styles.myMessageText]}>{message.text}</Text>
+                      )}
+                      <View style={styles.messageMeta}>
+                        <Text style={[styles.messageTime, mine && styles.myMessageTime]}>{message.time}</Text>
+                        {showReceipt && receipt ? <View accessibilityLabel={receiptLabel(receipt)} style={styles.receiptWrap}><Icon name={receiptIcon(receipt)} size={12} color={receipt === "read" ? "#62A4A0" : "#927C96"} /><Text style={[styles.receiptText, receipt === "read" && styles.receiptReadText]}>{receiptLabel(receipt)}</Text></View> : null}
+                      </View>
+                    </Pressable>
+                  )}
+                  {visibleReactions.length ? (
+                    <View style={[styles.reactionRow, mine && styles.myReactionRow]}>
+                      {visibleReactions.map((reaction) => (
+                        <Pressable key={reaction.emoji} accessibilityRole="button" accessibilityLabel={`${reaction.emoji} ${reaction.count}, ${reaction.mine ? "yours" : "tap to react"}`} onPress={() => reactToMessage(message.id, reaction.emoji)} style={[styles.reactionChip, reaction.mine && styles.reactionChipMine]}>
+                          <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
+                          <Text style={styles.reactionCount}>{reaction.count}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                  {reactionTarget === message.id ? (
+                    <View style={[styles.reactionPicker, mine && styles.myReactionPicker]}>
+                      {REACTION_CHOICES.map((emoji) => (
+                        <Pressable key={emoji} accessibilityRole="button" accessibilityLabel={`React with ${emoji}`} onPress={() => { reactToMessage(message.id, emoji); setReactionTarget(null); }} style={styles.reactionChoice}>
+                          <Text style={styles.reactionChoiceEmoji}>{emoji}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            );
           })}
           {typingChat === selectedChat ? <View style={styles.typingRow}><View style={styles.typingBubble}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
         </ScrollView>
-        <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#9C7694" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={newHangout}><Text style={styles.inviteLink}>Invite</Text></Pressable></View>
-        <View style={styles.composerRow}><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open sharing actions" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8C8495" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#8E7894" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder="Write a message…" placeholderTextColor="#9B96A1" style={styles.composerInput} onSubmitEditing={sendMessage} returnKeyType="send" /><Pressable onPress={sendMessage} style={({ pressed }) => [styles.sendButton, messageDraft.trim() && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() ? "#FFFFFF" : "#96919D"} /></Pressable></View>
+        <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#9C7694" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={styles.inviteLink}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={styles.inviteLink}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={styles.inviteLink}>Poll</Text></Pressable> : null}</View>
+        {activeRowState.readOnly ? <View style={styles.readOnlyBar}><Icon name="lock-outline" size={14} color="#9A7796" /><Text style={styles.readOnlyBarText}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
+        <View style={styles.composerRow}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8C8495" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#8E7894" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder="Write a message…" placeholderTextColor="#9B96A1" style={styles.composerInput} onSubmitEditing={sendMessage} returnKeyType="send" /><Pressable onPress={sendMessage} style={({ pressed }) => [styles.sendButton, messageDraft.trim() && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() ? "#FFFFFF" : "#96919D"} /></Pressable></View>
+        <AttachmentSheet visible={attachmentSheetOpen} onClose={() => setAttachmentSheetOpen(false)} onPickPhoto={sendPhoto} onSend={sendAttachment} onSuggestPlan={(kind) => setPlanComposerKind(kind)} />
+        <ChatOverflowMenu
+          visible={chatMenuOpen}
+          chatName={currentThread.name}
+          isGroup={currentThread.kind === "group"}
+          state={activeRowState}
+          shareReadReceipts={chatPrivacy.shareReadReceipts}
+          onClose={() => setChatMenuOpen(false)}
+          onViewProfile={openChatProfile}
+          onToggleMute={toggleChatMute}
+          onToggleArchive={toggleChatArchive}
+          onToggleReadReceipts={(value) => { setChatPrivacy((current) => ({ ...current, shareReadReceipts: value })); feedback(value ? "Read receipts on. Friends will see when you have read their messages." : "Read receipts off. Friends see Delivered only."); }}
+          onUnfriend={unfriendCurrent}
+          onDeleteThread={deleteCurrentThread}
+          onReport={() => feedback("Reported to the safety team. Declined requests and reports never notify the other person.")}
+          onBlock={blockCurrent}
+          onLeaveGroup={() => { setSelectedChat(null); feedback("You left the group. Your copy of the history stays on your device."); }}
+        />
+        <PlanComposerModal visible={planComposerKind !== null} initialKind={planComposerKind ?? "hangout"} friendName={currentThread.name} onClose={() => setPlanComposerKind(null)} onShare={sharePlan} />
+        <GroupInfoModal
+          visible={groupInfoOpen}
+          group={group}
+          viewerId="me"
+          friendDirectory={suggestions.filter((person) => acceptedFriends.includes(person.id)).map((person) => ({ id: person.id, name: person.name, paidTier: paidTier }))}
+          onClose={() => setGroupInfoOpen(false)}
+          onUpdate={setGroup}
+          onFeedback={feedback}
+          onStartGroupCall={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: group.settings.name, peerVerified: true, video: true, direction: "outgoing" }))}
+          onLeave={() => setSelectedChat(null)}
+        />
       </View>;
     }
     const filters: typeof chatFilter[] = ["All", "Unread", "Groups"];
@@ -762,12 +1207,23 @@ export default function TrufrenzApp() {
       </ScrollView></View> : null}
       <View style={styles.listHeading}><Text style={styles.sectionEyebrow}>{chatFilter === "Groups" ? "YOUR PRIVATE CIRCLES" : chatFilter === "Unread" ? "UNREAD MESSAGES" : "RECENT CHATS"}</Text><Pressable onPress={() => feedback("Conversations stay private to your accepted friends.")}><Icon name="more-horiz" size={20} color="#9B94A0" /></Pressable></View>
       <ScrollView style={styles.chatListScroll} contentContainerStyle={styles.chatList} showsVerticalScrollIndicator={false}>
-        {visibleChats.map((chat) => <Pressable key={chat.id} onPress={() => startThread(chat.id)} style={({ pressed }) => [styles.chatRow, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.66)", glassOpacity) }, pressed && styles.rowPressed]}>
-          <View style={styles.chatAvatarWrap}><Image source={chat.image} style={styles.chatAvatar} />{chat.kind === "group" ? <View style={styles.groupMini}><Icon name="groups" size={10} color="#FFFFFF" /></View> : chat.online ? <View style={styles.onlineDot} /> : null}</View>
-          <View style={styles.chatInfo}><View style={styles.chatTitleRow}><View style={styles.chatNameCluster}><Text style={styles.chatName}>{chat.name}</Text>{chat.verified ? <Icon name="verified" size={13} color="#61A088" /> : null}</View><Text style={[styles.chatTime, chat.unread > 0 && styles.chatTimeUnread]}>{chat.time}</Text></View><View style={styles.chatLastRow}><Text style={styles.chatPreview} numberOfLines={1}>{chat.lastMessage}</Text>{chat.unread > 0 ? <View style={styles.unreadBadge}><Text style={styles.unreadCount}>{chat.unread}</Text></View> : null}</View></View>
-        </Pressable>)}
+        {visibleChats.map((chat) => {
+          const person = suggestions.find((item) => item.id === chat.id);
+          const status = visibleStatus(person?.status ?? null);
+          return (
+            <SwipeableChatRow
+              key={chat.id}
+              chat={{ ...chat, verified: Boolean(chat.verified), availability: chat.kind === "group" ? undefined : (person?.available === false ? "unavailable" : "available") }}
+              state={rowStateFor(chatRowStates, chat.id)}
+              statusLine={status ? statusLabel(status) : null}
+              onOpen={() => startThread(chat.id)}
+              onToggleMute={() => { setChatRowStates((current) => toggleMuted(current, chat.id)); feedback(rowStateFor(chatRowStates, chat.id).muted ? "Unmuted." : "Muted. Messages still arrive, just without the badge."); }}
+              onToggleArchive={() => { setChatRowStates((current) => toggleArchived(current, chat.id)); feedback(rowStateFor(chatRowStates, chat.id).archived ? "Moved back to your inbox." : "Archived. Find it again under Archived."); }}
+            />
+          );
+        })}
         {createdGroups.map((name) => <Pressable key={name} onPress={() => feedback("Invite an accepted friend to start the group conversation.")} style={styles.chatRow}><View style={[styles.chatAvatarWrap, styles.addCircle]}><Icon name="groups" size={22} color="#8D7697" /></View><View style={styles.chatInfo}><Text style={styles.chatName}>{name}</Text><Text style={styles.chatPreview}>Private group · Invite friends to begin</Text></View><Icon name="chevron-right" size={18} color="#AAA2AB" /></Pressable>)}
-        {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={styles.emptyIcon}><Icon name="forum" size={22} color="#947D98" /></View><Text style={styles.emptyTitle}>Nothing here just yet</Text><Text style={styles.emptyCopy}>Your accepted friends&apos; messages will appear here.</Text><ActionButton onPress={() => setTab("Friends")} style={styles.emptyAction}><Text style={styles.actionText}>Meet neighbors</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton></View> : null}
+        {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={styles.emptyIcon}><Icon name="forum" size={22} color="#947D98" /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : acceptedFriends.length === 0 ? <ActionButton onPress={() => setTab("Friends")} style={styles.emptyAction}><Text style={styles.actionText}>Meet neighbors</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
         <View style={styles.safeNote}><Icon name="lock-outline" size={13} color="#8E8A97" /><Text style={styles.safeNoteText}>Messages open after you both accept a friend request.</Text></View>
       </ScrollView>
     </>;
@@ -792,6 +1248,8 @@ export default function TrufrenzApp() {
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>EASY COMPANY, NEARBY</Text><Text style={styles.pageTitle}>A plan makes it easy.</Text><Text style={styles.pageSub}>Small, friendly gatherings you can join at your own pace.</Text></View>
     <Frosted style={styles.meetupIntroCard}><View style={styles.meetupIntroArt}><View style={styles.artBubblePink} /><View style={styles.artBubbleBlue} /><View style={styles.artCenter}><Icon name="diversity-3" size={22} color="#93738E" /></View></View><View style={{ flex: 1 }}><Text style={styles.meetupIntroTitle}>Better in good company.</Text><Text style={styles.meetupIntroCopy}>Meet in public, bring a friend, leave whenever you like.</Text></View><Icon name="verified-user" size={18} color="#6F9C88" /></Frosted>
     <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#81758B" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
+    {sharedPlans.length ? <><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>YOUR PLANS</Text><Text style={styles.sectionTitle}>Follow-ups from chats</Text></View></View>
+      <View style={styles.planFollowList}>{sharedPlans.map(({ chatId, chatName, card }) => { const timing = planTiming(card); return <Frosted key={card.id} style={styles.planFollowCard}><View style={styles.planFollowTop}><View style={styles.planFollowPill}><Text style={styles.planFollowPillText}>{PLAN_KIND_LABEL[card.kind].toUpperCase()}</Text></View><Text style={[styles.planFollowTiming, timing.emphasis === "today" && styles.planFollowTimingToday]}>{timing.label}</Text></View><Text style={styles.planFollowTitle} numberOfLines={1}>{card.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText} numberOfLines={1}>{card.proposal.place}</Text></View><View style={styles.meetupPlace}><Icon name="schedule" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{card.proposal.date} · {card.proposal.time}</Text></View><View style={styles.planFollowActions}><Pressable onPress={() => startThread(chatId)} style={styles.planFollowButton}><Text style={styles.planFollowButtonText}>Open chat</Text></Pressable><Pressable onPress={() => feedback(`Plan link copied: ${card.link}`)} style={styles.planFollowGhost}><Icon name="link" size={14} color="#8E8595" /></Pressable>{canCheckIn(card) ? <Pressable onPress={() => feedback(checkInSafetyNote(chatName))} style={styles.planFollowCheckIn}><Text style={styles.planFollowCheckInText}>Check in</Text></Pressable> : null}</View><Text style={styles.planFollowWho} numberOfLines={1}>with {chatName.split(" ")[0]} · {card.status}</Text></Frosted>; })}</View></> : null}
     <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#99819B" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
       <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#947B9B" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#A18AA2" /></Pressable>
     </View>
@@ -814,7 +1272,7 @@ export default function TrufrenzApp() {
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => { setPaidTier((current) => !current); tap(); feedback(paidTier ? "Premium preview off · distances stay hidden on profiles." : "Premium preview on · distances and calls are visible in this demo."); }} accessibilityRole="switch" accessibilityState={{ checked: paidTier }} accessibilityLabel="Premium preview with distance and calls" style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map, distances, and calls · premium preview</Text></View><View style={styles.toggleFrame}><Switch value={paidTier} onValueChange={() => undefined} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" pointerEvents="none" /></View></Pressable>
+      <Pressable onPress={() => { setPaidTier((current) => !current); tap(); feedback(paidTier ? "Premium preview off · distances stay hidden on profiles." : "Premium preview on · distances and calls are visible in this demo."); }} accessibilityRole="switch" accessibilityState={{ checked: paidTier }} accessibilityLabel="Premium preview with distance and calls" style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map, distances, and calls · premium preview</Text></View><View style={styles.toggleFrame}><Switch value={paidTier} onValueChange={() => undefined} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" pointerEvents="none" /></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable>
     </Frosted>
     <Text style={styles.settingsLabel}>APPEARANCE</Text>
     <Frosted style={styles.appearancePanel}>
@@ -861,6 +1319,13 @@ export default function TrufrenzApp() {
       {showWelcome ? null : <>
       <View style={[styles.backgroundWash, styles.noninteractive]} />
       <View style={[styles.ambient, styles.noninteractive]}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View> </>}
+      <CallScreen
+        session={callSession}
+        groupLabel={callSession && selectedChat && currentThread?.kind === "group" ? currentThread.name : null}
+        onAccept={() => setCallSession((current) => (current ? answerCall(current) : null))}
+        onDecline={() => { setCallSession((current) => (current ? declineCall(current) : null)); feedback("Call declined quietly. They are not told twice."); setTimeout(() => setCallSession(null), 900); }}
+        onEnd={() => { setCallSession((current) => (current ? endCall(current) : null)); setTimeout(() => setCallSession(null), 500); }}
+      />
       {showWelcome ? null : <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />}
       {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
@@ -1096,6 +1561,29 @@ const styles = StyleSheet.create({
   sharedInterestText: { color: "#9A7E98", fontSize: 8 },
   messageRow: { flexDirection: "row", justifyContent: "flex-start" },
   myMessageRow: { justifyContent: "flex-end" },
+  readOnlyBar: { flexDirection: "row", alignItems: "center", gap: 7, marginHorizontal: 12, marginBottom: 4, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(246,238,247,0.88)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)" },
+  readOnlyBarText: { flex: 1, color: "#7A6B73", fontSize: 9, fontWeight: "600" },
+  senderLabel: { color: "#8E8595", fontSize: 8.5, fontWeight: "700", marginBottom: 2 },
+  messageColumn: { maxWidth: "86%", gap: 4 },
+  voiceRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 130 },
+  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.8)" },
+  voiceWave: { flexDirection: "row", alignItems: "center", gap: 2, flex: 1, height: 22 },
+  voiceBar: { flex: 1, borderRadius: 2, backgroundColor: "rgba(150,120,150,0.55)" },
+  voiceTime: { color: "#8A7F92", fontSize: 9, fontWeight: "700" },
+  locationRow: { flexDirection: "row", alignItems: "flex-start", gap: 7, minWidth: 150 },
+  locationCopy: { flex: 1, minWidth: 0 },
+  locationNote: { color: "#8A7F92", fontSize: 8.5, fontWeight: "600", marginTop: 3 },
+  photoBubble: { width: 190, height: 140, borderRadius: 13, backgroundColor: "rgba(232,226,234,0.9)" },
+  reactionRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: -2 },
+  myReactionRow: { justifyContent: "flex-end" },
+  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", backgroundColor: "rgba(255,255,255,0.82)", paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#7A6E80", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  reactionChipMine: { borderColor: "rgba(190,150,190,0.65)", backgroundColor: "rgba(246,238,247,0.94)" },
+  reactionEmoji: { fontSize: 11 },
+  reactionCount: { color: "#7C7286", fontSize: 9, fontWeight: "700" },
+  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", backgroundColor: "rgba(255,255,255,0.9)", paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#7A6E80", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  myReactionPicker: { alignSelf: "flex-end" },
+  reactionChoice: { paddingHorizontal: 4, paddingVertical: 2 },
+  reactionChoiceEmoji: { fontSize: 17 },
   messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16 },
   theirBubble: { backgroundColor: "rgba(255,255,255,0.91)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", borderBottomLeftRadius: 6, shadowColor: "#786D7F", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   myBubble: { backgroundColor: "rgba(234,223,235,0.94)", borderWidth: 1, borderColor: "rgba(255,255,255,0.82)", borderBottomRightRadius: 6, shadowColor: "#786D7F", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
@@ -1194,6 +1682,21 @@ const styles = StyleSheet.create({
   locationChipText: { color: "#837A88", fontSize: 7 },
   meetupScroll: { flex: 1, marginTop: 11 },
   meetupList: { gap: 9, paddingBottom: 20, marginTop: 11 },
+  planFollowList: { gap: 8, marginBottom: 14 },
+  planFollowCard: { padding: 11, borderRadius: 16, gap: 5 },
+  planFollowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  planFollowPill: { borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(240,238,248,0.94)" },
+  planFollowPillText: { color: "#7E6E92", fontSize: 7.5, fontWeight: "700", letterSpacing: 0.5 },
+  planFollowTiming: { color: "#8E8595", fontSize: 9, fontWeight: "700" },
+  planFollowTimingToday: { color: "#A2568B" },
+  planFollowTitle: { color: "#4E4856", fontSize: 11.5, fontWeight: "700" },
+  planFollowActions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  planFollowButton: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
+  planFollowButtonText: { color: "#FFFFFF", fontSize: 9.5, fontWeight: "700" },
+  planFollowGhost: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "rgba(255,255,255,0.68)" },
+  planFollowCheckIn: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
+  planFollowCheckInText: { color: "#FFFFFF", fontSize: 9.5, fontWeight: "700" },
+  planFollowWho: { color: "#948C99", fontSize: 8.5, marginTop: 2 },
   meetupCard: { minHeight: 99, padding: 9, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16 },
   meetupPhoto: { width: 60, height: 72, borderRadius: 12, backgroundColor: "#EFE7F0" },
   meetupCopy: { flex: 1, minWidth: 0 },
