@@ -54,6 +54,8 @@ import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-prefere
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
+import { accountStateFrom, fetchNotices, fetchSession, markNoticesRead, reportEvents, requestOtp, runGuardedAction, verifyOtp, type MemberNotice, type RemoteAccount } from "@/lib/account-client";
+import { blockedActionMessage, canAccount, describeRestriction, requiresAccountNotice } from "@/lib/account-access";
 import { addProfilePhoto, createInitialProfile, statusLabel, visibleStatus, type EditableProfile, type RequestAudience, type ViewerRelationship } from "@/lib/profile-details";
 
 import { guestUpsellMessage } from "@/lib/guest-mode";
@@ -232,8 +234,10 @@ function Frosted({ children, style }: { children: React.ReactNode; style?: objec
   return <View style={[styles.frosted, style, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.79)", glassOpacity) }]}>{children}</View>;
 }
 
-function ActionButton({ children, onPress, style, secondary = false }: { children: React.ReactNode; onPress: () => void; style?: object; secondary?: boolean }) {
-  return <Pressable onPress={onPress} style={({ pressed }) => [styles.actionButton, secondary && styles.actionButtonSecondary, style, pressed && styles.pressed]}>{children}</Pressable>;
+function ActionButton({ children, onPress, style, secondary = false, disabled = false }: { children: React.ReactNode; onPress: () => void; style?: object; secondary?: boolean; disabled?: boolean }) {
+  // A disabled button still reports its state, so a screen reader explains why
+  // the action is unavailable rather than silently ignoring the tap.
+  return <Pressable onPress={disabled ? undefined : onPress} disabled={disabled} accessibilityState={{ disabled }} style={({ pressed }) => [styles.actionButton, secondary && styles.actionButtonSecondary, style, disabled && styles.actionButtonDisabled, pressed && !disabled && styles.pressed]}>{children}</Pressable>;
 }
 
 export default function TrufrenzApp() {
@@ -252,6 +256,14 @@ export default function TrufrenzApp() {
   const [authIntent, setAuthIntent] = useState<AuthIntent>("signup");
   const [authStep, setAuthStep] = useState<AuthStep>("welcome");
   const [phone, setPhone] = useState("");
+  /** True while a sign-in request is in flight, so the button can show progress. */
+  const [authBusy, setAuthBusy] = useState(false);
+  /** One-time code echoed by the server when no SMS provider is configured. */
+  const [demoCode, setDemoCode] = useState<string | null>(null);
+  /** The signed-in account as the server reports it, including its status. */
+  const [remoteAccount, setRemoteAccount] = useState<RemoteAccount | null>(null);
+  /** Notices the safety team sent to this account (warnings, outcomes). */
+  const [memberNotices, setMemberNotices] = useState<MemberNotice[]>([]);
   const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [fullName, setFullName] = useState("");
@@ -395,6 +407,26 @@ export default function TrufrenzApp() {
             status: current.status ?? restored.status ?? null,
             verification: restored.verification,
           }));
+
+          // Ask the server for this account's true status and any notices the
+          // safety team has sent. A restriction set in the dashboard therefore
+          // shows up the next time the member opens the app.
+          void (async () => {
+            const [sessionResult, noticesResult] = await Promise.all([
+              fetchSession(),
+              fetchNotices(),
+            ]);
+            if (!active) return;
+            if (sessionResult.ok) {
+              setRemoteAccount(sessionResult.data.account);
+              const account = sessionResult.data.account;
+              setMyProfile((current) => ({
+                ...current,
+                verification: account.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
+              }));
+            }
+            if (noticesResult.ok) setMemberNotices(noticesResult.data.notices);
+          })();
         }
         setSessionLoaded(true);
       })
@@ -442,6 +474,37 @@ export default function TrufrenzApp() {
     }
   };
 
+  /** The capabilities the server reports for this account, if known. */
+  const accountState = useMemo(
+    () => accountStateFrom(remoteAccount),
+    [remoteAccount],
+  );
+
+  /** The blocking notice for a restricted account, shown above the app. */
+  const restriction = useMemo(
+    () => (accountState ? describeRestriction(accountState) : null),
+    [accountState],
+  );
+
+  /** Unread notices the member has not acknowledged yet. */
+  const unreadNotices = useMemo(
+    () => memberNotices.filter((notice) => !notice.readAt),
+    [memberNotices],
+  );
+
+  /**
+   * Run a capability-guarded action.
+   *
+   * Returns true when the action may proceed. A restriction is explained in the
+   * same words the server used, so the member is never left guessing.
+   */
+  const allowAction = (capability: Parameters<typeof canAccount>[1]): boolean => {
+    if (!accountState) return true; // Guest or offline: local rules still apply.
+    if (canAccount(accountState, capability)) return true;
+    feedback(blockedActionMessage(accountState, capability) ?? "That action is unavailable right now.");
+    return false;
+  };
+
   const finishSignup = () => {
     if (email.trim() && !isValidCredential("Email", email)) { feedback("Check the recovery email address, or leave it blank"); return; }
     const parsedDob = dateOfBirth ? parseDateOfBirth(dateOfBirth) : null;
@@ -455,19 +518,90 @@ export default function TrufrenzApp() {
   const continueAuth = () => {
     if (authStep === "phone") {
       if (!isValidCredential("Phone", phone)) { feedback("Enter a valid phone number to continue"); return; }
-      setAuthStep("code"); return;
+      // Ask the account service for a real one-time code. When the server is
+      // unreachable the flow still advances locally so the app stays usable.
+      void (async () => {
+        setAuthBusy(true);
+        const result = await requestOtp(phone, authIntent);
+        setAuthBusy(false);
+        if (!result.ok) {
+          feedback(
+            result.code === "account_not_found"
+              ? "No account uses that number yet. Switch to Sign up to create one."
+              : result.error,
+          );
+          return;
+        }
+        setDemoCode(result.data.demoCode ?? null);
+        setAuthStep("code");
+        feedback(
+          result.data.demoCode
+            ? `Prototype delivery: your code is ${result.data.demoCode}.`
+            : `We sent a code to ${result.data.phone}.`,
+        );
+      })();
+      return;
     }
     if (authStep === "code") {
-      if (!isValidDemoCode(passcode)) { feedback("Enter the 6-digit demo code to continue"); return; }
-      if (authIntent === "login") {
-        persistSession(createMemberSession({ name: fullName.trim() || "Friend", locality: locality.trim() || "Nearby", dateOfBirth: session?.dateOfBirth, age: session?.age }));
-        setJoined(true);
-        setShowSignup(false);
-        setTab("Chats");
-        feedback("Welcome back. Your conversations are waiting.");
-        return;
-      }
-      setAuthStep("profile");
+      if (!isValidDemoCode(passcode)) { feedback("Enter the 6-digit code to continue"); return; }
+      void (async () => {
+        setAuthBusy(true);
+        const result = await verifyOtp({
+          code: passcode,
+          // Signing in does not need onboarding fields; creating an account does.
+          name: authIntent === "login" ? undefined : fullName.trim() || undefined,
+          dateOfBirth: authIntent === "login" ? undefined : dateOfBirth || undefined,
+          age: authIntent === "login" ? undefined : ageFromDateOfBirth(parseDateOfBirth(dateOfBirth) ?? new Date()) ?? undefined,
+          homeArea: authIntent === "login" ? undefined : locality.trim() || undefined,
+          email: authIntent === "login" ? undefined : email.trim() || undefined,
+        });
+        setAuthBusy(false);
+
+        if (!result.ok) {
+          if (result.code === "profile_incomplete") {
+            // The code was valid but the account is new: finish creating it at
+            // the end of onboarding.
+            setAuthStep("profile");
+            feedback("Add your name to finish creating your account.");
+            return;
+          }
+          feedback(result.error);
+          return;
+        }
+
+        setRemoteAccount(result.data.account);
+
+        if (authIntent === "login") {
+          const account = result.data.account;
+          // Reflect the account's own details so the greeting and profile are
+          // the member's, not the placeholder the device had before.
+          setFullName(account.name);
+          setLocality(account.homeArea ?? "Nearby");
+          if (account.dateOfBirth) setDateOfBirth(account.dateOfBirth);
+          setMyProfile((current) => ({
+            ...current,
+            name: account.name,
+            locality: account.homeArea ?? current.locality,
+            age: account.age ?? current.age,
+            verification: account.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
+          }));
+          persistSession(
+            createMemberSession({
+              name: account.name,
+              locality: account.homeArea ?? "Nearby",
+              verification: account.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
+              dateOfBirth: account.dateOfBirth ?? undefined,
+              age: account.age ?? undefined,
+            }),
+          );
+          setJoined(true);
+          setShowSignup(false);
+          setTab("Chats");
+          feedback("Welcome back. Your conversations are waiting.");
+          return;
+        }
+        setAuthStep("profile");
+      })();
       return;
     }
     if (authStep === "profile") {
@@ -679,8 +813,14 @@ export default function TrufrenzApp() {
   const sendMessage = () => {
     const text = messageDraft.trim();
     if (!selectedChat || !text) return;
+    // A suspended account keeps read access but cannot post new messages.
+    if (!allowAction("send-messages")) return;
     const message: Message = { id: `${Date.now()}`, from: "me", text, time: "now", receipt: "sent" };
     setChatMessages((current) => ({ ...current, [selectedChat]: [...(current[selectedChat] ?? []), message] }));
+    void runGuardedAction("message", {
+      thread: selectedChat,
+      groupId: selectedChat.startsWith("group") ? selectedChat : null,
+    });
     setMessageDraft("");
     setTypingChat(selectedChat);
     if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -874,8 +1014,11 @@ export default function TrufrenzApp() {
 
   const startCall = (video = false) => {
     const name = currentThread?.name ?? "your friend";
+    // A restricted account cannot place calls, whatever their tier.
+    if (!allowAction("start-calls")) return;
     const gate = callGate({ viewerPaid: paidTier, recipientPaid: paidTier });
     if (!gate.allowed) { feedback(gate.message); return; }
+    void runGuardedAction("call", { kind: video ? "video" : "voice" });
     setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: name, peerVerified: Boolean(currentThread?.verified), video, direction: "outgoing" }));
   };
 
@@ -971,7 +1114,9 @@ export default function TrufrenzApp() {
       setVerificationPrompt(true);
       return;
     }
+    if (!allowAction("send-friend-requests")) return;
     setRequestSent((current) => current.includes(person.id) ? current : [...current, person.id]);
+    void runGuardedAction("friend-request", { targetName: person.name });
     feedback("Request sent quietly. Chat opens after they accept.");
     tap();
   };
@@ -1250,7 +1395,7 @@ export default function TrufrenzApp() {
     <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#81758B" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
     {sharedPlans.length ? <><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>YOUR PLANS</Text><Text style={styles.sectionTitle}>Follow-ups from chats</Text></View></View>
       <View style={styles.planFollowList}>{sharedPlans.map(({ chatId, chatName, card }) => { const timing = planTiming(card); return <Frosted key={card.id} style={styles.planFollowCard}><View style={styles.planFollowTop}><View style={styles.planFollowPill}><Text style={styles.planFollowPillText}>{PLAN_KIND_LABEL[card.kind].toUpperCase()}</Text></View><Text style={[styles.planFollowTiming, timing.emphasis === "today" && styles.planFollowTimingToday]}>{timing.label}</Text></View><Text style={styles.planFollowTitle} numberOfLines={1}>{card.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText} numberOfLines={1}>{card.proposal.place}</Text></View><View style={styles.meetupPlace}><Icon name="schedule" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{card.proposal.date} · {card.proposal.time}</Text></View><View style={styles.planFollowActions}><Pressable onPress={() => startThread(chatId)} style={styles.planFollowButton}><Text style={styles.planFollowButtonText}>Open chat</Text></Pressable><Pressable onPress={() => feedback(`Plan link copied: ${card.link}`)} style={styles.planFollowGhost}><Icon name="link" size={14} color="#8E8595" /></Pressable>{canCheckIn(card) ? <Pressable onPress={() => feedback(checkInSafetyNote(chatName))} style={styles.planFollowCheckIn}><Text style={styles.planFollowCheckInText}>Check in</Text></Pressable> : null}</View><Text style={styles.planFollowWho} numberOfLines={1}>with {chatName.split(" ")[0]} · {card.status}</Text></Frosted>; })}</View></> : null}
-    <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#99819B" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
+    <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#99819B" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { if (!going && !allowAction("join-meetups")) return; setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); if (!going) void runGuardedAction("meetup-join", { meetup: meetup.title }); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
       <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#947B9B" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#A18AA2" /></Pressable>
     </View>
   </>;
@@ -1275,6 +1420,57 @@ export default function TrufrenzApp() {
       <Pressable onPress={() => { setPaidTier((current) => !current); tap(); feedback(paidTier ? "Premium preview off · distances stay hidden on profiles." : "Premium preview on · distances and calls are visible in this demo."); }} accessibilityRole="switch" accessibilityState={{ checked: paidTier }} accessibilityLabel="Premium preview with distance and calls" style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map, distances, and calls · premium preview</Text></View><View style={styles.toggleFrame}><Switch value={paidTier} onValueChange={() => undefined} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" pointerEvents="none" /></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable>
     </Frosted>
     <Text style={styles.settingsLabel}>APPEARANCE</Text>
+    {/*
+      Account notices.
+      Warnings, verification outcomes, and announcements from the safety team
+      are delivered to the account, so they are listed here where the member
+      can read them at their own pace and mark them as read.
+    */}
+    {memberNotices.length > 0 ? (
+      <Frosted style={styles.appearancePanel}>
+        <View style={styles.appearanceHeadingRow}>
+          <View style={styles.settingIconPink}><Icon name="campaign" size={17} color="#987998" /></View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>Notices for you</Text>
+            <Text style={styles.settingSub}>
+              {unreadNotices.length > 0
+                ? `${unreadNotices.length} unread · from the safety team`
+                : "Everything here has been read."}
+            </Text>
+          </View>
+          {unreadNotices.length > 0 ? (
+            <Pressable
+              accessibilityLabel="Mark all notices as read"
+              onPress={() => {
+                const ids = unreadNotices.map((notice) => notice.id);
+                void markNoticesRead(ids);
+                setMemberNotices((current) =>
+                  current.map((notice) => ({ ...notice, readAt: notice.readAt ?? new Date().toISOString() })),
+                );
+                feedback("Notices marked as read.");
+                tap();
+              }}
+              style={({ pressed }) => [styles.noticeMarkButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.noticeMarkText}>Mark read</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {memberNotices.slice(0, 4).map((notice) => (
+          <View key={notice.id} style={styles.noticeRow}>
+            <View style={[styles.noticeDot, notice.readAt ? styles.noticeDotRead : null]} />
+            <View style={styles.noticeCopy}>
+              <Text style={styles.noticeTitle}>{notice.title}</Text>
+              <Text style={styles.noticeBody} numberOfLines={3}>{notice.body}</Text>
+              <Text style={styles.noticeMeta}>
+                {new Date(notice.createdAt).toLocaleDateString()} · {notice.kind.replace(/_/g, " ")}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </Frosted>
+    ) : null}
+
     <Frosted style={styles.appearancePanel}>
       <View style={styles.appearanceHeadingRow}><View style={styles.settingIconPink}><Icon name="blur-on" size={17} color="#987998" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Frosted glass opacity</Text><Text style={styles.settingSub}>Choose how much of the wallpaper shows through.</Text></View><Text style={styles.opacityReadout}>{glassOpacity}%</Text></View>
       <View accessibilityLabel="Frosted glass opacity presets" style={styles.opacityOptions}>
@@ -1331,6 +1527,46 @@ export default function TrufrenzApp() {
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#9B7E9D" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#FFFFFF" /><Text style={styles.toastText}>{toast}</Text></View> : null}
+      {/*
+        Account status notice.
+
+        A suspension or ban is a decision the member is entitled to see, so it
+        is shown here in the words the safety team used rather than being
+        buried in a settings screen. Warnings stay quieter: they are visible in
+        the profile tab but do not interrupt the member's use of the app.
+      */}
+      {restriction && requiresAccountNotice(accountState!) ? (
+        <View style={styles.accountNotice} accessibilityRole="alert" accessibilityLabel={`Account status: ${restriction.title}`}>
+          <View style={styles.accountNoticeHeader}>
+            <View style={styles.accountNoticeIcon}>
+              <Icon name="shield-moon" size={18} color="#8E6F91" />
+            </View>
+            <Text style={styles.accountNoticeTitle}>{restriction.title}</Text>
+          </View>
+          <Text style={styles.accountNoticeBody}>{restriction.body}</Text>
+          {accountState?.statusReason ? (
+            <Text style={styles.accountNoticeReason}>Reason: {accountState.statusReason}</Text>
+          ) : null}
+          <Text style={styles.accountNoticeAllowed}>{restriction.stillAllowed}</Text>
+          <Pressable
+            onPress={() => {
+              setTab("You");
+              if (unreadNotices.length > 0) void markNoticesRead(unreadNotices.map((notice) => notice.id));
+              setMemberNotices((current) =>
+                current.map((notice) => ({ ...notice, readAt: notice.readAt ?? new Date().toISOString() })),
+              );
+              tap();
+            }}
+            accessibilityLabel="Open my account notices"
+            style={({ pressed }) => [styles.accountNoticeAction, pressed && styles.pressed]}
+          >
+            <Text style={styles.accountNoticeActionText}>
+              {unreadNotices.length > 0 ? `Read ${unreadNotices.length} notice${unreadNotices.length > 1 ? "s" : ""}` : "Review my account"}
+            </Text>
+            <Icon name="chevron-right" size={16} color="#8E6F91" />
+          </Pressable>
+        </View>
+      ) : null}
       {showWelcome ? null : <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
@@ -1353,7 +1589,7 @@ export default function TrufrenzApp() {
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : "STEP 1 OF 4 · PHONE") : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
-              <Text style={styles.modalSubtitle}>{authStep === "phone" ? "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? `A one-time code would be sent to ${phone || "your phone"}. Enter any 6 digits for this prototype.` : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
+              <Text style={styles.modalSubtitle}>{authStep === "phone" ? "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `Prototype delivery: your code is ${demoCode}. A live build sends this by SMS.` : `We sent a 6-digit code to ${phone || "your phone"}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
               {authStep === "phone" ? <><View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#AAA4AC" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View><Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
               {authStep === "code" ? <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#AAA4AC" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View> : null}
               {authStep === "profile" ? <>
@@ -1392,7 +1628,7 @@ export default function TrufrenzApp() {
                 <Text style={styles.fieldLabel}>BEFORE YOU JOIN · HOW TRUFRENZ STAYS KIND</Text>
                 <SafetyOnboardingCarousel onComplete={finishSignup} />
               </> : null}
-              <ActionButton onPress={continueAuth} style={styles.authContinue}><Text style={styles.actionText}>{authStep === "phone" ? (authIntent === "login" ? "Send my login code" : "Send my code") : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
+              <ActionButton onPress={continueAuth} disabled={authBusy} style={styles.authContinue}><Text style={styles.actionText}>{authBusy ? "Please wait…" : authStep === "phone" ? (authIntent === "login" ? "Send my login code" : "Send my code") : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
               <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#8C7D92" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
               <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#8496A3" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
               <Text style={styles.prototypeNote}>Prototype only: phone codes and identity checks are not connected to a live verification service.</Text>
@@ -1899,4 +2135,90 @@ const styles = StyleSheet.create({
   actionMenuDivider: { height: 1, marginLeft: 43, backgroundColor: "rgba(213,206,217,0.55)" },
   actionMenuPrivacy: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.56)", marginTop: 6 },
   actionMenuPrivacyText: { color: "#86939D", fontSize: 7 },
+  /**
+   * Account status notice.
+   *
+   * Deliberately reads as a calm, official card rather than an error: the
+   * member is being told about a decision, not scolded. It sits above the
+   * bottom bar so it is visible on every tab.
+   */
+  accountNotice: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 96,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(252,249,250,0.95)",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: "#5C4A5E",
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+    gap: 6,
+  },
+  accountNoticeHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
+  accountNoticeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(233,222,236,0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  accountNoticeTitle: { flex: 1, fontSize: 14.5, lineHeight: 19, fontWeight: "700", color: "#4E4351" },
+  accountNoticeBody: { fontSize: 12.5, lineHeight: 18, color: "#6E6472" },
+  accountNoticeReason: { fontSize: 12, lineHeight: 17, color: "#8A7F8E", fontStyle: "italic" },
+  accountNoticeAllowed: { fontSize: 12, lineHeight: 17, color: "#7690A1" },
+  accountNoticeAction: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(240,233,242,0.92)",
+  },
+  accountNoticeActionText: { fontSize: 12.5, fontWeight: "700", color: "#8E6F91" },
+
+  /** In-flight state: clearly inert, but still legible. */
+  actionButtonDisabled: { opacity: 0.62 },
+
+  noticeMarkButton: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(240,233,242,0.92)",
+  },
+  noticeMarkText: { fontSize: 11.5, fontWeight: "700", color: "#8E6F91" },
+  noticeRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.7)",
+  },
+  noticeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 5,
+    backgroundColor: "#C58FA6",
+  },
+  noticeDotRead: { backgroundColor: "rgba(180,172,188,0.55)" },
+  noticeCopy: { flex: 1, gap: 2 },
+  noticeTitle: { fontSize: 13, lineHeight: 17, fontWeight: "700", color: "#4E4351" },
+  noticeBody: { fontSize: 12, lineHeight: 17, color: "#6E6472" },
+  noticeMeta: { fontSize: 10.5, lineHeight: 14, color: "#9C93A2", letterSpacing: 0.3 },
+
 });

@@ -6,14 +6,17 @@
  */
 
 import { and, asc, count, desc, eq, gte, like, or, sql } from "drizzle-orm";
+import { createHash } from "node:crypto";
 import {
   adminAccounts,
   adminActions,
   adminSessions,
+  analyticsEvents,
   blockedKeywords,
   broadcasts,
   dailyMetrics,
   featureFlags,
+  memberNotices,
   members,
   reports,
   subscriptionEvents,
@@ -22,6 +25,16 @@ import {
 } from "../drizzle/schema";
 import { getDb } from "./db";
 import { hashPassword } from "./_core/adminAuth";
+import {
+  dayKey,
+  dayRange,
+  demoEventsForDay,
+  rollupRange,
+  summarizeEvents,
+  type AccountSnapshot,
+  type RawAnalyticsEvent,
+} from "../lib/analytics-events";
+import { deliverBroadcast, revokeMemberSessions, sendMemberNotice } from "./accountService";
 
 /**
  * First-run dashboard owner.
@@ -37,6 +50,27 @@ export const DEMO_ADMIN_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 const DEMO_ADMIN_SALT = "5a1e7c0d9b2f4a6c8e0d1f3b5a7c9e0d";
 
 /* --------------------------------- audit --------------------------------- */
+
+/**
+ * Record a product event from the dashboard side (an approval, a grant).
+ * Imported lazily to keep this module free of a cycle with the account service.
+ */
+export async function recordAnalyticsEvent(input: {
+  eventType: string;
+  memberId?: number | null;
+  groupId?: string | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const occurredAt = new Date();
+  await db.insert(analyticsEvents).values({
+    day: dayKey(occurredAt),
+    eventType: input.eventType,
+    memberId: input.memberId ?? null,
+    groupId: input.groupId ?? null,
+    occurredAt,
+  });
+}
 
 export async function logAdminAction(input: {
   actorEmail: string;
@@ -217,6 +251,33 @@ export async function reviewVerificationSubmission(input: {
         .update(members)
         .set({ verificationTier: "id_selfie" })
         .where(eq(members.id, memberId));
+
+      await sendMemberNotice({
+        memberId,
+        kind: "verification_approved",
+        title: "Your identity is verified",
+        body: "Our safety team confirmed your ID and selfie, so your profile now carries the verified badge. It appears next to your name everywhere you show up.",
+        actorEmail: input.reviewer,
+      });
+
+      await recordAnalyticsEvent({ eventType: "verification_approved", memberId });
+    }
+  } else {
+    // A rejection must always explain itself to the member.
+    const rows = await db
+      .select({ memberId: verificationSubmissions.memberId })
+      .from(verificationSubmissions)
+      .where(eq(verificationSubmissions.id, input.id))
+      .limit(1);
+    const memberId = rows[0]?.memberId;
+    if (memberId) {
+      await sendMemberNotice({
+        memberId,
+        kind: "verification_rejected",
+        title: "We could not verify your identity",
+        body: `Our safety team reviewed your submission and could not approve it.\n\nReason: ${input.rejectionReason ?? "Not specified."}\n\nYou can submit again with clearer photos — a well-lit selfie and an unobstructed ID work best.`,
+        actorEmail: input.reviewer,
+      });
     }
   }
 }
@@ -265,12 +326,16 @@ export async function resolveReport(input: {
     .limit(1);
   const report = rows[0];
 
-  // Escalating a profile report also moves the member's account status.
+  // Escalating a profile report moves the member's real account status, tells
+  // them why, and ends their sessions so the change takes effect immediately.
   if (report?.subjectType === "profile" && input.action !== "dismissed") {
-    await db
-      .update(members)
-      .set({ accountStatus: input.action })
-      .where(eq(members.id, report.subjectId));
+    await applyAccountStatusChange({
+      memberId: report.subjectId,
+      status: input.action,
+      reason: input.note ?? null,
+      actor: input.actor,
+      source: `report #${input.id}`,
+    });
   }
 
   // Sibling reports about the same subject resolve together.
@@ -290,6 +355,97 @@ export async function resolveReport(input: {
           eq(reports.status, "open"),
         ),
       );
+  }
+}
+
+/**
+ * Apply a moderation decision to a member's real account.
+ *
+ * This is the single path used by both the moderation queue and user
+ * management, so the two modules cannot drift apart. It writes the status and
+ * its reason, delivers a notice the member will actually see, and revokes
+ * their sessions when access is removed.
+ */
+export async function applyAccountStatusChange(input: {
+  memberId: number;
+  status: "active" | "warned" | "suspended" | "banned";
+  reason?: string | null;
+  actor: string;
+  source?: string;
+}): Promise<{ member: typeof members.$inferSelect | undefined; sessionsRevoked: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await getMember(input.memberId);
+  if (!existing) return { member: undefined, sessionsRevoked: 0 };
+
+  await db
+    .update(members)
+    .set({
+      accountStatus: input.status,
+      statusReason: input.reason ?? null,
+      statusChangedBy: input.actor,
+      statusChangedAt: new Date(),
+    })
+    .where(eq(members.id, input.memberId));
+
+  const notice = noticeForStatus(input.status, input.reason ?? null, input.source);
+  if (notice) {
+    await sendMemberNotice({
+      memberId: input.memberId,
+      kind: notice.kind,
+      title: notice.title,
+      body: notice.body,
+      actorEmail: input.actor,
+    });
+  }
+
+  // Suspension and banning remove access, so the member's sessions must end.
+  let sessionsRevoked = 0;
+  if (input.status === "suspended" || input.status === "banned") {
+    sessionsRevoked = await revokeMemberSessions(input.memberId);
+  }
+
+  const member = await getMember(input.memberId);
+  return { member, sessionsRevoked };
+}
+
+/** The member-facing notice that accompanies a status change. */
+function noticeForStatus(
+  status: "active" | "warned" | "suspended" | "banned",
+  reason: string | null,
+  source?: string,
+): { kind: "warning" | "suspension" | "ban" | "reinstatement"; title: string; body: string } | null {
+  const context = reason ? `\n\nReason given by our safety team: ${reason}` : "";
+  const reference = source ? `\n\nReference: ${source}.` : "";
+
+  switch (status) {
+    case "warned":
+      return {
+        kind: "warning",
+        title: "You have a warning on your account",
+        body: `A moderator reviewed a report about your account and issued a warning. Nothing is blocked — but repeated reports can lead to a suspension.${context}${reference}`,
+      };
+    case "suspended":
+      return {
+        kind: "suspension",
+        title: "Your account is suspended",
+        body: `A moderator suspended your account after reviewing reports. You can still browse and read your existing conversations, but you cannot send messages, send friend requests, join meetups, share your location, or start calls.${context}${reference}`,
+      };
+    case "banned":
+      return {
+        kind: "ban",
+        title: "Your account has been closed",
+        body: `A moderator closed your account after reviewing reports. You are no longer visible to other members and can no longer take part. If you believe this was a mistake, contact support.${context}${reference}`,
+      };
+    case "active":
+      return {
+        kind: "reinstatement",
+        title: "Your account is active again",
+        body: `A moderator reviewed your account and restored it. Everything works as normal again.${context}${reference}`,
+      };
+    default:
+      return null;
   }
 }
 
@@ -349,16 +505,71 @@ export async function getMember(id: number) {
 export async function updateMemberStatus(
   id: number,
   status: "active" | "warned" | "suspended" | "banned",
+  options: { reason?: string | null; actor?: string } = {},
 ) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(members).set({ accountStatus: status }).where(eq(members.id, id));
+  // Delegates to the shared path so user management and the moderation queue
+  // write identical state, notices, and session revocations.
+  await applyAccountStatusChange({
+    memberId: id,
+    status,
+    reason: options.reason ?? null,
+    actor: options.actor ?? "dashboard",
+  });
 }
 
-export async function forceVerifyMember(id: number) {
+export async function forceVerifyMember(id: number, actor = "dashboard") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(members).set({ verificationTier: "id_selfie" }).where(eq(members.id, id));
+
+  await sendMemberNotice({
+    memberId: id,
+    kind: "verification_approved",
+    title: "Your identity is verified",
+    body: "Our safety team confirmed your ID and selfie, so your profile now carries the verified badge. It appears next to your name everywhere you show up.",
+    actorEmail: actor,
+  });
+}
+
+/**
+ * Issue a one-time account-recovery token.
+ *
+ * The member signs in with a phone OTP, so this is the recovery path for a
+ * support case: a fresh token is minted, stored as a hash, and delivered to the
+ * member as a notice. A real deployment sends it by SMS or email instead of
+ * showing it in-app, which is why the raw token is returned here for the
+ * dashboard to display once.
+ */
+export async function issuePasswordReset(
+  id: number,
+  actor: string,
+): Promise<{ token: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const token = createHash("sha256")
+    .update(`${id}:${Date.now()}:${Math.random()}`)
+    .digest("hex")
+    .slice(0, 32)
+    .toUpperCase();
+
+  await db
+    .update(members)
+    .set({
+      resetTokenHash: createHash("sha256").update(token).digest("hex"),
+      resetRequestedAt: new Date(),
+    })
+    .where(eq(members.id, id));
+
+  await sendMemberNotice({
+    memberId: id,
+    kind: "announcement",
+    title: "Account recovery started",
+    body: `Our support team started an account recovery for you. Use this one-time code the next time you sign in: ${token}\n\nIf you did not ask for this, contact support straight away.`,
+    actorEmail: actor,
+  });
+
+  return { token };
 }
 
 export async function listMemberActivity(memberId: number, limit = 25) {
@@ -377,7 +588,122 @@ export async function listMemberActivity(memberId: number, limit = 25) {
 export async function listDailyMetrics(days = 14) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(dailyMetrics).orderBy(asc(dailyMetrics.day)).limit(days);
+
+  // Metrics are derived from the real event stream so the trend reflects usage.
+  const keys = dayRange(dayKey(new Date()), days);
+  const events = await listRawEventsForDays(keys);
+  const snapshot = await getAccountSnapshot();
+
+  // Any event outside the requested window is irrelevant to the rollup.
+  const rows = rollupRange(keys, events, snapshot);
+
+  // Persist the rollup so historical days stay queryable even after the raw
+  // events are aged out, and so the table remains the dashboard's cache.
+  await persistDailyMetrics(rows);
+
+  return rows;
+}
+
+/** Verified and tier splits are point-in-time account facts, not event counts. */
+async function getAccountSnapshot(): Promise<AccountSnapshot> {
+  const db = await getDb();
+  if (!db) return { verified: 0, unverified: 0, free: 0, premium: 0 };
+
+  const rows = await db
+    .select({
+      verificationTier: members.verificationTier,
+      subscriptionTier: members.subscriptionTier,
+    })
+    .from(members);
+
+  const verified = rows.filter((row) => row.verificationTier === "id_selfie").length;
+  const premium = rows.filter((row) => row.subscriptionTier === "premium").length;
+
+  return {
+    verified,
+    unverified: rows.length - verified,
+    free: rows.length - premium,
+    premium,
+  };
+}
+
+async function listRawEventsForDays(days: string[]): Promise<RawAnalyticsEvent[]> {
+  const db = await getDb();
+  if (!db || days.length === 0) return [];
+
+  const rows = await db
+    .select({
+      eventType: analyticsEvents.eventType,
+      day: analyticsEvents.day,
+      memberId: analyticsEvents.memberId,
+      groupId: analyticsEvents.groupId,
+    })
+    .from(analyticsEvents)
+    .where(gte(analyticsEvents.day, days[0]));
+
+  return rows.filter((row) => days.includes(row.day));
+}
+
+/** Upsert the derived rows so `daily_metrics` mirrors the event stream. */
+async function persistDailyMetrics(rows: Awaited<ReturnType<typeof rollupRange>>) {
+  const db = await getDb();
+  if (!db) return;
+  for (const row of rows) {
+    await db
+      .insert(dailyMetrics)
+      .values(row)
+      .onDuplicateKeyUpdate({
+        set: {
+          activeUsers: row.activeUsers,
+          newSignups: row.newSignups,
+          verifiedUsers: row.verifiedUsers,
+          unverifiedUsers: row.unverifiedUsers,
+          freeUsers: row.freeUsers,
+          paidUsers: row.paidUsers,
+          activeGroups: row.activeGroups,
+          callsMade: row.callsMade,
+          matchesMade: row.matchesMade,
+        },
+      });
+  }
+}
+
+/**
+ * Where the analytics numbers come from, surfaced for the dashboard.
+ *
+ * Returns the live event counters for the requested window plus the most recent
+ * events, so an operator can see both the totals and the raw activity behind
+ * them rather than having to trust a chart.
+ */
+export async function getAnalyticsSources(days = 14) {
+  const db = await getDb();
+  if (!db) {
+    return { windowDays: days, eventTotal: 0, distinctMembers: 0, byType: {}, recent: [] };
+  }
+
+  const keys = dayRange(dayKey(new Date()), days);
+  const events = await listRawEventsForDays(keys);
+  const summary = summarizeEvents(events);
+  const recent = await db
+    .select({
+      id: analyticsEvents.id,
+      eventType: analyticsEvents.eventType,
+      day: analyticsEvents.day,
+      memberId: analyticsEvents.memberId,
+      groupId: analyticsEvents.groupId,
+      occurredAt: analyticsEvents.occurredAt,
+    })
+    .from(analyticsEvents)
+    .orderBy(desc(analyticsEvents.occurredAt))
+    .limit(20);
+
+  return {
+    windowDays: days,
+    eventTotal: summary.total,
+    distinctMembers: summary.distinctMembers,
+    byType: summary.counts,
+    recent,
+  };
 }
 
 export async function getMemberTotals() {
@@ -500,32 +826,26 @@ export async function createBroadcast(input: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const all = await db.select().from(members);
-  const recipientCount = all.filter((member) => {
-    switch (input.segment) {
-      case "verified":
-        return member.verificationTier === "id_selfie";
-      case "unverified":
-        return member.verificationTier !== "id_selfie";
-      case "free":
-        return member.subscriptionTier === "free";
-      case "premium":
-        return member.subscriptionTier === "premium";
-      default:
-        return true;
-    }
-  }).length;
+  // Deliver the announcement to every member in the audience before recording
+  // it, so the recipient count in the log is the number actually reached.
+  const delivered = await deliverBroadcast({
+    title: input.title,
+    body: input.body,
+    segment: input.segment,
+    actorEmail: input.actor,
+  });
 
   await db.insert(broadcasts).values({
     title: input.title,
     body: input.body,
     segment: input.segment,
-    recipientCount,
+    recipientCount: delivered,
     sentBy: input.actor,
   });
 
-  return recipientCount;
+  return delivered;
 }
+
 
 /* ------------------------ 6. subscription management -------------------- */
 
@@ -588,44 +908,60 @@ export async function changeSubscription(input: {
  * boots. Idempotent: it exits early as soon as any members exist.
  */
 
-/** Fourteen days of product health for the trend charts. */
-function buildDailyMetrics() {
-  const today = new Date();
-  return Array.from({ length: 14 }, (_, index) => {
-    const day = new Date(today.getTime() - (13 - index) * 24 * 60 * 60 * 1000);
-    const iso = day.toISOString().slice(0, 10);
-    const base = 1180 + index * 46;
-    const verified = 640 + index * 27;
-    const total = base + 380;
-    return {
-      day: iso,
-      activeUsers: base + ((index * 13) % 40),
-      newSignups: 26 + ((index * 7) % 19),
-      verifiedUsers: verified,
-      unverifiedUsers: total - verified,
-      freeUsers: total - (180 + index * 6),
-      paidUsers: 180 + index * 6,
-      activeGroups: 64 + ((index * 5) % 17),
-      callsMade: 210 + ((index * 23) % 120),
-      matchesMade: 96 + ((index * 11) % 45),
-    };
-  });
+/**
+ * Backfill fourteen days of demo product events.
+ *
+ * The analytics dashboard no longer reads a synthetic series: it derives its
+ * trends from `analytics_events`, exactly as it does in production. Seeding
+ * events rather than metrics means the charts are produced by the same rollup
+ * that real usage flows through, so the pipeline is exercised end to end.
+ */
+async function seedDemoEvents(memberIds: number[]) {
+  const db = await getDb();
+  if (!db || memberIds.length === 0) return;
+
+  const existing = await db.select({ value: count() }).from(analyticsEvents);
+  if (Number(existing[0]?.value ?? 0) > 0) return;
+
+  const today = dayKey(new Date());
+  const days = dayRange(today, 14);
+  const rows: Array<{
+    day: string;
+    eventType: string;
+    memberId: number | null;
+    groupId: string | null;
+    occurredAt: Date;
+  }> = [];
+
+  for (const day of days) {
+    const events = demoEventsForDay(day, memberIds);
+    for (const event of events) {
+      rows.push({
+        day,
+        eventType: event.eventType,
+        memberId: event.memberId ?? null,
+        groupId: event.groupId ?? null,
+        // Spread each day's events across its hours for a readable feed.
+        occurredAt: new Date(`${day}T${String(9 + (rows.length % 12)).padStart(2, "0")}:00:00.000Z`),
+      });
+    }
+  }
+
+  if (rows.length > 0) await db.insert(analyticsEvents).values(rows);
 }
 
 export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
   const db = await getDb();
   if (!db) return { seeded: false };
 
-  // Backfill the trend series independently of the main dataset, so a seed that
-  // was interrupted part-way (or a database that predates the metrics table)
-  // heals itself on the next boot instead of leaving empty charts.
-  const metricsExisting = await db.select({ value: count() }).from(dailyMetrics);
-  if (Number(metricsExisting[0]?.value ?? 0) === 0) {
-    await db.insert(dailyMetrics).values(buildDailyMetrics());
-  }
-
   const existing = await db.select({ value: count() }).from(members);
-  if (Number(existing[0]?.value ?? 0) > 0) return { seeded: false };
+  if (Number(existing[0]?.value ?? 0) > 0) {
+    // A database seeded before the event stream existed still gets a trend
+    // series, so the charts are never blank on an upgraded install.
+    const seeded = await db.select({ id: members.id }).from(members);
+    await seedDemoEvents(seeded.map((row) => row.id));
+    return { seeded: false };
+  }
 
   // Create the first dashboard owner alongside the dataset so the internal
   // tool is reachable. Real deployments replace this with the bootstrap flow.
@@ -640,25 +976,49 @@ export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
     });
   }
 
+  /**
+   * Demo members carry real phone numbers so they behave as genuine accounts:
+   * a moderation decision applies to them, and they could sign in to the app.
+   * Every number is in the reserved +1 555 range.
+   */
   const memberRows: InsertMember[] = [
-    { handle: "maya", name: "Maya Chen", age: 30, dateOfBirth: "1996-04-18", homeArea: "Pacific Heights", verificationTier: "id_selfie", subscriptionTier: "premium", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 12) },
-    { handle: "sam", name: "Sam Rivera", age: 28, dateOfBirth: "1998-01-09", homeArea: "Mission District", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 90) },
-    { handle: "noah", name: "Noah Kim", age: 34, dateOfBirth: "1992-07-22", homeArea: "Hayes Valley", verificationTier: "id_selfie", subscriptionTier: "free", available: false, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 5) },
-    { handle: "aria", name: "Aria Patel", age: 26, dateOfBirth: "2000-03-02", homeArea: "SoMa", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 1, lastActiveAt: new Date(Date.now() - 1000 * 60 * 30) },
-    { handle: "jules", name: "Jules Morgan", age: 31, dateOfBirth: "1995-11-14", homeArea: "Nob Hill", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 4, accountStatus: "warned", lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 20) },
-    { handle: "devon", name: "Devon Blake", age: 29, dateOfBirth: "1997-06-30", homeArea: "Richmond", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 7, accountStatus: "suspended", lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 48) },
-    { handle: "lena", name: "Lena Okafor", age: 33, dateOfBirth: "1993-09-05", homeArea: "Sunset", verificationTier: "id_selfie", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 8) },
-    { handle: "ravi", name: "Ravi Nair", age: 27, dateOfBirth: "1999-02-17", homeArea: "Bernal Heights", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 2, accountStatus: "banned", lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 72) },
-    { handle: "tess", name: "Tess Alvarez", age: 25, dateOfBirth: "2001-05-21", homeArea: "Castro", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 3) },
-    { handle: "omar", name: "Omar Haddad", age: 36, dateOfBirth: "1990-12-01", homeArea: "Marina", verificationTier: "id_selfie", subscriptionTier: "free", available: true, reportCount: 1, lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 11) },
-    { handle: "ivy", name: "Ivy Nakamura", age: 32, dateOfBirth: "1994-08-08", homeArea: "North Beach", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 40) },
-    { handle: "cruz", name: "Cruz Delgado", age: 41, dateOfBirth: "1985-04-11", homeArea: "Excelsior", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 5, accountStatus: "suspended", lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 36) },
+    { handle: "maya", name: "Maya Chen", phoneE164: "+14155550101", email: "maya@example.com", age: 30, dateOfBirth: "1996-04-18", homeArea: "Pacific Heights", verificationTier: "id_selfie", subscriptionTier: "premium", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 12) },
+    { handle: "sam", name: "Sam Rivera", phoneE164: "+14155550102", email: "sam@example.com", age: 28, dateOfBirth: "1998-01-09", homeArea: "Mission District", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 90) },
+    { handle: "noah", name: "Noah Kim", phoneE164: "+14155550103", email: "noah@example.com", age: 34, dateOfBirth: "1992-07-22", homeArea: "Hayes Valley", verificationTier: "id_selfie", subscriptionTier: "free", available: false, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 5) },
+    { handle: "aria", name: "Aria Patel", phoneE164: "+14155550104", email: "aria@example.com", age: 26, dateOfBirth: "2000-03-02", homeArea: "SoMa", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 1, lastActiveAt: new Date(Date.now() - 1000 * 60 * 30) },
+    { handle: "jules", name: "Jules Morgan", phoneE164: "+14155550105", email: "jules@example.com", age: 31, dateOfBirth: "1995-11-14", homeArea: "Nob Hill", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 4, accountStatus: "warned", statusReason: "Repeatedly pushing dating-style messages after being asked to stop.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 20), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 20) },
+    { handle: "devon", name: "Devon Blake", phoneE164: "+14155550106", email: "devon@example.com", age: 29, dateOfBirth: "1997-06-30", homeArea: "Richmond", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 7, accountStatus: "suspended", statusReason: "Seven confirmed reports of inappropriate messaging.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 48), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 48) },
+    { handle: "lena", name: "Lena Okafor", phoneE164: "+14155550107", email: "lena@example.com", age: 33, dateOfBirth: "1993-09-05", homeArea: "Sunset", verificationTier: "id_selfie", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 8) },
+    { handle: "ravi", name: "Ravi Nair", phoneE164: "+14155550108", email: "ravi@example.com", age: 27, dateOfBirth: "1999-02-17", homeArea: "Bernal Heights", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 2, accountStatus: "banned", statusReason: "Hate speech confirmed by the blocked keyword list and moderator review.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 72), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 72) },
+    { handle: "tess", name: "Tess Alvarez", phoneE164: "+14155550109", email: "tess@example.com", age: 25, dateOfBirth: "2001-05-21", homeArea: "Castro", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 3) },
+    { handle: "omar", name: "Omar Haddad", phoneE164: "+14155550110", email: "omar@example.com", age: 36, dateOfBirth: "1990-12-01", homeArea: "Marina", verificationTier: "id_selfie", subscriptionTier: "free", available: true, reportCount: 1, lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 11) },
+    { handle: "ivy", name: "Ivy Nakamura", phoneE164: "+14155550111", email: "ivy@example.com", age: 32, dateOfBirth: "1994-08-08", homeArea: "North Beach", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 40) },
+    { handle: "cruz", name: "Cruz Delgado", phoneE164: "+14155550112", email: "cruz@example.com", age: 41, dateOfBirth: "1985-04-11", homeArea: "Excelsior", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 5, accountStatus: "suspended", statusReason: "Impersonation confirmed: profile photo is a stock image.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 36), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 36) },
   ];
 
   await db.insert(members).values(memberRows);
 
   const inserted = await db.select({ id: members.id, name: members.name, handle: members.handle }).from(members);
   const idFor = (handle: string) => inserted.find((row) => row.handle === handle)?.id ?? 0;
+
+  // Backfill the event stream the analytics dashboard derives its trends from.
+  await seedDemoEvents(inserted.map((row) => row.id));
+
+  // Restricted demo accounts carry the notice a real moderation decision would
+  // have delivered, so signing in as one shows the member exactly what happened.
+  for (const member of inserted) {
+    const row = memberRows.find((candidate) => candidate.handle === member.handle);
+    if (!row || !row.accountStatus || row.accountStatus === "active") continue;
+    const notice = noticeForStatus(row.accountStatus, row.statusReason ?? null, "seeded demo account");
+    if (!notice) continue;
+    await sendMemberNotice({
+      memberId: member.id,
+      kind: notice.kind,
+      title: notice.title,
+      body: notice.body,
+      actorEmail: row.statusChangedBy ?? DEMO_ADMIN_EMAIL,
+    });
+  }
 
   await db.insert(verificationSubmissions).values([
     { memberId: idFor("aria"), memberName: "Aria Patel", submittedName: "Aria Patel", submittedDob: "2000-03-02", selfieRef: "seed/aria-selfie.jpg", idDocumentRef: "seed/aria-id.jpg", riskScore: 8, status: "pending", submittedAt: new Date(Date.now() - 1000 * 60 * 55) },

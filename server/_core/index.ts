@@ -9,6 +9,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerAdminRoutes } from "../adminRoutes";
+import { registerAccountRoutes } from "../accountRoutes";
 import { seedAdminDemoData } from "../adminDb";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -68,6 +69,10 @@ async function startServer() {
   // Internal admin dashboard: its own API and its own login, kept apart from
   // the consumer app's tRPC surface and phone OTP sign-in.
   registerAdminRoutes(app);
+
+  // Consumer account service: phone sign-in, sessions, notices, and the
+  // capability checks that make moderation decisions stick.
+  registerAccountRoutes(app);
 
   // The dashboard is a self-contained static page, deliberately styled as a
   // dense internal tool rather than matching the consumer app's look.

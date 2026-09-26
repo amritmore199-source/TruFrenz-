@@ -242,11 +242,12 @@ export function registerAdminRoutes(app: Express) {
 
   app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
     const days = parsePositiveInt(req.query.days, 14, 60);
-    const [metrics, totals] = await Promise.all([
+    const [metrics, totals, live] = await Promise.all([
       adminDb.listDailyMetrics(days),
       adminDb.getMemberTotals(),
+      adminDb.getAnalyticsSources(days),
     ]);
-    res.json({ metrics, totals });
+    res.json({ metrics, totals, live });
   });
 
   /* ------------------------ 1. verification queue ------------------------ */
@@ -414,22 +415,23 @@ export function registerAdminRoutes(app: Express) {
 
       switch (action) {
         case "force-verify":
-          await adminDb.forceVerifyMember(id);
+          await adminDb.forceVerifyMember(id, admin.email);
           break;
         case "warn":
-          await adminDb.updateMemberStatus(id, "warned");
+          await adminDb.updateMemberStatus(id, "warned", { reason: note, actor: admin.email });
           break;
         case "suspend":
-          await adminDb.updateMemberStatus(id, "suspended");
+          await adminDb.updateMemberStatus(id, "suspended", { reason: note, actor: admin.email });
           break;
         case "ban":
-          await adminDb.updateMemberStatus(id, "banned");
+          await adminDb.updateMemberStatus(id, "banned", { reason: note, actor: admin.email });
           break;
         case "reinstate":
-          await adminDb.updateMemberStatus(id, "active");
+          await adminDb.updateMemberStatus(id, "active", { reason: note, actor: admin.email });
           break;
         case "reset-password":
-          // Demo behaviour: the real flow would email a one-time reset link.
+          // Issue a real one-time reset token and deliver it to the member.
+          await adminDb.issuePasswordReset(id, admin.email);
           break;
       }
 
@@ -443,7 +445,7 @@ export function registerAdminRoutes(app: Express) {
         targetLabel: member.name,
         note:
           action === "reset-password"
-            ? `${note || "Password reset requested."} A one-time reset link would be emailed to the member.`
+            ? `${note || "Password reset requested."} A one-time reset token was issued to the member.`
             : note,
       });
 

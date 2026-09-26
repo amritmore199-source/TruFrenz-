@@ -79,6 +79,13 @@ export const members = mysqlTable("members", {
   id: int("id").autoincrement().primaryKey(),
   handle: varchar("handle", { length: 64 }).notNull().unique(),
   name: varchar("name", { length: 120 }).notNull(),
+  /**
+   * Phone number in E.164 form. This is the real sign-in identity for the
+   * consumer app: a member row without one is dashboard-only seed data.
+   */
+  phoneE164: varchar("phoneE164", { length: 20 }).unique(),
+  /** Contact email captured during onboarding for account recovery. */
+  email: varchar("email", { length: 320 }),
   age: int("age"),
   dateOfBirth: varchar("dateOfBirth", { length: 10 }),
   homeArea: varchar("homeArea", { length: 120 }),
@@ -89,6 +96,13 @@ export const members = mysqlTable("members", {
   accountStatus: mysqlEnum("accountStatus", ["active", "warned", "suspended", "banned"])
     .default("active")
     .notNull(),
+  /** Why the account is warned, suspended, or banned. Set by the moderation queue. */
+  statusReason: text("statusReason"),
+  statusChangedBy: varchar("statusChangedBy", { length: 320 }),
+  statusChangedAt: timestamp("statusChangedAt"),
+  /** One-time password-reset token hash issued from the dashboard. */
+  resetTokenHash: varchar("resetTokenHash", { length: 64 }),
+  resetRequestedAt: timestamp("resetRequestedAt"),
   subscriptionTier: mysqlEnum("subscriptionTier", ["free", "premium"]).default("free").notNull(),
   available: boolean("available").default(true).notNull(),
   reportCount: int("reportCount").default(0).notNull(),
@@ -98,6 +112,71 @@ export const members = mysqlTable("members", {
 
 export type Member = typeof members.$inferSelect;
 export type InsertMember = typeof members.$inferInsert;
+
+/**
+ * Consumer app sessions. Issued by the account service after phone + OTP
+ * sign-in, and revoked the moment an account is suspended or banned.
+ */
+export const memberSessions = mysqlTable("member_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  /** SHA-256 of the session token — the raw token only ever lives on the device. */
+  tokenHash: varchar("tokenHash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  lastSeenAt: timestamp("lastSeenAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MemberSession = typeof memberSessions.$inferSelect;
+
+/**
+ * Member-facing notices: warnings, suspensions, verification outcomes, and
+ * broadcast announcements. This is how a moderation decision actually reaches
+ * the person it applies to.
+ */
+export const memberNotices = mysqlTable("member_notices", {
+  id: int("id").autoincrement().primaryKey(),
+  memberId: int("memberId").notNull(),
+  kind: mysqlEnum("noticeKind", [
+    "warning",
+    "suspension",
+    "ban",
+    "reinstatement",
+    "verification_approved",
+    "verification_rejected",
+    "announcement",
+    "refund",
+  ]).notNull(),
+  title: varchar("title", { length: 160 }).notNull(),
+  body: text("body").notNull(),
+  actorEmail: varchar("actorEmail", { length: 320 }),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MemberNotice = typeof memberNotices.$inferSelect;
+
+/**
+ * Append-only product event stream. The analytics dashboard derives its daily
+ * metrics from these rows, so the trends reflect real usage rather than a
+ * seeded series.
+ */
+export const analyticsEvents = mysqlTable("analytics_events", {
+  id: int("id").autoincrement().primaryKey(),
+  /** ISO date of occurrence, denormalised so daily rollups are a single scan. */
+  day: varchar("day", { length: 10 }).notNull(),
+  eventType: varchar("eventType", { length: 48 }).notNull(),
+  /** Null for events that happen before an account exists (e.g. a signup). */
+  memberId: int("memberId"),
+  /** Group or thread the event relates to, used for the active-groups metric. */
+  groupId: varchar("groupId", { length: 64 }),
+  /** Free-form JSON for event-specific detail (venue, duration, reason). */
+  metadata: text("metadata"),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+});
+
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export type InsertAnalyticsEvent = typeof analyticsEvents.$inferInsert;
 
 /** Verification Queue — pending ID/selfie submissions awaiting human review. */
 export const verificationSubmissions = mysqlTable("verification_submissions", {
