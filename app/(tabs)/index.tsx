@@ -31,11 +31,13 @@ import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carouse
 import { CreateMeetupInviteModal } from "@/components/create-meetup-invite-modal";
 import { FriendProfileModal } from "@/components/friend-profile-modal";
 import { QuickRepliesModal } from "@/components/quick-replies-modal";
+import { IncomingNotificationBanner } from "@/components/incoming-notification-banner";
 import { findCommonInterests } from "@/lib/discovery-interests";
 import { formatMeetupInvite, type MeetupInviteDraft } from "@/lib/meetup-invite";
 import { mergeMeetupRefresh } from "@/lib/meetup-feed";
 import { resolveChatProfile } from "@/lib/chat-profile";
 import { addQuickReply, DEFAULT_QUICK_REPLIES, parseQuickReplies, removeQuickReply, type QuickReply } from "@/lib/quick-replies";
+import { createIncomingMeetupInviteNotification, createIncomingMessageNotification, type IncomingNotification } from "@/lib/incoming-notifications";
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile";
@@ -148,6 +150,10 @@ export default function KindredApp() {
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
   const [chatMessages, setChatMessages] = useState(initialMessages);
+  const [incomingNotification, setIncomingNotification] = useState<IncomingNotification | null>(null);
+  const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationSequence = useRef(0);
+  const notificationDemoCycle = useRef(0);
   const [toast, setToast] = useState("");
   const [requestSent, setRequestSent] = useState<string[]>([]);
   const [acceptedFriends, setAcceptedFriends] = useState<string[]>(["maya", "sam", "noah"]);
@@ -219,6 +225,10 @@ export default function KindredApp() {
     if (!quickRepliesLoaded) return;
     AsyncStorage.setItem(QUICK_REPLIES_STORAGE_KEY, JSON.stringify(quickReplies)).catch(() => undefined);
   }, [quickReplies, quickRepliesLoaded]);
+
+  useEffect(() => () => {
+    if (notificationTimer.current) clearTimeout(notificationTimer.current);
+  }, []);
 
   const feedback = (message: string) => {
     setToast(message);
@@ -333,6 +343,45 @@ export default function KindredApp() {
     tap();
   };
 
+  const showIncomingNotification = (next: IncomingNotification) => {
+    if (notificationTimer.current) clearTimeout(notificationTimer.current);
+    setIncomingNotification(next);
+    notificationTimer.current = setTimeout(() => setIncomingNotification(null), 5200);
+  };
+
+  const dismissIncomingNotification = () => {
+    if (notificationTimer.current) clearTimeout(notificationTimer.current);
+    notificationTimer.current = null;
+    setIncomingNotification(null);
+  };
+
+  const openIncomingNotification = (notification: IncomingNotification) => {
+    dismissIncomingNotification();
+    setTab("Chats");
+    setSelectedChat(notification.chatId);
+  };
+
+  const previewIncomingNotification = () => {
+    notificationSequence.current += 1;
+    const id = `incoming-${Date.now()}-${notificationSequence.current}`;
+    const showInvite = notificationDemoCycle.current % 2 === 1;
+    notificationDemoCycle.current += 1;
+    if (showInvite) {
+      const chatId = "sam";
+      const meetupTitle = "Coffee and a slow start";
+      const venue = "Juniper Café";
+      const time = "Today · 10:30 AM";
+      const preview = `${meetupTitle} · ${venue} · ${time}`;
+      setChatMessages((current) => ({ ...current, [chatId]: [...(current[chatId] ?? []), { id, from: "them", text: preview, time: "now" }] }));
+      showIncomingNotification(createIncomingMeetupInviteNotification({ id, senderName: "Sam Rivera", chatId, meetupTitle, venue, time }));
+      return;
+    }
+    const chatId = "maya";
+    const messagePreview = "Want to grab coffee this Saturday?";
+    setChatMessages((current) => ({ ...current, [chatId]: [...(current[chatId] ?? []), { id, from: "them", text: messagePreview, time: "now" }] }));
+    showIncomingNotification(createIncomingMessageNotification({ id, senderName: "Maya Chen", chatId, messagePreview }));
+  };
+
   const shareApproximateArea = () => {
     if (!selectedChat || !currentThread) return;
     const message: Message = { id: `area-${Date.now()}`, from: "me", text: "I’m around Pacific Heights — just an approximate area. Want to pick a public meetup spot?", time: "now", receipt: "sent" };
@@ -417,7 +466,7 @@ export default function KindredApp() {
         {thread ? <Pressable onPress={() => setSelectedChat(null)} style={styles.backButton}><Icon name="arrow-back" size={21} color="#6D6178" /></Pressable> : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#FFFFFF" /></View>}
         {thread ? <View style={styles.threadHeading}><Pressable onPress={openChatProfile} disabled={currentThread?.kind !== "friend"} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View><Text style={styles.brandWord}>{currentThread?.name ?? "Conversation"}</Text><Text style={styles.topBarSub}>{currentThread?.kind === "group" ? "Private friend group" : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text></View></View> : <Text style={styles.brandWord}>kindred</Text>}
       </View>
-      {thread ? <View style={styles.topActions}><Pressable onPress={prepareMeetupInvite} style={styles.roundAction}><Icon name="event-available" size={19} color="#766B82" /></Pressable><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open conversation actions" style={styles.roundAction}><Icon name="more-horiz" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={() => setTab("You")} style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openSignup} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
+      {thread ? <View style={styles.topActions}><Pressable onPress={prepareMeetupInvite} style={styles.roundAction}><Icon name="event-available" size={19} color="#766B82" /></Pressable><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open conversation actions" style={styles.roundAction}><Icon name="more-horiz" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} accessibilityRole="button" accessibilityLabel="Show sample incoming notification" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openSignup} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
     </View>
   );
 
@@ -526,6 +575,7 @@ export default function KindredApp() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAF8F7" />
+      <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />
       <View style={styles.ambient}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View>
       <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
