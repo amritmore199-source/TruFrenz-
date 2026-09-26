@@ -11,7 +11,7 @@ export const safetyOnboardingSlides: readonly SafetyOnboardingSlide[] = [
   {
     eyebrow: "FRIENDSHIP, NOT DATING",
     title: "A little more human.",
-    body: "Kindred is a calm place to make local friends—without swipes, scores, or romantic prompts.",
+    body: "Trufrenz is a calm place to make local friends—without swipes, scores, or romantic prompts.",
     ruleTitle: "Come as a neighbor.",
     ruleBody: "Share the small things you enjoy and meet people who are here for friendship, too.",
     icon: "diversity-3",
@@ -29,7 +29,7 @@ export const safetyOnboardingSlides: readonly SafetyOnboardingSlide[] = [
     title: "Keep plans public.",
     body: "Choose a familiar public place, tell someone you trust, and leave whenever you want.",
     ruleTitle: "Your location is yours.",
-    ruleBody: "Kindred never shares an exact pin automatically. Use block or report if something feels off.",
+    ruleBody: "Trufrenz never shares an exact pin automatically. Use block or report if something feels off.",
     icon: "shield",
   },
 ] as const;

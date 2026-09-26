@@ -31,6 +31,7 @@ import { SelfieVerificationModal } from "@/components/selfie-verification-modal"
 import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carousel";
 import { CreateMeetupInviteModal } from "@/components/create-meetup-invite-modal";
 import { FriendProfileModal } from "@/components/friend-profile-modal";
+import { EditProfileModal } from "@/components/edit-profile-modal";
 import { QuickRepliesModal } from "@/components/quick-replies-modal";
 import { IncomingNotificationBanner } from "@/components/incoming-notification-banner";
 import { findCommonInterests } from "@/lib/discovery-interests";
@@ -43,9 +44,23 @@ import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
+import { WelcomeScreen } from "@/components/welcome-screen";
+import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
+import { addProfilePhoto, createInitialProfile, type EditableProfile, type RequestAudience, type ViewerRelationship } from "@/lib/profile-details";
+
+import { guestUpsellMessage } from "@/lib/guest-mode";
+import { INTEREST_SUGGESTIONS, LOCALITY_SUGGESTIONS, ageFromDateOfBirth, firstProfileError, formatDateOfBirth, hasProfileErrors, parseDateOfBirth, toggleInterest as toggleProfileInterest, validateProfileDraft, type ProfileDraftErrors } from "@/lib/onboarding-profile";
+import * as ImagePicker from "expo-image-picker";
+
+const REQUEST_AUDIENCE_LABEL: Record<RequestAudience, string> = {
+  everyone: "Anyone can request",
+  "friends-of-friends": "Friends of friends",
+  "verified-only": "Verified only",
+};
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
-type AuthStep = "welcome" | "phone" | "code" | "profile";
+type AuthStep = "welcome" | "phone" | "code" | "profile" | "photo" | "about";
+type AuthIntent = "signup" | "login";
 type Message = { id: string; from: "me" | "them"; text: string; time: string; receipt?: "sending" | "sent" | "delivered" | "read" };
 type Person = {
   id: string;
@@ -56,6 +71,12 @@ type Person = {
   image: any;
   verification: "ID + selfie verified" | "Phone verified";
   about: string;
+  /** Extra gallery photos for the profile carousel; optional. */
+  gallery?: string[];
+  languages?: string[];
+  lookingFor?: string[];
+  /** Distance in km; only rendered for paid viewers. */
+  distanceKm?: number | null;
 };
 type Conversation = {
   id: string;
@@ -81,10 +102,10 @@ const suggestionSeeds: Person[] = [
   friends[0],
   friends[1],
   friends[2],
-  { id: "aria", name: "Aria Patel", age: 29, locality: "Western Addition", interests: ["Hiking", "Art books"], image: require("../../assets/images/people/aria.jpg"), verification: "ID + selfie verified", about: "Slow hikes, gallery afternoons, and good chai." },
-  { id: "jules", name: "Jules Morgan", age: 30, locality: "Cow Hollow", interests: ["Gardening", "Coffee"], image: require("../../assets/images/people/jules.jpg"), verification: "ID + selfie verified", about: "Plant person, amateur baker, excellent listener." },
-  { id: "eli", name: "Eli Brooks", age: 34, locality: "Marina District", interests: ["Music", "Bookshops"], image: require("../../assets/images/people/eli.jpg"), verification: "Phone verified", about: "New to the city and always curious about a new café." },
-  { id: "dani", name: "Dani Flores", age: 27, locality: "Lower Pac Heights", interests: ["Art walks", "Hiking"], image: require("../../assets/images/people/dani.jpg"), verification: "ID + selfie verified", about: "Down for a relaxed gallery or park afternoon." },
+  { id: "aria", name: "Aria Patel", age: 29, locality: "Western Addition", interests: ["Hiking", "Art books"], image: require("../../assets/images/people/aria.jpg"), verification: "ID + selfie verified", about: "Slow hikes, gallery afternoons, and good chai.", gallery: [require("../../assets/images/people/aria.jpg"), require("../../assets/images/people/dani.jpg")], languages: ["English", "Hindi"], lookingFor: ["Hangout buddy", "Activity partner"], distanceKm: 2.4 },
+  { id: "jules", name: "Jules Morgan", age: 30, locality: "Cow Hollow", interests: ["Gardening", "Coffee"], image: require("../../assets/images/people/jules.jpg"), verification: "ID + selfie verified", about: "Plant person, amateur baker, excellent listener.", gallery: [require("../../assets/images/people/jules.jpg")], languages: ["English", "Spanish"], lookingFor: ["Friendship", "Coffee company"], distanceKm: 1.1 },
+  { id: "eli", name: "Eli Brooks", age: 34, locality: "Marina District", interests: ["Music", "Bookshops"], image: require("../../assets/images/people/eli.jpg"), verification: "Phone verified", about: "New to the city and always curious about a new café.", languages: ["English", "French"], lookingFor: ["Study partner", "Coffee company"], distanceKm: 6.8 },
+  { id: "dani", name: "Dani Flores", age: 27, locality: "Lower Pac Heights", interests: ["Art walks", "Hiking"], image: require("../../assets/images/people/dani.jpg"), verification: "ID + selfie verified", about: "Down for a relaxed gallery or park afternoon.", gallery: [require("../../assets/images/people/dani.jpg"), require("../../assets/images/people/friends.jpg")], languages: ["English", "Tagalog"], lookingFor: ["Hangout buddy", "Travel buddy"], distanceKm: 3.2 },
 ];
 
 const seedConversations: Conversation[] = [
@@ -141,13 +162,19 @@ export default function TrufrenzApp() {
   const handoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [transitionBusy, setTransitionBusy] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [session, setSession] = useState<StoredSession | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [authIntent, setAuthIntent] = useState<AuthIntent>("signup");
   const [authStep, setAuthStep] = useState<AuthStep>("welcome");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [fullName, setFullName] = useState("");
-  const [age, setAge] = useState("");
-  const [interest, setInterest] = useState("Coffee walks");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [locality, setLocality] = useState("");
+  const [profileInterests, setProfileInterests] = useState<string[]>(["Coffee walks"]);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [profileErrors, setProfileErrors] = useState<ProfileDraftErrors>({});
   const [joined, setJoined] = useState(false);
   const [verificationPrompt, setVerificationPrompt] = useState(false);
   const [selfieModalVisible, setSelfieModalVisible] = useState(false);
@@ -172,6 +199,9 @@ export default function TrufrenzApp() {
   const [meetups, setMeetups] = useState<Meetup[]>(meetupSeeds);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [profilePerson, setProfilePerson] = useState<Person | null>(null);
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
+  const [myProfile, setMyProfile] = useState<EditableProfile>(() => createInitialProfile({ name: "", age: 18, locality: "" }));
+  const [paidTier, setPaidTier] = useState(false);
   const [quickRepliesOpen, setQuickRepliesOpen] = useState(false);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>(DEFAULT_QUICK_REPLIES);
   const [quickRepliesLoaded, setQuickRepliesLoaded] = useState(false);
@@ -239,35 +269,122 @@ export default function TrufrenzApp() {
     if (notificationTimer.current) clearTimeout(notificationTimer.current);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(SESSION_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        const restored = parseSession(serialized);
+        setSession(restored);
+        if (restored?.mode === "member") {
+          setJoined(true);
+          setFullName(restored.name);
+          setLocality(restored.locality);
+          if (restored.dateOfBirth) setDateOfBirth(restored.dateOfBirth);
+          setMyProfile((current) => ({
+            ...current,
+            name: current.name || restored.name,
+            locality: current.locality || restored.locality,
+            age: current.age > 18 ? current.age : (restored.age ?? current.age),
+            verification: restored.verification,
+          }));
+        }
+        setSessionLoaded(true);
+      })
+      .catch(() => { if (active) setSessionLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
   const feedback = (message: string) => {
     setToast(message);
     setTimeout(() => setToast(""), 2400);
   };
   const tap = () => { if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); };
-  const openSignup = () => { setAuthStep("welcome"); setShowSignup(true); tap(); };
+  const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setShowSignup(true); tap(); };
   const closeSignup = () => setShowSignup(false);
+  const persistSession = (next: StoredSession) => {
+    setSession(next);
+    AsyncStorage.setItem(SESSION_STORAGE_KEY, serializeSession(next)).catch(() => undefined);
+  };
+  const signOut = () => {
+    setSession(null);
+    setJoined(false);
+    setSelectedChat(null);
+    setTab("Chats");
+    AsyncStorage.removeItem(SESSION_STORAGE_KEY).catch(() => undefined);
+    feedback("Signed out. You can sign back in any time.");
+  };
   const backAuth = () => {
-    if (authStep === "profile") setAuthStep("code");
+    if (authStep === "about") setAuthStep("profile");
+    else if (authStep === "photo") setAuthStep("profile");
+    else if (authStep === "profile") setAuthStep("code");
     else if (authStep === "code") setAuthStep("phone");
-    else setAuthStep("welcome");
+    else setShowSignup(false);
+  };
+
+  const pickProfilePhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) { feedback("Allow photo access to choose a profile picture, or skip for now."); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      if (result.canceled || !result.assets?.length) return;
+      setProfilePhoto(result.assets[0].uri);
+      feedback("Photo added. You can change it later.");
+    } catch {
+      feedback("Photo picker is unavailable here. You can skip and add a picture later.");
+    }
+  };
+
+  const finishSignup = () => {
+    if (email.trim() && !isValidCredential("Email", email)) { feedback("Check the recovery email address, or leave it blank"); return; }
+    const parsedDob = dateOfBirth ? parseDateOfBirth(dateOfBirth) : null;
+    persistSession(createMemberSession({ name: fullName.trim(), locality: locality.trim(), dateOfBirth: parsedDob ? formatDateOfBirth(parsedDob) : undefined, age: parsedDob ? ageFromDateOfBirth(parsedDob) : undefined }));
+    setJoined(true);
+    setShowSignup(false);
+    setTab("Chats");
+    feedback(`Welcome, ${fullName.trim().split(" ")[0] || "friend"}. Your circle is ready.`);
   };
 
   const continueAuth = () => {
-    if (authStep === "welcome") { setAuthStep("phone"); return; }
     if (authStep === "phone") {
       if (!isValidCredential("Phone", phone)) { feedback("Enter a valid phone number to continue"); return; }
       setAuthStep("code"); return;
     }
     if (authStep === "code") {
       if (!isValidDemoCode(passcode)) { feedback("Enter the 6-digit demo code to continue"); return; }
-      setAuthStep("profile"); return;
+      if (authIntent === "login") {
+        persistSession(createMemberSession({ name: fullName.trim() || "Friend", locality: locality.trim() || "Nearby", dateOfBirth: session?.dateOfBirth, age: session?.age }));
+        setJoined(true);
+        setShowSignup(false);
+        setTab("Chats");
+        feedback("Welcome back. Your conversations are waiting.");
+        return;
+      }
+      setAuthStep("profile");
+      return;
     }
-    if (!fullName.trim()) { feedback("Add your name to finish your profile"); return; }
-    if (email.trim() && !isValidCredential("Email", email)) { feedback("Check the recovery email address, or leave it blank"); return; }
-    setJoined(true);
-    setShowSignup(false);
-    setTab("You");
-    feedback("Your profile is ready. Welcome to the neighborhood.");
+    if (authStep === "profile") {
+      const errors = validateProfileDraft({ name: fullName, dateOfBirth, locality, interests: profileInterests, photoUri: profilePhoto });
+      setProfileErrors(errors);
+      if (hasProfileErrors(errors)) { feedback(firstProfileError(errors) ?? "Check your profile details"); return; }
+      setAuthStep("photo");
+      return;
+    }
+    if (authStep === "photo") { setAuthStep("about"); return; }
+    finishSignup();
+  };
+
+  const enterAsGuest = () => {
+    persistSession(createGuestSession());
+    setJoined(false);
+    setTab("Friends");
+    feedback("Guest preview: browse freely. Join any time to chat and meet up.");
+  };
+
+  const requireAccount = (action: Parameters<typeof guestUpsellMessage>[0]) => {
+    if (!isGuestSession(session)) return false;
+    feedback(guestUpsellMessage(action));
+    return true;
   };
 
   const visibleChats = useMemo(() => {
@@ -308,6 +425,69 @@ export default function TrufrenzApp() {
     const person = resolveChatProfile(selectedChat, currentThread.kind, suggestions);
     if (!person) { feedback("Member details are not available for this group conversation."); return; }
     setProfilePerson(person);
+  };
+
+  const profileRelationship = (person: Person | null): ViewerRelationship => {
+    if (!person) return "stranger";
+    if (acceptedFriends.includes(person.id)) return "accepted";
+    if (requestSent.includes(person.id)) return "request-sent";
+    if (incomingRequests.includes(person.id)) return "request-received";
+    return "stranger";
+  };
+
+  const openProfileEditor = () => {
+    if (isGuestSession(session)) { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); return; }
+    const age = dateOfBirth && parseDateOfBirth(dateOfBirth) ? ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!) : 18;
+    setMyProfile((current) => {
+      const seeded = current.name || current.locality ? current : createInitialProfile({ name: fullName, age, locality });
+      return { ...seeded, name: seeded.name || fullName, locality: seeded.locality || locality, age: seeded.age || age, interests: seeded.interests.length ? seeded.interests : profileInterests };
+    });
+    setProfileEditorOpen(true);
+  };
+
+  const addMyProfilePhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) { feedback("Allow photo access to add more pictures."); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      if (result.canceled || !result.assets?.length) return;
+      const asset = result.assets[0];
+      const id = `photo-${Date.now()}`;
+      setMyProfile((current) => {
+        const next = addProfilePhoto(current, { id, uri: asset.uri, alt: `Photo ${current.photos.length + 1}` });
+        return next === current ? current : next;
+      });
+      setProfilePhoto((current) => current ?? asset.uri);
+      feedback("Photo added to your profile.");
+    } catch {
+      feedback("Photo picker is unavailable here. Try again on your phone.");
+    }
+  };
+
+  const startProfileVerification = () => {
+    setProfileEditorOpen(false);
+    setSelfieModalVisible(true);
+  };
+
+  const handleProfileAction = (action: "chat" | "hangout" | "meetup" | "call" | "ask-friendship" | "accept-request" | "report" | "block") => {
+    const person = profilePerson;
+    setProfilePerson(null);
+    if (!person) return;
+    if (action === "ask-friendship") { sendFriendRequest(person); return; }
+    if (action === "accept-request") {
+      setIncomingRequests((current) => current.filter((id) => id !== person.id));
+      setAcceptedFriends((current) => [...current, person.id]);
+      feedback(`You and ${person.name.split(" ")[0]} are now friends. Say hello.`);
+      return;
+    }
+    if (action === "chat") { setSelectedChat(person.id); setTab("Chats"); return; }
+    if (action === "hangout") { feedback(`Suggested hangout with ${person.name.split(" ")[0]}: a café or park afternoon.`); return; }
+    if (action === "meetup") { setInviteTargetChat(inviteTargets.some((contact) => contact.id === person.id) ? person.id : inviteTargets[0]?.id ?? null); setInviteModalVisible(true); return; }
+    if (action === "call") { feedback("Calls are a premium preview for this prototype."); return; }
+    if (action === "report") { feedback("Report sent to the safety team. They follow up within a day."); return; }
+    setAcceptedFriends((current) => current.filter((id) => id !== person.id));
+    setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, person.id] } }));
+    feedback(`${person.name.split(" ")[0]} is blocked. They can no longer reach you.`);
   };
 
   const refreshNearbyFeed = async () => {
@@ -392,6 +572,7 @@ export default function TrufrenzApp() {
   };
 
   const shareApproximateArea = () => {
+    if (requireAccount("share-location")) return;
     if (!selectedChat || !currentThread) return;
     const message: Message = { id: `area-${Date.now()}`, from: "me", text: "I’m around Pacific Heights — just an approximate area. Want to pick a public meetup spot?", time: "now", receipt: "sent" };
     setChatMessages((current) => ({ ...current, [selectedChat]: [...(current[selectedChat] ?? []), message] }));
@@ -400,6 +581,7 @@ export default function TrufrenzApp() {
   };
 
   const prepareMeetupInvite = () => {
+    if (requireAccount("create-meetup")) return;
     const target = selectedChat && inviteTargets.some((contact) => contact.id === selectedChat) ? selectedChat : inviteTargets[0]?.id;
     setActionMenuOpen(false);
     if (!target) { feedback("Accept a friend request before sharing a meetup invite."); return; }
@@ -435,6 +617,7 @@ export default function TrufrenzApp() {
   };
 
   const sendFriendRequest = (person: Person) => {
+    if (requireAccount("send-friend-request")) return;
     if (!joined) { feedback("Create your phone-verified profile before sending a request."); openSignup(); return; }
     const myVerification = "phone-only" as const;
     if (!canRequestFriendship(myVerification)) {
@@ -452,6 +635,7 @@ export default function TrufrenzApp() {
   };
 
   const startThread = (id: string) => {
+    if (requireAccount("open-chat")) return;
     const isGroup = seedConversations.some((chat) => chat.id === id && chat.kind === "group");
     if (!canOpenChat(acceptedFriends.includes(id), isGroup)) { feedback("Accept a friend request before starting a chat."); return; }
     setSelectedChat(id);
@@ -462,6 +646,7 @@ export default function TrufrenzApp() {
   };
 
   const toggleGroup = () => {
+    if (requireAccount("create-meetup")) return;
     if (!newGroupName.trim()) { feedback("Give your private group a name first."); return; }
     setCreatedGroups((current) => [...current, newGroupName.trim()]);
     setNewGroupName("");
@@ -586,7 +771,7 @@ export default function TrufrenzApp() {
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#9B7D99" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable onPress={() => { setIncomingRequests((current) => current.filter((item) => item !== id)); feedback("Request quietly dismissed."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8F8992" /></Pressable></View></View>; })}</View> : null}
       <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#9C789A" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
       {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#7895A5" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
-      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const sent = requestSent.includes(person.id); const sharedInterests = findCommonInterests(joined ? [interest] : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Image source={person.image} style={styles.neighborAvatar} /><View style={styles.neighborInfo}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text><View style={styles.neighborMeta}><Icon name="place" size={11} color="#938894" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#9A7897" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></View><Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#8D748F"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable></Frosted>; })}
+      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const sent = requestSent.includes(person.id); const sharedInterests = findCommonInterests(joined && profileInterests.length ? profileInterests : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Pressable accessibilityRole="button" accessibilityLabel={`View ${person.name} profile`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborTapArea, pressed && styles.pressed]}><Image source={person.image} style={styles.neighborAvatar} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Open ${person.name} details`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborInfo, pressed && styles.pressed]}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text><View style={styles.neighborMeta}><Icon name="place" size={11} color="#938894" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#9A7897" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></Pressable><Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#8D748F"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable></Frosted>; })}
       {discoverable && filteredSuggestions.length === 0 ? <View style={styles.noMatches}><Icon name="search-off" size={17} color="#9A899D" /><Text style={styles.noMatchesText}>No neighbors match those filters yet.</Text></View> : null}</View>
       <Frosted style={styles.noPressureCard}><View style={styles.noPressureIcon}><Icon name="favorite-border" size={16} color="#A47C9D" /></View><View style={{ flex: 1 }}><Text style={styles.noPressureTitle}>No open DMs, no awkwardness.</Text><Text style={styles.noPressureText}>Chat starts only after you both accept. Declining is quiet.</Text></View></Frosted>
       </View>
@@ -605,7 +790,7 @@ export default function TrufrenzApp() {
   const renderYou = () => <>
     {topBar()}
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>YOUR PLACE IN THE CIRCLE</Text><Text style={styles.pageTitle}>{joined ? `A little more you, ${fullName.split(" ")[0]}.` : "Settle in, when you're ready."}</Text><Text style={styles.pageSub}>You decide when you&apos;re around, and what you share.</Text></View>
-    {joined ? <Frosted style={styles.profileCard}><View style={styles.profileAvatar}><Text style={styles.profileInitial}>{fullName.charAt(0).toUpperCase()}</Text></View><Text style={styles.profileName}>{fullName}{age ? `, ${age}` : ""}</Text><View style={styles.profilePhoneBadge}><Icon name="phone-iphone" size={12} color="#788B9B" /><Text style={styles.profilePhoneText}>Phone verified</Text></View><Text style={styles.profileLocality}><Icon name="place" size={14} color="#8D8295" />  Pacific Heights · distance kept soft</Text><View style={styles.profileInterests}>{[interest, "Friendship first"].map((item) => <View key={item} style={styles.profileInterest}><Text style={styles.profileInterestText}>{item}</Text></View>)}</View><Pressable onPress={() => feedback("Profile editor is ready for the connected account flow.")} style={styles.editProfileButton}><Text style={styles.editProfileText}>Edit profile</Text><Icon name="arrow-forward" size={15} color="#907B98" /></Pressable></Frosted> : <Frosted style={styles.signupCard}><View style={styles.signupIcon}><Icon name="mark-chat-unread" size={23} color="#937891" /></View><Text style={styles.signupTitle}>A circle that feels like yours.</Text><Text style={styles.signupCopy}>Create a standalone account with phone verification. New conversations begin only after a mutual yes.</Text><ActionButton onPress={openSignup} style={styles.signupCta}><Text style={styles.actionText}>Create your profile</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><View style={styles.phoneRequired}><Icon name="lock-outline" size={14} color="#8091A0" /><Text style={styles.phoneRequiredText}>Phone verification is required; your number stays private.</Text></View></Frosted>}
+    {joined ? <Frosted style={styles.profileCard}><View style={styles.profileAvatarFrame}>{myProfile.photos.length ? <Image source={{ uri: myProfile.photos.find((photo) => photo.id === myProfile.primaryPhotoId)?.uri ?? myProfile.photos[0].uri }} style={styles.profileAvatarPhoto} /> : <View style={styles.profileAvatar}><Text style={styles.profileInitial}>{(myProfile.name || fullName).charAt(0).toUpperCase()}</Text></View>}{myProfile.verification === "id-selfie" ? <View style={styles.profileVerifiedDot}><Icon name="check" size={11} color="#FFFFFF" /></View> : null}</View><Text style={styles.profileName}>{myProfile.name || fullName}{myProfile.age ? `, ${myProfile.age}` : ""}</Text><View style={styles.profilePhoneBadge}><Icon name={myProfile.verification === "id-selfie" ? "verified-user" : "phone-iphone"} size={12} color={myProfile.verification === "id-selfie" ? "#5E947B" : "#788B9B"} /><Text style={styles.profilePhoneText}>{myProfile.verification === "id-selfie" ? "ID + selfie verified" : "Phone verified"}</Text></View><Text style={styles.profileLocality}><Icon name="place" size={14} color="#8D8295" />  {myProfile.locality.trim() || locality.trim() || "Nearby"} · {myProfile.privacy.hideExactLocality ? "distance kept soft" : "exact locality shared"}</Text>{myProfile.bio ? <Text style={styles.profileBio}>{myProfile.bio}</Text> : null}<View style={styles.profileInterests}>{(myProfile.interests.length ? myProfile.interests : profileInterests).slice(0, 4).map((item) => <View key={item} style={styles.profileInterest}><Text style={styles.profileInterestText}>{item}</Text></View>)}</View><View style={styles.profileMetaRow}><View style={styles.profileMetaPill}><Icon name={myProfile.available ? "check-circle" : "pause-circle-outline"} size={12} color={myProfile.available ? "#5E947B" : "#8E8595"} /><Text style={styles.profileMetaText}>{myProfile.available ? "Available for a hello" : "Not available"}</Text></View><View style={styles.profileMetaPill}><Icon name="photo-library" size={12} color="#8E8595" /><Text style={styles.profileMetaText}>{myProfile.photos.length}/6 photos</Text></View><View style={styles.profileMetaPill}><Icon name="group-add" size={12} color="#8E8595" /><Text style={styles.profileMetaText}>{REQUEST_AUDIENCE_LABEL[myProfile.privacy.requestAudience]}</Text></View></View>{myProfile.verification !== "id-selfie" ? <Pressable onPress={startProfileVerification} style={styles.getVerifiedButton}><Icon name="badge" size={14} color="#FFFFFF" /><Text style={styles.getVerifiedText}>Get Verified</Text></Pressable> : null}<Pressable onPress={openProfileEditor} style={styles.editProfileButton}><Text style={styles.editProfileText}>Edit profile</Text><Icon name="arrow-forward" size={15} color="#907B98" /></Pressable></Frosted> : <Frosted style={styles.signupCard}><View style={styles.signupIcon}><Icon name="mark-chat-unread" size={23} color="#937891" /></View><Text style={styles.signupTitle}>A circle that feels like yours.</Text><Text style={styles.signupCopy}>Create a standalone account with phone verification. New conversations begin only after a mutual yes.</Text><ActionButton onPress={openSignup} style={styles.signupCta}><Text style={styles.actionText}>Create your profile</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><View style={styles.phoneRequired}><Icon name="lock-outline" size={14} color="#8091A0" /><Text style={styles.phoneRequiredText}>Phone verification is required; your number stays private.</Text></View></Frosted>}
     {joined ? <Pressable onPress={() => setSelfieModalVisible(true)} style={({ pressed }) => [styles.selfieEntry, pressed && styles.pressed]}><View style={styles.selfieEntryIcon}><Icon name="face-retouching-natural" size={17} color="#8F7594" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Optional selfie identity check</Text><Text style={styles.settingSub}>Capture locally · verified badge only after provider review.</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable> : null}
     <Text style={styles.settingsLabel}>HOW YOU SHOW UP</Text>
     <Frosted style={styles.settingsPanel}>
@@ -619,7 +804,7 @@ export default function TrufrenzApp() {
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => feedback("Premium preview · live map and voice/video calls are planned paid features.")} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map and calls · premium preview</Text></View><View style={styles.premiumLock}><Icon name="lock" size={12} color="#9D7799" /></View></Pressable>
+      <Pressable onPress={() => { setPaidTier((current) => !current); tap(); feedback(paidTier ? "Premium preview off · distances stay hidden on profiles." : "Premium preview on · distances and calls are visible in this demo."); }} accessibilityRole="switch" accessibilityState={{ checked: paidTier }} accessibilityLabel="Premium preview with distance and calls" style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map, distances, and calls · premium preview</Text></View><View style={styles.toggleFrame}><Switch value={paidTier} onValueChange={() => undefined} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" pointerEvents="none" /></View></Pressable>
     </Frosted>
     <Text style={styles.settingsLabel}>APPEARANCE</Text>
     <Frosted style={styles.appearancePanel}>
@@ -634,6 +819,12 @@ export default function TrufrenzApp() {
       <View style={styles.settingDivider} />
       <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the soft photo backdrop across the app.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: "#DDD9E1", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
+    <Text style={styles.settingsLabel}>ACCOUNT</Text>
+    <Frosted style={styles.settingsPanel}>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="person-outline" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{isGuestSession(session) ? "Guest preview" : "Signed in"}</Text><Text style={styles.settingSub}>{isGuestSession(session) ? "Browse-only mode · join any time to chat and meet up." : `Phone verified${fullName.trim() ? ` · ${fullName.trim()}` : ""}`}</Text></View><View style={styles.verificationPill}><Icon name={isGuestSession(session) ? "visibility" : "verified"} size={12} color="#588B79" /><Text style={styles.verificationText}>{isGuestSession(session) ? "Guest" : "Member"}</Text></View></View>
+      <View style={styles.settingDivider} />
+      <Pressable onPress={() => { if (isGuestSession(session)) { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); } else { signOut(); } }} accessibilityRole="button" accessibilityLabel={isGuestSession(session) ? "Create an account" : "Sign out"} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.settingIconPink}><Icon name={isGuestSession(session) ? "person-add" : "logout"} size={17} color="#987998" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{isGuestSession(session) ? "Create your account" : "Sign out"}</Text><Text style={styles.settingSub}>{isGuestSession(session) ? "Sign up to chat, request friends, and join meetups." : "Return to the welcome screen on this device."}</Text></View><Icon name="chevron-right" size={18} color="#A69FAB" /></Pressable>
+    </Frosted>
     <Text style={styles.footerNote}>Your space. Your pace. Always friends first.</Text>
   </>;
 
@@ -644,18 +835,28 @@ export default function TrufrenzApp() {
     return renderYou();
   };
 
+  const showWelcome = sessionLoaded && shouldShowWelcome(session);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAF8F7" />
-      <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 0.27 : 0 }]} resizeMode="cover" /></View>
+      {showWelcome ? (
+        <WelcomeScreen
+          onSignUp={openSignup}
+          onLogIn={() => { setAuthIntent("login"); setAuthStep("phone"); setShowSignup(true); }}
+          onContinueAsGuest={enterAsGuest}
+        />
+      ) : null}
+      {showWelcome ? null : <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 0.27 : 0 }]} resizeMode="cover" /></View>}
+      {showWelcome ? null : <>
       <View style={[styles.backgroundWash, styles.noninteractive]} />
-      <View style={[styles.ambient, styles.noninteractive]}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View>
-      <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />
-      <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>
+      <View style={[styles.ambient, styles.noninteractive]}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View> </>}
+      {showWelcome ? null : <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />}
+      {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#9B7E9D" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#FFFFFF" /><Text style={styles.toastText}>{toast}</Text></View> : null}
-      <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>
+      {showWelcome ? null : <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.92)", glassOpacity) }]}>
@@ -675,15 +876,49 @@ export default function TrufrenzApp() {
           <KeyboardAvoidingView style={styles.modalKeyboard} behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <View style={styles.modalHeader}><View style={styles.brandMark}><View style={styles.brandIcon}><Icon name="spa" size={16} color="#FFFFFF" /></View><Text style={styles.brandWord}>Trufrenz</Text></View><Pressable onPress={closeSignup} accessibilityLabel="Close signup" style={styles.roundAction}><Icon name="close" size={19} color="#746A7D" /></Pressable></View>
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <Text style={styles.pageEyebrow}>{authStep === "welcome" ? "A GOOD PLACE TO BELONG" : authStep === "phone" ? "PHONE VERIFICATION" : authStep === "code" ? "ONE SMALL SAFETY STEP" : "MAKE IT FEEL LIKE YOU"}</Text>
-              <Text style={styles.modalTitle}>{authStep === "welcome" ? "People, with a little more heart." : authStep === "phone" ? "Your number.\nYour own account." : authStep === "code" ? "Check your\nphone." : "What should friends call you?"}</Text>
-              <Text style={styles.modalSubtitle}>{authStep === "welcome" ? "A standalone neighborhood circle for friendship. Chats open after a mutual yes." : authStep === "phone" ? "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? `A one-time code would be sent to ${phone || "your phone"}. Enter any 6 digits for this prototype.` : "Start with your name, age, and the small things you enjoy. You can change these later."}</Text>
-              {authStep === "welcome" ? <><Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted><SafetyOnboardingCarousel onComplete={() => setAuthStep("phone")} /></> : null}
-              {authStep === "phone" ? <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#AAA4AC" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : null}
+              <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : "STEP 1 OF 4 · PHONE") : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
+              <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
+              <Text style={styles.modalSubtitle}>{authStep === "phone" ? "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? `A one-time code would be sent to ${phone || "your phone"}. Enter any 6 digits for this prototype.` : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
+              {authStep === "phone" ? <><View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#AAA4AC" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View><Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
               {authStep === "code" ? <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#AAA4AC" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View> : null}
-              {authStep === "profile" ? <><View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={setFullName} placeholder="What do people call you?" placeholderTextColor="#AAA4AC" style={styles.fieldInput} returnKeyType="done" /></View><View style={styles.formField}><Text style={styles.fieldLabel}>AGE</Text><TextInput value={age} onChangeText={(value) => setAge(value.replace(/[^0-9]/g, "").slice(0, 2))} placeholder="Your age" placeholderTextColor="#AAA4AC" keyboardType="number-pad" style={styles.fieldInput} /></View><View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL FOR ACCOUNT RECOVERY · OPTIONAL</Text><TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#AAA4AC" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} style={styles.fieldInput} /></View><Text style={styles.fieldLabel}>SOMETHING YOU ENJOY</Text><View style={styles.interestOptions}>{["Coffee walks", "Bookshops", "Park hangs", "Try something new"].map((item) => <Pressable key={item} onPress={() => setInterest(item)} style={[styles.interestOption, interest === item && styles.interestOptionActive]}><Text style={[styles.interestOptionText, interest === item && styles.interestOptionTextActive]}>{item}</Text></Pressable>)}</View><View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#7A8FA0" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View></> : null}
-              {authStep !== "welcome" ? <ActionButton onPress={continueAuth} style={styles.authContinue}><Text style={styles.actionText}>{authStep === "phone" ? "Send my code" : authStep === "code" ? "Verify & continue" : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton> : null}
-              {authStep !== "welcome" ? <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#8C7D92" /><Text style={styles.backLinkText}>Back</Text></Pressable> : null}
+              {authStep === "profile" ? <>
+                <View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={(value) => { setFullName(value); setProfileErrors((current) => ({ ...current, name: undefined })); }} placeholder="What do people call you?" placeholderTextColor="#AAA4AC" style={styles.fieldInput} returnKeyType="done" /></View>
+                {profileErrors.name ? <Text style={styles.fieldError}>{profileErrors.name}</Text> : null}
+                <View style={styles.formField}><Text style={styles.fieldLabel}>DATE OF BIRTH · ADULTS ONLY</Text><TextInput value={dateOfBirth} onChangeText={(value) => { setDateOfBirth(value); setProfileErrors((current) => ({ ...current, dateOfBirth: undefined })); }} placeholder="1996-04-18 or 04/18/1996" placeholderTextColor="#AAA4AC" keyboardType={Platform.OS === "web" ? "default" : "numbers-and-punctuation"} style={styles.fieldInput} returnKeyType="done" /></View>
+                {profileErrors.dateOfBirth ? <Text style={styles.fieldError}>{profileErrors.dateOfBirth}</Text> : <Text style={styles.fieldHint}>{dateOfBirth && parseDateOfBirth(dateOfBirth) ? `Age ${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} · shown as an age, never your birth date.` : "We show your age, never your exact birth date."}</Text>}
+                <View style={styles.formField}><Text style={styles.fieldLabel}>LOCALITY</Text><TextInput value={locality} onChangeText={(value) => { setLocality(value); setProfileErrors((current) => ({ ...current, locality: undefined })); }} placeholder="Your neighborhood" placeholderTextColor="#AAA4AC" style={styles.fieldInput} returnKeyType="done" /></View>
+                {profileErrors.locality ? <Text style={styles.fieldError}>{profileErrors.locality}</Text> : null}
+                <View style={styles.suggestionRow}>{LOCALITY_SUGGESTIONS.slice(0, 4).map((item) => <Pressable key={item} onPress={() => { setLocality(item); setProfileErrors((current) => ({ ...current, locality: undefined })); tap(); }} style={[styles.suggestionChip, locality === item && styles.suggestionChipActive]}><Text style={[styles.suggestionChipText, locality === item && styles.suggestionChipTextActive]}>{item}</Text></Pressable>)}</View>
+                <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL FOR RECOVERY · OPTIONAL</Text><TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#AAA4AC" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} style={styles.fieldInput} /></View>
+                <Text style={styles.fieldLabel}>THINGS YOU ENJOY · PICK UP TO 4</Text>
+                <View style={styles.interestOptions}>{INTEREST_SUGGESTIONS.map((item) => { const selected = profileInterests.includes(item); return <Pressable key={item} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`Interest ${item}`} onPress={() => { setProfileInterests((current) => toggleProfileInterest(current, item)); setProfileErrors((current) => ({ ...current, interests: undefined })); tap(); }} style={[styles.interestOption, selected && styles.interestOptionActive]}><Text style={[styles.interestOptionText, selected && styles.interestOptionTextActive]}>{item}</Text></Pressable>; })}</View>
+                {profileErrors.interests ? <Text style={styles.fieldError}>{profileErrors.interests}</Text> : null}
+                <View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#7A8FA0" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View>
+              </> : null}
+              {authStep === "photo" ? <>
+                <Pressable onPress={pickProfilePhoto} accessibilityRole="button" accessibilityLabel="Choose a profile photo" style={({ pressed }) => [styles.photoPicker, pressed && styles.pressed]}>
+                  {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.photoPreview} /> : <View style={styles.photoPlaceholder}><Icon name="add-a-photo" size={26} color="#9A8AA0" /></View>}
+                  <Text style={styles.photoPickerText}>{profilePhoto ? "Change photo" : "Choose from your library"}</Text>
+                  <Text style={styles.photoPickerHint}>Square photos look best. Nothing is shared until you accept a friend.</Text>
+                </Pressable>
+                <View style={styles.photoSafety}><Icon name="visibility" size={15} color="#7A8FA0" /><Text style={styles.photoSafetyText}>Only accepted friends see your photo. You can hide it from suggestions any time.</Text></View>
+              </> : null}
+              {authStep === "about" ? <>
+                <Frosted style={styles.summaryCard}>
+                  <View style={styles.summaryHeader}>
+                    {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.summaryAvatar} /> : <View style={styles.summaryAvatarFallback}><Text style={styles.summaryAvatarText}>{(fullName.trim().charAt(0) || "T").toUpperCase()}</Text></View>}
+                    <View style={{ flex: 1 }}><Text style={styles.summaryName}>{fullName.trim() || "Your name"}</Text><Text style={styles.summaryMeta}>{locality.trim() || "Your neighborhood"} · {dateOfBirth && parseDateOfBirth(dateOfBirth) ? `${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} yrs` : "Age hidden"}</Text></View>
+                    <View style={styles.verificationPill}><Icon name="phone-iphone" size={12} color="#588B79" /><Text style={styles.verificationText}>Phone verified</Text></View>
+                  </View>
+                  <View style={styles.summaryTags}>{profileInterests.map((item) => <View key={item} style={styles.summaryTag}><Text style={styles.summaryTagText}>{item}</Text></View>)}</View>
+                </Frosted>
+                <View style={styles.summaryRow}><Icon name="lock-outline" size={15} color="#7A8FA0" /><Text style={styles.summaryRowText}>Your number and birth date stay private. Friends see your age and broad area only.</Text></View>
+                <View style={styles.summaryRow}><Icon name="groups" size={15} color="#8F7594" /><Text style={styles.summaryRowText}>Chats open after a mutual yes. Meetups are always in public places.</Text></View>
+                <Text style={styles.fieldLabel}>BEFORE YOU JOIN · HOW TRUFRENZ STAYS KIND</Text>
+                <SafetyOnboardingCarousel onComplete={finishSignup} />
+              </> : null}
+              <ActionButton onPress={continueAuth} style={styles.authContinue}><Text style={styles.actionText}>{authStep === "phone" ? (authIntent === "login" ? "Send my login code" : "Send my code") : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
+              <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#8C7D92" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
               <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#8496A3" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
               <Text style={styles.prototypeNote}>Prototype only: phone codes and identity checks are not connected to a live verification service.</Text>
             </ScrollView>
@@ -701,7 +936,49 @@ export default function TrufrenzApp() {
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
-      <FriendProfileModal visible={!!profilePerson} profile={profilePerson} onClose={() => setProfilePerson(null)} />
+      <FriendProfileModal
+        visible={!!profilePerson}
+        profile={profilePerson ? {
+          id: profilePerson.id,
+          name: profilePerson.name,
+          age: profilePerson.age,
+          locality: profilePerson.locality,
+          interests: profilePerson.interests,
+          image: profilePerson.image,
+          gallery: (profilePerson.gallery ?? []).map((uri, index) => ({ id: `${profilePerson.id}-g${index}`, uri })),
+          verification: profilePerson.verification,
+          about: profilePerson.about,
+          languages: profilePerson.languages,
+          lookingFor: profilePerson.lookingFor,
+          distanceKm: profilePerson.distanceKm,
+          hidesExactLocality: true,
+        } : null}
+        relationship={profileRelationship(profilePerson)}
+        viewerTier={paidTier ? "paid" : "free"}
+        viewerCanRequestFriendship={myProfile.verification === "id-selfie" || acceptedFriends.length > 0}
+        myInterests={myProfile.interests.length ? myProfile.interests : profileInterests}
+        actions={{
+          onChat: () => handleProfileAction("chat"),
+          onHangout: () => handleProfileAction("hangout"),
+          onMeetup: () => handleProfileAction("meetup"),
+          onCall: () => handleProfileAction("call"),
+          onAskFriendship: () => handleProfileAction("ask-friendship"),
+          onAcceptRequest: () => handleProfileAction("accept-request"),
+          onReport: () => handleProfileAction("report"),
+          onBlock: () => handleProfileAction("block"),
+        }}
+        onClose={() => setProfilePerson(null)}
+      />
+      <EditProfileModal
+        visible={profileEditorOpen}
+        profile={myProfile}
+        onChange={setMyProfile}
+        onClose={() => setProfileEditorOpen(false)}
+        onAddPhoto={addMyProfilePhoto}
+        onStartVerification={startProfileVerification}
+        onNotify={feedback}
+        onSaved={() => { setProfileEditorOpen(false); setFullName(myProfile.name); setLocality(myProfile.locality); setProfileInterests(myProfile.interests); feedback("Profile saved. Your glass card is up to date."); }}
+      />
       <QuickRepliesModal visible={quickRepliesOpen} replies={quickReplies} onClose={() => setQuickRepliesOpen(false)} onSelect={selectQuickReply} onAdd={addCustomQuickReply} onRemove={(id) => setQuickReplies((current) => removeQuickReply(current, id))} />
     </SafeAreaView>
   );
@@ -848,6 +1125,7 @@ const styles = StyleSheet.create({
   sortChipText: { fontSize: 7, color: "#977C97", fontWeight: "600" },
   friendConnectionList: { gap: 7 },
   neighborRow: { minHeight: 68, borderRadius: 15, paddingVertical: 8, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 8 },
+  neighborTapArea: { borderRadius: 13 },
   neighborAvatar: { width: 43, height: 43, borderRadius: 15, backgroundColor: "#EFE8EF" },
   neighborInfo: { flex: 1, minWidth: 0, gap: 3 },
   neighborNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -921,6 +1199,15 @@ const styles = StyleSheet.create({
   createPlanLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 36 },
   createPlanText: { color: "#8B768E", fontSize: 9, fontWeight: "600" },
   profileCard: { alignItems: "center", padding: 16, borderRadius: 20 },
+  profileAvatarFrame: { width: 84, height: 84, borderRadius: 30, padding: 3, borderWidth: 1.5, borderColor: "#E8D9E9", position: "relative" },
+  profileAvatarPhoto: { width: "100%", height: "100%", borderRadius: 26, backgroundColor: "#EFE7F0" },
+  profileVerifiedDot: { position: "absolute", right: -3, bottom: -3, width: 22, height: 22, borderRadius: 9, borderWidth: 2, borderColor: "#FCF9FC", backgroundColor: "#D98BA6", alignItems: "center", justifyContent: "center" },
+  profileBio: { color: "#6E6672", fontSize: 10.5, lineHeight: 16, textAlign: "center", marginTop: 8, paddingHorizontal: 6 },
+  profileMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 11 },
+  profileMetaPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "rgba(255,255,255,0.66)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
+  profileMetaText: { color: "#86808C", fontSize: 8, fontWeight: "600" },
+  getVerifiedButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, borderRadius: 13, paddingHorizontal: 16, marginTop: 12, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.64)", shadowColor: "#604F67", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  getVerifiedText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   profileAvatar: { position: "relative", width: 59, height: 59, borderRadius: 21, backgroundColor: "#E9E0F0", alignItems: "center", justifyContent: "center" },
   profileInitial: { color: "#826D8A", fontSize: 25, fontWeight: "700" },
   profileCheck: { position: "absolute", right: -2, bottom: -2, width: 19, height: 19, borderRadius: 8, backgroundColor: "#72A58B", borderColor: "#FFFFFF", borderWidth: 2, alignItems: "center", justifyContent: "center" },
@@ -969,6 +1256,32 @@ const styles = StyleSheet.create({
   tabLabel: { color: "#99939C", fontSize: 8, fontWeight: "500" },
   tabLabelActive: { color: "#826C89", fontWeight: "700" },
   toast: { position: "absolute", bottom: 72, left: 21, right: 21, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#675D70", flexDirection: "row", alignItems: "center", gap: 7, shadowColor: "#56485E", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  fieldError: { color: "#B57184", fontSize: 8.5, lineHeight: 13, marginTop: -6, marginBottom: 10 },
+  fieldHint: { color: "#8E96A2", fontSize: 8, lineHeight: 13, marginTop: -6, marginBottom: 10 },
+  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: -4, marginBottom: 12 },
+  suggestionChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.66)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", shadowColor: "#7A6F80", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
+  suggestionChipActive: { backgroundColor: "rgba(238,228,240,0.96)", borderColor: "rgba(222,205,226,1)" },
+  suggestionChipText: { color: "#867E8C", fontSize: 8.5, fontWeight: "600" },
+  suggestionChipTextActive: { color: "#755F7B", fontWeight: "700" },
+  photoPicker: { alignItems: "center", gap: 9, paddingVertical: 18, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.6)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", shadowColor: "#7A6F80", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
+  photoPlaceholder: { width: 84, height: 84, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(240,233,243,0.9)", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)" },
+  photoPreview: { width: 84, height: 84, borderRadius: 30, borderWidth: 1, borderColor: "rgba(255,255,255,0.98)" },
+  photoPickerText: { color: "#6E6474", fontSize: 10.5, fontWeight: "700" },
+  photoPickerHint: { color: "#9A939E", fontSize: 8, textAlign: "center", paddingHorizontal: 18 },
+  photoSafety: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: "rgba(255,255,255,0.56)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)" },
+  photoSafetyText: { flex: 1, color: "#818A93", fontSize: 8, lineHeight: 13 },
+  summaryCard: { padding: 13, borderRadius: 18 },
+  summaryHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  summaryAvatar: { width: 46, height: 46, borderRadius: 17, borderWidth: 1, borderColor: "rgba(255,255,255,0.98)" },
+  summaryAvatarFallback: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#EFE3F1", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)" },
+  summaryAvatarText: { color: "#8B718F", fontSize: 17, fontWeight: "800" },
+  summaryName: { color: "#534B5A", fontSize: 12, fontWeight: "700" },
+  summaryMeta: { color: "#938C9B", fontSize: 8, marginTop: 3 },
+  summaryTags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 11 },
+  summaryTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 11, backgroundColor: "rgba(240,233,243,0.9)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
+  summaryTagText: { color: "#7D6E85", fontSize: 8, fontWeight: "600" },
+  summaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: "rgba(255,255,255,0.56)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)" },
+  summaryRowText: { flex: 1, color: "#818A93", fontSize: 8, lineHeight: 13 },
   toastText: { color: "#FFFFFF", fontSize: 9, fontWeight: "500", flex: 1 },
   refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.67)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", alignItems: "center", justifyContent: "center", shadowColor: "#81778A", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
   refreshGlassContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
