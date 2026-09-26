@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -27,8 +29,13 @@ import { isInboxMeetupTransition } from "@/lib/ui-transitions";
 import { SelfieVerificationModal } from "@/components/selfie-verification-modal";
 import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carousel";
 import { CreateMeetupInviteModal } from "@/components/create-meetup-invite-modal";
+import { FriendProfileModal } from "@/components/friend-profile-modal";
+import { QuickRepliesModal } from "@/components/quick-replies-modal";
 import { findCommonInterests } from "@/lib/discovery-interests";
 import { formatMeetupInvite, type MeetupInviteDraft } from "@/lib/meetup-invite";
+import { mergeMeetupRefresh } from "@/lib/meetup-feed";
+import { resolveChatProfile } from "@/lib/chat-profile";
+import { addQuickReply, DEFAULT_QUICK_REPLIES, parseQuickReplies, removeQuickReply, type QuickReply } from "@/lib/quick-replies";
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile";
@@ -54,6 +61,8 @@ type Conversation = {
   online?: boolean;
   verified?: boolean;
 };
+type Meetup = { id: string; day: string; title: string; place: string; people: string; image: any; tag: string };
+const QUICK_REPLIES_STORAGE_KEY = "kindred.quick-replies.v1";
 
 const friends: Person[] = [
   { id: "maya", name: "Maya Chen", age: 28, locality: "Pacific Heights", interests: ["Coffee walks", "Ceramics"], image: require("../../assets/images/people/maya.jpg"), verification: "ID + selfie verified", about: "Recently discovered the little flower shop on Fillmore." },
@@ -61,7 +70,7 @@ const friends: Person[] = [
   { id: "noah", name: "Noah Kim", age: 27, locality: "Japantown", interests: ["Books", "Cooking"], image: require("../../assets/images/people/noah.jpg"), verification: "ID + selfie verified", about: "Has a book recommendation for every kind of day." },
 ];
 
-const suggestions: Person[] = [
+const suggestionSeeds: Person[] = [
   friends[0],
   friends[1],
   friends[2],
@@ -95,7 +104,7 @@ const initialMessages: Record<string, Message[]> = {
   ],
 };
 
-const meetupSeeds = [
+const meetupSeeds: Meetup[] = [
   { id: "coffee", day: "TODAY · 10:30 AM", title: "Coffee and a slow start", place: "Juniper Café · Pacific Heights", people: "3 neighbors going", image: require("../../assets/images/people/friends.jpg"), tag: "4 places left" },
   { id: "park", day: "SATURDAY · 4:00 PM", title: "A little walk in the park", place: "Alta Plaza Park · Pacific Heights", people: "Maya, Sam + 2 more", image: require("../../assets/images/people/maya.jpg"), tag: "Small group" },
   { id: "books", day: "SUNDAY · 11:00 AM", title: "Bookshop & tea afternoon", place: "Green Apple Books · 1.2 mi", people: "Hosted by Noah", image: require("../../assets/images/people/noah.jpg"), tag: "3 places left" },
@@ -142,9 +151,16 @@ export default function KindredApp() {
   const [toast, setToast] = useState("");
   const [requestSent, setRequestSent] = useState<string[]>([]);
   const [acceptedFriends, setAcceptedFriends] = useState<string[]>(["maya", "sam", "noah"]);
+  const [suggestions, setSuggestions] = useState<Person[]>(suggestionSeeds);
   const [incomingRequests, setIncomingRequests] = useState<string[]>(["aria"]);
   const [interestFilter, setInterestFilter] = useState<string[]>([]);
   const [joinedMeetups, setJoinedMeetups] = useState<string[]>([]);
+  const [meetups, setMeetups] = useState<Meetup[]>(meetupSeeds);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [profilePerson, setProfilePerson] = useState<Person | null>(null);
+  const [quickRepliesOpen, setQuickRepliesOpen] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>(DEFAULT_QUICK_REPLIES);
+  const [quickRepliesLoaded, setQuickRepliesLoaded] = useState(false);
   const [available, setAvailable] = useState(true);
   const [discoverable, setDiscoverable] = useState(true);
   const [blurDistance, setBlurDistance] = useState(true);
@@ -186,6 +202,23 @@ export default function KindredApp() {
     pulse.start();
     return () => pulse.stop();
   }, [transitionBusy, loaderPulse]);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(QUICK_REPLIES_STORAGE_KEY).then((serialized) => {
+      if (!active) return;
+      setQuickReplies(parseQuickReplies(serialized));
+      setQuickRepliesLoaded(true);
+    }).catch(() => {
+      if (active) setQuickRepliesLoaded(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!quickRepliesLoaded) return;
+    AsyncStorage.setItem(QUICK_REPLIES_STORAGE_KEY, JSON.stringify(quickReplies)).catch(() => undefined);
+  }, [quickReplies, quickRepliesLoaded]);
 
   const feedback = (message: string) => {
     setToast(message);
@@ -231,25 +264,62 @@ export default function KindredApp() {
       const filterMatch = chatFilter === "All" || (chatFilter === "Unread" ? chat.unread > 0 : chat.kind === "group");
       return queryMatch && filterMatch;
     });
-  }, [search, chatFilter, acceptedFriends, chatMessages]);
+  }, [search, chatFilter, acceptedFriends, chatMessages, suggestions]);
 
   const inviteTargets = useMemo(() => {
     const seeded = seedConversations.filter((chat) => chat.kind === "friend" && acceptedFriends.includes(chat.id)).map(({ id, name }) => ({ id, name }));
     const newlyAccepted = suggestions.filter((person) => acceptedFriends.includes(person.id) && !seedConversations.some((chat) => chat.id === person.id)).map(({ id, name }) => ({ id, name }));
     return [...seeded, ...newlyAccepted];
-  }, [acceptedFriends]);
+  }, [acceptedFriends, suggestions]);
 
   const filteredSuggestions = useMemo(() => suggestions.filter((person) => {
     const q = search.trim().toLowerCase();
     const searchMatch = !q || `${person.name} ${person.locality} ${person.interests.join(" ")}`.toLowerCase().includes(q);
     const interestMatch = interestFilter.length === 0 || interestFilter.some((tag) => tag === "Verified" ? person.verification === "ID + selfie verified" : tag === "Nearby" ? person.locality.includes("Pacific Heights") : person.interests.some((value) => value.toLowerCase().includes(tag.toLowerCase())));
     return discoverable && searchMatch && interestMatch && !acceptedFriends.includes(person.id) && !incomingRequests.includes(person.id);
-  }), [search, interestFilter, acceptedFriends, incomingRequests, discoverable]);
+  }), [search, interestFilter, acceptedFriends, incomingRequests, discoverable, suggestions]);
 
   const currentThread = selectedChat ? (seedConversations.find((chat) => chat.id === selectedChat) ?? (() => {
     const person = suggestions.find((item) => item.id === selectedChat);
     return person ? { id: person.id, name: person.name, image: person.image, kind: "friend" as const, lastMessage: "You are now friends", time: "now", unread: 0, verified: person.verification === "ID + selfie verified" } : null;
   })()) : null;
+
+  const openChatProfile = () => {
+    if (!selectedChat || !currentThread) return;
+    const person = resolveChatProfile(selectedChat, currentThread.kind, suggestions);
+    if (!person) { feedback("Member details are not available for this group conversation."); return; }
+    setProfilePerson(person);
+  };
+
+  const refreshNearbyFeed = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    tap();
+    await new Promise<void>((resolve) => setTimeout(resolve, 850));
+    setMeetups((current) => mergeMeetupRefresh(current, meetupSeeds));
+    setSuggestions([...suggestionSeeds]);
+    setIsRefreshing(false);
+    feedback("Nearby plans refreshed. Live community updates will appear once connected.");
+  };
+
+  const addCustomQuickReply = (text: string) => {
+    const next = addQuickReply(quickReplies, text);
+    if (next.length === quickReplies.length) {
+      feedback(quickReplies.length >= 12 ? "Your quick-reply list is full." : "That phrase is empty, too long, or already saved.");
+      return;
+    }
+    setQuickReplies(next);
+    feedback("Quick reply saved on this device.");
+  };
+
+  const selectQuickReply = (text: string) => {
+    setMessageDraft((current) => {
+      const trimmed = current.trimEnd();
+      return trimmed ? `${trimmed} ${text}` : text;
+    });
+    setQuickRepliesOpen(false);
+    tap();
+  };
 
   const sendMessage = () => {
     const text = messageDraft.trim();
@@ -345,7 +415,7 @@ export default function KindredApp() {
     <View style={styles.topBar}>
       <View style={styles.brandMark}>
         {thread ? <Pressable onPress={() => setSelectedChat(null)} style={styles.backButton}><Icon name="arrow-back" size={21} color="#6D6178" /></Pressable> : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#FFFFFF" /></View>}
-        <View><Text style={styles.brandWord}>{thread ? (currentThread?.name ?? "Conversation") : "kindred"}</Text>{thread ? <Text style={styles.topBarSub}>{currentThread?.kind === "group" ? "Private friend group" : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text> : null}</View>
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={openChatProfile} disabled={currentThread?.kind !== "friend"} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View><Text style={styles.brandWord}>{currentThread?.name ?? "Conversation"}</Text><Text style={styles.topBarSub}>{currentThread?.kind === "group" ? "Private friend group" : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text></View></View> : <Text style={styles.brandWord}>kindred</Text>}
       </View>
       {thread ? <View style={styles.topActions}><Pressable onPress={prepareMeetupInvite} style={styles.roundAction}><Icon name="event-available" size={19} color="#766B82" /></Pressable><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open conversation actions" style={styles.roundAction}><Icon name="more-horiz" size={21} color="#766B82" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={() => setTab("You")} style={styles.roundAction}><Icon name="notifications-none" size={20} color="#766B82" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openSignup} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#796E84" />}</Pressable></View>}
     </View>
@@ -372,7 +442,7 @@ export default function KindredApp() {
           {typingChat === selectedChat ? <View style={styles.typingRow}><View style={styles.typingBubble}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
         </ScrollView>
         <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#9C7694" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={newHangout}><Text style={styles.inviteLink}>Invite</Text></Pressable></View>
-        <View style={styles.composerRow}><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open sharing actions" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8C8495" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder="Write a message…" placeholderTextColor="#9B96A1" style={styles.composerInput} onSubmitEditing={sendMessage} returnKeyType="send" /><Pressable onPress={sendMessage} style={({ pressed }) => [styles.sendButton, messageDraft.trim() && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() ? "#FFFFFF" : "#96919D"} /></Pressable></View>
+        <View style={styles.composerRow}><Pressable onPress={() => setActionMenuOpen(true)} accessibilityLabel="Open sharing actions" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8C8495" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#8E7894" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder="Write a message…" placeholderTextColor="#9B96A1" style={styles.composerInput} onSubmitEditing={sendMessage} returnKeyType="send" /><Pressable onPress={sendMessage} style={({ pressed }) => [styles.sendButton, messageDraft.trim() && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() ? "#FFFFFF" : "#96919D"} /></Pressable></View>
       </View>;
     }
     const filters: typeof chatFilter[] = ["All", "Unread", "Groups"];
@@ -404,14 +474,14 @@ export default function KindredApp() {
     {topBar()}
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>A SMALLER INTERNET, A CLOSER CIRCLE</Text><Text style={styles.pageTitle}>Friends, not profiles.</Text><Text style={styles.pageSub}>Meet kind people nearby, then connect only when you both say yes.</Text></View>
     <View style={styles.friendsTools}><View style={styles.searchBar}><Icon name="search" size={17} color="#968D9A" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name or interest" placeholderTextColor="#A6A1A8" style={styles.searchInput} /><Icon name="tune" size={17} color="#90869A" /></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestFilterRow}>{["Nearby", "Verified", "Coffee", "Books", "Hiking"].map((tag) => <Pressable key={tag} onPress={() => toggleInterest(tag)} style={[styles.filterChip, interestFilter.includes(tag) && styles.filterChipActive]}><Text style={[styles.filterChipText, interestFilter.includes(tag) && styles.filterChipTextActive]}>{tag}</Text></Pressable>)}</ScrollView></View>
-    <ScrollView style={styles.friendsScroll} contentContainerStyle={styles.friendsContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.friendsScroll, styles.friendsContent]}>
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#9B7D99" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable onPress={() => { setIncomingRequests((current) => current.filter((item) => item !== id)); feedback("Request quietly dismissed."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8F8992" /></Pressable></View></View>; })}</View> : null}
       <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#9C789A" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
       {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#7895A5" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
       <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const sent = requestSent.includes(person.id); const sharedInterests = findCommonInterests(joined ? [interest] : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Image source={person.image} style={styles.neighborAvatar} /><View style={styles.neighborInfo}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text><View style={styles.neighborMeta}><Icon name="place" size={11} color="#938894" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#9A7897" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></View><Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#8D748F"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable></Frosted>; })}
       {discoverable && filteredSuggestions.length === 0 ? <View style={styles.noMatches}><Icon name="search-off" size={17} color="#9A899D" /><Text style={styles.noMatchesText}>No neighbors match those filters yet.</Text></View> : null}</View>
       <Frosted style={styles.noPressureCard}><View style={styles.noPressureIcon}><Icon name="favorite-border" size={16} color="#A47C9D" /></View><View style={{ flex: 1 }}><Text style={styles.noPressureTitle}>No open DMs, no awkwardness.</Text><Text style={styles.noPressureText}>Chat starts only after you both accept. Declining is quiet.</Text></View></Frosted>
-    </ScrollView>
+      </View>
   </>;
 
   const renderMeetups = () => <>
@@ -419,9 +489,9 @@ export default function KindredApp() {
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>EASY COMPANY, NEARBY</Text><Text style={styles.pageTitle}>A plan makes it easy.</Text><Text style={styles.pageSub}>Small, friendly gatherings you can join at your own pace.</Text></View>
     <Frosted style={styles.meetupIntroCard}><View style={styles.meetupIntroArt}><View style={styles.artBubblePink} /><View style={styles.artBubbleBlue} /><View style={styles.artCenter}><Icon name="diversity-3" size={22} color="#93738E" /></View></View><View style={{ flex: 1 }}><Text style={styles.meetupIntroTitle}>Better in good company.</Text><Text style={styles.meetupIntroCopy}>Meet in public, bring a friend, leave whenever you like.</Text></View><Icon name="verified-user" size={18} color="#6F9C88" /></Frosted>
     <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#81758B" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
-    <ScrollView style={styles.meetupScroll} contentContainerStyle={styles.meetupList} showsVerticalScrollIndicator={false}>{meetupSeeds.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#99819B" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
+    <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#97909B" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#99819B" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
       <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#947B9B" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#A18AA2" /></Pressable>
-    </ScrollView>
+    </View>
   </>;
 
   const renderYou = () => <>
@@ -457,7 +527,8 @@ export default function KindredApp() {
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAF8F7" />
       <View style={styles.ambient}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View>
-      <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{renderContent()}</ScrollView>}</Animated.View>
+      <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#9D7E9E" colors={["#9D7E9E", "#87AEBF"]} progressBackgroundColor="#FCF9FC" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>
+      {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#9B7E9D" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#FFFFFF" /><Text style={styles.toastText}>{toast}</Text></View> : null}
       <View style={styles.bottomBar}>{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>
@@ -492,6 +563,8 @@ export default function KindredApp() {
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
+      <FriendProfileModal visible={!!profilePerson} profile={profilePerson} onClose={() => setProfilePerson(null)} />
+      <QuickRepliesModal visible={quickRepliesOpen} replies={quickReplies} onClose={() => setQuickRepliesOpen(false)} onSelect={selectQuickReply} onAdd={addCustomQuickReply} onRemove={(id) => setQuickReplies((current) => removeQuickReply(current, id))} />
     </SafeAreaView>
   );
 }
@@ -511,6 +584,9 @@ const styles = StyleSheet.create({
   brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#4E4856" },
   topBarSub: { marginTop: 2, color: "#8F8993", fontSize: 9 },
   backButton: { height: 37, width: 34, justifyContent: "center" },
+  threadHeading: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.95)", padding: 1, backgroundColor: "rgba(255,255,255,0.8)" },
+  threadAvatar: { width: "100%", height: "100%", borderRadius: 12 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   roundAction: { position: "relative", height: 35, width: 35, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.95)", alignItems: "center", justifyContent: "center" },
   notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#DB91B2", borderWidth: 1, borderColor: "#FFFFFF" },
@@ -597,6 +673,7 @@ const styles = StyleSheet.create({
   inviteLink: { color: "#98779A", fontSize: 9, fontWeight: "700" },
   composerRow: { minHeight: 51, flexDirection: "row", alignItems: "center", gap: 7, paddingTop: 5, paddingBottom: 4 },
   composerIcon: { width: 30, alignItems: "center" },
+  quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(244,236,245,0.86)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", alignItems: "center", justifyContent: "center" },
   composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "rgba(255,255,255,0.83)", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)", color: "#554F59", fontSize: 11, outlineStyle: "none" as any },
   sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#E8E4E9" },
   sendButtonActive: { backgroundColor: "#9E7C9E" },
@@ -606,7 +683,7 @@ const styles = StyleSheet.create({
   pageSub: { color: "#89838E", fontSize: 10, lineHeight: 16, marginTop: 5 },
   friendsTools: { gap: 8 },
   interestFilterRow: { gap: 6, paddingVertical: 1 },
-  friendsScroll: { flex: 1, marginTop: 14 },
+  friendsScroll: { marginTop: 14 },
   friendsContent: { paddingBottom: 20 },
   requestPanel: { padding: 12, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.66)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", marginBottom: 17 },
   requestHeading: { color: "#524A57", fontSize: 14, fontWeight: "700", marginTop: 4 },
@@ -680,7 +757,7 @@ const styles = StyleSheet.create({
   locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(255,255,255,0.76)", borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
   locationChipText: { color: "#837A88", fontSize: 7 },
   meetupScroll: { flex: 1, marginTop: 11 },
-  meetupList: { gap: 9, paddingBottom: 20 },
+  meetupList: { gap: 9, paddingBottom: 20, marginTop: 11 },
   meetupCard: { minHeight: 99, padding: 9, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16 },
   meetupPhoto: { width: 60, height: 72, borderRadius: 12, backgroundColor: "#EFE7F0" },
   meetupCopy: { flex: 1, minWidth: 0 },
@@ -737,6 +814,9 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: "#826C89", fontWeight: "700" },
   toast: { position: "absolute", bottom: 72, left: 21, right: 21, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#675D70", flexDirection: "row", alignItems: "center", gap: 7, shadowColor: "#56485E", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
   toastText: { color: "#FFFFFF", fontSize: 9, fontWeight: "500", flex: 1 },
+  refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.67)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", alignItems: "center", justifyContent: "center", shadowColor: "#81778A", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
+  refreshGlassContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  refreshGlassText: { color: "#84768A", fontSize: 9, fontWeight: "600" },
   modalSafe: { flex: 1, backgroundColor: "#FAF8F7" },
   modalKeyboard: { flex: 1 },
   modalHeader: { height: 51, paddingHorizontal: 21, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

@@ -1,25 +1,26 @@
-# Kindred — feature build tracker
+# Kindred — enhancement tracker
 
-## Delivered in this iteration
+## Implemented
 
-| Feature | Status | Notes |
+| Feature | Status | Details |
 |---|---|---|
-| Safety onboarding carousel | Complete | Three swipeable/tappable frosted slides explain friendship-only intent, mutual acceptance, quiet declines, public meetups, location privacy, and report/block expectations. Continues into standalone phone signup. |
-| Meetup invite composer | Complete | Frosted bottom sheet supports recipient selection among accepted friends, an editable plan name, four curated public venues, three time options, a live preview, and intentional sharing into the selected chat. No live device location is read. |
-| Calm non-swipe discovery | Complete | Friends remains a vertical compact list (no swipe-card gestures); shared interests are matched and shown as small frosted tags. |
+| Frosted pull-to-refresh | Complete | Friends discovery and Meetups lists use a screen-level native pull gesture, themed spinner, and frosted loading capsule. Refresh merges/deduplicates the local meetup snapshot; no live server feed is connected. |
+| Chat friend profile sheet | Complete | Tap the direct-chat header avatar to see a frosted profile card with photo, age, broad neighborhood only, verification tier, about text, interests, and a safety reminder. Group headers cannot open a member as the group profile. |
+| Custom quick replies | Complete | Composer shortcut opens a frosted phrase picker. Choose a preset/custom phrase to insert in the editable composer (never auto-sent), add/delete phrases, normalize duplicate/length rules, and persist locally with AsyncStorage. |
 
 ## Verification
 
-- [x] Added unit tests for onboarding slide themes and progression, invite validation/formatting, and shared-interest matching.
-- [x] `pnpm lint` passed.
-- [x] `pnpm check` passed.
-- [x] `pnpm test` passed: 20 tests passed; 1 pre-existing auth test is skipped.
-- [x] Live preview checked: each carousel slide, list-style discovery and shared-interest tags, invite venue/time selection, and sharing the invite to the selected accepted-friend thread.
-- [x] Mobile screenshot review completed at 390 × 844.
+- [x] Unit tests cover meetup refresh merging, direct/group profile resolution, quick-reply defaults, normalization, limits, removal, and saved-data parsing.
+- [x] `pnpm lint` passes (the Expo CLI emits a non-blocking Node module-type notice).
+- [x] `pnpm check` passes.
+- [x] `pnpm test` passes: 28 tests pass; 1 pre-existing auth test remains skipped.
+- [x] Live preview: tapped Maya’s chat avatar and reviewed the profile modal.
+- [x] Live preview: added a custom meetup phrase, selected it, confirmed it populated the editable composer without sending, then removed the test data.
+- [x] Friends and Meetups screens reviewed after moving refresh to the screen-level scroller; 390 × 844 mobile screenshot reviewed.
+- [ ] Validate the native pull gesture/spinner timing on a physical device; browser preview cannot emit the native pull gesture.
 
 ## Production follow-ups
 
-- [ ] Connect phone OTP and account/profile persistence to production auth and server storage; current signup and messaging are prototype-local.
-- [ ] Connect invites to real meetup creation, venue search/geocoding, calendar/notifications, and server-side message delivery; venue/time options are curated demo choices.
-- [ ] Connect real-time presence/typing/read status and keep receipt state authoritative on the server.
-- [ ] Connect identity checks and moderation/report/block workflows to reviewed services.
+- [ ] Connect pull-to-refresh to an authenticated server/API feed and real meetup persistence.
+- [ ] Connect profile details, identity status, report/block actions, and safety controls to server-verified data.
+- [ ] Add optional cross-device quick-reply backup; preferences currently persist on this device only.
