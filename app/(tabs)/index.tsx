@@ -41,6 +41,8 @@ import { addQuickReply, DEFAULT_QUICK_REPLIES, parseQuickReplies, removeQuickRep
 import { createIncomingMeetupInviteNotification, createIncomingMessageNotification, type IncomingNotification } from "@/lib/incoming-notifications";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
+import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
+import { useAppAppearance } from "@/lib/appearance-context";
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile";
@@ -120,7 +122,8 @@ const Icon = ({ name, color = "#675D70", size = 20 }: { name: keyof typeof Mater
 );
 
 function Frosted({ children, style }: { children: React.ReactNode; style?: object }) {
-  return <View style={[styles.frosted, style]}>{children}</View>;
+  const { glassOpacity } = useAppAppearance();
+  return <View style={[styles.frosted, style, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.79)", glassOpacity) }]}>{children}</View>;
 }
 
 function ActionButton({ children, onPress, style, secondary = false }: { children: React.ReactNode; onPress: () => void; style?: object; secondary?: boolean }) {
@@ -129,6 +132,7 @@ function ActionButton({ children, onPress, style, secondary = false }: { childre
 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
+  const { glassOpacity, wallpaperVisible, setGlassOpacity, setWallpaperVisible } = useAppAppearance();
   const [tab, setTab] = useState<Tab>("Chats");
   const previousTab = useRef<Tab>("Chats");
   const contentOpacity = useRef(new Animated.Value(1)).current;
@@ -541,7 +545,7 @@ export default function TrufrenzApp() {
           <View style={styles.sharedInterest}><Icon name="auto-awesome" size={15} color="#A77C9A" /><Text style={styles.sharedInterestText}>You both like slow weekend mornings</Text></View>
           {conversationMessages.map((message) => {
             const receipt = message.receipt ?? (message.from === "me" ? "sent" : null);
-            return <View key={message.id} style={[styles.messageRow, message.from === "me" && styles.myMessageRow]}><View style={[styles.messageBubble, message.from === "me" ? styles.myBubble : styles.theirBubble]}><Text style={[styles.messageText, message.from === "me" && styles.myMessageText]}>{message.text}</Text><View style={styles.messageMeta}><Text style={[styles.messageTime, message.from === "me" && styles.myMessageTime]}>{message.time}</Text>{receipt ? <View accessibilityLabel={receiptLabel(receipt)} style={styles.receiptWrap}><Icon name={receiptIcon(receipt)} size={12} color={receipt === "read" ? "#62A4A0" : "#927C96"} /><Text style={[styles.receiptText, receipt === "read" && styles.receiptReadText]}>{receiptLabel(receipt)}</Text></View> : null}</View></View></View>;
+            return <View key={message.id} style={[styles.messageRow, message.from === "me" && styles.myMessageRow]}><View style={[styles.messageBubble, message.from === "me" ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(message.from === "me" ? "rgba(234,223,235,0.94)" : "rgba(255,255,255,0.91)", glassOpacity) }]}><Text style={[styles.messageText, message.from === "me" && styles.myMessageText]}>{message.text}</Text><View style={styles.messageMeta}><Text style={[styles.messageTime, message.from === "me" && styles.myMessageTime]}>{message.time}</Text>{receipt ? <View accessibilityLabel={receiptLabel(receipt)} style={styles.receiptWrap}><Icon name={receiptIcon(receipt)} size={12} color={receipt === "read" ? "#62A4A0" : "#927C96"} /><Text style={[styles.receiptText, receipt === "read" && styles.receiptReadText]}>{receiptLabel(receipt)}</Text></View> : null}</View></View></View>;
           })}
           {typingChat === selectedChat ? <View style={styles.typingRow}><View style={styles.typingBubble}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
         </ScrollView>
@@ -563,7 +567,7 @@ export default function TrufrenzApp() {
       </ScrollView></View> : null}
       <View style={styles.listHeading}><Text style={styles.sectionEyebrow}>{chatFilter === "Groups" ? "YOUR PRIVATE CIRCLES" : chatFilter === "Unread" ? "UNREAD MESSAGES" : "RECENT CHATS"}</Text><Pressable onPress={() => feedback("Conversations stay private to your accepted friends.")}><Icon name="more-horiz" size={20} color="#9B94A0" /></Pressable></View>
       <ScrollView style={styles.chatListScroll} contentContainerStyle={styles.chatList} showsVerticalScrollIndicator={false}>
-        {visibleChats.map((chat) => <Pressable key={chat.id} onPress={() => startThread(chat.id)} style={({ pressed }) => [styles.chatRow, pressed && styles.rowPressed]}>
+        {visibleChats.map((chat) => <Pressable key={chat.id} onPress={() => startThread(chat.id)} style={({ pressed }) => [styles.chatRow, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.66)", glassOpacity) }, pressed && styles.rowPressed]}>
           <View style={styles.chatAvatarWrap}><Image source={chat.image} style={styles.chatAvatar} />{chat.kind === "group" ? <View style={styles.groupMini}><Icon name="groups" size={10} color="#FFFFFF" /></View> : chat.online ? <View style={styles.onlineDot} /> : null}</View>
           <View style={styles.chatInfo}><View style={styles.chatTitleRow}><View style={styles.chatNameCluster}><Text style={styles.chatName}>{chat.name}</Text>{chat.verified ? <Icon name="verified" size={13} color="#61A088" /> : null}</View><Text style={[styles.chatTime, chat.unread > 0 && styles.chatTimeUnread]}>{chat.time}</Text></View><View style={styles.chatLastRow}><Text style={styles.chatPreview} numberOfLines={1}>{chat.lastMessage}</Text>{chat.unread > 0 ? <View style={styles.unreadBadge}><Text style={styles.unreadCount}>{chat.unread}</Text></View> : null}</View></View>
         </Pressable>)}
@@ -617,6 +621,19 @@ export default function TrufrenzApp() {
       <View style={styles.settingDivider} />
       <Pressable onPress={() => feedback("Premium preview · live map and voice/video calls are planned paid features.")} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#A27898" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>A little more Trufrenz</Text><Text style={styles.settingSub}>Live map and calls · premium preview</Text></View><View style={styles.premiumLock}><Icon name="lock" size={12} color="#9D7799" /></View></Pressable>
     </Frosted>
+    <Text style={styles.settingsLabel}>APPEARANCE</Text>
+    <Frosted style={styles.appearancePanel}>
+      <View style={styles.appearanceHeadingRow}><View style={styles.settingIconPink}><Icon name="blur-on" size={17} color="#987998" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Frosted glass opacity</Text><Text style={styles.settingSub}>Choose how much of the wallpaper shows through.</Text></View><Text style={styles.opacityReadout}>{glassOpacity}%</Text></View>
+      <View accessibilityLabel="Frosted glass opacity presets" style={styles.opacityOptions}>
+        {GLASS_OPACITY_STEPS.map((value) => {
+          const selected = value === glassOpacity;
+          return <Pressable key={value} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={`Set frosted glass opacity to ${value} percent`} onPress={() => { setGlassOpacity(value); tap(); feedback(`Frosted glass opacity set to ${value}%.`); }} style={({ pressed }) => [styles.opacityOption, selected && styles.opacityOptionActive, pressed && styles.pressed]}><Text style={[styles.opacityOptionText, selected && styles.opacityOptionTextActive]}>{value}%</Text></Pressable>;
+        })}
+      </View>
+      <View style={styles.opacityScaleCaption}><Text style={styles.opacityScaleText}>More wallpaper</Text><Text style={styles.opacityScaleText}>More opaque</Text></View>
+      <View style={styles.settingDivider} />
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the soft photo backdrop across the app.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: "#DDD9E1", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
+    </Frosted>
     <Text style={styles.footerNote}>Your space. Your pace. Always friends first.</Text>
   </>;
 
@@ -630,7 +647,7 @@ export default function TrufrenzApp() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAF8F7" />
-      <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={styles.backgroundImage} resizeMode="cover" /></View>
+      <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 0.27 : 0 }]} resizeMode="cover" /></View>
       <View style={[styles.backgroundWash, styles.noninteractive]} />
       <View style={[styles.ambient, styles.noninteractive]}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View>
       <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />
@@ -638,11 +655,11 @@ export default function TrufrenzApp() {
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#987998" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#9B7E9D" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#FFFFFF" /><Text style={styles.toastText}>{toast}</Text></View> : null}
-      <View style={styles.bottomBar}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>
+      <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251,249,248,0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#8E6F91" : "#9A969F"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
-          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>
-            <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2 }]}>
+          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.92)", glassOpacity) }]}>
+            <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.87)", glassOpacity) }]}>
               <ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}>
               <View style={styles.actionMenuHandle} />
               <View style={styles.navigationMenuHeader}><View><Text style={styles.actionMenuEyebrow}>MOVE AROUND</Text><Text style={styles.navigationMenuTitle}>Where would you like to go?</Text></View><Pressable onPress={() => setNavigationMenuOpen(false)} accessibilityLabel="Close navigation options" style={styles.roundAction}><Icon name="close" size={18} color="#746A7D" /></Pressable></View>
@@ -680,7 +697,7 @@ export default function TrufrenzApp() {
         <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.verificationModalIcon}><Icon name="verified-user" size={19} color="#65947E" /></View><Pressable onPress={() => setVerificationPrompt(false)} style={styles.roundAction}><Icon name="close" size={18} color="#746A7D" /></Pressable></View><Text style={styles.groupModalTitle}>A little extra trust, first.</Text><Text style={styles.groupModalCopy}>Your phone is verified. To send friend requests, add a live-selfie match or ID check for the stronger badge. You can keep browsing until then.</Text><View style={styles.verificationStep}><Icon name="phone-iphone" size={16} color="#7C94A5" /><Text style={styles.verificationStepText}>Phone verification · complete</Text><Icon name="check-circle" size={15} color="#72A58B" /></View><View style={styles.verificationStep}><Icon name="face" size={16} color="#987C9B" /><Text style={styles.verificationStepText}>Selfie match or ID check · optional</Text><Icon name="lock-outline" size={14} color="#A8A1AA" /></View><ActionButton onPress={() => { setVerificationPrompt(false); setSelfieModalVisible(true); }} style={styles.groupCreateButton}><Text style={styles.actionText}>Start selfie check</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setVerificationPrompt(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Maybe later</Text></Pressable></Frosted></View>
       </Modal>
       <Modal visible={actionMenuOpen} transparent animationType="fade" onRequestClose={() => setActionMenuOpen(false)}>
-        <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2 }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#9A7796" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></BlurView></Pressable>
+        <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.92)", glassOpacity) }]}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.88)", glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#9A7796" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#A9A1AB" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></BlurView></Pressable>
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
@@ -925,6 +942,16 @@ const styles = StyleSheet.create({
   phoneRequiredText: { color: "#8493A0", fontSize: 7 },
   settingsLabel: { color: "#9A929D", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 19, marginBottom: 8 },
   settingsPanel: { paddingHorizontal: 11, borderRadius: 17 },
+  appearancePanel: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 17 },
+  appearanceHeadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 9 },
+  opacityReadout: { minWidth: 39, textAlign: "right", color: "#8A708F", fontSize: 10, fontWeight: "700" },
+  opacityOptions: { flexDirection: "row", gap: 4, marginTop: 7 },
+  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: "rgba(255,255,255,0.52)", borderWidth: 1, borderColor: "rgba(255,255,255,0.92)" },
+  opacityOptionActive: { backgroundColor: "rgba(226,210,232,0.95)", borderColor: "rgba(190,164,197,0.86)", shadowColor: "#8E7794", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  opacityOptionText: { color: "#938997", fontSize: 8, fontWeight: "600" },
+  opacityOptionTextActive: { color: "#755C7D", fontWeight: "700" },
+  opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
+  opacityScaleText: { color: "#9C949E", fontSize: 7 },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
   settingIconPink: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#F4EAF2", alignItems: "center", justifyContent: "center" },
   settingIconBlue: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#E9F1F5", alignItems: "center", justifyContent: "center" },
@@ -1010,8 +1037,8 @@ const styles = StyleSheet.create({
   selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.92)" },
   selfieEntryIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#F0E7F1", alignItems: "center", justifyContent: "center" },
   navigationMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(54,47,61,0.24)" },
-  navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(249,247,250,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#514659", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
-  navigationMenuCard: { flexShrink: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(250,248,251,0.87)" },
+  navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(249,247,250,0)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#514659", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
+  navigationMenuCard: { flexShrink: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(250,248,251,0)" },
   navigationMenuScroll: { flexGrow: 0, flexShrink: 1 },
   navigationMenuContent: { flexGrow: 1 },
   navigationMenuHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 },
@@ -1025,8 +1052,8 @@ const styles = StyleSheet.create({
   navigationMenuItemTextActive: { color: "#765F7C" },
   navigationMenuHint: { color: "#8E8793", fontSize: 8, lineHeight: 13, textAlign: "center", marginTop: 10, paddingHorizontal: 7 },
   actionMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(64,55,70,0.2)" },
-  actionMenuBlur: { width: "100%", borderRadius: 25, overflow: "hidden", backgroundColor: "rgba(250,248,251,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#514659", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 22 },
-  actionMenuCard: { flexShrink: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(250,248,251,0.88)" },
+  actionMenuBlur: { width: "100%", borderRadius: 25, overflow: "hidden", backgroundColor: "rgba(250,248,251,0)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#514659", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 22 },
+  actionMenuCard: { flexShrink: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(250,248,251,0)" },
   actionMenuHandle: { width: 32, height: 3, borderRadius: 2, backgroundColor: "rgba(133,120,139,0.36)", alignSelf: "center", marginBottom: 13 },
   actionMenuEyebrow: { color: "#A0879F", fontSize: 7, fontWeight: "700", letterSpacing: 1.1 },
   actionMenuTitle: { color: "#504A56", fontSize: 18, fontWeight: "700", marginTop: 4 },

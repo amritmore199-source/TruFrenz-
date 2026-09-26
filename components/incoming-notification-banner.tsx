@@ -4,6 +4,8 @@ import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { IncomingNotification } from "@/lib/incoming-notifications";
 import { shouldDismissIncomingNotificationSwipe } from "@/lib/incoming-notifications";
+import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { useAppAppearance } from "@/lib/appearance-context";
 
 export function IncomingNotificationBanner({
   notification,
@@ -14,6 +16,7 @@ export function IncomingNotificationBanner({
   onOpen: (notification: IncomingNotification) => void;
   onDismiss: () => void;
 }) {
+  const { glassOpacity } = useAppAppearance();
   const [displayed, setDisplayed] = useState<IncomingNotification | null>(notification);
   const { width: screenWidth } = useWindowDimensions();
   const displayedRef = useRef<IncomingNotification | null>(notification);
@@ -116,7 +119,7 @@ export function IncomingNotificationBanner({
       accessibilityHint="Swipe left or right to dismiss, or use the dismiss control."
       style={[styles.position, { opacity, pointerEvents: notification ? "auto" : "none", transform: [{ translateX }, { translateY }, { scale }] }]}
     >
-      <View style={styles.surface}>
+      <View style={[styles.surface, { backgroundColor: glassSurfaceColor("rgba(252,249,252,0.92)", glassOpacity) }]}>
         <BlurView intensity={44} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>

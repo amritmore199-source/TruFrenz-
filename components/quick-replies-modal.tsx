@@ -4,6 +4,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import type { QuickReply } from "@/lib/quick-replies";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
+import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { useAppAppearance } from "@/lib/appearance-context";
 
 export function QuickRepliesModal({
   visible,
@@ -22,6 +24,7 @@ export function QuickRepliesModal({
 }) {
   const [draft, setDraft] = useState("");
   const modalLayout = useResponsiveModalLayout();
+  const { glassOpacity } = useAppAppearance();
 
   const add = () => {
     const text = draft.trim();
@@ -35,7 +38,7 @@ export function QuickRepliesModal({
       <View style={[styles.shade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
         <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close quick replies" onPress={onClose} />
-        <Pressable style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]} onPress={(event) => event.stopPropagation()}>
+        <Pressable style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252,249,252,0.92)", glassOpacity) }]} onPress={(event) => event.stopPropagation()}>
           <BlurView intensity={39} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
           <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.handle} />

@@ -3,6 +3,8 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, type Image
 import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
+import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { useAppAppearance } from "@/lib/appearance-context";
 
 export type FriendProfileDetails = {
   id: string;
@@ -17,6 +19,7 @@ export type FriendProfileDetails = {
 
 export function FriendProfileModal({ visible, profile, onClose }: { visible: boolean; profile: FriendProfileDetails | null; onClose: () => void }) {
   const modalLayout = useResponsiveModalLayout();
+  const { glassOpacity } = useAppAppearance();
   if (!profile) return null;
   const verified = profile.verification === "ID + selfie verified";
   return (
@@ -24,7 +27,7 @@ export function FriendProfileModal({ visible, profile, onClose }: { visible: boo
       <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
         <BlurView intensity={36} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close friend profile" onPress={onClose} />
-        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>
+        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252,249,252,0.92)", glassOpacity) }]}>
           <BlurView intensity={40} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
           <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>

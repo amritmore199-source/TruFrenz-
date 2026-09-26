@@ -3,6 +3,8 @@ import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
 import { BlurView } from "expo-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { buildMeetupInviteDraft, publicMeetupVenues, type MeetupInviteDraft, type PublicMeetupVenue } from "@/lib/meetup-invite";
+import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { useAppAppearance } from "@/lib/appearance-context";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 
 const timeOptions = ["Tomorrow · 10:30 AM", "Saturday · 2:00 PM", "Sunday · 11:00 AM"];
@@ -10,6 +12,7 @@ type MeetupContact = { id: string; name: string };
 
 export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, initialContactId }: { visible: boolean; onClose: () => void; onShare: (draft: MeetupInviteDraft, contactId: string) => void; contacts: readonly MeetupContact[]; initialContactId?: string | null }) {
   const modalLayout = useResponsiveModalLayout();
+  const { glassOpacity } = useAppAppearance();
   const [title, setTitle] = useState("Coffee and a slow start");
   const [venueId, setVenueId] = useState(publicMeetupVenues[0].id);
   const [when, setWhen] = useState(timeOptions[0]);
@@ -72,7 +75,7 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
         <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFillObject} />
         <Pressable accessibilityLabel="Close meetup invite" style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.keyboard, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>
-            <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight }]}>
+            <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(250,248,250,0.93)", glassOpacity) }]}>
               <View style={styles.header}>
                 <View style={styles.handle} />
                 <View style={styles.headerRow}><View><Text style={styles.headerEyebrow}>A SMALL, FRIENDLY PLAN</Text><Text style={styles.headerTitle}>Create Meetup Invite</Text></View><Pressable accessibilityLabel="Close meetup invite" onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={19} color="#786E7F" /></Pressable></View>
