@@ -30,6 +30,13 @@ export type MobileBackState = {
   activeTab: "Chats" | "Friends" | "Meetups" | "You";
 };
 
+export const NAVIGATION_POPUP_POSITION = {
+  justifyContent: "center",
+  alignItems: "center",
+  paddingHorizontal: 20,
+  paddingVertical: 28,
+} as const;
+
 export function resolveMobileBackAction(state: MobileBackState): MobileBackAction {
   if (state.navigationMenuOpen) return "close-navigation-menu";
   if (state.actionMenuOpen) return "close-action-menu";

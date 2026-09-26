@@ -39,7 +39,7 @@ import { mergeMeetupRefresh } from "@/lib/meetup-feed";
 import { resolveChatProfile } from "@/lib/chat-profile";
 import { addQuickReply, DEFAULT_QUICK_REPLIES, parseQuickReplies, removeQuickReply, type QuickReply } from "@/lib/quick-replies";
 import { createIncomingMeetupInviteNotification, createIncomingMessageNotification, type IncomingNotification } from "@/lib/incoming-notifications";
-import { resolveMobileBackAction } from "@/lib/mobile-navigation";
+import { NAVIGATION_POPUP_POSITION, resolveMobileBackAction } from "@/lib/mobile-navigation";
 
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile";
@@ -1004,9 +1004,9 @@ const styles = StyleSheet.create({
   typingText: { color: "#958997", fontSize: 8 },
   selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.92)" },
   selfieEntryIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#F0E7F1", alignItems: "center", justifyContent: "center" },
-  navigationMenuShade: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(54,47,61,0.18)" },
-  navigationMenuBlur: { width: "100%", borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: "hidden", backgroundColor: "rgba(249,247,250,0.67)", borderWidth: 1, borderBottomWidth: 0, borderColor: "rgba(255,255,255,0.95)" },
-  navigationMenuCard: { paddingHorizontal: 18, paddingTop: 9, paddingBottom: 20, backgroundColor: "rgba(250,248,251,0.52)" },
+  navigationMenuShade: { flex: 1, ...NAVIGATION_POPUP_POSITION, backgroundColor: "rgba(54,47,61,0.24)" },
+  navigationMenuBlur: { width: "100%", maxWidth: 360, maxHeight: "78%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(249,247,250,0.86)", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)", shadowColor: "#514659", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
+  navigationMenuCard: { paddingHorizontal: 18, paddingTop: 13, paddingBottom: 20, backgroundColor: "rgba(250,248,251,0.82)" },
   navigationMenuHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 13 },
   navigationMenuTitle: { color: "#504A56", fontSize: 17, fontWeight: "700", marginTop: 4 },
   navigationMenuGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveMobileBackAction, type MobileBackState } from "../lib/mobile-navigation";
+import { NAVIGATION_POPUP_POSITION, resolveMobileBackAction, type MobileBackState } from "../lib/mobile-navigation";
 
 const baseState: MobileBackState = {
   navigationMenuOpen: false,
@@ -18,6 +18,15 @@ const baseState: MobileBackState = {
 };
 
 describe("mobile back navigation", () => {
+  it("centers the navigation popup with comfortable screen-edge spacing", () => {
+    expect(NAVIGATION_POPUP_POSITION).toEqual({
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 28,
+    });
+  });
+
   it("closes the topmost navigation overlay first", () => {
     expect(resolveMobileBackAction({
       ...baseState,
