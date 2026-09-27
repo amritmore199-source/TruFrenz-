@@ -94,6 +94,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fill}>
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
+        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
           <BlurView intensity={56} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close edit profile" onPress={onClose} />
           <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.94)", glassOpacity) }]}>

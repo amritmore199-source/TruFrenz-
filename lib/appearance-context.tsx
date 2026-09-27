@@ -6,11 +6,14 @@ import {
   normalizeAppearancePreferences,
   parseAppearancePreferences,
   type AppearancePreferences,
+  type GlassTint,
 } from "@/lib/appearance-preferences";
+import { setActiveGlassTint } from "@/lib/glass";
 
 type AppAppearanceContextValue = AppearancePreferences & {
   appearanceLoaded: boolean;
   setGlassOpacity: (value: number) => void;
+  setGlassTint: (value: GlassTint) => void;
   setWallpaperVisible: (value: boolean) => void;
 };
 
@@ -19,11 +22,15 @@ const AppAppearanceContext = createContext<AppAppearanceContextValue>({
   ...DEFAULT_APPEARANCE_PREFERENCES,
   appearanceLoaded: false,
   setGlassOpacity: noop,
+  setGlassTint: noop,
   setWallpaperVisible: noop,
 });
 
 export function AppAppearanceProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState(DEFAULT_APPEARANCE_PREFERENCES);
+  // Sync the token module before any child renders, so surfaces that resolve
+  // their own glass colour never paint one frame with the previous tint.
+  setActiveGlassTint(preferences.glassTint);
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
   const userChangedPreferences = useRef(false);
 
@@ -49,6 +56,10 @@ export function AppAppearanceProvider({ children }: { children: ReactNode }) {
     userChangedPreferences.current = true;
     setPreferences((current) => normalizeAppearancePreferences({ ...current, glassOpacity: value }));
   }, []);
+  const setGlassTint = useCallback((value: GlassTint) => {
+    userChangedPreferences.current = true;
+    setPreferences((current) => normalizeAppearancePreferences({ ...current, glassTint: value }));
+  }, []);
   const setWallpaperVisible = useCallback((value: boolean) => {
     userChangedPreferences.current = true;
     setPreferences((current) => ({ ...current, wallpaperVisible: value }));
@@ -57,8 +68,9 @@ export function AppAppearanceProvider({ children }: { children: ReactNode }) {
     ...preferences,
     appearanceLoaded,
     setGlassOpacity,
+    setGlassTint,
     setWallpaperVisible,
-  }), [preferences, appearanceLoaded, setGlassOpacity, setWallpaperVisible]);
+  }), [preferences, appearanceLoaded, setGlassOpacity, setGlassTint, setWallpaperVisible]);
 
   return <AppAppearanceContext.Provider value={value}>{children}</AppAppearanceContext.Provider>;
 }

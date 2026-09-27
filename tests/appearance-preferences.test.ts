@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_APPEARANCE_PREFERENCES,
   GLASS_OPACITY_STEPS,
+  GLASS_TINT_OPTIONS,
   MAX_GLASS_ALPHA,
   glassAlpha,
   glassBlur,
@@ -11,12 +12,14 @@ import {
   glassVeil,
   normalizeAppearancePreferences,
   normalizeGlassOpacity,
+  normalizeGlassTint,
   parseAppearancePreferences,
 } from "../lib/appearance-preferences";
+import { activeGlassTint, glassSwatch, glassSwatchEdge, setActiveGlassTint } from "../lib/glass";
 
 describe("appearance preferences", () => {
   it("provides a readable default appearance and opacity presets", () => {
-    expect(DEFAULT_APPEARANCE_PREFERENCES).toEqual({ glassOpacity: 80, wallpaperVisible: true });
+    expect(DEFAULT_APPEARANCE_PREFERENCES).toEqual({ glassOpacity: 80, glassTint: "sky", wallpaperVisible: true });
     expect(GLASS_OPACITY_STEPS).toContain(DEFAULT_APPEARANCE_PREFERENCES.glassOpacity);
   });
 
@@ -28,10 +31,10 @@ describe("appearance preferences", () => {
   });
 
   it("loads valid settings and safely falls back when saved data is malformed", () => {
-    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 90, wallpaperVisible: false }))).toEqual({ glassOpacity: 90, wallpaperVisible: false });
+    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 90, wallpaperVisible: false }))).toEqual({ glassOpacity: 90, glassTint: "sky", wallpaperVisible: false });
     expect(parseAppearancePreferences("not json")).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
     expect(parseAppearancePreferences(null)).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
-    expect(normalizeAppearancePreferences({ glassOpacity: 75, wallpaperVisible: "false" })).toEqual({ glassOpacity: 75, wallpaperVisible: true });
+    expect(normalizeAppearancePreferences({ glassOpacity: 75, wallpaperVisible: "false" })).toEqual({ glassOpacity: 75, glassTint: "sky", wallpaperVisible: true });
   });
 
   it("applies opacity while preserving each glass surface's tint", () => {
@@ -88,5 +91,100 @@ describe("appearance preferences", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
     expect(glassSurfaceColor("#FFFFFF", 70)).toMatch(/^rgba\(241, 246, 252, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
+  });
+});
+
+describe("glass colour choice", () => {
+  afterEach(() => setActiveGlassTint("sky"));
+
+  it("offers exactly the two supported casts and defaults to the cool one", () => {
+    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon"]);
+    expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("sky");
+  });
+
+  it("falls back to sky for anything it does not recognise", () => {
+    // A stored value from an older build, or a typo, must not produce a
+    // half-tinted surface.
+    expect(normalizeGlassTint("lemon")).toBe("lemon");
+    expect(normalizeGlassTint("Sky")).toBe("sky");
+    expect(normalizeGlassTint(undefined)).toBe("sky");
+    expect(normalizeGlassTint(42)).toBe("sky");
+  });
+
+  it("keeps the existing choice when older saved settings omit it", () => {
+    // Settings written before this option existed must still load, and they must
+    // not lose their opacity.
+    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 60, wallpaperVisible: false })))
+      .toEqual({ glassOpacity: 60, glassTint: "sky", wallpaperVisible: false });
+  });
+
+  it("colours a neutral surface according to the chosen cast", () => {
+    const sky = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "sky");
+    const lemon = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "lemon");
+    expect(sky).not.toBe(lemon);
+    // Sky is cooler than lemon: blue must lead in one and lose in the other.
+    const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
+    const [sr, , sb] = parse(sky);
+    const [lr, , lb] = parse(lemon);
+    expect(sb - sr).toBeGreaterThan(0);
+    expect(lb - lr).toBeLessThan(0);
+  });
+
+  it("still keeps a saturated accent in its own hue regardless of the cast", () => {
+    // The member's own bubble is a warm accent; the glass colour must not
+    // repaint it, or the two bubble sides would stop being distinguishable.
+    for (const tint of GLASS_TINT_OPTIONS) {
+      expect(glassSurfaceColor("rgba(233, 227, 193, 0.94)", 80, tint)).toContain("233, 227, 193");
+    }
+  });
+
+  it("applies the chosen cast to surfaces that do not name one", () => {
+    // Most sheets resolve their own colour without passing a tint. They must
+    // still follow the member's choice.
+    setActiveGlassTint("lemon");
+    expect(activeGlassTint()).toBe("lemon");
+    const implicit = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80);
+    expect(implicit).toBe(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "lemon"));
+
+    setActiveGlassTint("sky");
+    expect(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80))
+      .toBe(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "sky"));
+  });
+
+  it("treats an unrecognised active cast as the cool default", () => {
+    setActiveGlassTint("chartreuse" as never);
+    expect(activeGlassTint()).toBe("sky");
+  });
+
+  it("shows a legible colour chip for each cast", () => {
+    // The tint itself is far too thin to read as a colour over a pale panel, so
+    // the picker needs a solid chip. It must be opaque and clearly the hue.
+    const sky = glassSwatch("sky");
+    const lemon = glassSwatch("lemon");
+    expect(sky).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+    expect(lemon).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+    expect(sky).not.toBe(lemon);
+
+    const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
+    const [sr, sg, sb] = parse(sky);
+    const [lr, lg, lb] = parse(lemon);
+    // Sky leads with blue; lemon leads with red and is barely blue at all.
+    expect(sb).toBeGreaterThan(sr);
+    expect(sb).toBeGreaterThan(sg);
+    expect(lr).toBeGreaterThan(lb);
+    expect(lg).toBeGreaterThan(lb);
+  });
+
+  it("outlines a swatch so a pale chip does not vanish into its own selection", () => {
+    // The selected chip is filled with the tint it represents, so the chip needs
+    // a darker version of the same hue to stay visible inside it.
+    const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
+    for (const tint of GLASS_TINT_OPTIONS) {
+      const chip = parse(glassSwatch(tint));
+      const edge = parse(glassSwatchEdge(tint));
+      expect(glassSwatchEdge(tint)).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
+      // Every channel must be darker than the chip, so the rim reads on any hue.
+      edge.forEach((channel, index) => expect(channel).toBeLessThan(chip[index]));
+    }
   });
 });

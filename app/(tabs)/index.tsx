@@ -148,8 +148,8 @@ import {
 } from "@/lib/account-client";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
-import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
-import { GLASS_SHADOW, glassBlur, glassEdge, glassTint, glassVeil } from "@/lib/glass";
+import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor } from "@/lib/appearance-preferences";
+import { GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, type GlassSurface, type GlassTint } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
@@ -345,8 +345,20 @@ const Icon = ({ name, color = "#65614c", size = 20 }: { name: keyof typeof Mater
   <MaterialIcons name={name} color={color} size={size} />
 );
 
+/**
+ * Projection helpers for nested surfaces.
+ *
+ * A sheet or modal is its own component, so it cannot read the member's glass
+ * tint from the screen that renders it. Rather than have every component
+ * subscribe to the appearance context, the owning screen resolves the recipe
+ * once and hands the value down.
+ */
+function projectGlassTint(tint: GlassTint) {
+  return (surface: GlassSurface) => glassTint(surface, 80, tint);
+}
+
 function Frosted({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
-  const { glassOpacity } = useAppAppearance();
+  const { glassOpacity, glassTint: glassTintChoice } = useAppAppearance();
   /*
    * Four layers make the glass, in order:
    *
@@ -366,8 +378,8 @@ function Frosted({ children, style }: { children: React.ReactNode; style?: Style
         styles.frosted,
         style,
         {
-          backgroundColor: glassTint("card", glassOpacity),
-          borderColor: glassEdge("card"),
+          backgroundColor: glassTint("card", glassOpacity, glassTintChoice),
+          borderColor: glassEdge("card", glassTintChoice),
           shadowColor: GLASS_SHADOW,
         },
       ]}
@@ -380,7 +392,7 @@ function Frosted({ children, style }: { children: React.ReactNode; style?: Style
       />
       <View
         pointerEvents="none"
-        style={[styles.glassSheen, { borderRadius: radius, backgroundColor: glassVeil("card", glassOpacity) }]}
+        style={[styles.glassSheen, { borderRadius: radius, backgroundColor: glassVeil("card", glassOpacity, glassTintChoice) }]}
       />
       {children}
     </View>
@@ -395,7 +407,7 @@ function ActionButton({ children, onPress, style, secondary = false, disabled = 
 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
-  const { glassOpacity, wallpaperVisible, setGlassOpacity, setWallpaperVisible } = useAppAppearance();
+  const { glassOpacity, glassTint: glassTintChoice, wallpaperVisible, setGlassOpacity, setGlassTint, setWallpaperVisible } = useAppAppearance();
   // The root SafeAreaView already insets the bottom edge, so the keyboard lift
   // must discount that inset to avoid over-lifting the composer.
   const insets = useSafeAreaInsets();
@@ -1975,7 +1987,7 @@ export default function TrufrenzApp() {
                       accessibilityLabel={`${mine ? "You" : currentThread.name.split(" ")[0]} said ${message.text}. Long press to react.`}
                       onLongPress={() => setReactionTarget(message.id)}
                       delayLongPress={280}
-                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(mine ? "rgba(233, 227, 193, 0.94)" : "rgba(255, 255, 255, 0.91)", glassOpacity) }]}
+                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(mine ? "rgba(233, 227, 193, 0.94)" : "rgba(255, 255, 255, 0.91)", glassOpacity, glassTintChoice, "row") }]}
                     >
                       {message.kind === "voice" ? (
                         <View style={styles.voiceRow}>
@@ -2025,7 +2037,7 @@ export default function TrufrenzApp() {
               </View>
             );
           })}
-          {typingChat === selectedChat ? <View style={styles.typingRow}><View style={styles.typingBubble}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
+          {typingChat === selectedChat ? <View style={styles.typingRow}><View style={[styles.typingBubble, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.86)", glassOpacity, glassTintChoice, "chip") }]}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
         </ScrollView>
         <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#83721f" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={styles.inviteLink}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={styles.inviteLink}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={styles.inviteLink}>Poll</Text></Pressable> : null}</View>
         {activeRowState.readOnly ? <View style={styles.readOnlyBar}><Icon name="lock-outline" size={14} color="#83721f" /><Text style={styles.readOnlyBarText}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
@@ -2248,6 +2260,22 @@ export default function TrufrenzApp() {
       </View>
       <View style={styles.opacityScaleCaption}><Text style={styles.opacityScaleText}>More wallpaper</Text><Text style={styles.opacityScaleText}>More opaque</Text></View>
       <View style={styles.settingDivider} />
+      {/*
+        The glass cast. Sky is the cool blue-white of the reference sheet; lemon
+        keeps the app's warm accent family. Each chip shows the colour it sets,
+        so the choice reads at a glance rather than needing a preview.
+      */}
+      <View style={styles.tintRow}>
+        <View style={styles.settingContent}><Text style={styles.settingTitle}>Glass colour</Text><Text style={styles.settingSub}>The cast your frosted surfaces take from the wallpaper.</Text></View>
+        <View accessibilityLabel="Frosted glass colour" style={styles.tintOptions}>
+          {GLASS_TINT_OPTIONS.map((option) => {
+            const selected = option === glassTintChoice;
+            const swatch = glassSwatch(option);
+            return <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={`Set frosted glass colour to ${option}`} onPress={() => { setGlassTint(option); tap(); feedback(`Glass colour set to ${option}.`); }} style={({ pressed }) => [styles.tintOption, selected && styles.tintOptionActive, pressed && styles.pressed]}><View style={[styles.tintSwatch, { backgroundColor: swatch, borderColor: glassSwatchEdge(option) }]} /><Text style={[styles.tintOptionText, selected && styles.tintOptionTextActive]}>{option === "sky" ? "Sky" : "Lemon"}</Text></Pressable>;
+          })}
+        </View>
+      </View>
+      <View style={styles.settingDivider} />
       <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the soft photo backdrop across the app.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: "#dddace", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
     <Text style={styles.settingsLabel}>ACCOUNT</Text>
@@ -2382,7 +2410,7 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       )}
-      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassTint("tab", glassOpacity), borderTopColor: glassEdge("tab") }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
+      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassTint("tab", glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
@@ -2811,6 +2839,13 @@ const styles = StyleSheet.create({
   opacityOptionActive: { backgroundColor: "rgba(232, 216, 140, 0.95)", borderColor: "rgba(233, 209, 119, 0.86)", shadowColor: "#83721f", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   opacityOptionText: { color: "#8f8c85", fontSize: 8, fontWeight: "600" },
   opacityOptionTextActive: { color: "#6e6538", fontWeight: "700" },
+  tintRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, paddingVertical: 4 },
+  tintOptions: { flexDirection: "row", gap: 7 },
+  tintOption: { alignItems: "center", gap: 4, paddingVertical: 5, paddingHorizontal: 7, borderRadius: 11, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.2)" },
+  tintOptionActive: { borderColor: "#83721f", backgroundColor: "rgba(241, 222, 85, 0.28)" },
+  tintSwatch: { width: 24, height: 24, borderRadius: 9, borderWidth: 1.5 },
+  tintOptionText: { fontSize: 9.5, fontWeight: "600", color: "#7c7863" },
+  tintOptionTextActive: { color: "#4A4210" },
   opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
   opacityScaleText: { color: "#989791", fontSize: 7 },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },

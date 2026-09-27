@@ -18,19 +18,32 @@ export {
   type GlassSurface,
   type GlassTint,
 } from "./glass";
+import type { GlassTint } from "./glass";
 
 export const DEFAULT_GLASS_OPACITY = 80;
 export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
 
+/** The two glass casts a member can choose between. */
+export const GLASS_TINT_OPTIONS = ["sky", "lemon"] as const;
+
+export const DEFAULT_GLASS_TINT: GlassTint = "sky";
+
 export type AppearancePreferences = {
   glassOpacity: number;
+  glassTint: GlassTint;
   wallpaperVisible: boolean;
 };
 
 export const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
   glassOpacity: DEFAULT_GLASS_OPACITY,
+  glassTint: DEFAULT_GLASS_TINT,
   wallpaperVisible: true,
 };
+
+/** Falls back to the cool default for anything unrecognised. */
+export function normalizeGlassTint(value: unknown): GlassTint {
+  return value === "lemon" ? "lemon" : "sky";
+}
 
 export function normalizeGlassOpacity(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_GLASS_OPACITY;
@@ -43,6 +56,7 @@ export function normalizeAppearancePreferences(value: unknown): AppearancePrefer
   const candidate = value as Partial<AppearancePreferences>;
   return {
     glassOpacity: normalizeGlassOpacity(candidate.glassOpacity),
+    glassTint: normalizeGlassTint(candidate.glassTint),
     wallpaperVisible: typeof candidate.wallpaperVisible === "boolean"
       ? candidate.wallpaperVisible
       : DEFAULT_APPEARANCE_PREFERENCES.wallpaperVisible,

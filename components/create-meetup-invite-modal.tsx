@@ -72,6 +72,7 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
+        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFillObject} />
         <Pressable accessibilityLabel="Close meetup invite" style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.keyboard, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>

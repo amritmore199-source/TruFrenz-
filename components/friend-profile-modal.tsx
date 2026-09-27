@@ -118,6 +118,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
+        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <BlurView intensity={58} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close profile" onPress={onClose} />
         <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.92)", glassOpacity) }]}>

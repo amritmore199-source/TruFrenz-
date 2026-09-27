@@ -97,6 +97,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
+        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
           <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.9)", glassOpacity) }]}>
             <View style={styles.handle} />

@@ -165,6 +165,7 @@ export function PremiumPaywall({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
+        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close premium" />
         <View
           style={[styles.sheet, { maxWidth: layout.maxWidth, maxHeight: layout.maxHeight }]}
