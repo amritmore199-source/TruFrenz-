@@ -25,19 +25,19 @@ const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
 
 /** Fixed bubble field keeps the drift deterministic between renders. */
 const BUBBLES = [
-  { left: "6%", size: 78, delay: 0, duration: 9000, drift: 92, tint: "rgba(226,213,232,0.55)" },
-  { left: "22%", size: 46, delay: 1400, duration: 11000, drift: 128, tint: "rgba(203,222,234,0.55)" },
-  { left: "38%", size: 96, delay: 2600, duration: 12500, drift: 74, tint: "rgba(236,224,232,0.5)" },
-  { left: "54%", size: 58, delay: 800, duration: 10200, drift: 142, tint: "rgba(210,226,231,0.5)" },
-  { left: "70%", size: 84, delay: 2100, duration: 11800, drift: 96, tint: "rgba(229,216,235,0.5)" },
-  { left: "86%", size: 40, delay: 3300, duration: 9400, drift: 118, tint: "rgba(206,224,236,0.55)" },
-  { left: "14%", size: 64, delay: 4200, duration: 13200, drift: 88, tint: "rgba(233,222,231,0.45)" },
-  { left: "62%", size: 34, delay: 5200, duration: 10600, drift: 132, tint: "rgba(214,228,234,0.5)" },
+  { left: "6%", size: 78, delay: 0, duration: 9000, drift: 92, tint: "rgba(231, 218, 155, 0.55)" },
+  { left: "22%", size: 46, delay: 1400, duration: 11000, drift: 128, tint: "rgba(203, 222, 234, 0.55)" },
+  { left: "38%", size: 96, delay: 2600, duration: 12500, drift: 74, tint: "rgba(234, 228, 193, 0.5)" },
+  { left: "54%", size: 58, delay: 800, duration: 10200, drift: 142, tint: "rgba(210, 226, 231, 0.5)" },
+  { left: "70%", size: 84, delay: 2100, duration: 11800, drift: 96, tint: "rgba(235, 221, 156, 0.5)" },
+  { left: "86%", size: 40, delay: 3300, duration: 9400, drift: 118, tint: "rgba(206, 224, 236, 0.55)" },
+  { left: "14%", size: 64, delay: 4200, duration: 13200, drift: 88, tint: "rgba(231, 225, 197, 0.45)" },
+  { left: "62%", size: 34, delay: 5200, duration: 10600, drift: 132, tint: "rgba(214, 228, 234, 0.5)" },
 ] as const;
 
 const SLIDE_TINTS: Record<string, string> = {
   sky: "#E4EFF5",
-  blush: "#F4E7F1",
+  blush: "#f3ecc5",
   sage: "#E7F1EA",
 };
 
@@ -187,7 +187,7 @@ export function WelcomeScreen({
               accessibilityLabel={soundOn ? "Turn ambient sound off" : "Turn ambient sound on"}
               style={({ pressed }) => [styles.soundToggle, pressed && styles.pressed]}
             >
-              <MaterialIcons name={soundOn ? "volume-up" : "volume-off"} size={18} color="#6F6478" />
+              <MaterialIcons name={soundOn ? "volume-up" : "volume-off"} size={18} color="#6d6952" />
             </Pressable>
             <Text style={styles.soundHint}>{soundUnavailable ? "Sound unavailable here" : soundOn ? "Ambient on" : "Ambient off"}</Text>
           </View>
@@ -201,12 +201,12 @@ export function WelcomeScreen({
           intensity={42}
           tint="light"
           experimentalBlurMethod="dimezisBlurView"
-          style={[styles.glass, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.72)", glassOpacity) }]}
+          style={[styles.glass, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.72)", glassOpacity) }]}
         >
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
               <View style={styles.brandIcon}>
-                <MaterialIcons name="spa" size={22} color="#FFFFFF" />
+                <MaterialIcons name="spa" size={22} color="#4A4210" />
               </View>
             </View>
             <Text style={styles.brand}>Trufrenz</Text>
@@ -220,7 +220,7 @@ export function WelcomeScreen({
               style={({ pressed }) => [styles.primaryButton, !termsAccepted && styles.buttonMuted, pressed && styles.pressed]}
             >
               <Text style={styles.primaryButtonText}>Sign Up</Text>
-              <MaterialIcons name="arrow-forward" size={17} color="#FFFFFF" />
+              <MaterialIcons name="arrow-forward" size={17} color="#4A4210" />
             </Pressable>
 
             <Pressable
@@ -253,8 +253,8 @@ export function WelcomeScreen({
             >
             {WELCOME_SLIDES.map((item) => (
               <View key={item.id} style={[styles.slide, { width: slideWidth }]}>
-                <View style={[styles.slideIllustration, { backgroundColor: SLIDE_TINTS[item.tint] ?? "#EEE7F1" }]}>
-                  <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#7C6A86" />
+                <View style={[styles.slideIllustration, { backgroundColor: SLIDE_TINTS[item.tint] ?? "#f0eacb" }]}>
+                  <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#777152" />
                 </View>
                 <Text style={styles.slideTitle}>{item.title}</Text>
                 <Text style={styles.slideBody}>{item.body}</Text>
@@ -281,7 +281,7 @@ export function WelcomeScreen({
           intensity={30}
           tint="light"
           experimentalBlurMethod="dimezisBlurView"
-          style={[styles.companyGlass, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.66)", glassOpacity) }]}
+          style={[styles.companyGlass, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.66)", glassOpacity) }]}
         >
           <View style={styles.companyInner}>
             <Pressable
@@ -292,7 +292,7 @@ export function WelcomeScreen({
               style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
             >
               <View style={[styles.checkbox, termsAccepted && styles.checkboxOn]}>
-                {termsAccepted ? <MaterialIcons name="check" size={14} color="#FFFFFF" /> : null}
+                {termsAccepted ? <MaterialIcons name="check" size={14} color="#4A4210" /> : null}
               </View>
               <Text style={styles.termsText}>
                 I agree to the Trufrenz Terms of Service and Privacy Policy, and I am {""}
@@ -303,7 +303,7 @@ export function WelcomeScreen({
               <Text style={styles.termsLinkText}>Read Terms &amp; Privacy</Text>
             </Pressable>
             <View style={styles.companyLine}>
-              <MaterialIcons name="apartment" size={13} color="#8A8593" />
+              <MaterialIcons name="apartment" size={13} color="#8a877f" />
               <Text style={styles.companyText}>
                 {COMPANY_DETAILS.legalName} · {COMPANY_DETAILS.location}
               </Text>
@@ -317,12 +317,12 @@ export function WelcomeScreen({
 
       <Modal visible={termsOpen} transparent animationType="fade" onRequestClose={() => setTermsOpen(false)}>
         <View style={styles.termsShade}>
-          <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.termsSheet, { backgroundColor: glassSurfaceColor("rgba(252,249,252,0.93)", glassOpacity) }]}>
+          <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.termsSheet, { backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.93)", glassOpacity) }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.termsHeader}>
                 <Text style={styles.termsTitle}>Terms &amp; Privacy</Text>
                 <Pressable onPress={() => setTermsOpen(false)} accessibilityLabel="Close terms" style={styles.termsClose}>
-                  <MaterialIcons name="close" size={18} color="#746A7D" />
+                  <MaterialIcons name="close" size={18} color="#726e59" />
                 </Pressable>
               </View>
               <Text style={styles.termsBodyTitle}>Friendship only</Text>
@@ -361,11 +361,11 @@ export function WelcomeScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFillObject, overflow: "hidden", backgroundColor: "#F7F3F6" },
+  root: { ...StyleSheet.absoluteFillObject, overflow: "hidden", backgroundColor: "#f7f5ea" },
   backdrop: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", opacity: 0.5 },
-  backdropWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250,246,249,0.42)" },
+  backdropWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 247, 235, 0.42)" },
   bubbleField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: "rgba(255,255,255,0.7)" },
+  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.7)" },
   scroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 26, gap: 14 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   soundToggleWrap: { alignItems: "center", gap: 4 },
@@ -375,16 +375,16 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.96)",
-    shadowColor: "#6B5F72",
+    borderColor: "rgba(255, 255, 255, 0.96)",
+    shadowColor: "#68634e",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  soundHint: { color: "#8B8493", fontSize: 7.5 },
+  soundHint: { color: "#89877e", fontSize: 7.5 },
   guestPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -392,17 +392,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.95)",
+    borderColor: "rgba(255, 255, 255, 0.95)",
   },
   guestPillText: { color: "#6F7C88", fontSize: 8, fontWeight: "600" },
   glass: {
     borderRadius: 28,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.98)",
-    shadowColor: "#5A4E62",
+    borderColor: "rgba(255, 255, 255, 0.98)",
+    shadowColor: "#57533d",
     shadowOpacity: 0.16,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 12 },
@@ -416,18 +416,18 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#9A7B9E",
+    backgroundColor: "#F1DE55",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-    shadowColor: "#7B6480",
+    borderColor: "rgba(255, 255, 255, 0.85)",
+    shadowColor: "#746d45",
     shadowOpacity: 0.22,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
     elevation: 5,
   },
-  brand: { color: "#4E4556", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
-  tagline: { color: "#7A6E84", fontSize: 13, fontWeight: "600", marginTop: 6, textAlign: "center" },
-  support: { color: "#948C9B", fontSize: 9.5, lineHeight: 15, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
+  brand: { color: "#4c4936", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
+  tagline: { color: "#77735a", fontSize: 13, fontWeight: "600", marginTop: 6, textAlign: "center" },
+  support: { color: "#918f86", fontSize: 9.5, lineHeight: 15, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
   primaryButton: {
     minHeight: 50,
     width: "100%",
@@ -437,16 +437,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#9A7B9E",
+    backgroundColor: "#F1DE55",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.55)",
-    shadowColor: "#7C6682",
+    borderColor: "rgba(255, 255, 255, 0.55)",
+    shadowColor: "#756e46",
     shadowOpacity: 0.24,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700", letterSpacing: 0.3 },
+  primaryButtonText: { color: "#4A4210", fontSize: 13, fontWeight: "700", letterSpacing: 0.3 },
   ghostButton: {
     minHeight: 48,
     width: "100%",
@@ -454,15 +454,15 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
     borderWidth: 1,
-    borderColor: "rgba(154,123,158,0.5)",
+    borderColor: "rgba(131, 114, 31, 0.5)",
   },
-  ghostButtonText: { color: "#7E6684", fontSize: 13, fontWeight: "700", letterSpacing: 0.3 },
+  ghostButtonText: { color: "#776f44", fontSize: 13, fontWeight: "700", letterSpacing: 0.3 },
   buttonMuted: { opacity: 0.62 },
   guestLink: { marginTop: 14, paddingVertical: 4, paddingHorizontal: 10 },
   guestLinkText: { color: "#7C8A96", fontSize: 10.5, fontWeight: "700", textDecorationLine: "underline" },
-  guestNote: { color: "#9C96A3", fontSize: 8, marginTop: 3, textAlign: "center" },
+  guestNote: { color: "#9b9891", fontSize: 8, marginTop: 3, textAlign: "center" },
   carouselBlock: { alignItems: "center", gap: 2 },
   carouselFrame: { width: "100%", height: 172 },
   carousel: { width: "100%", height: "100%" },
@@ -474,25 +474,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.95)",
-    shadowColor: "#6E6176",
+    borderColor: "rgba(255, 255, 255, 0.95)",
+    shadowColor: "#6a664e",
     shadowOpacity: 0.09,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  slideTitle: { color: "#574D5E", fontSize: 13, fontWeight: "700", textAlign: "center", marginTop: 4 },
-  slideBody: { color: "#8B8494", fontSize: 9.5, lineHeight: 15, textAlign: "center", paddingHorizontal: 8 },
+  slideTitle: { color: "#54513e", fontSize: 13, fontWeight: "700", textAlign: "center", marginTop: 4 },
+  slideBody: { color: "#8a877d", fontSize: 9.5, lineHeight: 15, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(139,124,148,0.32)" },
-  dotActive: { width: 20, backgroundColor: "#9A7B9E" },
-  swipeHint: { color: "#9C96A3", fontSize: 7.5, marginTop: 3, marginBottom: 4 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.32)" },
+  dotActive: { width: 20, backgroundColor: "#F1DE55" },
+  swipeHint: { color: "#9b9891", fontSize: 7.5, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.95)",
-    shadowColor: "#5F5367",
+    borderColor: "rgba(255, 255, 255, 0.95)",
+    shadowColor: "#5c5742",
     shadowOpacity: 0.1,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },
@@ -505,20 +505,20 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 7,
     borderWidth: 1.4,
-    borderColor: "rgba(154,123,158,0.6)",
+    borderColor: "rgba(131, 114, 31, 0.6)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
   },
-  checkboxOn: { backgroundColor: "#9A7B9E", borderColor: "#9A7B9E" },
-  termsText: { flex: 1, color: "#7F7889", fontSize: 8.5, lineHeight: 14 },
-  termsStrong: { color: "#6C5D74", fontWeight: "700" },
+  checkboxOn: { backgroundColor: "#F1DE55", borderColor: "#F1DE55" },
+  termsText: { flex: 1, color: "#7d7b72", fontSize: 8.5, lineHeight: 14 },
+  termsStrong: { color: "#686249", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },
-  termsLinkText: { color: "#7E6684", fontSize: 8.5, fontWeight: "700", textDecorationLine: "underline" },
+  termsLinkText: { color: "#776f44", fontSize: 8.5, fontWeight: "700", textDecorationLine: "underline" },
   companyLine: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  companyText: { color: "#8A8593", fontSize: 8 },
-  companyTextSmall: { color: "#9E99A6", fontSize: 7.5 },
-  termsShade: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, paddingVertical: 44, backgroundColor: "rgba(54,47,61,0.3)" },
+  companyText: { color: "#8a877f", fontSize: 8 },
+  companyTextSmall: { color: "#9e9b93", fontSize: 7.5 },
+  termsShade: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, paddingVertical: 44, backgroundColor: "rgba(53, 50, 31, 0.3)" },
   termsSheet: {
     width: "100%",
     maxWidth: 420,
@@ -529,18 +529,18 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 18,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.99)",
-    shadowColor: "#514659",
+    borderColor: "rgba(255, 255, 255, 0.99)",
+    shadowColor: "#4f4b36",
     shadowOpacity: 0.2,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
     elevation: 20,
   },
   termsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  termsTitle: { color: "#4E4556", fontSize: 17, fontWeight: "800" },
-  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.82)", borderWidth: 1, borderColor: "rgba(255,255,255,0.95)" },
-  termsBodyTitle: { color: "#5E5566", fontSize: 10.5, fontWeight: "700", marginTop: 10 },
-  termsBody: { color: "#857E8C", fontSize: 9.5, lineHeight: 15, marginTop: 3 },
-  termsFootnote: { color: "#A09AA7", fontSize: 8, marginTop: 10, textAlign: "center" },
+  termsTitle: { color: "#4c4936", fontSize: 17, fontWeight: "800" },
+  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.82)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)" },
+  termsBodyTitle: { color: "#5c5946", fontSize: 10.5, fontWeight: "700", marginTop: 10 },
+  termsBody: { color: "#838179", fontSize: 9.5, lineHeight: 15, marginTop: 3 },
+  termsFootnote: { color: "#9f9c95", fontSize: 8, marginTop: 10, textAlign: "center" },
   pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
 });

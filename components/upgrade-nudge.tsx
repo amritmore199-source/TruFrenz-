@@ -58,7 +58,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           <MaterialIcons
             name={atLimit ? "lock-clock" : "auto-awesome"}
             size={16}
-            color={atLimit ? "#A5763F" : "#8E7894"}
+            color={atLimit ? "#A5763F" : "#83721f"}
           />
         </View>
         <View style={styles.text}>
@@ -74,7 +74,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           accessibilityLabel="Dismiss this hint"
           style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}
         >
-          <MaterialIcons name="close" size={15} color="#9A93A2" />
+          <MaterialIcons name="close" size={15} color="#98968d" />
         </Pressable>
       </View>
       <Pressable
@@ -86,7 +86,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
         accessibilityLabel={nudge.cta}
         style={({ pressed }) => [styles.cta, atLimit && styles.ctaAtLimit, pressed && styles.pressed]}
       >
-        <MaterialIcons name="workspace-premium" size={14} color={atLimit ? "#FFFFFF" : "#7A5F74"} />
+        <MaterialIcons name="workspace-premium" size={14} color={atLimit ? "#FFFFFF" : "#6f6741"} />
         <Text style={[styles.ctaText, atLimit && styles.ctaTextAtLimit]}>{nudge.cta}</Text>
       </Pressable>
     </View>
@@ -100,14 +100,14 @@ const styles = StyleSheet.create({
     gap: 9,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.78)",
-    shadowColor: "#4A3A50",
+    borderColor: "rgba(255, 255, 255, 0.78)",
+    shadowColor: "#454023",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
-  shellAtLimit: { borderColor: "rgba(212,178,132,0.75)" },
+  shellAtLimit: { borderColor: "rgba(212, 178, 132, 0.75)" },
   row: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
   badge: {
     width: 30,
@@ -115,23 +115,23 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.92)",
+    borderColor: "rgba(255, 255, 255, 0.92)",
   },
-  badgeAtLimit: { backgroundColor: "rgba(252,244,232,0.95)", borderColor: "rgba(226,198,158,0.8)" },
+  badgeAtLimit: { backgroundColor: "rgba(252, 244, 232, 0.95)", borderColor: "rgba(226, 198, 158, 0.8)" },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: 12.5, fontWeight: "700", color: "#4A4254" },
-  body: { fontSize: 11, color: "#7A7284", lineHeight: 15.5 },
+  title: { fontSize: 12.5, fontWeight: "700", color: "#494532" },
+  body: { fontSize: 11, color: "#78756d", lineHeight: 15.5 },
   dismiss: {
     width: 26,
     height: 26,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.66)",
+    backgroundColor: "rgba(255, 255, 255, 0.66)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
   cta: {
     flexDirection: "row",
@@ -140,12 +140,12 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 34,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.82)",
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.94)",
+    borderColor: "rgba(255, 255, 255, 0.94)",
   },
-  ctaAtLimit: { backgroundColor: "#B08FA8", borderColor: "rgba(255,255,255,0.55)" },
-  ctaText: { fontSize: 12, fontWeight: "700", color: "#7A5F74" },
+  ctaAtLimit: { backgroundColor: "#E9D177", borderColor: "rgba(255, 255, 255, 0.55)" },
+  ctaText: { fontSize: 12, fontWeight: "700", color: "#6f6741" },
   ctaTextAtLimit: { color: "#FFFFFF" },
   pressed: { opacity: 0.82 },
 });

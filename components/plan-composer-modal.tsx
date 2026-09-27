@@ -74,12 +74,12 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fill}>
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.9)", glassOpacity) }]}>
+          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.9)", glassOpacity) }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.topLine}>
-                <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#9A7796" /></View>
+                <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#83721f" /></View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Close plan composer" onPress={onClose} style={({ pressed }) => [styles.roundAction, pressed && styles.pressed]}>
-                  <MaterialIcons name="close" size={18} color="#746A7D" />
+                  <MaterialIcons name="close" size={18} color="#726e59" />
                 </Pressable>
               </View>
 
@@ -90,7 +90,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
               <View style={styles.chipWrap}>
                 {(["hangout", "meetup"] as PlanKind[]).map((option) => (
                   <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected: kind === option }} accessibilityLabel={PLAN_KIND_LABEL[option]} onPress={() => setKind(option)} style={[styles.chip, kind === option && styles.chipActive]}>
-                    <MaterialIcons name={option === "meetup" ? "event-available" : "local-cafe"} size={13} color={kind === option ? "#FFFFFF" : "#7C7286"} />
+                    <MaterialIcons name={option === "meetup" ? "event-available" : "local-cafe"} size={13} color={kind === option ? "#FFFFFF" : "#83721f"} />
                     <Text style={[styles.chipText, kind === option && styles.chipTextActive]}>{PLAN_KIND_LABEL[option]}</Text>
                   </Pressable>
                 ))}
@@ -118,13 +118,13 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
               <View style={styles.chipWrap}>
                 {venues.map((item) => (
                   <Pressable key={item.name} accessibilityRole="radio" accessibilityState={{ selected: venue?.name === item.name }} accessibilityLabel={`Venue ${item.name} in ${item.area}`} onPress={() => setVenueName(item.name)} style={[styles.chip, venue?.name === item.name && styles.chipActive]}>
-                    <MaterialIcons name="place" size={12} color={venue?.name === item.name ? "#FFFFFF" : "#8A7F92"} />
+                    <MaterialIcons name="place" size={12} color={venue?.name === item.name ? "#FFFFFF" : "#83721f"} />
                     <Text style={[styles.chipText, venue?.name === item.name && styles.chipTextActive]}>{item.name}</Text>
                   </Pressable>
                 ))}
               </View>
               <View style={styles.mapRow}>
-                <MaterialIcons name="map" size={14} color="#8A7F92" />
+                <MaterialIcons name="map" size={14} color="#83721f" />
                 <Text style={styles.mapText}>Pinned from the venue picker · {venue?.area ?? "Nearby"} · exact addresses are never shared</Text>
               </View>
 
@@ -133,7 +133,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
                 value={note}
                 onChangeText={(value) => setNote(value.slice(0, 90))}
                 placeholder={kind === "meetup" ? "Bring your sketchbook if you like." : "No pressure either way."}
-                placeholderTextColor="#AAA4AC"
+                placeholderTextColor="#a7a6a1"
                 style={styles.input}
                 maxLength={90}
                 returnKeyType="done"
@@ -141,7 +141,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
 
               {nudge}
               <Pressable accessibilityRole="button" accessibilityLabel={`Share this ${PLAN_KIND_LABEL[kind].toLowerCase()} card`} onPress={share} style={({ pressed }) => [styles.share, pressed && styles.pressed]}>
-                <MaterialIcons name="send" size={16} color="#FFFFFF" />
+                <MaterialIcons name="send" size={16} color="#4A4210" />
                 <Text style={styles.shareText}>Share {PLAN_KIND_LABEL[kind].toLowerCase()} card</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Cancel plan" onPress={onClose} style={styles.cancel}>
@@ -157,27 +157,27 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(58,49,64,0.24)" },
-  sheet: { borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", overflow: "hidden", shadowColor: "#5C4F63", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
+  sheet: { borderRadius: 24, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)", overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   scroll: { flexGrow: 0 },
   content: { padding: 15, paddingBottom: 18 },
   topLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headingIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(246,238,247,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
-  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.7)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
-  title: { color: "#4E4856", fontSize: 14, fontWeight: "700", marginTop: 11 },
-  subtitle: { color: "#8A8291", fontSize: 10, lineHeight: 15, marginTop: 5 },
-  sectionLabel: { color: "#A79FAB", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
+  headingIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.7)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  title: { color: "#4e4a3b", fontSize: 14, fontWeight: "700", marginTop: 11 },
+  subtitle: { color: "#87857c", fontSize: 10, lineHeight: 15, marginTop: 5 },
+  sectionLabel: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "rgba(255,255,255,0.66)", paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#7A6E80", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  chipActive: { backgroundColor: "#9D7E9E", borderColor: "rgba(255,255,255,0.7)" },
-  chipText: { color: "#6E6672", fontSize: 10, fontWeight: "650" as any },
+  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.66)", paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#75726a", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  chipActive: { backgroundColor: "#F1DE55", borderColor: "rgba(255, 255, 255, 0.7)" },
+  chipText: { color: "#6b6962", fontSize: 10, fontWeight: "650" as any },
   chipTextActive: { color: "#FFFFFF" },
-  mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(244,240,246,0.8)" },
-  mapText: { flex: 1, color: "#7C7286", fontSize: 9, fontWeight: "600" },
-  input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", backgroundColor: "rgba(255,255,255,0.8)", paddingHorizontal: 12, paddingVertical: 9, color: "#554F59", fontSize: 11, outlineStyle: "none" as any },
-  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)", shadowColor: "#604F67", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  shareText: { color: "#FFFFFF", fontSize: 11, fontWeight: "700" },
+  mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(245, 242, 223, 0.8)" },
+  mapText: { flex: 1, color: "#83721f", fontSize: 9, fontWeight: "600" },
+  input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(255, 255, 255, 0.8)", paddingHorizontal: 12, paddingVertical: 9, color: "#53514c", fontSize: 11, outlineStyle: "none" as any },
+  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)", shadowColor: "#5c5634", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  shareText: { color: "#4A4210", fontSize: 11, fontWeight: "700" },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 2 },
-  cancelText: { color: "#8C8492", fontSize: 10, fontWeight: "600" },
+  cancelText: { color: "#89877e", fontSize: 10, fontWeight: "600" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

@@ -119,11 +119,11 @@ export function IncomingNotificationBanner({
       accessibilityHint="Swipe left or right to dismiss, or use the dismiss control."
       style={[styles.position, { opacity, pointerEvents: notification ? "auto" : "none", transform: [{ translateX }, { translateY }, { scale }] }]}
     >
-      <View style={[styles.surface, { backgroundColor: glassSurfaceColor("rgba(252,249,252,0.92)", glassOpacity) }]}>
+      <View style={[styles.surface, { backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.92)", glassOpacity) }]}>
         <BlurView intensity={44} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
-            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#8A7598" : "#798FA0"} />
+            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#83721f" : "#798FA0"} />
             <View style={styles.statusDot} />
           </View>
           <View style={styles.copy}>
@@ -134,10 +134,10 @@ export function IncomingNotificationBanner({
             <Text style={styles.sender} numberOfLines={1}>{displayed.senderName}</Text>
             <Text style={styles.preview} numberOfLines={1}>{displayed.preview}</Text>
           </View>
-          <MaterialIcons name="chevron-right" size={20} color="#A497A6" />
+          <MaterialIcons name="chevron-right" size={20} color="#9e9b93" />
         </Pressable>
         <Pressable onPress={onDismiss} style={styles.close} accessibilityRole="button" accessibilityLabel="Dismiss notification">
-          <MaterialIcons name="close" size={15} color="#857A88" />
+          <MaterialIcons name="close" size={15} color="#807d76" />
         </Pressable>
       </View>
     </Animated.View>
@@ -146,18 +146,18 @@ export function IncomingNotificationBanner({
 
 const styles = StyleSheet.create({
   position: { position: "absolute", top: 8, left: 13, right: 13, zIndex: 100, elevation: 20 },
-  surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(252,249,252,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#58475E", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(252, 250, 242, 0.92)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#544d2e", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   mainAction: { flex: 1, minWidth: 0, minHeight: 76, flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 11, paddingRight: 30 },
   iconWell: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", position: "relative" },
-  inviteIconWell: { backgroundColor: "rgba(240,230,243,0.94)" },
-  messageIconWell: { backgroundColor: "rgba(232,240,245,0.96)" },
-  statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#D48EB0", borderWidth: 1.5, borderColor: "#FFFFFF" },
+  inviteIconWell: { backgroundColor: "rgba(242, 234, 193, 0.94)" },
+  messageIconWell: { backgroundColor: "rgba(232, 240, 245, 0.96)" },
+  statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#E9D177", borderWidth: 1.5, borderColor: "#FFFFFF" },
   copy: { flex: 1, minWidth: 0, paddingVertical: 10 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  kind: { color: "#927B96", fontSize: 7, fontWeight: "800", letterSpacing: 1 },
-  now: { color: "#A69DA8", fontSize: 7, fontWeight: "600", letterSpacing: 0.6 },
-  sender: { color: "#514A57", fontSize: 11, lineHeight: 15, fontWeight: "700", marginTop: 2 },
-  preview: { color: "#89818D", fontSize: 9, lineHeight: 13, marginTop: 1 },
-  close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.86)" },
+  kind: { color: "#83721f", fontSize: 7, fontWeight: "800", letterSpacing: 1 },
+  now: { color: "#a2a099", fontSize: 7, fontWeight: "600", letterSpacing: 0.6 },
+  sender: { color: "#504d3e", fontSize: 11, lineHeight: 15, fontWeight: "700", marginTop: 2 },
+  preview: { color: "#86847d", fontSize: 9, lineHeight: 13, marginTop: 1 },
+  close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.86)" },
   pressed: { opacity: 0.8 },
 });

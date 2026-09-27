@@ -139,10 +139,10 @@ function DetailRow({
   value: string;
   tone?: "default" | "positive" | "warning";
 }) {
-  const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#5F5766";
+  const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#5c5a53";
   return (
     <View style={styles.detailRow}>
-      <MaterialIcons name={icon} size={15} color="#8E7894" />
+      <MaterialIcons name={icon} size={15} color="#83721f" />
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={[styles.detailValue, { color }]}>{value}</Text>
     </View>
@@ -241,7 +241,7 @@ export function ManageSubscriptionModal({
 
           <View style={styles.headerRow}>
             <View style={styles.headerBadge}>
-              <MaterialIcons name={premium ? "workspace-premium" : "card-giftcard"} size={18} color="#7A5F74" />
+              <MaterialIcons name={premium ? "workspace-premium" : "card-giftcard"} size={18} color="#6f6741" />
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>Manage subscription</Text>
@@ -258,7 +258,7 @@ export function ManageSubscriptionModal({
               accessibilityLabel="Close manage subscription"
               style={({ pressed }) => [styles.close, pressed && styles.pressed]}
             >
-              <MaterialIcons name="close" size={17} color="#6C6270" />
+              <MaterialIcons name="close" size={17} color="#68655e" />
             </Pressable>
           </View>
 
@@ -354,7 +354,7 @@ export function ManageSubscriptionModal({
                     <MaterialIcons
                       name={receiptChannelIcon(receipt.channel)}
                       size={15}
-                      color="#8E7894"
+                      color="#83721f"
                     />
                     <View style={styles.receiptText}>
                       <Text style={styles.receiptTitle}>
@@ -401,10 +401,10 @@ export function ManageSubscriptionModal({
                 style={({ pressed }) => [styles.secondaryButton, restoring && styles.buttonBusy, pressed && styles.pressed]}
               >
                 {restoring ? (
-                  <ActivityIndicator size="small" color="#7A5F74" />
+                  <ActivityIndicator size="small" color="#6f6741" />
                 ) : (
                   <>
-                    <MaterialIcons name="restore" size={15} color="#7A5F74" />
+                    <MaterialIcons name="restore" size={15} color="#6f6741" />
                     <Text style={styles.secondaryButtonText}>Restore purchases</Text>
                   </>
                 )}
@@ -458,7 +458,7 @@ export function ManageSubscriptionModal({
                   {isComp ? (
                     <>
                       <View style={styles.storeHint}>
-                        <MaterialIcons name="card-giftcard" size={13} color="#8A8391" />
+                        <MaterialIcons name="card-giftcard" size={13} color="#88867d" />
                         <Text style={styles.storeHintText}>{storeManagementLine("comp")}</Text>
                       </View>
                       <Text style={styles.storeStepsText}>
@@ -474,7 +474,7 @@ export function ManageSubscriptionModal({
                         accessibilityLabel={storeManageActionLabel(Platform.OS)}
                         style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
                       >
-                        <MaterialIcons name="open-in-new" size={13} color="#8A8391" />
+                        <MaterialIcons name="open-in-new" size={13} color="#88867d" />
                         <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
                       </Pressable>
                       <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
@@ -532,7 +532,7 @@ export function ManageSubscriptionModal({
                   )}
 
                   <View style={styles.refundRow}>
-                    <MaterialIcons name="help-outline" size={13} color="#8A8391" />
+                    <MaterialIcons name="help-outline" size={13} color="#88867d" />
                     <Text style={styles.refundText}>{REFUND_LINE}</Text>
                   </View>
                 </View>
@@ -547,13 +547,13 @@ export function ManageSubscriptionModal({
                 accessibilityLabel="Compare Premium plans"
                 style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
               >
-                <MaterialIcons name="workspace-premium" size={16} color="#FFFFFF" />
+                <MaterialIcons name="workspace-premium" size={16} color="#4A4210" />
                 <Text style={styles.primaryButtonText}>Compare Premium plans</Text>
               </Pressable>
             )}
 
             <View style={styles.footerNote}>
-              <MaterialIcons name="lock-outline" size={13} color="#8A8391" />
+              <MaterialIcons name="lock-outline" size={13} color="#88867d" />
               <Text style={styles.footerNoteText}>
                 {verification === "store"
                   ? "Every purchase is confirmed with your store before Premium turns on."
@@ -572,21 +572,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(48,38,52,0.34)",
+    backgroundColor: "rgba(45, 42, 23, 0.34)",
   },
   sheet: {
     width: "100%",
     borderRadius: 26,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-    shadowColor: "#4A3A50",
+    borderColor: "rgba(255, 255, 255, 0.6)",
+    shadowColor: "#454023",
     shadowOpacity: 0.22,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 14 },
     elevation: 12,
   },
-  handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(122,108,128,0.28)", marginTop: 9 },
+  handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(118, 113, 91, 0.28)", marginTop: 9 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
   headerBadge: {
     width: 34,
@@ -594,76 +594,76 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
   headerText: { flex: 1 },
-  title: { fontSize: 16, fontWeight: "700", color: "#3F3548" },
-  subtitle: { fontSize: 11.5, color: "#7A7284", marginTop: 2, lineHeight: 16 },
+  title: { fontSize: 16, fontWeight: "700", color: "#3f3920" },
+  subtitle: { fontSize: 11.5, color: "#78756d", marginTop: 2, lineHeight: 16 },
   close: {
     width: 30,
     height: 30,
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
   body: { flexGrow: 0 },
   bodyContent: { paddingHorizontal: 16, paddingBottom: 16, gap: 9 },
   planCard: {
-    backgroundColor: "rgba(255,255,255,0.58)",
+    backgroundColor: "rgba(255, 255, 255, 0.58)",
     borderRadius: 18,
     padding: 13,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.75)",
+    borderColor: "rgba(255, 255, 255, 0.75)",
     gap: 10,
   },
   planCardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   planCardText: { flex: 1 },
-  planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#3F3548" },
-  planCardSub: { fontSize: 11.5, color: "#7A7284", marginTop: 2 },
+  planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#3f3920" },
+  planCardSub: { fontSize: 11.5, color: "#78756d", marginTop: 2 },
   tierPill: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 3 },
-  tierPillPremium: { backgroundColor: "rgba(206,178,214,0.9)" },
-  tierPillFree: { backgroundColor: "rgba(255,255,255,0.8)" },
+  tierPillPremium: { backgroundColor: "rgba(212, 187, 59, 0.9)" },
+  tierPillFree: { backgroundColor: "rgba(255, 255, 255, 0.8)" },
   tierPillText: { fontSize: 10, fontWeight: "700" },
   tierPillTextPremium: { color: "#FFFFFF" },
-  tierPillTextFree: { color: "#6C6270" },
+  tierPillTextFree: { color: "#68655e" },
   detailList: { gap: 7 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  detailLabel: { fontSize: 11.5, color: "#8A8391", width: 78 },
+  detailLabel: { fontSize: 11.5, color: "#88867d", width: 78 },
   detailValue: { flex: 1, fontSize: 11.5, fontWeight: "600" },
   noticeCard: {
     flexDirection: "row",
     gap: 8,
     alignItems: "flex-start",
-    backgroundColor: "rgba(250,240,224,0.82)",
+    backgroundColor: "rgba(250, 240, 224, 0.82)",
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
+    borderColor: "rgba(255, 255, 255, 0.7)",
   },
   noticeText: { flex: 1, fontSize: 11, color: "#6E5636", lineHeight: 16 },
-  sectionLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 0.7, color: "#8A8391", marginTop: 5, marginLeft: 2 },
+  sectionLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 0.7, color: "#88867d", marginTop: 5, marginLeft: 2 },
   receiptCard: {
-    backgroundColor: "rgba(255,255,255,0.56)",
+    backgroundColor: "rgba(255, 255, 255, 0.56)",
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.72)",
+    borderColor: "rgba(255, 255, 255, 0.72)",
     gap: 9,
   },
-  emptyReceipts: { fontSize: 11.5, color: "#7A7284", lineHeight: 16 },
+  emptyReceipts: { fontSize: 11.5, color: "#78756d", lineHeight: 16 },
   receiptRow: { flexDirection: "row", alignItems: "center", gap: 9 },
-  receiptDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140,128,146,0.22)", paddingTop: 9 },
+  receiptDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)", paddingTop: 9 },
   receiptText: { flex: 1 },
-  receiptTitle: { fontSize: 12, fontWeight: "600", color: "#4A4254" },
-  receiptSub: { fontSize: 10.5, color: "#8A8391", marginTop: 1 },
+  receiptTitle: { fontSize: 12, fontWeight: "600", color: "#494532" },
+  receiptSub: { fontSize: 10.5, color: "#88867d", marginTop: 1 },
   statusPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
-  statusActive: { backgroundColor: "rgba(214,238,224,0.9)" },
-  statusStopped: { backgroundColor: "rgba(250,240,224,0.95)" },
+  statusActive: { backgroundColor: "rgba(214, 238, 224, 0.9)" },
+  statusStopped: { backgroundColor: "rgba(250, 240, 224, 0.95)" },
   statusText: { fontSize: 9.5, fontWeight: "700" },
   statusTextActive: { color: "#4E8567" },
   statusTextStopped: { color: "#A5763F" },
@@ -674,12 +674,12 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 38,
     borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.78)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
-  secondaryButtonText: { fontSize: 12.5, fontWeight: "700", color: "#7A5F74" },
-  restoreNote: { fontSize: 11, color: "#7A7284", lineHeight: 15 },
+  secondaryButtonText: { fontSize: 12.5, fontWeight: "700", color: "#6f6741" },
+  restoreNote: { fontSize: 11, color: "#78756d", lineHeight: 15 },
   restoreNoteOk: { color: "#4E8567", fontWeight: "600" },
   restoreNoteBad: { color: "#A5603F" },
   changeRow: { flexDirection: "row", gap: 8 },
@@ -688,38 +688,38 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.56)",
+    backgroundColor: "rgba(255, 255, 255, 0.56)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.72)",
+    borderColor: "rgba(255, 255, 255, 0.72)",
     gap: 3,
   },
-  changeName: { fontSize: 12.5, fontWeight: "700", color: "#4A4254" },
-  changePrice: { fontSize: 11, color: "#8A8391" },
+  changeName: { fontSize: 12.5, fontWeight: "700", color: "#494532" },
+  changePrice: { fontSize: 11, color: "#88867d" },
   cancelCard: {
-    backgroundColor: "rgba(255,255,255,0.56)",
+    backgroundColor: "rgba(255, 255, 255, 0.56)",
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.72)",
+    borderColor: "rgba(255, 255, 255, 0.72)",
     gap: 9,
   },
-  cancelBody: { fontSize: 11.5, color: "#5F5766", lineHeight: 16 },
+  cancelBody: { fontSize: 11.5, color: "#5c5a53", lineHeight: 16 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storeHintText: { fontSize: 11, color: "#7C6A83", fontWeight: "700" },
+  storeHintText: { fontSize: 11, color: "#767055", fontWeight: "700" },
   /*
    * The store row is a link, and it previously looked like one without being
    * one — an open-in-new icon beside instruction text. The affordance now
    * matches the behaviour, so the label is underlined and slightly darker.
    */
-  storeHintTextLinked: { fontSize: 11, color: "#7C6A83", fontWeight: "700", textDecorationLine: "underline" },
+  storeHintTextLinked: { fontSize: 11, color: "#767055", fontWeight: "700", textDecorationLine: "underline" },
   storeStepsText: {
     fontSize: 10.5,
     lineHeight: 15,
-    color: "#8A8391",
+    color: "#88867d",
     marginTop: 6,
   },
-  confirmBox: { gap: 9, backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 12, padding: 10 },
-  confirmText: { fontSize: 11, color: "#5F5766", lineHeight: 15.5 },
+  confirmBox: { gap: 9, backgroundColor: "rgba(255, 255, 255, 0.6)", borderRadius: 12, padding: 10 },
+  confirmText: { fontSize: 11, color: "#5c5a53", lineHeight: 15.5 },
   confirmActions: { flexDirection: "row", gap: 8 },
   ghostButton: {
     flex: 1,
@@ -727,24 +727,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 36,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.82)",
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.92)",
+    borderColor: "rgba(255, 255, 255, 0.92)",
   },
-  ghostButtonText: { fontSize: 12, fontWeight: "700", color: "#6C6270" },
+  ghostButtonText: { fontSize: 12, fontWeight: "700", color: "#68655e" },
   dangerButton: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     height: 36,
     borderRadius: 12,
-    backgroundColor: "rgba(201,129,145,0.92)",
+    backgroundColor: "rgba(201, 129, 145, 0.92)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
+    borderColor: "rgba(255, 255, 255, 0.7)",
   },
   dangerButtonText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
   refundRow: { flexDirection: "row", gap: 6, alignItems: "flex-start" },
-  refundText: { flex: 1, fontSize: 10.5, color: "#8A8391", lineHeight: 15 },
+  refundText: { flex: 1, fontSize: 10.5, color: "#88867d", lineHeight: 15 },
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -752,13 +752,13 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 46,
     borderRadius: 15,
-    backgroundColor: "#B08FA8",
+    backgroundColor: "#E9D177",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.55)",
+    borderColor: "rgba(255, 255, 255, 0.55)",
   },
-  primaryButtonText: { fontSize: 13.5, fontWeight: "700", color: "#FFFFFF" },
+  primaryButtonText: { fontSize: 13.5, fontWeight: "700", color: "#4A4210" },
   buttonBusy: { opacity: 0.7 },
   footerNote: { flexDirection: "row", gap: 6, alignItems: "flex-start", marginTop: 4 },
-  footerNoteText: { flex: 1, fontSize: 10.5, color: "#8A8391", lineHeight: 15 },
+  footerNoteText: { flex: 1, fontSize: 10.5, color: "#88867d", lineHeight: 15 },
   pressed: { opacity: 0.82 },
 });

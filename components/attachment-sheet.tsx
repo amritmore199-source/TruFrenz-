@@ -97,8 +97,8 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
-        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, backgroundColor: glassSurfaceColor("rgba(250,248,251,0.92)", glassOpacity) }]}>
-          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(250,248,251,0.9)", glassOpacity) }]}>
+        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.9)", glassOpacity) }]}>
             <View style={styles.handle} />
 
             {mode === "menu" ? (
@@ -107,7 +107,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <Text style={styles.title}>Keep it light.</Text>
                 <View style={styles.grid}>
                   <Pressable accessibilityRole="button" accessibilityLabel="Send a photo" onPress={() => { onClose(); onPickPhoto(); }} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
-                    <View style={styles.tileIconPink}><MaterialIcons name="photo-camera" size={19} color="#9A7796" /></View>
+                    <View style={styles.tileIconPink}><MaterialIcons name="photo-camera" size={19} color="#83721f" /></View>
                     <Text style={styles.tileTitle}>Photo</Text>
                     <Text style={styles.tileSub}>From your library</Text>
                   </Pressable>
@@ -126,14 +126,14 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <View style={styles.divider} />
                 <Text style={styles.eyebrow}>PLAN TOGETHER</Text>
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a hangout card" onPress={() => { onClose(); onSuggestPlan("hangout"); }} style={styles.row}>
-                  <View style={styles.tileIconPink}><MaterialIcons name="local-cafe" size={17} color="#9A7796" /></View>
+                  <View style={styles.tileIconPink}><MaterialIcons name="local-cafe" size={17} color="#83721f" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Hangout</Text><Text style={styles.rowSub}>A card with time and place, accept or decline</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#A9A1AB" />
+                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
                 </Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a meetup card" onPress={() => { onClose(); onSuggestPlan("meetup"); }} style={styles.row}>
                   <View style={styles.tileIconBlue}><MaterialIcons name="event-available" size={17} color="#7393A8" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Meetup</Text><Text style={styles.rowSub}>Adds an arrival check-in for the day</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#A9A1AB" />
+                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
                 </Pressable>
               </>
             ) : null}
@@ -153,11 +153,11 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 </View>
                 <View style={styles.actions}>
                   <Pressable accessibilityRole="button" accessibilityLabel={recording ? "Stop recording" : "Start recording"} onPress={recording ? stopRecording : startRecording} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-                    <MaterialIcons name={recording ? "stop" : "mic"} size={16} color="#FFFFFF" />
+                    <MaterialIcons name={recording ? "stop" : "mic"} size={16} color="#4A4210" />
                     <Text style={styles.primaryText}>{recording ? "Stop" : "Start"}</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={onReviewVoice ? "Review this voice note before sending" : "Send this voice note"} onPress={sendVoice} style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}>
-                    <MaterialIcons name="send" size={15} color="#7C7286" />
+                    <MaterialIcons name="send" size={15} color="#83721f" />
                     <Text style={styles.ghostText}>{onReviewVoice ? "Preview" : "Send"}</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel="Back to attachments" onPress={() => { stopRecording(); setMode("menu"); }} style={styles.ghost}>
@@ -177,7 +177,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                   <Pressable key={place} accessibilityRole="button" accessibilityLabel={`Share ${place}`} onPress={() => { onSend({ kind: "location", place }); onClose(); }} style={styles.row}>
                     <View style={styles.tileIconGreen}><MaterialIcons name="place" size={16} color="#6E9C86" /></View>
                     <View style={styles.copy}><Text style={styles.rowTitle} numberOfLines={1}>{place.split(" · ")[0]}</Text><Text style={styles.rowSub}>{place.split(" · ")[1]}</Text></View>
-                    <MaterialIcons name="send" size={15} color="#A9A1AB" />
+                    <MaterialIcons name="send" size={15} color="#a5a49e" />
                   </Pressable>
                 ))}
                 <Pressable accessibilityRole="button" accessibilityLabel="Back to attachments" onPress={() => setMode("menu")} style={styles.cancel}>
@@ -197,38 +197,38 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
 }
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(58,49,64,0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", overflow: "hidden", shadowColor: "#5C4F63", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)", overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, padding: 14, paddingBottom: 16 },
-  handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150,140,155,0.35)", marginBottom: 9 },
-  eyebrow: { color: "#A79FAB", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
-  title: { color: "#4E4856", fontSize: 13, fontWeight: "700", marginTop: 3 },
+  handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
+  eyebrow: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
+  title: { color: "#4e4a3b", fontSize: 13, fontWeight: "700", marginTop: 3 },
   grid: { flexDirection: "row", gap: 8, marginTop: 11 },
-  tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", backgroundColor: "rgba(255,255,255,0.7)", paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#7A6E80", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  tileIconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(246,238,247,0.92)" },
-  tileIconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238,244,248,0.92)" },
-  tileIconGreen: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238,246,241,0.92)" },
-  tileTitle: { color: "#554F59", fontSize: 10.5, fontWeight: "650" as any, marginTop: 3 },
-  tileSub: { color: "#948C99", fontSize: 8.5 },
-  divider: { height: 1, backgroundColor: "rgba(224,218,226,0.7)", marginVertical: 11 },
+  tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(255, 255, 255, 0.7)", paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#75726a", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  tileIconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)" },
+  tileIconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238, 244, 248, 0.92)" },
+  tileIconGreen: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238, 246, 241, 0.92)" },
+  tileTitle: { color: "#53514c", fontSize: 10.5, fontWeight: "650" as any, marginTop: 3 },
+  tileSub: { color: "#918f87", fontSize: 8.5 },
+  divider: { height: 1, backgroundColor: "rgba(224, 221, 203, 0.7)", marginVertical: 11 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   copy: { flex: 1, minWidth: 0 },
-  rowTitle: { color: "#554F59", fontSize: 11, fontWeight: "650" as any },
-  rowSub: { color: "#948C99", fontSize: 9, marginTop: 2 },
+  rowTitle: { color: "#53514c", fontSize: 11, fontWeight: "650" as any },
+  rowSub: { color: "#918f87", fontSize: 9, marginTop: 2 },
   recordRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 10 },
-  recordDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#D5CBD8" },
+  recordDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#d5ceb0" },
   recordDotLive: { backgroundColor: "#D07E8E" },
-  recordTime: { color: "#6E6672", fontSize: 11, fontWeight: "700" },
+  recordTime: { color: "#6b6962", fontSize: 11, fontWeight: "700" },
   waveRow: { flexDirection: "row", alignItems: "flex-end", gap: 3, height: 28, marginTop: 8 },
-  waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(200,178,204,0.7)" },
-  waveBarLive: { backgroundColor: "#B98FB4" },
+  waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
+  waveBarLive: { backgroundColor: "#E9D177" },
   actions: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13, flexWrap: "wrap" },
-  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
-  primaryText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
-  ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "rgba(255,255,255,0.68)" },
-  ghostText: { color: "#7C7286", fontSize: 10, fontWeight: "650" as any },
-  note: { color: "#948C99", fontSize: 9, lineHeight: 14, marginTop: 9 },
+  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  primaryText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
+  ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.68)" },
+  ghostText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
+  note: { color: "#918f87", fontSize: 9, lineHeight: 14, marginTop: 9 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 3 },
-  cancelText: { color: "#8C8492", fontSize: 10, fontWeight: "600" },
+  cancelText: { color: "#89877e", fontSize: 10, fontWeight: "600" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

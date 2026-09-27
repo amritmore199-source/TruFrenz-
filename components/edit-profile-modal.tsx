@@ -96,7 +96,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
           <BlurView intensity={56} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close edit profile" onPress={onClose} />
-          <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252,249,252,0.94)", glassOpacity) }]}>
+          <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.94)", glassOpacity) }]}>
             <BlurView intensity={64} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
             <View style={styles.header}>
               <View style={styles.headerText}>
@@ -107,7 +107,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 <Text style={styles.completenessText}>{completeness}%</Text>
               </View>
               <Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close edit profile">
-                <MaterialIcons name="close" size={19} color="#746A7D" />
+                <MaterialIcons name="close" size={19} color="#726e59" />
               </Pressable>
             </View>
 
@@ -119,7 +119,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 </View>
                 {badge.canGetVerified ? (
                   <Pressable onPress={onStartVerification} accessibilityLabel="Get verified with ID and selfie" style={({ pressed }) => [styles.verifyButton, pressed && styles.pressed]}>
-                    <MaterialIcons name="badge" size={14} color="#FFFFFF" />
+                    <MaterialIcons name="badge" size={14} color="#4A4210" />
                     <Text style={styles.verifyButtonText}>Get Verified</Text>
                   </Pressable>
                 ) : null}
@@ -136,18 +136,18 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                         <View style={styles.primaryFlag}><Text style={styles.primaryFlagText}>Primary</Text></View>
                       ) : (
                         <Pressable onPress={() => patch({ primaryPhotoId: photo.id })} accessibilityLabel={`Make photo ${index + 1} primary`} style={styles.primaryAction}>
-                          <MaterialIcons name="star-outline" size={13} color="#7A6B80" />
+                          <MaterialIcons name="star-outline" size={13} color="#757159" />
                         </Pressable>
                       )}
                       <View style={styles.photoControls}>
                         <Pressable onPress={() => onChange({ ...profile, photos: move(profile.photos, index, -1), primaryPhotoId: profile.primaryPhotoId })} disabled={index === 0} accessibilityLabel={`Move photo ${index + 1} earlier`} style={[styles.photoControl, index === 0 && styles.photoControlDisabled]}>
-                          <MaterialIcons name="chevron-left" size={15} color="#6E6474" />
+                          <MaterialIcons name="chevron-left" size={15} color="#6a6760" />
                         </Pressable>
                         <Pressable onPress={() => onChange({ ...profile, photos: move(profile.photos, index, 1), primaryPhotoId: profile.primaryPhotoId })} disabled={index === profile.photos.length - 1} accessibilityLabel={`Move photo ${index + 1} later`} style={[styles.photoControl, index === profile.photos.length - 1 && styles.photoControlDisabled]}>
-                          <MaterialIcons name="chevron-right" size={15} color="#6E6474" />
+                          <MaterialIcons name="chevron-right" size={15} color="#6a6760" />
                         </Pressable>
                         <Pressable onPress={() => onChange(removePhoto(profile, photo.id))} accessibilityLabel={`Remove photo ${index + 1}`} style={styles.photoControl}>
-                          <MaterialIcons name="delete-outline" size={15} color="#A2727E" />
+                          <MaterialIcons name="delete-outline" size={15} color="#83721f" />
                         </Pressable>
                       </View>
                     </View>
@@ -155,7 +155,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 })}
                 {profile.photos.length < MAX_PHOTOS ? (
                   <Pressable onPress={onAddPhoto} accessibilityLabel="Add a photo" style={({ pressed }) => [styles.addPhoto, pressed && styles.pressed]}>
-                    <MaterialIcons name="add-a-photo" size={22} color="#9A8AA0" />
+                    <MaterialIcons name="add-a-photo" size={22} color="#83721f" />
                     <Text style={styles.addPhotoText}>Add photo</Text>
                   </Pressable>
                 ) : null}
@@ -168,7 +168,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 value={profile.name}
                 onChangeText={(value) => { patch({ name: value }); setErrors((current) => ({ ...current, name: undefined })); }}
                 placeholder="What do people call you?"
-                placeholderTextColor="#AAA4AC"
+                placeholderTextColor="#a7a6a1"
                 style={styles.input}
                 returnKeyType="done"
               />
@@ -188,7 +188,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   value={statusText}
                   onChangeText={(value) => setStatusText(clampStatus(value))}
                   placeholder="free this weekend"
-                  placeholderTextColor="#AAA4AC"
+                  placeholderTextColor="#a7a6a1"
                   style={[styles.input, styles.statusInput]}
                   maxLength={MAX_STATUS_LENGTH}
                   returnKeyType="done"
@@ -236,7 +236,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
               </View>
               {statusText.trim() ? (
                 <Pressable accessibilityLabel="Clear status" onPress={() => { setStatusText(""); setStatusEmoji(""); }} style={styles.statusClear}>
-                  <MaterialIcons name="close" size={13} color="#8C8492" />
+                  <MaterialIcons name="close" size={13} color="#89877e" />
                   <Text style={styles.statusClearText}>Clear status</Text>
                 </Pressable>
               ) : null}
@@ -245,7 +245,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
               <Text style={styles.sectionLabel}>AGE · LOCKED TO YOUR VERIFIED DATE OF BIRTH</Text>
               <View style={[styles.input, styles.lockedField]}>
                 <Text style={styles.lockedValue}>{profile.age}</Text>
-                <MaterialIcons name="lock" size={14} color="#9A939E" />
+                <MaterialIcons name="lock" size={14} color="#98958f" />
               </View>
               <Text style={styles.hint}>Ages stay accurate because they come from verification, not a free-text field.</Text>
 
@@ -266,7 +266,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 value={profile.locality}
                 onChangeText={(value) => { patch({ locality: value, localityAutoFilled: false }); setErrors((current) => ({ ...current, locality: undefined })); }}
                 placeholder="Your neighborhood"
-                placeholderTextColor="#AAA4AC"
+                placeholderTextColor="#a7a6a1"
                 style={styles.input}
                 returnKeyType="done"
               />
@@ -288,7 +288,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                 value={profile.bio}
                 onChangeText={(value) => patch({ bio: clampBio(value) })}
                 placeholder="A line or two about what you enjoy."
-                placeholderTextColor="#AAA4AC"
+                placeholderTextColor="#a7a6a1"
                 style={[styles.input, styles.bioInput]}
                 multiline
                 maxLength={MAX_BIO_LENGTH}
@@ -337,11 +337,11 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   <Text style={styles.switchTitle}>Available for a hello</Text>
                   <Text style={styles.switchSub}>Controls discovery and whether friends can reach you.</Text>
                 </View>
-                <Switch accessibilityLabel="Available for a hello" value={profile.available} onValueChange={(value) => patch({ available: value })} trackColor={{ false: "#DDD9E1", true: "#B9D9E9" }} thumbColor="#FFFFFF" />
+                <Switch accessibilityLabel="Available for a hello" value={profile.available} onValueChange={(value) => patch({ available: value })} trackColor={{ false: "#dddace", true: "#B9D9E9" }} thumbColor="#FFFFFF" />
               </View>
 
               <Pressable onPress={() => setPrivacyOpen((current) => !current)} accessibilityLabel="Toggle privacy controls" style={styles.privacyHeader}>
-                <MaterialIcons name={privacyOpen ? "expand-less" : "expand-more"} size={18} color="#8A7C90" />
+                <MaterialIcons name={privacyOpen ? "expand-less" : "expand-more"} size={18} color="#83721f" />
                 <Text style={styles.privacyTitle}>Privacy controls</Text>
                 <Text style={styles.privacySummary}>{REQUEST_AUDIENCE_OPTIONS.find((option) => option.value === profile.privacy.requestAudience)?.label}</Text>
               </Pressable>
@@ -360,17 +360,17 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide from discovery</Text><Text style={styles.switchSub}>You stay invisible in suggestions.</Text></View>
-                    <Switch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" />
+                    <Switch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" />
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide exact locality</Text><Text style={styles.switchSub}>Show only a broad “~X km” range.</Text></View>
-                    <Switch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#DDD9E1", true: "#E6C8DA" }} thumbColor="#FFFFFF" />
+                    <Switch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" />
                   </View>
                   <Pressable onPress={() => onNotify(`Block list · ${profile.privacy.blockedIds.length} blocked member(s).`)} accessibilityLabel="Open block list" style={({ pressed }) => [styles.blockList, pressed && styles.pressed]}>
-                    <MaterialIcons name="block" size={15} color="#96788F" />
+                    <MaterialIcons name="block" size={15} color="#83721f" />
                     <Text style={styles.blockListText}>Block list</Text>
                     <Text style={styles.blockListCount}>{profile.privacy.blockedIds.length}</Text>
-                    <MaterialIcons name="chevron-right" size={17} color="#A69FAB" />
+                    <MaterialIcons name="chevron-right" size={17} color="#a4a19b" />
                   </Pressable>
                 </View>
               ) : null}
@@ -382,7 +382,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
               </Pressable>
               <Pressable onPress={handleSave} accessibilityLabel="Save profile" style={({ pressed }) => [styles.saveButton, pressed && styles.pressed]}>
                 <Text style={styles.saveText}>Save profile</Text>
-                <MaterialIcons name="check" size={16} color="#FFFFFF" />
+                <MaterialIcons name="check" size={16} color="#4A4210" />
               </Pressable>
             </View>
           </View>
@@ -408,71 +408,71 @@ function removePhoto(profile: EditableProfile, photoId: string): EditableProfile
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(80,66,87,0.22)" },
-  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", shadowColor: "#57465C", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
-  header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 15, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: "rgba(220,212,222,0.55)" },
+  scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(77, 71, 43, 0.22)" },
+  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#534c2e", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
+  header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 15, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: "rgba(219, 215, 192, 0.55)" },
   headerText: { flex: 1 },
-  eyebrow: { color: "#9B8B9B", fontSize: 8, fontWeight: "700", letterSpacing: 1 },
-  title: { color: "#4B4551", fontSize: 16, fontWeight: "700", marginTop: 3 },
-  completeness: { minWidth: 40, height: 26, borderRadius: 10, backgroundColor: "rgba(240,233,243,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
-  completenessText: { color: "#8B718F", fontSize: 9.5, fontWeight: "800" },
-  close: { width: 31, height: 31, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.86)", borderWidth: 1, borderColor: "rgba(255,255,255,0.99)", alignItems: "center", justifyContent: "center" },
+  eyebrow: { color: "#929087", fontSize: 8, fontWeight: "700", letterSpacing: 1 },
+  title: { color: "#4a483a", fontSize: 16, fontWeight: "700", marginTop: 3 },
+  completeness: { minWidth: 40, height: 26, borderRadius: 10, backgroundColor: "rgba(242, 236, 202, 0.92)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
+  completenessText: { color: "#83721f", fontSize: 9.5, fontWeight: "800" },
+  close: { width: 31, height: 31, borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center" },
   body: { padding: 16, paddingBottom: 8 },
   badgeRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   badge: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "#EAF4EF" },
   badgePhone: { backgroundColor: "#EDF1F4" },
   badgeText: { color: "#568C77", fontSize: 9.5, fontWeight: "600" },
   badgeTextPhone: { color: "#788B9A" },
-  verifyButton: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.64)" },
-  verifyButtonText: { color: "#FFFFFF", fontSize: 9.5, fontWeight: "700" },
-  sectionLabel: { color: "#9B8B9B", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 15, marginBottom: 7 },
+  verifyButton: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.64)" },
+  verifyButtonText: { color: "#4A4210", fontSize: 9.5, fontWeight: "700" },
+  sectionLabel: { color: "#929087", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 15, marginBottom: 7 },
   photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  photoTile: { width: 78, height: 78, borderRadius: 15, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)", backgroundColor: "rgba(240,233,243,0.9)" },
+  photoTile: { width: 78, height: 78, borderRadius: 15, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", backgroundColor: "rgba(242, 236, 202, 0.9)" },
   photoImage: { width: "100%", height: "100%" },
-  primaryFlag: { position: "absolute", left: 4, top: 4, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: "rgba(112,165,139,0.94)" },
+  primaryFlag: { position: "absolute", left: 4, top: 4, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: "rgba(112, 165, 139, 0.94)" },
   primaryFlagText: { color: "#FFFFFF", fontSize: 7, fontWeight: "800" },
-  primaryAction: { position: "absolute", right: 4, top: 4, width: 20, height: 20, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center" },
-  photoControls: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", justifyContent: "space-between", backgroundColor: "rgba(252,249,252,0.86)" },
+  primaryAction: { position: "absolute", right: 4, top: 4, width: 20, height: 20, borderRadius: 8, backgroundColor: "rgba(255, 255, 255, 0.9)", alignItems: "center", justifyContent: "center" },
+  photoControls: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", justifyContent: "space-between", backgroundColor: "rgba(252, 250, 242, 0.86)" },
   photoControl: { flex: 1, height: 21, alignItems: "center", justifyContent: "center" },
   photoControlDisabled: { opacity: 0.35 },
-  addPhoto: { width: 78, height: 78, borderRadius: 15, alignItems: "center", justifyContent: "center", gap: 3, backgroundColor: "rgba(255,255,255,0.62)", borderWidth: 1, borderStyle: "dashed", borderColor: "rgba(214,201,220,0.95)" },
-  addPhotoText: { color: "#8E8394", fontSize: 8, fontWeight: "600" },
-  hint: { color: "#9A939E", fontSize: 8, lineHeight: 13, marginTop: 7 },
-  input: { minHeight: 40, borderRadius: 13, paddingHorizontal: 12, backgroundColor: "rgba(255,255,255,0.7)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", color: "#5B535F", fontSize: 11 },
+  addPhoto: { width: 78, height: 78, borderRadius: 15, alignItems: "center", justifyContent: "center", gap: 3, backgroundColor: "rgba(255, 255, 255, 0.62)", borderWidth: 1, borderStyle: "dashed", borderColor: "rgba(217, 206, 155, 0.95)" },
+  addPhotoText: { color: "#8a877d", fontSize: 8, fontWeight: "600" },
+  hint: { color: "#98958f", fontSize: 8, lineHeight: 13, marginTop: 7 },
+  input: { minHeight: 40, borderRadius: 13, paddingHorizontal: 12, backgroundColor: "rgba(255, 255, 255, 0.7)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", color: "#58564f", fontSize: 11 },
   bioInput: { minHeight: 70, paddingTop: 10, textAlignVertical: "top" },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  statusEmojiButton: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", shadowColor: "#6B5A73", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  statusEmojiButton: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#68613d", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   statusEmojiText: { fontSize: 17 },
   statusInput: { flex: 1 },
-  statusPreviewLabel: { color: "#A79FAB", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9, marginTop: 12 },
-  statusPreview: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(244,236,247,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)" },
-  statusPreviewDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#C79BC0" },
-  statusPreviewText: { flex: 1, color: "#6B6273", fontSize: 10.5, fontWeight: "600" },
+  statusPreviewLabel: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9, marginTop: 12 },
+  statusPreview: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(246, 240, 209, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)" },
+  statusPreviewDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#E9D177" },
+  statusPreviewText: { flex: 1, color: "#68655e", fontSize: 10.5, fontWeight: "600" },
   statusClear: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", marginTop: 8 },
-  statusClearText: { color: "#8C8492", fontSize: 9.5, fontWeight: "600" },
-  lockedField: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(238,235,240,0.8)" },
-  lockedValue: { color: "#6E6474", fontSize: 12, fontWeight: "700" },
+  statusClearText: { color: "#89877e", fontSize: 9.5, fontWeight: "600" },
+  lockedField: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(239, 237, 225, 0.8)" },
+  lockedValue: { color: "#6a6760", fontSize: 12, fontWeight: "700" },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(255,255,255,0.66)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
-  chipActive: { backgroundColor: "rgba(238,228,240,0.96)", borderColor: "rgba(222,205,226,1)" },
-  chipText: { color: "#867E8C", fontSize: 9, fontWeight: "600" },
-  chipTextActive: { color: "#755F7B", fontWeight: "700" },
-  fieldError: { color: "#B57184", fontSize: 8.5, lineHeight: 13, marginTop: 6 },
-  switchRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.6)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
+  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(255, 255, 255, 0.66)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  chipActive: { backgroundColor: "rgba(239, 232, 193, 0.96)", borderColor: "rgba(224, 211, 147, 1)" },
+  chipText: { color: "#838179", fontSize: 9, fontWeight: "600" },
+  chipTextActive: { color: "#6f6740", fontWeight: "700" },
+  fieldError: { color: "#83721f", fontSize: 8.5, lineHeight: 13, marginTop: 6 },
+  switchRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.6)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
   switchText: { flex: 1 },
-  switchTitle: { color: "#5B535F", fontSize: 10, fontWeight: "700" },
-  switchSub: { color: "#97909A", fontSize: 8, marginTop: 3 },
-  privacyHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingHorizontal: 11, paddingVertical: 11, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.6)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
-  privacyTitle: { flex: 1, color: "#5B535F", fontSize: 10.5, fontWeight: "700" },
-  privacySummary: { color: "#8E8595", fontSize: 8.5 },
+  switchTitle: { color: "#58564f", fontSize: 10, fontWeight: "700" },
+  switchSub: { color: "#94928d", fontSize: 8, marginTop: 3 },
+  privacyHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingHorizontal: 11, paddingVertical: 11, borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.6)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  privacyTitle: { flex: 1, color: "#58564f", fontSize: 10.5, fontWeight: "700" },
+  privacySummary: { color: "#8c887f", fontSize: 8.5 },
   privacyBody: { paddingHorizontal: 2 },
-  blockList: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.6)", borderWidth: 1, borderColor: "rgba(255,255,255,0.96)" },
-  blockListText: { flex: 1, color: "#5B535F", fontSize: 10, fontWeight: "700" },
-  blockListCount: { color: "#8E8595", fontSize: 9 },
-  footer: { flexDirection: "row", gap: 9, padding: 14, borderTopWidth: 1, borderTopColor: "rgba(220,212,222,0.55)" },
-  ghostButton: { flex: 1, minHeight: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.98)" },
-  ghostText: { color: "#7C7084", fontSize: 10.5, fontWeight: "700" },
-  saveButton: { flex: 1.4, minHeight: 42, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.64)", shadowColor: "#604F67", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  saveText: { color: "#FFFFFF", fontSize: 10.5, fontWeight: "700" },
+  blockList: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.6)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  blockListText: { flex: 1, color: "#58564f", fontSize: 10, fontWeight: "700" },
+  blockListCount: { color: "#8c887f", fontSize: 9 },
+  footer: { flexDirection: "row", gap: 9, padding: 14, borderTopWidth: 1, borderTopColor: "rgba(219, 215, 192, 0.55)" },
+  ghostButton: { flex: 1, minHeight: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
+  ghostText: { color: "#83721f", fontSize: 10.5, fontWeight: "700" },
+  saveButton: { flex: 1.4, minHeight: 42, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.64)", shadowColor: "#5c5634", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  saveText: { color: "#4A4210", fontSize: 10.5, fontWeight: "700" },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
 });

@@ -36,13 +36,13 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const checkedIn = Boolean(card.checkedInAt);
   const first = friendName.split(" ")[0] || friendName;
 
-  const accent = card.kind === "meetup" ? "#9A7796" : "#7C94A5";
-  const accentSoft = card.kind === "meetup" ? "rgba(246,238,247,0.9)" : "rgba(238,244,248,0.9)";
+  const accent = card.kind === "meetup" ? "#83721f" : "#7C94A5";
+  const accentSoft = card.kind === "meetup" ? "rgba(247, 241, 214, 0.9)" : "rgba(238, 244, 248, 0.9)";
 
   return (
     <View
       accessibilityLabel={`${label} card, ${timing.label}, ${card.proposal.time} at ${card.proposal.place}, ${card.status}`}
-      style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(255,255,255,0.9)", glassOpacity) }]}
+      style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.9)", glassOpacity) }]}
     >
       <View style={styles.topRow}>
         <View style={[styles.kindPill, { backgroundColor: accentSoft }]}>
@@ -57,15 +57,15 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       <Text style={styles.title}>{card.title}</Text>
 
       <View style={styles.detailRow}>
-        <MaterialIcons name="schedule" size={14} color="#8A7F92" />
+        <MaterialIcons name="schedule" size={14} color="#83721f" />
         <Text style={styles.detailText}>{card.proposal.date} · {card.proposal.time}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="place" size={14} color="#8A7F92" />
+        <MaterialIcons name="place" size={14} color="#83721f" />
         <Text style={styles.detailText} numberOfLines={1}>{card.proposal.place}{card.proposal.area ? ` · ${card.proposal.area}` : ""}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="person-outline" size={14} color="#8A7F92" />
+        <MaterialIcons name="person-outline" size={14} color="#83721f" />
         <Text style={styles.detailText}>{mine ? "You suggested this" : `${first} suggested this`}</Text>
       </View>
 
@@ -77,13 +77,13 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       ) : null}
       {card.status === "declined" ? (
         <View style={styles.stateRow}>
-          <MaterialIcons name="info-outline" size={14} color="#9A8F9E" />
+          <MaterialIcons name="info-outline" size={14} color="#95938a" />
           <Text style={styles.stateText}>{card.declineReason ?? "They can't make it this time."} No reply is expected — try another day whenever you like.</Text>
         </View>
       ) : null}
       {card.status === "rescheduled" ? (
         <View style={styles.stateRow}>
-          <MaterialIcons name="update" size={14} color="#9A7796" />
+          <MaterialIcons name="update" size={14} color="#83721f" />
           <Text style={styles.stateText}>New time suggested. {mine ? `${first} proposed the change` : "You proposed the change"}.</Text>
         </View>
       ) : null}
@@ -97,7 +97,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       {canRespond ? (
         <View style={styles.actions}>
           <Pressable accessibilityRole="button" accessibilityLabel={`Accept ${label.toLowerCase()}`} onPress={() => onRespond("accept")} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}>
-            <MaterialIcons name="check" size={15} color="#FFFFFF" />
+            <MaterialIcons name="check" size={15} color="#4A4210" />
             <Text style={styles.primaryActionText}>Accept</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`Propose a new time for this ${label.toLowerCase()}`} onPress={() => onRespond("propose-new-time")} style={({ pressed }) => [styles.ghostAction, pressed && styles.pressed]}>
@@ -117,7 +117,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       ) : null}
 
       <Pressable accessibilityRole="button" accessibilityLabel={`Copy the ${label.toLowerCase()} link`} onPress={onCopyLink} style={styles.linkRow}>
-        <MaterialIcons name="link" size={13} color="#8E8595" />
+        <MaterialIcons name="link" size={13} color="#8c887f" />
         <Text style={styles.linkText} numberOfLines={1}>{card.link}</Text>
         <Text style={styles.linkAction}>Copy</Text>
       </Pressable>
@@ -126,26 +126,26 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.96)", paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#7A6E80", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { borderRadius: 18, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#75726a", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   kindPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   kindText: { fontSize: 9, fontWeight: "700", letterSpacing: 0.4 },
-  timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(244,240,246,0.86)" },
-  timingText: { color: "#7C7286", fontSize: 9, fontWeight: "700" },
-  timingToday: { color: "#A2568B" },
-  title: { color: "#4E4856", fontSize: 12, fontWeight: "700", marginTop: 2 },
+  timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(245, 242, 223, 0.86)" },
+  timingText: { color: "#83721f", fontSize: 9, fontWeight: "700" },
+  timingToday: { color: "#806f1c" },
+  title: { color: "#4e4a3b", fontSize: 12, fontWeight: "700", marginTop: 2 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  detailText: { flex: 1, color: "#6E6672", fontSize: 10, fontWeight: "600" },
-  stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(246,242,247,0.82)" },
-  stateText: { flex: 1, color: "#6E6672", fontSize: 9.5, lineHeight: 14 },
+  detailText: { flex: 1, color: "#6b6962", fontSize: 10, fontWeight: "600" },
+  stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(246, 244, 229, 0.82)" },
+  stateText: { flex: 1, color: "#6b6962", fontSize: 9.5, lineHeight: 14 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#9D7E9E", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
-  primaryActionText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
-  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", backgroundColor: "rgba(255,255,255,0.66)" },
-  ghostActionText: { color: "#7C7286", fontSize: 10, fontWeight: "650" as any },
-  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  primaryActionText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
+  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.66)" },
+  ghostActionText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
+  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
-  linkText: { flex: 1, color: "#8E8595", fontSize: 8.5 },
-  linkAction: { color: "#9A7796", fontSize: 9, fontWeight: "700" },
+  linkText: { flex: 1, color: "#8c887f", fontSize: 8.5 },
+  linkAction: { color: "#83721f", fontSize: 9, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

@@ -29,8 +29,8 @@ describe("appearance preferences", () => {
   });
 
   it("applies opacity while preserving each glass surface's tint", () => {
-    expect(glassSurfaceColor("rgba(255,255,255,0.79)", 60)).toBe("rgba(255, 255, 255, 0.6)");
-    expect(glassSurfaceColor("rgba(234,223,235,0.94)", 90)).toBe("rgba(234, 223, 235, 0.9)");
+    expect(glassSurfaceColor("rgba(255, 255, 255, 0.79)", 60)).toBe("rgba(255, 255, 255, 0.6)");
+    expect(glassSurfaceColor("rgba(233, 227, 193, 0.94)", 90)).toBe("rgba(233, 227, 193, 0.9)");
     expect(glassSurfaceColor("#FFFFFF", 70)).toBe("#FFFFFF");
   });
 });

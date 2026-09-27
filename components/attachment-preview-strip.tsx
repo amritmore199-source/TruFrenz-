@@ -62,7 +62,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
         style={[
           StyleSheet.absoluteFillObject,
           styles.tint,
-          { backgroundColor: glassSurfaceColor("rgba(252,250,253,0.82)", glassOpacity) },
+          { backgroundColor: glassSurfaceColor("rgba(252, 251, 243, 0.82)", glassOpacity) },
         ]}
       />
 
@@ -93,7 +93,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
         onPress={onRemove}
         style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
       >
-        <MaterialIcons name="close" size={15} color="#8A7F90" />
+        <MaterialIcons name="close" size={15} color="#868379" />
       </Pressable>
     </Animated.View>
   );
@@ -108,11 +108,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.94)",
+    borderColor: "rgba(255, 255, 255, 0.94)",
     paddingHorizontal: 9,
     paddingVertical: 8,
     overflow: "hidden",
-    shadowColor: "#817888",
+    shadowColor: "#7e7b73",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
     shadowRadius: 9,
@@ -120,12 +120,12 @@ const styles = StyleSheet.create({
   },
   blur: { borderRadius: 15, overflow: "hidden" },
   tint: { borderRadius: 15 },
-  thumbFrame: { width: 40, height: 40, borderRadius: 12, overflow: "hidden", backgroundColor: "rgba(238,240,245,0.9)" },
+  thumbFrame: { width: 40, height: 40, borderRadius: 12, overflow: "hidden", backgroundColor: "rgba(238, 240, 245, 0.9)" },
   thumb: { width: "100%", height: "100%" },
-  voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(236,242,247,0.94)" },
+  voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(236, 242, 247, 0.94)" },
   copy: { flex: 1, minWidth: 0 },
-  title: { color: "#4E4856", fontSize: 11, fontWeight: "650" as any },
-  meta: { color: "#8E8697", fontSize: 9, marginTop: 2 },
+  title: { color: "#4e4a3b", fontSize: 11, fontWeight: "650" as any },
+  meta: { color: "#8c8980", fontSize: 9, marginTop: 2 },
   remove: {
     width: 26,
     height: 26,
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.94)",
-    backgroundColor: "rgba(255,255,255,0.72)",
+    borderColor: "rgba(255, 255, 255, 0.94)",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
   },
   removePressed: { opacity: 0.75 },
 });

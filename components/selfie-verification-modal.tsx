@@ -18,11 +18,11 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage } from "@/lib/selfie-flow";
 
 const colors = {
-  ink: "#45404B",
-  muted: "#89838E",
-  purple: "#957A99",
-  glass: "rgba(255,255,255,0.82)",
-  stroke: "rgba(255,255,255,0.97)",
+  ink: "#43423d",
+  muted: "#88857f",
+  purple: "#83721f",
+  glass: "rgba(255, 255, 255, 0.82)",
+  stroke: "rgba(255, 255, 255, 0.97)",
   green: "#70A889",
 };
 
@@ -137,7 +137,7 @@ export function SelfieVerificationModal({
           <Text style={styles.title}>Center your face.</Text>
           <Text style={styles.description}>Remove sunglasses; make sure your full face is visible. No audio is recorded.</Text>
           <View style={styles.captureControls}>
-            <Pressable onPress={onClose} style={styles.cameraClose}><MaterialIcons name="close" size={19} color="#786D7E" /></Pressable>
+            <Pressable onPress={onClose} style={styles.cameraClose}><MaterialIcons name="close" size={19} color="#737168" /></Pressable>
             <Pressable onPress={captureSelfie} accessibilityLabel="Take selfie" style={({ pressed }) => [styles.shutter, pressed && styles.shutterPressed]}><View style={styles.shutterInner}><MaterialIcons name="camera-alt" size={21} color={colors.purple} /></View></Pressable>
             <View style={styles.cameraCloseSpacer} />
           </View>
@@ -166,7 +166,7 @@ export function SelfieVerificationModal({
 
   const renderDenied = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#8E8292" /></View>
+      <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#89867c" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS PAUSED</Text>
       <Text style={styles.title}>No rush. You’re still welcome here.</Text>
       <Text style={styles.description}>To try the selfie check, enable camera access in device settings. You can keep using Trufrenz without it.</Text>
@@ -180,7 +180,7 @@ export function SelfieVerificationModal({
     return (
       <View style={styles.centeredContent}>
         <View style={styles.scanFrame}>
-          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#9D89A1" /></View>}
+          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#83721f" /></View>}
           <View style={styles.scanTint} />
           <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanTranslate }] }]} />
           <View style={styles.scanCornerTop} /><View style={styles.scanCornerBottom} />
@@ -199,7 +199,7 @@ export function SelfieVerificationModal({
       <Text style={styles.kicker}>SELFIE CAPTURED</Text>
       <Text style={styles.title}>That’s a good first step.</Text>
       <Text style={styles.description}>Your photo was captured locally. Identity review is not connected in this prototype, so your profile won’t receive a verified badge yet.</Text>
-      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#8E7890" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
+      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#83721f" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
       <View style={styles.successButtons}><ActionButton onPress={finish} icon="check" title="Done" /><Pressable onPress={() => { setPhotoUri(null); setStage("capture"); }} style={styles.retakeButton}><Text style={styles.retakeText}>Retake</Text></Pressable></View>
     </Animated.View>
   );
@@ -210,7 +210,7 @@ export function SelfieVerificationModal({
         <View style={styles.background}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /></View>
         <View style={styles.header}>
           <View style={styles.headerBrand}><View style={styles.brandMark}><MaterialIcons name="spa" size={15} color="#FFFFFF" /></View><View><Text style={styles.brandText}>Trufrenz</Text><Text style={styles.headerSub}>Selfie identity check</Text></View></View>
-          <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#72697A" /></Pressable>
+          <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#6f6c65" /></Pressable>
         </View>
         <View style={styles.body}>
           {stage === "intro" ? renderIntro() : null}
@@ -233,58 +233,58 @@ function ActionButton({ onPress, icon, title }: { onPress: () => void; icon: key
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FAF8F7" },
   background: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  ambientPink: { position: "absolute", height: 300, width: 300, borderRadius: 150, top: 70, right: -180, backgroundColor: "rgba(246,219,235,0.50)" },
-  ambientBlue: { position: "absolute", height: 260, width: 260, borderRadius: 130, left: -170, bottom: 80, backgroundColor: "rgba(213,234,244,0.55)" },
-  header: { height: 56, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: "rgba(222,215,224,0.45)" },
+  ambientPink: { position: "absolute", height: 300, width: 300, borderRadius: 150, top: 70, right: -180, backgroundColor: "rgba(238, 227, 173, 0.50)" },
+  ambientBlue: { position: "absolute", height: 260, width: 260, borderRadius: 130, left: -170, bottom: 80, backgroundColor: "rgba(213, 234, 244, 0.55)" },
+  header: { height: 56, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: "rgba(222, 218, 197, 0.45)" },
   headerBrand: { flexDirection: "row", alignItems: "center", gap: 9 },
   brandMark: { width: 30, height: 30, borderRadius: 11, backgroundColor: colors.purple, alignItems: "center", justifyContent: "center" },
   brandText: { color: colors.ink, fontSize: 14, fontWeight: "700" },
   headerSub: { color: colors.muted, fontSize: 8, marginTop: 2 },
-  closeButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
+  closeButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   body: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   centeredContent: { width: "100%", alignItems: "center", paddingVertical: 15 },
-  heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(239,228,241,0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
-  kicker: { color: "#A0849E", fontSize: 8, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
+  heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(241, 232, 188, 0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
+  kicker: { color: "#83721f", fontSize: 8, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
   title: { color: colors.ink, fontSize: 24, lineHeight: 30, letterSpacing: -0.65, fontWeight: "700", textAlign: "center", marginTop: 8, maxWidth: 330 },
   description: { color: colors.muted, fontSize: 10, lineHeight: 16, textAlign: "center", marginTop: 8, maxWidth: 340 },
   promiseCard: { alignSelf: "stretch", minHeight: 65, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 9, marginTop: 17, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, overflow: "hidden" },
   promiseCopy: { flex: 1, gap: 3 },
-  promiseTitle: { color: "#6E6473", fontSize: 9, fontWeight: "700" },
-  promiseText: { color: "#938B95", fontSize: 8, lineHeight: 12 },
+  promiseTitle: { color: "#6a6760", fontSize: 9, fontWeight: "700" },
+  promiseText: { color: "#8f8e88", fontSize: 8, lineHeight: 12 },
   primaryButton: { width: "100%", minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, backgroundColor: colors.purple, paddingHorizontal: 13, marginTop: 15 },
   primaryButtonText: { flex: 1, textAlign: "center", color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   buttonPressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
   secondaryButton: { padding: 12, alignItems: "center" },
-  secondaryText: { color: "#8F8495", fontSize: 9, fontWeight: "600" },
+  secondaryText: { color: "#8b887e", fontSize: 9, fontWeight: "600" },
   captureContent: { flex: 1, justifyContent: "center", paddingVertical: 12 },
-  cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#D7D4D9", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
-  cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(39,31,46,0.08)" },
-  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.88)", borderStyle: "dashed" },
-  cameraHint: { position: "absolute", left: 10, right: 10, bottom: 10, minHeight: 31, borderRadius: 11, backgroundColor: "rgba(39,31,46,0.45)", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
+  cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#d6d5d2", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
+  cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(38, 35, 16, 0.08)" },
+  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: "rgba(255, 255, 255, 0.88)", borderStyle: "dashed" },
+  cameraHint: { position: "absolute", left: 10, right: 10, bottom: 10, minHeight: 31, borderRadius: 11, backgroundColor: "rgba(38, 35, 16, 0.45)", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
   cameraHintText: { color: "#FFFFFF", fontSize: 8 },
   captureCopy: { alignItems: "center", paddingTop: 13 },
   captureControls: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 13 },
   cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   cameraCloseSpacer: { width: 38, height: 38 },
-  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#A386A6", backgroundColor: "rgba(255,255,255,0.58)", alignItems: "center", justifyContent: "center" },
+  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#F1DE55", backgroundColor: "rgba(255, 255, 255, 0.58)", alignItems: "center", justifyContent: "center" },
   shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   shutterPressed: { transform: [{ scale: 0.95 }] },
-  deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#EFE9F0", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#efebda", alignItems: "center", justifyContent: "center", marginBottom: 12 },
   permissionIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#E8F0F4", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", marginBottom: 19, backgroundColor: "#F1EDF2" },
+  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", marginBottom: 19, backgroundColor: "#f1efe2" },
   scanPhoto: { width: "100%", height: "100%", resizeMode: "cover" },
   scanPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(207,236,223,0.20)" },
+  scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(207, 236, 223, 0.20)" },
   scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#9AD5B6", shadowColor: "#9AD5B6", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
   scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#72A98B", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
   scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#72A98B", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
-  scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(255,255,255,0.78)" },
-  scanningStatusText: { color: "#827687", fontSize: 8 },
+  scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(255, 255, 255, 0.78)" },
+  scanningStatusText: { color: "#7d7a71", fontSize: 8 },
   successCheck: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: 9 },
-  pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "#F1EAF2", marginTop: 14 },
-  pendingText: { color: "#88778A", fontSize: 8, fontWeight: "600" },
+  pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "#f1edd6", marginTop: 14 },
+  pendingText: { color: "#807c73", fontSize: 8, fontWeight: "600" },
   successButtons: { width: "100%", alignItems: "center" },
   retakeButton: { padding: 11 },
-  retakeText: { color: "#8C7793", fontSize: 9, fontWeight: "700" },
+  retakeText: { color: "#83721f", fontSize: 9, fontWeight: "700" },
   errorText: { color: "#B36D7D", textAlign: "center", fontSize: 9, marginHorizontal: 20, marginBottom: 9 },
 });
