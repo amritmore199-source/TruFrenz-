@@ -5,7 +5,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 
 import { useAppAppearance } from "@/lib/appearance-context";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassNestedSurfaceColor, glassSurfaceColor } from "@/lib/appearance-preferences";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { purchaseButtonLabel, purchaseInFlight, type PurchaseState } from "@/lib/subscription-store";
 import { priceLineFor, savingLineFor, type StorePriceCatalogue } from "@/lib/store-prices";
@@ -177,7 +177,7 @@ export function PremiumPaywall({
           <View style={styles.handle} />
 
           <View style={styles.headerRow}>
-            <View style={styles.crownBadge}>
+            <View style={[styles.crownBadge, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.72)", glassOpacity) }]}>
               <MaterialIcons name="workspace-premium" size={18} color="#796d32" />
             </View>
             <View style={styles.headerText}>
@@ -188,14 +188,14 @@ export function PremiumPaywall({
                   : "Calls, live map, read receipts, and room for 100 friends in a group."}
               </Text>
             </View>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close premium" style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close premium" style={({ pressed }) => [styles.close, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.7)", glassOpacity) }, pressed && styles.pressed]}>
               <MaterialIcons name="close" size={17} color="#6b664c" />
             </Pressable>
           </View>
 
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
             {reason ? (
-              <View style={styles.reasonCard}>
+              <View style={[styles.reasonCard, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.6)", glassOpacity) }]}>
                 <MaterialIcons name="info-outline" size={15} color="#83721f" />
                 <Text style={styles.reasonText}>{reason}</Text>
               </View>
@@ -226,7 +226,7 @@ export function PremiumPaywall({
                         accessibilityRole="radio"
                         accessibilityState={{ selected: isSelected }}
                         accessibilityLabel={`${plan.label}, ${priced.line}${saving ? `, ${saving}` : ""}`}
-                        style={({ pressed }) => [styles.planCard, isSelected && styles.planCardSelected, pressed && styles.pressed]}
+                        style={({ pressed }) => [styles.planCard, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.56)", glassOpacity) }, isSelected && styles.planCardSelected, pressed && styles.pressed]}
                       >
                         <Text style={[styles.planName, isSelected && styles.planNameSelected]}>{plan.label}</Text>
                         <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
@@ -236,7 +236,7 @@ export function PremiumPaywall({
                           {plan.months === 1 ? "1 month" : `${plan.months} months`}
                         </Text>
                         {saving ? (
-                          <View style={[styles.savePill, isSelected && styles.savePillSelected]}>
+                          <View style={[styles.savePill, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.75)", glassOpacity) }, isSelected && styles.savePillSelected]}>
                             <Text style={[styles.savePillText, isSelected && styles.savePillTextSelected]}>{saving}</Text>
                           </View>
                         ) : (
@@ -275,7 +275,7 @@ export function PremiumPaywall({
             )}
 
             <Text style={styles.sectionLabel}>WHAT CHANGES</Text>
-            <View style={styles.featureCard}>
+            <View style={[styles.featureCard, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.56)", glassOpacity) }]}>
               {rows.map((row, index) => (
                 <View key={row.label} style={[styles.featureRow, index > 0 && styles.featureDivider]}>
                   <View style={styles.featureLabelWrap}>
@@ -312,7 +312,7 @@ export function PremiumPaywall({
             <Text style={styles.sectionLabel}>OFFERS</Text>
             <View style={styles.offerList}>
               {LAUNCH_OFFERS.map((offer) => (
-                <View key={offer.id} style={styles.offerRow}>
+                <View key={offer.id} style={[styles.offerRow, { backgroundColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.5)", glassOpacity) }]}>
                   <MaterialIcons name="star-outline" size={14} color="#83721f" />
                   <View style={styles.offerRowText}>
                     <Text style={styles.offerTitle}>{offer.title}</Text>

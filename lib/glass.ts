@@ -26,7 +26,7 @@
 export type GlassTint = "sky" | "lemon";
 
 /** A named surface, so each kind can carry its own weight. */
-export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field";
+export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" | "floater";
 
 /** The brightest glass weight for any surface. Beyond this it stops being glass. */
 export const MAX_GLASS_ALPHA = 0.46;
@@ -36,6 +36,14 @@ const BASE_ALPHA = 0.24;
 
 /** How much a surface's own declared alpha can add, at most. */
 const MAX_DECLARED_WEIGHT = 0.11;
+
+/*
+ * The band a nested surface's weight falls in. It tops out below the lightest
+ * sheet weight so a row can never out-weigh the surface it sits on, and it has
+ * enough spread that two rows declaring different alphas still differ.
+ */
+const NESTED_MIN_WEIGHT = -0.02;
+const NESTED_MAX_WEIGHT = 0.04;
 
 /** How much the member's lightest setting can add, at most. */
 const MAX_SETTING_WEIGHT = 0.1;
@@ -85,6 +93,74 @@ export function activeGlassTint(): GlassTint {
   return activeTint;
 }
 
+/**
+ * One-tap glass presets.
+ *
+ * Tuning six values by hand to find a look is work, and most members only ever
+ * want one of a few sensible settings. Each preset is just a setting plus a
+ * cast, so it stays inside the same tested range as the manual controls and the
+ * preset can be recognised again from the current values.
+ */
+export const GLASS_PRESETS = [
+  { id: "subtle", label: "Subtle", glassOpacity: 50, glassTint: "sky" },
+  { id: "balanced", label: "Balanced", glassOpacity: 80, glassTint: "sky" },
+  { id: "strong", label: "Strong", glassOpacity: 95, glassTint: "lemon" },
+] as const satisfies ReadonlyArray<{
+  id: string;
+  label: string;
+  glassOpacity: number;
+  glassTint: GlassTint;
+}>;
+
+export type GlassPreset = (typeof GLASS_PRESETS)[number];
+export type GlassPresetId = GlassPreset["id"];
+
+/** Which preset, if any, the current values match. */
+export function matchGlassPreset(
+  glassOpacity: number,
+  tint: GlassTint,
+): GlassPresetId | null {
+  const found = GLASS_PRESETS.find(
+    (preset) => preset.glassOpacity === glassOpacity && preset.glassTint === tint,
+  );
+  return found ? found.id : null;
+}
+
+/**
+ * Per-tab glass weight.
+ *
+ * The tab bar is one surface, but the content behind it differs a lot: the chat
+ * list is dense with small rows while Meetups is mostly open wallpaper. A single
+ * weight made the bar look heavy over the denser tab and washed out over the
+ * emptier one, so each tab nudges the weight a little. The offsets stay small
+ * enough that the bar never reads as a different component.
+ */
+export type TabAccent = "chats" | "friends" | "meetups" | "you";
+
+const TAB_ACCENT_OFFSET: Record<TabAccent, number> = {
+  chats: -0.03,
+  friends: 0,
+  meetups: 0.02,
+  you: 0.04,
+};
+
+/** Alpha for the tab bar over a given tab. */
+export function tabBarAlpha(tab: TabAccent | null, glassOpacity: number): number {
+  const offset = tab ? TAB_ACCENT_OFFSET[tab] ?? 0 : 0;
+  const weight = (SURFACE_WEIGHT.tab ?? 0) + offset;
+  return clampAlpha(BASE_ALPHA + weight + transparencyFromSetting(glassOpacity));
+}
+
+/** Resolved tab bar colour for a given tab. */
+export function tabBarTint(
+  tab: TabAccent | null,
+  glassOpacity: number,
+  tint: GlassTint = activeTint,
+): string {
+  const { r, g, b } = TINTS[tint];
+  return `rgba(${r}, ${g}, ${b}, ${tabBarAlpha(tab, glassOpacity).toFixed(3)})`;
+}
+
 type Rgb = { r: number; g: number; b: number };
 
 /** Extra weight per surface class, so a row stays lighter than a card. */
@@ -95,6 +171,10 @@ const SURFACE_WEIGHT: Record<GlassSurface, number> = {
   chip: 0,
   tab: 0.05,
   field: 0.07,
+  // A surface that floats over another surface rather than over the wallpaper.
+  // Slightly lighter than a card so a nested panel reads as inset rather than as
+  // a second card sitting on the first.
+  floater: 0.01,
 };
 
 function clampAlpha(value: number): number {
@@ -185,6 +265,8 @@ export function glassBlur(surface: GlassSurface): number {
     chip: 46,
     tab: 58,
     field: 44,
+    // A nested surface blurs what is already blurred, so it needs less.
+    floater: 50,
   };
   return base[surface] ?? 58;
 }
@@ -198,6 +280,7 @@ export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): 
     chip: 0.52,
     tab: 0.55,
     field: 0.5,
+    floater: 0.46,
   };
   const { r, g, b } = tint === "lemon" ? { r: 255, g: 253, b: 235 } : { r: 255, g: 255, b: 255 };
   return `rgba(${r}, ${g}, ${b}, ${strength[surface] ?? 0.6})`;
@@ -277,4 +360,40 @@ export function glassSurfaceColor(
   const finalAlpha = Math.min(MAX_GLASS_ALPHA, Math.max(alpha, BASE_ALPHA + weight));
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${finalAlpha.toFixed(3)})`;
+}
+
+/**
+ * Resolve a surface that sits *inside* another glass surface.
+ *
+ * `glassSurfaceColor` treats any declared alpha below 0.6 as wanting no extra
+ * presence, so a nested row declaring 0.5, 0.56, or 0.6 all collapse onto the
+ * same weight and become indistinguishable from each other and from the sheet
+ * behind them. That is right for a card over the wallpaper and wrong for
+ * anything inside one: the member sees a flat panel where the design intended a
+ * row, a tile, and a highlighted tile to read as three different depths.
+ *
+ * This keeps the declared alpha as an *ordering* rather than a magnitude. The
+ * whole spread is squeezed into a narrow band below the parent's weight, so a
+ * nested surface is always lighter than the sheet it sits on, while still being
+ * heavier than a sibling that declared less. That is what makes hierarchy
+ * visible without turning each row into a second card.
+ */
+export function glassNestedSurfaceColor(
+  color: string,
+  opacity: number,
+  tint: GlassTint = activeTint,
+): string {
+  const parsed = parseColor(color);
+  if (!parsed) return color;
+
+  // The declared alpha runs roughly 0.4 (quietest) to 1 (most present). Map it
+  // onto a band that stays under a sheet's weight.
+  const declared = parsed.alpha ?? 0.6;
+  const position = Math.min(1, Math.max(0, (declared - 0.4) / 0.5));
+  const nestedWeight = NESTED_MIN_WEIGHT + position * (NESTED_MAX_WEIGHT - NESTED_MIN_WEIGHT);
+
+  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], NEUTRAL_TINT_MIX) : parsed.rgb;
+  const alpha = clampAlpha(BASE_ALPHA + nestedWeight + transparencyFromSetting(opacity));
+
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }

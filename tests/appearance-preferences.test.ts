@@ -15,7 +15,7 @@ import {
   normalizeGlassTint,
   parseAppearancePreferences,
 } from "../lib/appearance-preferences";
-import { activeGlassTint, glassSwatch, glassSwatchEdge, setActiveGlassTint } from "../lib/glass";
+import { GLASS_PRESETS, activeGlassTint, glassNestedSurfaceColor, glassSwatch, glassSwatchEdge, matchGlassPreset, setActiveGlassTint, tabBarAlpha } from "../lib/glass";
 
 describe("appearance preferences", () => {
   it("provides a readable default appearance and opacity presets", () => {
@@ -186,5 +186,73 @@ describe("glass colour choice", () => {
       // Every channel must be darker than the chip, so the rim reads on any hue.
       edge.forEach((channel, index) => expect(channel).toBeLessThan(chip[index]));
     }
+  });
+});
+describe("glass presets", () => {
+  it("offers a small set of named looks and recognises the current one", () => {
+    expect(GLASS_PRESETS.length).toBeGreaterThanOrEqual(3);
+    for (const preset of GLASS_PRESETS) {
+      // Each preset must be reachable through the normal controls, so applying
+      // one can never store a value the manual picker could not produce.
+      expect(preset.glassOpacity).toBeGreaterThanOrEqual(50);
+      expect(preset.glassOpacity).toBeLessThanOrEqual(95);
+      expect(["sky", "lemon"]).toContain(preset.glassTint);
+      expect(matchGlassPreset(preset.glassOpacity, preset.glassTint)).toBe(preset.id);
+    }
+  });
+
+  it("reports no preset when the values are hand-tuned", () => {
+    // 70 and sky is a valid manual choice but not one of the presets.
+    expect(matchGlassPreset(70, "sky")).toBeNull();
+  });
+
+  it("keeps every preset distinct", () => {
+    const keys = GLASS_PRESETS.map((p) => `${p.glassOpacity}-${p.glassTint}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("per-tab glass weight", () => {
+  it("nudges the bar's weight per tab while staying within the glass range", () => {
+    const tabs = ["chats", "friends", "meetups", "you"] as const;
+    const alphas = tabs.map((t) => tabBarAlpha(t, 80));
+    // The denser tab is lighter and the emptier tab is heavier, so the bar does
+    // not read as a different component: the whole spread stays small.
+    expect(alphas[0]).toBeLessThan(alphas[3]);
+    expect(Math.max(...alphas) - Math.min(...alphas)).toBeLessThan(0.1);
+    for (const a of alphas) {
+      expect(a).toBeGreaterThanOrEqual(0.16);
+      expect(a).toBeLessThanOrEqual(0.46);
+    }
+  });
+
+  it("falls back to the plain tab weight with no tab", () => {
+    expect(tabBarAlpha(null, 80)).toBeCloseTo(tabBarAlpha("friends", 80), 5);
+  });
+});
+
+describe("nested surfaces", () => {
+  it("keeps a nested row lighter than the sheet it sits on", () => {
+    const opacity = 80;
+    const sheet = glassTint("panel", opacity, "sky");
+    const sheetAlpha = Number(sheet.match(/([\d.]+)\)$/)![1]);
+    for (const declared of ["rgba(255, 255, 255, 0.5)", "rgba(255, 255, 255, 0.6)", "rgba(255, 255, 255, 0.75)"]) {
+      const nested = glassNestedSurfaceColor(declared, opacity, "sky");
+      const alpha = Number(nested.match(/([\d.]+)\)$/)![1]);
+      expect(alpha).toBeLessThan(sheetAlpha);
+    }
+  });
+
+  it("preserves the ordering the design declared", () => {
+    // Before this, every declared alpha below 0.6 collapsed onto the same
+    // weight, so a quiet row and a prominent tile were indistinguishable.
+    const opacity = 80;
+    const alphaOf = (declared: string) =>
+      Number(glassNestedSurfaceColor(declared, opacity, "sky").match(/([\d.]+)\)$/)![1]);
+    const quiet = alphaOf("rgba(255, 255, 255, 0.5)");
+    const mid = alphaOf("rgba(255, 255, 255, 0.6)");
+    const loud = alphaOf("rgba(255, 255, 255, 0.75)");
+    expect(quiet).toBeLessThan(mid);
+    expect(mid).toBeLessThan(loud);
   });
 });

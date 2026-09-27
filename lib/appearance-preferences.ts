@@ -11,6 +11,7 @@ export {
   glassAlpha,
   glassBlur,
   glassEdge,
+  glassNestedSurfaceColor,
   glassSurfaceColor,
   glassTint,
   glassVeil,

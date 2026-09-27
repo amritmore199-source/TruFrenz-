@@ -149,7 +149,7 @@ import {
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor } from "@/lib/appearance-preferences";
-import { GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, type GlassSurface, type GlassTint } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, matchGlassPreset, tabBarTint, type GlassSurface, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
@@ -2252,6 +2252,23 @@ export default function TrufrenzApp() {
 
     <Frosted style={styles.appearancePanel}>
       <View style={styles.appearanceHeadingRow}><View style={styles.settingIconPink}><Icon name="blur-on" size={17} color="#83721f" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Frosted glass opacity</Text><Text style={styles.settingSub}>Choose how much of the wallpaper shows through.</Text></View><Text style={styles.opacityReadout}>{glassOpacity}%</Text></View>
+      <View accessibilityLabel="Glass presets" style={styles.presetRow}>
+        {GLASS_PRESETS.map((preset) => {
+          const selected = matchGlassPreset(glassOpacity, glassTintChoice) === preset.id;
+          return (
+            <Pressable
+              key={preset.id}
+              onPress={() => { setGlassOpacity(preset.glassOpacity); setGlassTint(preset.glassTint); tap(); feedback(`${preset.label} glass applied`); }}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`Use the ${preset.label} glass preset`}
+              style={({ pressed }) => [styles.presetButton, selected && styles.presetButtonActive, pressed && styles.pressed]}
+            >
+              <Text style={[styles.presetLabel, selected && styles.presetLabelActive]}>{preset.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View accessibilityLabel="Frosted glass opacity presets" style={styles.opacityOptions}>
         {GLASS_OPACITY_STEPS.map((value) => {
           const selected = value === glassOpacity;
@@ -2286,6 +2303,18 @@ export default function TrufrenzApp() {
     </Frosted>
     <Text style={styles.footerNote}>Your space. Your pace. Always friends first.</Text>
   </>;
+
+  /* The tab bar's weight follows whichever tab is showing. */
+  const tabAccent: TabAccent | null =
+    selectedChat !== null
+      ? null
+      : tab === "Chats"
+        ? "chats"
+        : tab === "Friends"
+          ? "friends"
+          : tab === "Meetups"
+            ? "meetups"
+            : "you";
 
   const renderContent = () => {
     if (tab === "Chats") return renderChats();
@@ -2410,7 +2439,9 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       )}
-      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassTint("tab", glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
+      {/* The bar carries a slightly different weight per tab, because the content
+          behind it ranges from dense chat rows to open wallpaper. */}
+      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
@@ -2844,6 +2875,11 @@ const styles = StyleSheet.create({
   tintOption: { alignItems: "center", gap: 4, paddingVertical: 5, paddingHorizontal: 7, borderRadius: 11, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.2)" },
   tintOptionActive: { borderColor: "#83721f", backgroundColor: "rgba(241, 222, 85, 0.28)" },
   tintSwatch: { width: 24, height: 24, borderRadius: 9, borderWidth: 1.5 },
+  presetRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  presetButton: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.18)", backgroundColor: "rgba(255, 255, 255, 0.35)" },
+  presetButtonActive: { backgroundColor: "rgba(232, 214, 120, 0.55)", borderColor: "rgba(131, 114, 31, 0.45)" },
+  presetLabel: { fontSize: 12, fontWeight: "600", color: "#6f6a58" },
+  presetLabelActive: { color: "#4a4210" },
   tintOptionText: { fontSize: 9.5, fontWeight: "600", color: "#7c7863" },
   tintOptionTextActive: { color: "#4A4210" },
   opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
