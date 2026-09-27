@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   int,
   mysqlEnum,
   mysqlTable,
@@ -454,3 +455,44 @@ export const signinChallenges = mysqlTable(
   ],
 );
 export type SigninChallenge = typeof signinChallenges.$inferSelect;
+
+/**
+ * Every code we have sent, so sending can be rate limited.
+ *
+ * The challenge table cannot answer "how many codes went out to this number in
+ * the last hour", because issuing a new code replaces the previous row. That
+ * made the send side unlimited: a script could point the endpoint at one number
+ * and trigger thousands of paid messages, which is the SMS-pumping attack, or
+ * aim it at a stranger and get the sender ID blocked for harassment.
+ *
+ * Rows are a log, not state: nothing reads them except the counters below, and
+ * they are pruned once they fall outside the longest window.
+ */
+export const otpSendAttempts = mysqlTable(
+  "otp_send_attempts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /**
+     * What happened. Sends and failed verifications share this table because
+     * they share a shape and are always pruned together; one column keeps them
+     * apart without a second table and a second cleanup job.
+     */
+    kind: mysqlEnum("kind", ["send", "failure"]).default("send").notNull(),
+    /** Which channel the code travelled over. */
+    channel: mysqlEnum("channel", ["phone", "email"]).notNull(),
+    /** The E.164 number or normalised address the code was sent to. */
+    destination: varchar("destination", { length: 320 }).notNull(),
+    /**
+     * A coarse fingerprint of the caller, so one device cannot work through
+     * many destinations. Deliberately a hash of address and user agent rather
+     * than the raw values: the point is counting, not identifying anyone.
+     */
+    callerKey: varchar("callerKey", { length: 64 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    index("otp_send_attempts_destination_time").on(table.destination, table.createdAt),
+    index("otp_send_attempts_caller_time").on(table.callerKey, table.createdAt),
+  ],
+);
+export type OtpSendAttempt = typeof otpSendAttempts.$inferSelect;

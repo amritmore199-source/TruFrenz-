@@ -19,6 +19,9 @@ import { getDb } from "./db";
 import * as billing from "./billingService";
 import * as challenges from "./challengeStore";
 import { sendSigninCode, emailConfigured } from "./mailer";
+import { sendSigninSms, smsTransportSummary } from "./sms";
+import * as otpGuard from "./otpGuard";
+import { decideSend, decideVerify, describeWait, summariseSends } from "../lib/otp-limits";
 import { memberSessions, members, verificationSubmissions } from "../drizzle/schema";
 import { canAccount, type AccountCapability } from "../lib/account-access";
 import { isAnalyticsEventType } from "../lib/analytics-events";
@@ -28,16 +31,17 @@ const SESSION_COOKIE = "trufrenz_member_session";
 const OTP_COOKIE = "trufrenz_signin_challenge";
 
 /**
- * SMS delivery is configured only when a provider key is present.
+ * SMS delivery readiness now comes from the adapter.
  *
- * This used to be read from `SMS_PROVIDER_KEY` alone, which was a trap: setting
- * that variable without any sending code stopped the demo code being returned
- * *and* sent nothing, so the flow broke completely instead of staying
- * incomplete. Delivery now goes through a real adapter, and this flag reports
- * whether that adapter can actually reach a provider.
+ * This used to read `SMS_PROVIDER_KEY` alone, which was a trap: setting that
+ * variable without any sending code stopped the demo code being returned *and*
+ * sent nothing, so the flow broke completely instead of staying incomplete. It
+ * also ignored that Twilio needs an account SID and a sender, and that a
+ * domestic Indian route needs an approved DLT template — a half-configured
+ * channel used to report itself ready and then deliver nothing.
  */
 function smsConfigured(): boolean {
-  return Boolean(process.env.SMS_PROVIDER_KEY);
+  return smsTransportSummary().configured;
 }
 
 /**
@@ -200,10 +204,42 @@ export function registerAccountRoutes(app: Express) {
    * transport differ, which is what `channel` selects.
    */
   const requestCode = async (
+    req: Request,
     res: Response,
     input: { channel: "phone" | "email"; destination: string; purpose: "signup" | "login" },
   ) => {
     await challenges.pruneChallenges();
+    await otpGuard.pruneSendLog(Date.now());
+
+    /**
+     * The brakes.
+     *
+     * Until this existed the endpoint was unlimited, which is the SMS-pumping
+     * attack: point it at numbers you control, trigger thousands of paid
+     * messages, and collect a share of the carrier fees — the app owner pays.
+     * Aimed at a stranger instead, it makes the app the harasser and gets the
+     * sender ID blocked.
+     *
+     * Checked before a challenge is issued or a provider is called, so a
+     * refused request costs nothing and sends nothing.
+     */
+    const callerKey = otpGuard.callerKeyFor({
+      forwardedFor: req.headers["x-forwarded-for"],
+      remoteAddress: req.socket?.remoteAddress,
+      userAgent: req.headers["user-agent"],
+    });
+    const now = Date.now();
+    const sends = await otpGuard.recentSends({ destination: input.destination, callerKey, now });
+    const decision = decideSend(summariseSends(sends, input.destination, callerKey, now));
+    if (!decision.allowed) {
+      res.status(429).json({
+        error: decision.message,
+        code: "rate_limited",
+        rule: decision.rule,
+        retryAfterSeconds: decision.retryAfterSeconds,
+      });
+      return;
+    }
 
     const existing =
       input.channel === "phone"
@@ -259,6 +295,37 @@ export function registerAccountRoutes(app: Express) {
       }
     }
 
+    if (input.channel === "phone" && canSendSms) {
+      const outcome = await sendSigninSms(input.destination, issued.code);
+      if (!outcome.sent) {
+        res.status(502).json({
+          error: "We could not send that text just now. Try again in a moment.",
+          code: "sms_delivery_failed",
+        });
+        return;
+      }
+    }
+
+    /**
+     * Count the request once it has actually produced something: a message the
+     * provider accepted, or a code handed back in demo mode.
+     *
+     * Two decisions are folded into that sentence.
+     *
+     * Demo mode is counted because the limit is about how many codes this number
+     * has been issued, not how many were billed. Excluding it would make the
+     * rule untestable without a provider — the app's "try again in 45 seconds"
+     * path could never be exercised — and would leave a public demo deployment
+     * open to unbounded challenge churn.
+     *
+     * A *refused* send is not counted, because the member received nothing. If
+     * it were, a provider outage would burn their allowance and lock them out
+     * of the code that never arrived.
+     */
+    if (deliverable || revealCode) {
+      await otpGuard.recordSend({ channel: input.channel, destination: input.destination, callerKey });
+    }
+
     setChallengeCookie(res, issued.challengeId);
 
     const maskedDestination =
@@ -287,7 +354,7 @@ export function registerAccountRoutes(app: Express) {
       res.status(400).json({ error: "Enter a valid phone number." });
       return;
     }
-    await requestCode(res, {
+    await requestCode(req, res, {
       channel: "phone",
       destination: phoneE164,
       purpose: req.body?.purpose === "login" ? "login" : "signup",
@@ -300,7 +367,7 @@ export function registerAccountRoutes(app: Express) {
       res.status(400).json({ error: "Enter a valid email address, like name@example.com." });
       return;
     }
-    await requestCode(res, {
+    await requestCode(req, res, {
       channel: "email",
       destination: checked.email,
       purpose: req.body?.purpose === "login" ? "login" : "signup",
@@ -322,6 +389,31 @@ export function registerAccountRoutes(app: Express) {
     const id = readCookie(req, OTP_COOKIE);
     const submitted = String(req.body?.code ?? "").replace(/\D/g, "");
     const challenge = id ? await challenges.loadChallenge(id) : null;
+
+    /**
+     * A lock on guessing, counted per caller.
+     *
+     * The challenge caps itself at five attempts, but a guesser can ask for a
+     * fresh code to reset that. Recording wrong answers against the caller
+     * closes that loop. Checked before the code is compared so a locked caller
+     * learns nothing about whether they guessed correctly.
+     */
+    const verifyCallerKey = otpGuard.callerKeyFor({
+      forwardedFor: req.headers["x-forwarded-for"],
+      remoteAddress: req.socket?.remoteAddress,
+      userAgent: req.headers["user-agent"],
+    });
+    const verifyNow = Date.now();
+    const failures = await otpGuard.recentFailures(verifyCallerKey, verifyNow);
+    const verifyDecision = decideVerify(failures, verifyCallerKey, verifyNow);
+    if (!verifyDecision.allowed) {
+      res.status(429).json({
+        error: `Too many wrong codes. Please wait ${describeWait(verifyDecision.retryAfterSeconds)} and try again.`,
+        code: "verify_locked",
+        retryAfterSeconds: verifyDecision.retryAfterSeconds,
+      });
+      return;
+    }
 
     const problem = challenges.challengeProblem(challenge, Date.now());
     if (problem === "missing" || problem === "expired") {
@@ -350,6 +442,7 @@ export function registerAccountRoutes(app: Express) {
 
     if (submitted.length !== 6 || !challenges.otpMatches(submitted, challenge.challengeId, challenge.codeHash)) {
       const attempts = await challenges.recordFailedAttempt(challenge.challengeId, challenge.attempts);
+      await otpGuard.recordFailedVerification({ callerKey: verifyCallerKey, channel: challenge.channel });
       res.status(400).json({
         error: "That code does not match. Check the six digits and try again.",
         attemptsRemaining: Math.max(0, challenges.MAX_OTP_ATTEMPTS - attempts),

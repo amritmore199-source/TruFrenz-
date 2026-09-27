@@ -1284,6 +1284,58 @@
       channels.appendChild(card);
     }
 
+    /*
+     * Sign-in code delivery. The wording rule from the store panel applies here
+     * too: this reports what is configured, never that a message has been sent,
+     * and it never renders a key. The limits are shown because an operator
+     * reading "a member cannot get a code" needs to see whether the answer is a
+     * provider problem or a rate limit doing its job.
+     */
+    const otp = data.otpDelivery || {};
+    const email = otp.email || {};
+    const sms = otp.sms || {};
+    $("otp-mode").textContent = otp.demoCodeAllowed
+      ? "Prototype mode: codes may be shown on screen instead of sent"
+      : "Live mode: codes are never revealed to the client";
+
+    const otpChannels = $("otp-channels");
+    clear(otpChannels);
+    const describeChannel = (label, configured, detail) => {
+      const card = el("div", "panel");
+      const head = el("div", "panel-head");
+      head.appendChild(el("h4", null, label));
+      const tag = statusTag(configured ? "approved" : "suspended");
+      tag.textContent = configured ? "configured" : "not configured";
+      head.appendChild(tag);
+      card.appendChild(head);
+      card.appendChild(el("p", "tiny muted", detail));
+      return card;
+    };
+
+    otpChannels.appendChild(
+      describeChannel(
+        "Email",
+        email.configured,
+        email.configured
+          ? `Provider: ${email.provider}${email.sendDomain ? ` · sending domain ${email.sendDomain}` : ""}`
+          : "Set EMAIL_PROVIDER_KEY and EMAIL_FROM to send real codes. Email needs no registration and no paperwork.",
+      ),
+    );
+    otpChannels.appendChild(
+      describeChannel(
+        "SMS",
+        sms.configured,
+        sms.configured
+          ? `Provider: ${sms.provider}${sms.senderId ? ` · sender id ${sms.senderId}` : ""}${sms.dltTemplate ? " · DLT template set" : " · no DLT template id"}`
+          : "Set SMS_PROVIDER_KEY plus a sender and, for an Indian domestic route, an approved DLT template id. The international route works without DLT but arrives from a random short code.",
+      ),
+    );
+
+    $("otp-limits").textContent =
+      "Sending is rate limited: 3 codes per number per hour and 6 per day, 10 per device per hour, " +
+      "with a 60 second cooldown between requests. Ten wrong codes lock that device for 15 minutes. " +
+      "A refused request sends nothing, so it costs nothing.";
+
     const catalogueBody = $("catalogue-table").querySelector("tbody");
     clear(catalogueBody);
     for (const product of readiness.catalogue || []) {

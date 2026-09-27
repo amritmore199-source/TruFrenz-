@@ -56,7 +56,22 @@ export type ReportableEvent = {
 async function request<T>(
   path: string,
   init: RequestInit = {},
-): Promise<{ ok: true; data: T } | { ok: false; error: string; code?: string }> {
+): Promise<
+  | { ok: true; data: T }
+  | {
+      ok: false;
+      error: string;
+      code?: string;
+      /**
+       * How long the server says to wait, in seconds.
+       *
+       * Carried through so a rate limit reads as "try again in 45 seconds"
+       * rather than a bare refusal. The server owns the number because only it
+       * knows the window; the client must not invent one.
+       */
+      retryAfterSeconds?: number;
+    }
+> {
   try {
     const response = await fetch(`${getApiBaseUrl()}${path}`, {
       ...init,
@@ -71,8 +86,14 @@ async function request<T>(
       parsed = null;
     }
     if (!response.ok) {
-      const body = (parsed ?? {}) as { error?: string; code?: string };
-      return { ok: false, error: body.error ?? "Something went wrong.", code: body.code };
+      const body = (parsed ?? {}) as { error?: string; code?: string; retryAfterSeconds?: number };
+      return {
+        ok: false,
+        error: body.error ?? "Something went wrong.",
+        code: body.code,
+        retryAfterSeconds:
+          typeof body.retryAfterSeconds === "number" ? body.retryAfterSeconds : undefined,
+      };
     }
     return { ok: true, data: (parsed ?? {}) as T };
   } catch {

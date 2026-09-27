@@ -607,6 +607,17 @@ export function registerAdminRoutes(app: Express) {
       readiness: storeReadiness(),
       verificationMode: verificationMode(),
       sandboxAllowed: sandboxVerificationAllowed(),
+      /*
+       * Sign-in delivery sits beside store readiness because they are the same
+       * kind of question — what can this deployment actually do right now — and
+       * both are things only an operator can fix. Presence only: no key, no
+       * secret, nothing an attacker reading this panel could use.
+       */
+      otpDelivery: {
+        email: emailTransportSummary(),
+        sms: smsTransportSummary(),
+        demoCodeAllowed: process.env.OTP_ALLOW_DEMO === "true" || process.env.NODE_ENV !== "production",
+      },
     });
   });
 
@@ -707,5 +718,7 @@ export function registerAdminRoutes(app: Express) {
 import { sandboxVerificationAllowed, verificationMode } from "./billingService";
 import { reminderHistory } from "./subscription-reminders";
 import { storeReadiness } from "./storeReadiness";
+import { emailTransportSummary } from "./mailer";
+import { smsTransportSummary } from "./sms";
 import { COMP_DEFAULT_DAYS, grantComp, listComps, revokeComp } from "./billingService";
 import type { PlanId } from "../lib/subscription";

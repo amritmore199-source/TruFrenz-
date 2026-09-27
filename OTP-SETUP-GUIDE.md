@@ -81,6 +81,80 @@ The order is strict, and each step gates the next:
 
 ---
 
+## 2a. Do you need to buy a domain?
+
+**For email, yes. For SMS, no — but SMS has a bigger requirement instead.**
+
+### Email needs a domain you own
+
+Resend's own documentation is explicit: *"Resend sends emails using a domain you
+own (i.e., not a shared or public domain). You must add and verify at least one
+domain to send emails with Resend."*
+
+Until a domain is verified you can only send from `onboarding@resend.dev`, and
+that address can **only deliver to the email address you signed up with**. There
+is no way to put a real member's code through it, so email sign-in cannot launch
+without a domain.
+
+Sending "from Gmail" is not an alternative. Since 2024 Gmail, Microsoft, and
+Yahoo require SPF and DKIM authentication for bulk senders, and you cannot add
+DNS records to `gmail.com`. A code sent from a Gmail address lands in spam or is
+refused outright.
+
+### SMS needs a registered business, not a domain
+
+DLT registration is mandatory under TRAI rules for any domestic SMS in India,
+and it requires your business entity — GST or equivalent company registration.
+A domain is not part of it. Landing on a website is not part of it either; the
+registration is the blocker, and it takes a few business days.
+
+### Domain names, as checked on 27 Sep 2026
+
+Availability was checked from live DNS nameserver records and the registry
+RDAP service. Confirm at a registrar before relying on any of it.
+
+| Domain | Status |
+| --- | --- |
+| **trufrenz.com** | **Taken** — registered 2013, renewed to 2027, parked on a registrar page. Not ours. |
+| trufrenz.net | Available |
+| trufrenz.app | Available |
+| trufrenz.in | Available |
+| trufrenz.co.in, .org, .io, gettrufrenz.com, trufrenzapp.com | Available |
+
+### Which one to pick
+
+`.net` is a good choice and arguably the best of the available options:
+
+- It is one of the original three TLDs (with `.com` and `.org`), so its
+  reputation among mail providers is long-established. This matters precisely
+  because the domain carries our sign-in codes — the mail most likely to be
+  filtered. A brand-new extension such as `.xyz` or `.top` has no reputation at
+  the major providers and is a small risk that costs nothing to avoid here.
+- It is unrestricted. Anyone can register it, no local-presence rule.
+- It is priced like `.com`, roughly Rs.1,000-1,600 per year, and it reads as a
+  technology company to a user who notices.
+- `trufrenz.net` is a truthful address. The app currently shows
+  `hello@trufrenz.app` and `support@trufrenz.app` on screen, and neither domain
+  is owned yet, so both are fiction until one is bought.
+
+The one argument for `.app` over `.net` is a small privacy win: the whole
+`.app` extension is on the browser HSTS preload list, so it can only ever be
+served over HTTPS. That protects a marketing site, not an API, and it does not
+change email deliverability either way.
+
+`.in` is worth considering only if you specifically want the India signal; it
+does not make DLT registration any easier, since that is tied to the business
+entity rather than the domain.
+
+**Recommendation:** buy `trufrenz.net`. It is the same annual cost as a couple
+of coffees, it unblocks email sign-in immediately, and it makes the address
+already shown in the app honest. Launch on email; add SMS once the business
+registration for DLT is in place.
+
+Whichever you choose, tell me the name and I will update the addresses shown in
+the app and point the mailer at it. The mailer takes the sending address from
+`EMAIL_FROM`, so it is a configuration change rather than a code change.
+
 ## 3. Turning email on (the 15-minute path)
 
 1. Sign up at [resend.com](https://resend.com) and create an API key.
@@ -174,6 +248,38 @@ These are the remaining gaps, in the order I would close them.
 | `tests/otp-signin.test.ts` | 23 tests over the rules above |
 
 ---
+
+## 7a. Sending limits, and why they exist
+
+An unlimited "send me a code" button is the SMS-pumping attack: point it at
+numbers you control, trigger thousands of paid messages, and take a share of the
+carrier fees. The app owner pays the bill. Aimed at one stranger instead, it
+makes the product the harasser and gets the sender ID blocked by the carrier.
+
+Both code endpoints are now limited, per number and per device:
+
+| Rule | Limit | Window |
+| --- | --- | --- |
+| Same number | 3 codes | 1 hour |
+| Same number | 6 codes | 24 hours |
+| Same device | 10 codes | 1 hour |
+| Same device | 30 codes | 24 hours |
+| Cooldown between requests | 60 seconds | — |
+| Wrong codes before a lock | 10 | 15 minutes |
+
+A refused request sends nothing, so it costs nothing. Requests are counted only
+once they actually produced something: a message the provider accepted, or a
+code handed back in demo mode. A provider outage therefore does not burn a
+member's allowance and lock them out of a code that never arrived.
+
+Both rules were proven against the running server: three codes to one number
+succeed, and the fourth is refused with a 3,600-second wait. Ten wrong codes
+lock that device for fifteen minutes, counted per device so one guesser cannot
+lock out anyone else.
+
+The admin dashboard's Subscriptions view shows both channels'
+configuration state and these limits, so "a member cannot get a code" can be
+answered without reading server logs.
 
 ## 8. What is still not real
 

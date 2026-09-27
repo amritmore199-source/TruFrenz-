@@ -405,6 +405,20 @@
             </div>
             <div class="grid-2" id="readiness-channels"></div>
           </div>
+          <!--
+            Sign-in delivery. Same question as store readiness — what can this
+            deployment actually do right now — and the same rule applies: a
+            configured key is reported as present, never as working, and no
+            secret is ever rendered here.
+          -->
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Sign-in code delivery</h3>
+              <span class="tiny muted" id="otp-mode">—</span>
+            </div>
+            <div class="grid-2" id="otp-channels"></div>
+            <p class="tiny muted" id="otp-limits">—</p>
+          </div>
           <div class="panel flush">
             <div class="panel-head">
               <h3>Store product catalogue</h3>

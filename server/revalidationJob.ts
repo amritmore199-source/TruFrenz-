@@ -13,6 +13,8 @@
  */
 
 import { revalidateDueReceipts } from "./billingService";
+import { runReminderScan } from "./subscription-reminders";
+import { pruneSendLog } from "./otpGuard";
 
 /** How often to look for receipts that need re-checking. */
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
@@ -75,6 +77,19 @@ export async function runRevalidationPass(
     console.error("[billing] renewal reminder scan failed", error);
   }
 
+  /*
+   * The send log is pruned here because this is the only periodic job the server
+   * already runs, and the log is a high-write table by design — it counts abuse.
+   * Left alone it would grow without bound. Its own try/catch keeps a prune
+   * failure from affecting revalidation or reminders.
+   */
+  try {
+    const pruned = await pruneSendLog(Date.now());
+    if (pruned > 0) console.log(`[otp] pruned ${pruned} old send-log row${pruned === 1 ? "" : "s"}`);
+  } catch (error) {
+    console.error("[otp] send-log prune failed", error);
+  }
+
   return { ...result, remindersSent };
 }
 
@@ -133,4 +148,3 @@ export function stopRevalidationJob(): void {
     timer = null;
   }
 }
-import { runReminderScan } from "./subscription-reminders";
