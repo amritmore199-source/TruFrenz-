@@ -85,25 +85,52 @@ export function archiveSwipeLabel(archived: boolean): string {
 /**
  * How far to lift the composer so it sits directly above the keyboard.
  *
+ * This was written as `keyboardHeight - bottomInset`, reasoning that the root
+ * SafeAreaView already reserves the bottom inset. That is only true if the
+ * keyboard reports its height *from the top of the inset rather than from the
+ * screen edge*, and it does not: Android's `Keyboard` event and iOS's
+ * `keyboardWillShow` both report the keyboard's own height, measured from the
+ * screen edge. Subtracting the inset therefore under-lifts the composer by the
+ * full inset — 34 points on a notched iPhone, 48 on a gesture-navigation
+ * Android — which is exactly enough to leave the text field sitting under the
+ * keyboard. The fix should have moved the composer flush to the keys, not most
+ * of the way there, and the error was invisible to browser testing because a
+ * desktop browser never raises a keyboard at all.
+ *
+ * So: lift by the full reported height. The small allowance is the hairline of
+ * slack that keeps the top of the keyboard from clipping the field's border.
+ *
  * @param keyboardHeight Height reported by the keyboard events, in points.
- * @param bottomInset    Bottom safe-area inset the root view already applies.
  */
-export function composerKeyboardLift(keyboardHeight: number, bottomInset: number): number {
+export function composerKeyboardLift(keyboardHeight: number): number {
   if (!Number.isFinite(keyboardHeight) || keyboardHeight <= 0) return 0;
-  const inset = Number.isFinite(bottomInset) && bottomInset > 0 ? bottomInset : 0;
-  return Math.max(0, Math.round(keyboardHeight - inset));
+  return Math.round(keyboardHeight + KEYBOARD_CLEARANCE);
 }
 
 /**
- * Whether the bottom tab bar should step aside while the member is typing.
- *
- * The bar is only hidden in a conversation, where the composer needs the room.
- * In the list views the bar stays put so navigation is never lost mid-typing in
- * the search field.
+ * Slack above the keyboard, so the composer's border is not clipped by the
+ * keyboard's own edge. Small: this is a visual seam, not an ergonomic gap.
  */
-export function shouldHideTabBarForKeyboard(params: {
-  keyboardHeight: number;
+export const KEYBOARD_CLEARANCE = 6;
+
+/**
+ * Whether the bottom furniture should be shown at all.
+ *
+ * A conversation is a focused view: the composer owns the bottom edge for as
+ * long as it is open, not only while the keyboard is up. The tab bar and the
+ * free-tier ad banner used to stay in place, which reserved a band roughly
+ * 110pt tall between the composer and the bottom of the screen — measured in
+ * the running app, and exactly the "empty space" this is here to remove. An
+ * advertisement wedged between a member and the person they are talking to is
+ * also simply the wrong place for it.
+ *
+ * Navigation is not lost: the conversation header carries Back, and the Android
+ * hardware button still returns to the list.
+ */
+export function shouldShowBottomBar(params: {
   hasOpenChat: boolean;
+  keyboardHeight: number;
 }): boolean {
-  return params.keyboardHeight > 0 && params.hasOpenChat;
+  if (params.hasOpenChat) return false;
+  return params.keyboardHeight <= 0;
 }

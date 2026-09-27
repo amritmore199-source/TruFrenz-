@@ -97,7 +97,7 @@ Also passing: `pnpm check`, `pnpm lint` (0 errors), `pnpm test` (205 passed, 1 s
 
 ## Demo credentials and limits
 
-- Dashboard: `safety@trufrenz.app` / `Trufrenz#Safety2026` + TOTP secret
+- Dashboard: `safety@trufrenz.net` / `Trufrenz#Safety2026` + TOTP secret
   `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` (shown on the dashboard login screen).
 - **SMS is not configured.** When `SMS_PROVIDER_KEY` is unset the OTP endpoint returns the code
   as `demoCode` so the flow is reviewable; a live deployment sends it by SMS and never returns it.

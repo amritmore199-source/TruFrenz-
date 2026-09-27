@@ -14,7 +14,7 @@ experience.
 |---|---|
 | URL | `/admin/` on the API server (e.g. `https://<api-host>/admin/`) |
 | Sign-in | work email + password + 6-digit authenticator code |
-| Seeded demo account | `safety@trufrenz.app` / `Trufrenz#Safety2026` |
+| Seeded demo account | `safety@trufrenz.net` / `Trufrenz#Safety2026` |
 | Seeded TOTP secret | `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` |
 
 The demo account is created on first boot so the console is usable before a real
@@ -83,7 +83,7 @@ staff use it:
    `admin/app.js`, along with the seeded-credentials `<details>` block in
    `admin/index.html`.
 2. Enrol real authenticator secrets per staff member and delete the seeded
-   `safety@trufrenz.app` row (or rotate its password and secret).
+   `safety@trufrenz.net` row (or rotate its password and secret).
 3. Serve `/admin` over HTTPS only, behind your SSO or VPN, and restrict by IP if
    your threat model requires it.
 4. Replace the static `admin/` directory with a built, authenticated front-end if

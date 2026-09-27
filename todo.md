@@ -1,4 +1,32 @@
 # Trufrenz — build tracker
+## Chat screen: composer, header actions, dead space — DONE (verified)
+- **The composer was under the keyboard again, and the tests were why.** The lift
+  was `keyboardHeight - bottomInset`, but the keyboard reports its height from
+  the screen edge, so the field landed exactly `inset` points under the keys on
+  every notched phone. `tests/chat-layout.test.ts` pinned that arithmetic, so the
+  suite certified the bug. The lift now takes the full height with a small
+  clearance, the screen cancels the inset while the keyboard is open, and the
+  tests assert the property instead of the formula.
+- **Call and video buttons were off screen, not missing.** `brandMark` had no
+  `flex`, so the header row overflowed and pushed the last controls past the
+  right edge. It is now `flex: 1, minWidth: 0`, the buttons are 32pt with tighter
+  gaps, and all three fit with room to spare at 1264 of 1280.
+- **The status line was clipped out of the header.** Name, verification sentence,
+  and availability were three stacked lines in a 45pt bar. The status now shares
+  one row with its badge and the redundant sentence is gone.
+- **The empty space was the tab bar and ad banner.** They stayed in place inside
+  a conversation and reserved a band about 110pt tall below the composer; they
+  were hidden only while the keyboard was up. One derived value now hides both
+  for as long as a conversation is open. Gap below the composer: 116pt to 6pt.
+- **The date moved the wrong way.** The list was bottom-anchored, which pushed it
+  down. It now starts under the safety line at 104pt, and anchors to the bottom
+  only while the keyboard is open.
+- Friends, Meetups, and You each end within 13pt of the tab bar, so there is no
+  reserved band on those tabs. Evidence and measurements in `UI-FIX-NOTES.md`.
+- Verified: `pnpm check` clean, `pnpm lint` 0 errors, **597 tests passed** (1
+  pre-existing skip), `git diff --check` clean, and the chat screen measured in
+  the running app at a 1280pt viewport.
+
 ## Admin console sign-in, and two honesty fixes — DONE (verified)
 - **The dashboard's own printed credentials did not work.** The demo admin is
   created once, on the first boot against an empty database, so moving the domain
@@ -425,7 +453,7 @@ own sign-in, its own dense table-first layout, and no route from the consumer UI
 |---|---|
 | URL | `https://3000-ic648zvdrucwgotw7045l-0006c9f5.sg2.manus.computer/admin/` |
 | Sign-in | work email + password + 6-digit authenticator code |
-| Demo account | `safety@trufrenz.app` / `Trufrenz#Safety2026` |
+| Demo account | `safety@trufrenz.net` / `Trufrenz#Safety2026` |
 | TOTP secret | `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` |
 
 The login screen has a **Use demo code** button that fills the credentials and computes the

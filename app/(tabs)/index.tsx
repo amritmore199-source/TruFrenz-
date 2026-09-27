@@ -76,7 +76,7 @@ import { createIncomingMeetupInviteNotification, createIncomingMessageNotificati
 import {
   chatRowRevealWidth,
   composerKeyboardLift,
-  shouldHideTabBarForKeyboard,
+  shouldShowBottomBar,
 } from "@/lib/chat-layout";
 import { PremiumPaywall } from "@/components/premium-paywall";
 import { ManageSubscriptionModal, type ReceiptSummary } from "@/components/manage-subscription-modal";
@@ -416,8 +416,12 @@ function ActionButton({ children, onPress, style, secondary = false, disabled = 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity, glassTint: glassTintChoice, wallpaperVisible, setGlassOpacity, setGlassTint, setWallpaperVisible } = useAppAppearance();
-  // The root SafeAreaView already insets the bottom edge, so the keyboard lift
-  // must discount that inset to avoid over-lifting the composer.
+  /*
+   * The root SafeAreaView already reserves the bottom inset, so a keyboard lift
+   * measured from the screen edge has to have that inset cancelled first.
+   * Otherwise the two are counted twice and the composer floats above the keys
+   * with a band of wallpaper showing between them.
+   */
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>("Chats");
   const previousTab = useRef<Tab>("Chats");
@@ -2106,9 +2110,9 @@ export default function TrufrenzApp() {
             <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
         ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#4A4210" /></View>}
-        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={styles.threadTitle} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={styles.topBarSub} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><Text style={styles.threadStatus} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={styles.threadTitle} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={styles.topBarSub} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color="#588B79" /> : null}<Text style={styles.threadStatus} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
       </View>
-      {thread ? <View style={styles.topActions}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="call" size={18} color="#757056" /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="videocam" size={19} color="#757056" /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={styles.roundAction}><Icon name="more-vert" size={21} color="#757056" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#757056" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#77725a" />}</Pressable></View>}
+      {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="call" size={18} color="#757056" /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="videocam" size={19} color="#757056" /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={styles.roundAction}><Icon name="more-vert" size={21} color="#757056" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#757056" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#77725a" />}</Pressable></View>}
     </View>
   );
 
@@ -2120,13 +2124,32 @@ export default function TrufrenzApp() {
   const renderChats = () => {
     if (selectedChat && currentThread) {
       const conversationMessages = chatMessages[selectedChat] ?? [];
-      // Lift the composer by the keyboard height, discounting the bottom inset
-      // the root SafeAreaView already applies so it lands just above the keys.
-      const composerLift = composerKeyboardLift(keyboardHeight, insets.bottom);
-      return <View style={[styles.threadScreen, { paddingBottom: composerLift }]}>
+      // Lift by the full keyboard height so the composer sits flush on the keys.
+      const composerLift = composerKeyboardLift(keyboardHeight);
+      /*
+       * Keyboard open: the list shrinks and pins its newest messages to the
+       * bottom, then a small gap holds the composer clear of the last bubble.
+       * Keyboard closed: the list keeps its natural flow and the empty space
+       * that used to sit under the messages is given back, so the composer
+       * rides up under the conversation instead of floating at the screen edge
+       * with a dead band between them.
+       */
+      const keyboardOpen = composerLift > 0;
+      /*
+       * Closed: the composer rests on the safe-area edge, clear of the home
+       * indicator. Open: the container cancels that edge and lifts by the whole
+       * keyboard height, so the field lands directly on the keys.
+       */
+      return <View style={[styles.threadScreen, { paddingBottom: composerLift, marginBottom: keyboardOpen ? -insets.bottom : 0 }]}>
         {topBar(true)}
-        <View style={styles.threadSafety}><Icon name="lock-outline" size={13} color="#7D8AA0" /><Text style={styles.threadSafetyText}>Only friends can see these messages. Your exact location is never shared.</Text></View>
-        <ScrollView style={styles.threadBody} contentContainerStyle={styles.threadContent} showsVerticalScrollIndicator={false}>
+        {keyboardOpen ? null : <View style={styles.threadSafety}><Icon name="lock-outline" size={13} color="#7D8AA0" /><Text style={styles.threadSafetyText}>Only friends can see these messages. Your exact location is never shared.</Text></View>}
+        <ScrollView
+          style={styles.threadBody}
+          contentContainerStyle={[styles.threadContent, keyboardOpen ? styles.threadContentKeyboard : styles.threadContentCompact]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
           <View style={styles.dayDivider}><View style={styles.dividerLine} /><Text style={styles.dayLabel}>TODAY</Text><View style={styles.dividerLine} /></View>
           <View style={styles.sharedInterest}><Icon name="auto-awesome" size={15} color="#83721f" /><Text style={styles.sharedInterestText}>You both like slow weekend mornings</Text></View>
           {conversationMessages.map((message) => {
@@ -2215,7 +2238,7 @@ export default function TrufrenzApp() {
         <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#83721f" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={styles.inviteLink}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={styles.inviteLink}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={styles.inviteLink}>Poll</Text></Pressable> : null}</View>
         {activeRowState.readOnly ? <View style={styles.readOnlyBar}><Icon name="lock-outline" size={14} color="#83721f" /><Text style={styles.readOnlyBarText}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
         {pendingAttachment ? <AttachmentPreviewStrip pending={pendingAttachment} sizeBytes={pendingPhotoBytes} onRemove={clearPendingAttachment} /> : null}
-        <View style={styles.composerRow}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8a877e" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#83721f" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor="#9a9891" style={styles.composerInput} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#FFFFFF" : "#95938c"} /></Pressable></View>
+        <View style={[styles.composerRow, keyboardOpen && styles.composerRowRaised]}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8a877e" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#83721f" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor="#9a9891" style={styles.composerInput} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#FFFFFF" : "#95938c"} /></Pressable></View>
         <AttachmentSheet visible={attachmentSheetOpen} onClose={() => setAttachmentSheetOpen(false)} onPickPhoto={sendPhoto} onSend={sendAttachment} onReviewVoice={reviewVoiceNote} onSuggestPlan={(kind) => setPlanComposerKind(kind)} />
         <ChatOverflowMenu
           visible={chatMenuOpen}
@@ -2497,6 +2520,12 @@ export default function TrufrenzApp() {
   };
 
   const showWelcome = sessionLoaded && shouldShowWelcome(session);
+  /*
+   * The tab bar and the ad banner share one decision. They sit in the same band
+   * at the bottom of the screen, so deriving them separately is how they drifted
+   * apart and left a reserved strip under the composer in a conversation.
+   */
+  const bottomBarVisible = shouldShowBottomBar({ hasOpenChat: Boolean(selectedChat), keyboardHeight });
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
@@ -2600,7 +2629,7 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       ) : null}
-      {showWelcome || adDismissed || !entitlements.ads ? null : (
+      {showWelcome || adDismissed || !entitlements.ads || !bottomBarVisible ? null : (
         <View style={styles.adBanner}>
           <Icon name="workspace-premium" size={15} color="#83721f" />
           <Text style={styles.adBannerText} numberOfLines={2}>{BANNER_AD_COPY}</Text>
@@ -2614,7 +2643,7 @@ export default function TrufrenzApp() {
       )}
       {/* The bar carries a slightly different weight per tab, because the content
           behind it ranges from dense chat rows to open wallpaper. */}
-      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
@@ -2787,7 +2816,13 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 19, paddingTop: 8, paddingBottom: 18, flexGrow: 1 },
   topBar: { minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
-  brandMark: { flexDirection: "row", alignItems: "center", gap: 9 },
+  /*
+   * `flex: 1, minWidth: 0` is load-bearing. Without it the block claims its
+   * content width, the header row overflows, and the right-hand controls are
+   * pushed off screen — the call and video buttons simply vanish on a phone.
+   * With it, the name truncates and the buttons keep their place.
+   */
+  brandMark: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 9 },
   brandIcon: { width: 31, height: 31, borderRadius: 12, backgroundColor: "#F1DE55", alignItems: "center", justifyContent: "center" },
   brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#4e4a3b" },
   topBarSub: { marginTop: 2, color: "#8d8b86", fontSize: 9 },
@@ -2796,12 +2831,15 @@ const styles = StyleSheet.create({
   threadHeading: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 7 },
   threadHeadingCopy: { flex: 1, minWidth: 0 },
   threadTitle: { color: "#4e4a3b", fontSize: 14, fontWeight: "700" },
-  threadStatus: { color: "#83721f", fontSize: 9, fontWeight: "600", marginTop: 2 },
+  threadStatusRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  threadStatus: { flexShrink: 1, color: "#83721f", fontSize: 9, fontWeight: "600" },
   neighborStatus: { color: "#83721f", fontSize: 8.5, fontWeight: "600", marginTop: 3 },
   threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)", padding: 1, backgroundColor: "rgba(241, 246, 252, 0.36)" },
   threadAvatar: { width: "100%", height: "100%", borderRadius: 12 },
-  topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  roundAction: { position: "relative", height: 35, width: 35, borderRadius: 14, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
+  topActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
+  /* Three controls in a conversation header: tighter gaps so none is pushed off. */
+  topActionsThread: { gap: 6 },
+  roundAction: { position: "relative", height: 32, width: 32, borderRadius: 13, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
   notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#E9D177", borderWidth: 1, borderColor: "#FFFFFF" },
   userAvatar: { height: 35, width: 35, borderRadius: 14, backgroundColor: "#eee9cc", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FFFFFF" },
   userInitial: { color: "#7c7349", fontSize: 15, fontWeight: "700" },
@@ -2863,11 +2901,29 @@ const styles = StyleSheet.create({
   actionText: { color: "#4A4210", fontSize: 11, fontWeight: "700" },
   emptyAction: { marginTop: 13 },
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
-  threadScreen: { flex: 1, paddingHorizontal: 16, paddingTop: 6 },
+  /*
+   * `paddingBottom: 0` is deliberate. The tab bar is hidden whenever a
+   * conversation is open, so any bottom padding here becomes a dead band of
+   * empty space between the composer and the bottom of the screen.
+   */
+  threadScreen: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 0 },
   threadSafety: { minHeight: 31, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5, marginBottom: 2 },
   threadSafetyText: { color: "#93918c", fontSize: 8 },
   threadBody: { flex: 1 },
-  threadContent: { paddingTop: 10, paddingBottom: 16, gap: 10 },
+  threadContent: { paddingTop: 8, gap: 9 },
+  /*
+   * Keyboard closed: the conversation starts directly under the safety line, so
+   * the date and the first messages ride up instead of being pushed to the
+   * bottom of a tall screen. Bottom-anchoring here was wrong twice over — it
+   * left the blank expanse above the messages that was reported, and it moved
+   * the date *down* rather than up.
+   */
+  threadContentCompact: { paddingBottom: 6, flexGrow: 1 },
+  /*
+   * Keyboard open: the newest message must stay visible, so the list is
+   * bottom-anchored and the composer takes the space above the keys.
+   */
+  threadContentKeyboard: { paddingBottom: 10, flexGrow: 1, justifyContent: "flex-end" },
   dayDivider: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 6 },
   dividerLine: { flex: 1, height: 1, backgroundColor: "rgba(212, 206, 179, 0.58)" },
   dayLabel: { color: "#979590", fontSize: 8, letterSpacing: 1 },
@@ -2909,6 +2965,11 @@ const styles = StyleSheet.create({
   hangoutStripText: { flex: 1, color: "#8e8c85", fontSize: 8 },
   inviteLink: { color: "#83721f", fontSize: 9, fontWeight: "700" },
   composerRow: { minHeight: 51, flexDirection: "row", alignItems: "center", gap: 7, paddingTop: 5, paddingBottom: 4 },
+  /*
+   * While the keyboard is up the composer sits flush on it, so it needs its own
+   * seam — otherwise the last message appears to run into the input field.
+   */
+  composerRowRaised: { borderTopWidth: 1, borderTopColor: "rgba(221, 216, 193, 0.55)", paddingTop: 7, marginTop: 2 },
   composerIcon: { width: 30, alignItems: "center" },
   quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(245, 240, 210, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", alignItems: "center", justifyContent: "center" },
   composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", color: "#53514c", fontSize: 11, outlineStyle: "none" as any },

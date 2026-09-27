@@ -202,11 +202,11 @@ disappoints, the credentials change and nothing else does.
    | Variable | Example | Notes |
    |---|---|---|
    | `EMAIL_PROVIDER_KEY` | `re_abc123…` | The API key |
-   | `EMAIL_FROM` | `Trufrenz <hello@trufrenz.app>` | Must be on the verified domain |
+   | `EMAIL_FROM` | `Trufrenz <hello@trufrenz.net>` | Must be on the verified domain |
    | `EMAIL_PROVIDER` | `resend` | Default. Use `log` to print instead of send |
 
 That is the whole change. `server/mailer.ts` is one adapter behind one interface,
-so switching to SendGrid, Postmark, or SES is a single-file edit.
+so switching provider is a single-file edit. Resend, ZeptoMail and generic SMTP are already written; SendGrid, Postmark or SES would each be a new adapter, not a setting.
 
 ### Testing without a provider
 
@@ -383,7 +383,7 @@ a provider outage cannot burn a member's allowance.
 |---|---|
 | `lib/email.ts` | Address normalising, validation, masking — shared by server and app |
 | `server/challengeStore.ts` | Issue, verify, consume, expire. Codes hashed, never stored raw |
-| `server/mailer.ts` | Email adapters (Resend, SendGrid, SMTP, ZeptoMail), logging that never leaks a code |
+| `server/mailer.ts` | Email adapters (Resend, ZeptoMail, SMTP, log), logging that never leaks a code |
 | `server/sms.ts` | Phone transports: WhatsApp Cloud API, MSG91, Twilio, and the local log adapter |
 | `lib/otp-limits.ts` | The sending rules, kept pure so they are testable without a database |
 | `lib/resend-countdown.ts` | The "send a new code" countdown and how a rate limit is described |
