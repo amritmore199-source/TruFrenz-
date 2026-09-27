@@ -1,4 +1,48 @@
 # Trufrenz — build tracker
+## Three subscription suggestions — DONE (verified)
+
+- **Store-localised prices**: `lib/store-prices.ts` reads the store's own quote
+  and caches it (12-hour TTL), and the paywall prefers it for the plan price, the
+  saving line and the a11y label. Rupee-only extras (effective-per-month, the
+  struck-through launch-discount card) are withheld rather than converted when
+  the store quotes another currency. `priceMismatch` reports a console price that
+  drifted from the published offer, through `console.warn` only. Writing the tests
+  caught a real bug: the first micros conversion tested the *type* of
+  `priceAmountMicros` instead of the value of `price`, leaking Play's micros as
+  ₹49,000,000 beside a ₹49 display.
+- **Reinstall auto-restore**: `lib/auto-restore.ts`. The trigger is deliberately
+  not "Premium is cached but the server has no receipt" — a reinstall wipes that
+  cache, so it could not fire in the case it targets, and it would also fire after
+  a legitimate lapse. It triggers on the store reporting a purchase the server has
+  not honoured, runs once per session (keyed to the session, so a different account
+  on the same device is re-checked), and stays silent when there is nothing to do.
+- **Time-boxed admin comps**: `grantComp` / `revokeComp` / `listComps`, stored as
+  a receipt with `channel = "comp"` so the grant inherits the expiry, reminder and
+  downgrade machinery. Admin gained the two actions, a plan/day picker (1–365) and
+  a comps panel. Four bugs were found by running it rather than by reading it:
+  excluding comps from `revalidateDueReceipts` (which never contacts a store, so
+  it is the only thing that makes a lapse stick) left an expired grant granting
+  Premium forever; `markReceiptCancelled` could land a store cancellation on a
+  comp; `verifyReceipt` would have accepted a client-supplied `channel: "comp"`
+  and minted Premium through the sandbox verifier; and `entitlementForMember`
+  re-derived the plan from the synthetic comp product id, silently reporting
+  quarterly for an annual grant.
+- **Consumer comp view**, found only by browser QA after the tests were green: the
+  management sheet read "is this a comp" from the build's own channel, which is
+  never `comp`, so a granted member on a Play device saw the store link and the
+  cancel button; and the launch reconciliation fetched the entitlement without
+  populating `receipts`, leaving the sheet nothing to reason about. Both fixed,
+  plus the remaining sale-shaped lines ("No charge", "Ends", "Source:
+  Complimentary grant", nothing-to-cancel explainer, withdrawn confirmation,
+  granted receipt labels).
+- **Docs**: `BILLING-NOTES.md` records all of the above;
+  `STORE-LAUNCH-CHECKLIST.md` lists the manual console work.
+- **Verified**: `pnpm check` clean, `pnpm lint` 0 errors / 19 warnings (previous
+  baseline 20), `pnpm test` 446 passed (1 pre-existing skip), `git diff --check`
+  clean; migration generated, reviewed and applied; live e2e of grant → reminder →
+  forced expiry → revoke; admin and consumer browser QA; demo data returned to
+  1 premium / 13 free with no leftover comp rows or verification events.
+
 ## Subscription launch follow-up — DONE (verified)
 - **Credential validation, not just presence**: `validateAppleCredentials()` /
   `validatePlayCredentials()` check value *shape* (reverse-DNS bundle id, 10-char

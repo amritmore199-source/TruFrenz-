@@ -28,8 +28,15 @@ import {
 
 /* ------------------------------ store products --------------------------- */
 
-/** Which store a purchase came from. */
-export type StoreChannel = "play" | "app-store";
+/**
+ * Where an entitlement came from.
+ *
+ * `comp` is a time-boxed grant an administrator made for a support case rather
+ * than a purchase. It is kept in the same union because the app treats the
+ * resulting entitlement identically — only the copy and the "is there a store to
+ * manage this in?" question differ.
+ */
+export type StoreChannel = "play" | "app-store" | "comp";
 
 export type StoreProduct = {
   /** The id that must exist in the store console. Never change it once shipped. */
@@ -343,10 +350,65 @@ export const CANCEL_EXPLAINER =
 
 /** The store deep-link label, per channel. */
 export function storeManagementLine(channel: StoreChannel): string {
-  return channel === "play"
-    ? "Manage in Google Play → Subscriptions"
-    : "Manage in App Store → Apple Account → Subscriptions";
+  if (channel === "play") return "Manage in Google Play → Subscriptions";
+  if (channel === "app-store") return "Manage in App Store → Apple Account → Subscriptions";
+  /*
+   * A comp was never sold, so there is nothing in a store account to manage and
+   * sending the member there would be a wasted trip. Their access simply ends on
+   * the granted date, which the manage screen states instead.
+   */
+  return "Granted by the Trufrenz team — nothing to manage in a store";
 }
+
+/**
+ * The receipt that governs access, out of everything on file.
+ *
+ * `entitlementForMember` derives the tier from the unexpired receipt with the
+ * latest expiry, so the app must read the same row or the two can disagree about
+ * where the member's Premium comes from — which is exactly the confusion that
+ * would show a store link to someone whose Premium was granted, not bought.
+ *
+ * Kept as a plain function over a minimal shape so it can be tested directly
+ * rather than only through the component that uses it.
+ */
+export function activeReceiptOf<T extends { expiresAt: string | Date }>(receipts: T[]): T | null {
+  let best: T | null = null;
+  let bestAt = Number.NEGATIVE_INFINITY;
+  for (const receipt of receipts) {
+    // An unparseable date cannot be compared, so it is skipped rather than
+    // allowed to win with `NaN`.
+    const at = new Date(receipt.expiresAt).getTime();
+    if (!Number.isFinite(at)) continue;
+    if (at > bestAt) {
+      best = receipt;
+      bestAt = at;
+    }
+  }
+  return best;
+}
+
+/** Whether the entitlement governing access came from a gift rather than a sale. */
+export function isComplimentaryChannel(channel: StoreChannel | null | undefined): boolean {
+  return channel === "comp";
+}
+
+/**
+ * What to say in place of a billing line when nothing was charged.
+ *
+ * "₹139 charged every 3 months" is simply false for a grant, and a member reading
+ * it would reasonably go looking for the charge.
+ */
+export const COMP_BILLING_LINE = "No charge — granted by the Trufrenz team";
+
+/**
+ * What to say in place of the store-cancellation explainer for a grant.
+ *
+ * The ordinary explainer tells the member to go and switch off auto-renew in a
+ * store account. For a comp there is no auto-renew to switch and no purchase in
+ * that account, so there is nothing to cancel and no action to take at all.
+ */
+export const COMP_CANCEL_EXPLAINER =
+  "There is nothing to cancel. Your Premium was granted by the Trufrenz team and ends on the date shown above.";
 
 /** Where to send a member who wants their money back. */
 export const REFUND_LINE =

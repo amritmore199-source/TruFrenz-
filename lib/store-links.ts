@@ -117,6 +117,20 @@ export function storeManageStepsText(platform: string): string {
 }
 
 /**
+ * Whether this notice is about a complimentary grant rather than a purchase.
+ *
+ * Recognised from the wording, because a notice carries no channel column — the
+ * body is the only place the distinction is recorded. That is imperfect, so the
+ * consequence of a miss is deliberately benign: a comp notice that fails to match
+ * shows the ordinary renewal copy without a store link, which is less specific
+ * rather than wrong. The phrases checked are ones the comp copy always contains
+ * and the store copy never does.
+ */
+export function noticeIsCompGrant(body: string): boolean {
+  return body.includes("granted to your account") || body.includes("we granted your account");
+}
+
+/**
  * Which notices should offer a store link.
  *
  * Only the ones where the member has something to *do* in the store. A courtesy
@@ -124,19 +138,17 @@ export function storeManageStepsText(platform: string): string {
  * manage button; sending someone to turn off a renewal that is already on is how
  * a helpful tip becomes a cancelled subscription. The expired notice does offer
  * one, because renewing is exactly what it invites.
+ *
+ * A comp never does, on any notice: there is no purchase behind it to manage and
+ * no renewal to switch, so the button would send the member hunting for a charge
+ * that was never made. The body is consulted for that, since it is where the
+ * distinction lives.
  */
-export function noticeOffersStoreLink(kind: string): boolean {
+export function noticeOffersStoreLink(kind: string, body = ""): boolean {
+  if (noticeIsCompGrant(body)) return false;
   return kind === "subscription_renewal" || kind === "subscription_expired";
 }
 
-/**
- * Whether a renewal notice is the cancelled-and-running-out kind.
- *
- * The server stores the auto-renew state in the notice body, not as a column, so
- * the app reads the same sentence the member does. That is imperfect — the body
- * is prose — but it keeps the decision where the words already are, and a notice
- * that fails to match simply shows no button rather than a wrong one.
- */
 export function noticeIsCancelledRenewal(body: string): boolean {
   return body.includes("it will not renew");
 }

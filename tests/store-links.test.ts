@@ -4,6 +4,7 @@ import {
   IOS_SETTINGS_SCHEME,
   PLAY_MARKET_SCHEME,
   noticeIsCancelledRenewal,
+  noticeIsCompGrant,
   noticeOffersStoreLink,
   storeManageActionLabel,
   storeManageLink,
@@ -104,5 +105,48 @@ describe("which notices offer a store button", () => {
     // cancelled subscription.
     expect(noticeIsCancelledRenewal("")).toBe(false);
     expect(noticeIsCancelledRenewal("Something else entirely.")).toBe(false);
+  });
+});
+
+
+describe("comp notices never offer a store link", () => {
+  it("refuses a link on any notice whose body is a comp grant", () => {
+    // A comp was never sold: there is no purchase to manage and no renewal to
+    // switch, so a store button would send the member hunting for a charge that
+    // was never made.
+    const compBody =
+      "The Trufrenz Premium granted to your account ends on 10 Oct 2026. This was a gift from our support team, " +
+      "so nothing is charged and there is nothing to cancel.";
+    expect(noticeOffersStoreLink("subscription_renewal", compBody)).toBe(false);
+    expect(noticeOffersStoreLink("subscription_expired", compBody)).toBe(false);
+  });
+
+  it("recognises the ending notice's wording too", () => {
+    expect(
+      noticeIsCompGrant(
+        "The Trufrenz Premium we granted your account ended on 10 Oct 2026. You are back on the free plan.",
+      ),
+    ).toBe(true);
+  });
+
+  it("still offers a link on an ordinary paid notice", () => {
+    const cancelled =
+      "Your Quarterly plan runs out on 10 Oct 2026 and it will not renew, so Premium stops then.";
+    expect(noticeOffersStoreLink("subscription_renewal", cancelled)).toBe(true);
+    expect(noticeOffersStoreLink("subscription_expired", "Your Quarterly plan ended on 10 Oct 2026.")).toBe(true);
+  });
+
+  it("keeps refusing a link on a courtesy renewal tip", () => {
+    // The pre-existing rule: a "nothing you need to do" notice must not carry a
+    // cancel button. Adding comp detection must not have loosened it.
+    const courtesy = "Your Quarterly plan renews on 10 Oct 2026 for ₹139. There is nothing you need to do.";
+    expect(noticeOffersStoreLink("subscription_renewal", courtesy)).toBe(true);
+    expect(noticeIsCancelledRenewal(courtesy)).toBe(false);
+    expect(noticeOffersStoreLink("announcement", courtesy)).toBe(false);
+  });
+
+  it("treats a missing body as not-a-comp", () => {
+    expect(noticeIsCompGrant("")).toBe(false);
+    expect(noticeOffersStoreLink("subscription_expired")).toBe(true);
   });
 });

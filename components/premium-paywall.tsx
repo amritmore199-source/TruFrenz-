@@ -8,6 +8,7 @@ import { useAppAppearance } from "@/lib/appearance-context";
 import { glassSurfaceColor } from "@/lib/appearance-preferences";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { purchaseButtonLabel, purchaseInFlight, type PurchaseState } from "@/lib/subscription-store";
+import { priceLineFor, savingLineFor, type StorePriceCatalogue } from "@/lib/store-prices";
 import {
   FEATURE_COMPARISON,
   LAUNCH_OFFERS,
@@ -15,7 +16,6 @@ import {
   formatInr,
   launchAnnualPriceInr,
   monthlyEquivalent,
-  planPriceLine,
   planSavingLine,
   renewalLine,
   savingsPercent,
@@ -37,6 +37,13 @@ type Props = {
    * one talking to the store and the server; the paywall only reports it.
    */
   purchase: PurchaseState;
+  /**
+   * The store's own prices for this member's market, when it has them.
+   *
+   * Null is the normal state on web and in Expo Go, and simply means the rupee
+   * catalogue is shown instead.
+   */
+  storePrices?: StorePriceCatalogue | null;
 };
 
 /** Padded, honest copy about where the money actually goes. */
@@ -51,6 +58,7 @@ export function PremiumPaywall({
   onClose,
   onPurchase,
   purchase,
+  storePrices = null,
 }: Props) {
   const layout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
@@ -77,6 +85,28 @@ export function PremiumPaywall({
   const active = useMemo(() => subscription.tier === "premium", [subscription.tier]);
   const selectedPlan = useMemo(() => PLANS.find((plan) => plan.id === selected) ?? PLANS[0], [selected]);
 
+  /*
+   * The store's price wins over the catalogue everywhere a number is shown.
+   *
+   * A member paying in another currency must not be quoted rupees, and even in
+   * India the store is authoritative — that is the figure that appears on their
+   * statement. The catalogue still drives the maths whenever the store has not
+   * quoted both plans in one currency, which is why the saving line is computed
+   * by the same module rather than inline here.
+   */
+  const priceLines = useMemo(() => {
+    const byPlan = new Map<PlanId, { line: string; saving: string; fromStore: boolean }>();
+    for (const plan of PLANS) {
+      const priced = priceLineFor(plan, storePrices);
+      byPlan.set(plan.id, {
+        line: priced.line,
+        saving: savingLineFor(plan, storePrices),
+        fromStore: priced.fromStore,
+      });
+    }
+    return byPlan;
+  }, [storePrices]);
+
   // Annual is the plan the launch discount applies to, so it shows the struck
   // price alongside the discounted one.
   const discounted = useMemo(() => {
@@ -84,6 +114,21 @@ export function PremiumPaywall({
     const launch = launchAnnualPriceInr(20);
     return launch < selectedPlan.priceInr ? { launch, full: selectedPlan.priceInr } : null;
   }, [selectedPlan]);
+
+  /*
+   * Whether the rupee launch-offer comparison is safe to show.
+   *
+   * The struck-through price and its replacement are both rupee figures, and the
+   * discount only exists if the store console actually carries that promotional
+   * price. So the comparison is suppressed once the store has quoted the annual
+   * plan in another currency: quoting "₹399 instead of ₹499" to someone being
+   * charged in dollars would be a number they never pay. The store's own price,
+   * with its own offer, is what they see.
+   */
+  const annualQuote = storePrices?.quotes.annual ?? null;
+  const showRupeeDiscount =
+    discounted !== null &&
+    (!annualQuote || (annualQuote.currencyCode !== null && annualQuote.currencyCode === "INR"));
 
   const rows = showAllFeatures ? FEATURE_COMPARISON : FEATURE_COMPARISON.filter((row) => row.free !== row.premium);
 
@@ -171,18 +216,21 @@ export function PremiumPaywall({
                 <View style={styles.planRow}>
                   {PLANS.map((plan) => {
                     const isSelected = plan.id === selected;
-                    const saving = planSavingLine(plan);
+                    const priced = priceLines.get(plan.id)!;
+                    const saving = priced.saving;
                     return (
                       <Pressable
                         key={plan.id}
                         onPress={() => { setSelected(plan.id); hapticTap(); }}
                         accessibilityRole="radio"
                         accessibilityState={{ selected: isSelected }}
-                        accessibilityLabel={`${plan.label}, ${planPriceLine(plan)}${saving ? `, ${saving}` : ""}`}
+                        accessibilityLabel={`${plan.label}, ${priced.line}${saving ? `, ${saving}` : ""}`}
                         style={({ pressed }) => [styles.planCard, isSelected && styles.planCardSelected, pressed && styles.pressed]}
                       >
                         <Text style={[styles.planName, isSelected && styles.planNameSelected]}>{plan.label}</Text>
-                        <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>{formatInr(plan.priceInr)}</Text>
+                        <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
+                          {priced.fromStore ? priced.line.split(" / ")[0] : formatInr(plan.priceInr)}
+                        </Text>
                         <Text style={styles.planMeta}>
                           {plan.months === 1 ? "1 month" : `${plan.months} months`}
                         </Text>
@@ -198,12 +246,22 @@ export function PremiumPaywall({
                   })}
                 </View>
 
-                <Text style={styles.effectiveLine}>
-                  {selectedPlan.label} works out to {formatInr(monthlyEquivalent(selectedPlan))} / month
-                  {savingsPercent(selectedPlan) > 0 ? ` · ${planSavingLine(selectedPlan)}` : ""}
-                </Text>
+                {/*
+                  The per-month split is only shown when it is arithmetically
+                  meaningful. It divides the rupee catalogue price, so if the
+                  store has quoted this plan in another currency the split would
+                  be computed from a figure the member is not paying — better to
+                  show nothing than a confident wrong number.
+                */}
+                {!storePrices?.quotes[selectedPlan.id] ||
+                storePrices.quotes[selectedPlan.id]?.currencyCode === "INR" ? (
+                  <Text style={styles.effectiveLine}>
+                    {selectedPlan.label} works out to {formatInr(monthlyEquivalent(selectedPlan))} / month
+                    {savingsPercent(selectedPlan) > 0 ? ` · ${planSavingLine(selectedPlan)}` : ""}
+                  </Text>
+                ) : null}
 
-                {discounted ? (
+                {discounted && showRupeeDiscount ? (
                   <View style={styles.offerCard}>
                     <MaterialIcons name="local-offer" size={15} color="#8E5F7E" />
                     <Text style={styles.offerText}>
@@ -301,7 +359,7 @@ export function PremiumPaywall({
                   )}
                 </Pressable>
                 <Text style={styles.footerNote}>
-                  {selectedPlan.label} · {planPriceLine(selectedPlan)} · cancel any time in your store account
+                  {selectedPlan.label} · {priceLines.get(selectedPlan.id)!.line} · cancel any time in your store account
                 </Text>
               </>
             )}

@@ -311,7 +311,16 @@ export const subscriptionReceipts = mysqlTable("subscription_receipts", {
   id: int("id").autoincrement().primaryKey(),
   memberId: int("memberId").notNull(),
   /** Which store took the payment. */
-  channel: mysqlEnum("channel", ["play", "app-store"]).notNull(),
+  /**
+   * Where the entitlement came from.
+   *
+   * `comp` is a time-boxed grant an administrator made for a support case. It
+   * travels through the same receipt table deliberately: entitlement is derived
+   * from unexpired receipts, so a comp gets the same expiry, reminder, and
+   * downgrade behaviour as a paid plan — and cannot be revalidated against a
+   * store, which never sold it.
+   */
+  channel: mysqlEnum("channel", ["play", "app-store", "comp"]).notNull(),
   /** The store product id, e.g. trufrenz.premium.annual. */
   productId: varchar("productId", { length: 120 }).notNull(),
   /** The plan the product maps to. */
@@ -332,6 +341,10 @@ export const subscriptionReceipts = mysqlTable("subscription_receipts", {
   lastVerifiedAt: timestamp("lastVerifiedAt"),
   /** "store" for a real verification, "sandbox" while no credentials exist. */
   verifiedBy: varchar("verifiedBy", { length: 16 }).default("sandbox").notNull(),
+  /** Who granted this, when it is a comp. Null for anything a store sold. */
+  grantedBy: varchar("grantedBy", { length: 320 }),
+  /** Why the comp was granted. Required for a comp, shown in the dashboard. */
+  grantedReason: varchar("grantedReason", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type SubscriptionReceipt = typeof subscriptionReceipts.$inferSelect;

@@ -192,7 +192,7 @@ export type RemoteEntitlement = {
 
 export type RemoteReceipt = {
   id: number;
-  channel: "play" | "app-store";
+  channel: "play" | "app-store" | "comp";
   productId: string;
   planId: string;
   status: string;
@@ -206,7 +206,7 @@ export type RemoteReceipt = {
 
 /** A receipt handed back to the server for verification. */
 export type StoreReceiptPayload = {
-  channel: "play" | "app-store";
+  channel: "play" | "app-store" | "comp";
   productId: string;
   purchaseToken: string;
   signedTransaction?: string | null;

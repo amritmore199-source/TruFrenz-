@@ -586,10 +586,11 @@ export function registerAdminRoutes(app: Express) {
   app.get("/api/admin/subscriptions", requireAdmin, async (req, res) => {
     const kind = String(req.query.kind ?? "all");
     const allowed = ["grant", "revoke", "refund"];
-    const [paid, events, reminders] = await Promise.all([
+    const [paid, events, reminders, comps] = await Promise.all([
       adminDb.listPaidMembers(),
       adminDb.listSubscriptionEvents(allowed.includes(kind) ? (kind as "grant") : undefined),
       reminderHistory(25),
+      listComps(25),
     ]);
     /*
      * `readiness` reports what this deployment can actually verify, and what a
@@ -602,6 +603,7 @@ export function registerAdminRoutes(app: Express) {
       paidMembers: paid,
       events,
       reminders,
+      comps,
       readiness: storeReadiness(),
       verificationMode: verificationMode(),
       sandboxAllowed: sandboxVerificationAllowed(),
@@ -618,7 +620,7 @@ export function registerAdminRoutes(app: Express) {
       const kind = String(req.body?.kind ?? "");
       const reason = String(req.body?.reason ?? "").trim();
       const amountCents = Number.parseInt(String(req.body?.amountCents ?? "0"), 10) || 0;
-      const allowed = ["grant", "revoke", "refund"];
+      const allowed = ["grant", "revoke", "refund", "comp", "comp-revoke"];
 
       if (!Number.isFinite(memberId) || !allowed.includes(kind)) {
         res.status(400).json({ error: "Choose a member and a valid subscription action." });
@@ -630,6 +632,45 @@ export function registerAdminRoutes(app: Express) {
       }
       if (kind === "refund" && amountCents <= 0) {
         res.status(400).json({ error: "Enter the refund amount in cents." });
+        return;
+      }
+      /*
+       * A comp is a different kind of action from an open-ended grant, so it does
+       * not route through `changeSubscription`. That path sets the tier and stops,
+       * which for a goodwill gesture means the member keeps Premium forever and
+       * nobody is ever prompted to revisit it. A comp writes a receipt with an
+       * expiry instead, so the existing revalidation and reminder machinery ends
+       * it on its own.
+       */
+      if (kind === "comp" || kind === "comp-revoke") {
+        try {
+          const result =
+            kind === "comp"
+              ? await grantComp({
+                  memberId,
+                  planId: String(req.body?.planId ?? "monthly") as PlanId,
+                  days: Number.parseInt(String(req.body?.days ?? ""), 10) || COMP_DEFAULT_DAYS,
+                  reason,
+                  actor: admin.email,
+                })
+              : await revokeComp({ memberId, reason, actor: admin.email });
+
+          await adminDb.logAdminAction({
+            actorEmail: admin.email,
+            actorRole: admin.role,
+            module: "subscriptions",
+            action: kind,
+            targetType: "member",
+            targetId: memberId,
+            targetLabel: result.memberName,
+            note: reason,
+          });
+          res.json({ ok: true, ...result });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "That change could not be applied.";
+          // A rejected member id or a missing comp is a bad request, not a crash.
+          res.status(400).json({ error: message });
+        }
         return;
       }
 
@@ -666,3 +707,5 @@ export function registerAdminRoutes(app: Express) {
 import { sandboxVerificationAllowed, verificationMode } from "./billingService";
 import { reminderHistory } from "./subscription-reminders";
 import { storeReadiness } from "./storeReadiness";
+import { COMP_DEFAULT_DAYS, grantComp, listComps, revokeComp } from "./billingService";
+import type { PlanId } from "../lib/subscription";

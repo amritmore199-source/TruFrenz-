@@ -23,7 +23,8 @@ import {
 } from "./store-purchase";
 
 export { storeChannelForPlatform };
-import { productIdForPlan, STORE_PRODUCTS, type StoreChannel } from "./subscription-store";
+import { productIdForPlan, STORE_PRODUCTS } from "./subscription-store";
+import type { StorePurchaseChannel } from "./store-purchase";
 import type { PlanId } from "./subscription";
 import type { StoreReceiptPayload } from "./account-client";
 
@@ -45,7 +46,14 @@ export function storeSdkAvailable(): boolean {
   return Platform.OS === "ios" || Platform.OS === "android";
 }
 
-export function currentStoreChannel(): StoreChannel {
+/**
+ * The store this device buys through.
+ *
+ * Narrower than `StoreChannel` because a device can only ever be on one of the
+ * two real stores: a `comp` is granted server-side and has no originating
+ * platform.
+ */
+export function currentStoreChannel(): StorePurchaseChannel {
   return storeChannelForPlatform(Platform.OS);
 }
 
@@ -77,6 +85,20 @@ type IapModule = {
     Array<{
       id?: string;
       productId?: string;
+      /*
+       * How the store renders the price for *this* account's country, plus the
+       * numeric amount when the platform exposes one. Field names have varied
+       * across SDK versions, so `parseStorePriceQuotes` reads all of them.
+       */
+      displayPrice?: string;
+      localizedPrice?: string;
+      priceString?: string;
+      price?: number | string;
+      priceAmountMicros?: number | string;
+      priceAmount?: number | string;
+      currency?: string;
+      currencyCode?: string;
+      isoCurrencyCode?: string;
       subscriptionOfferDetailsAndroid?: Array<{ offerToken?: string | null }>;
       subscriptionOffers?: Array<{ offerToken?: string | null }>;
     }>
@@ -218,3 +240,29 @@ export async function storePurchaseHistory(): Promise<StoreReceiptPayload[]> {
 export function expectedStoreProducts(): string[] {
   return STORE_PRODUCTS.map((product) => product.productId);
 }
+
+/**
+ * Ask the store what it charges for each plan, in the member's own market.
+ *
+ * Returns null when there is no store to ask — on web, in Expo Go, or if the SDK
+ * is missing — which the caller treats as "keep showing the rupee catalogue".
+ * This is a lookup, not a purchase: it opens no sheet and takes no money.
+ */
+export async function fetchStorePrices(): Promise<StorePriceQuotes | null> {
+  if (!storeSdkAvailable()) return null;
+  try {
+    const iap = await loadIap();
+    await iap.initConnection();
+    const products = await iap.fetchProducts({ skus: expectedStoreProducts(), type: "subs" });
+    const quotes = parseStorePriceQuotes(products, productIdForPlan);
+    // Nothing readable means the caller should stay on the catalogue price
+    // rather than render an empty price line.
+    return Object.keys(quotes).length > 0 ? quotes : null;
+  } catch {
+    return null;
+  }
+}
+import { parseStorePriceQuotes, type StorePriceQuote } from "./store-prices";
+
+/** The plan-keyed quotes a price fetch returns. */
+export type StorePriceQuotes = Partial<Record<PlanId, StorePriceQuote>>;

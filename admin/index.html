@@ -443,6 +443,28 @@
               No renewal reminders sent yet. They go out automatically inside the last week of a period.
             </p>
           </div>
+          <div class="panel flush">
+            <div class="panel-head">
+              <h3>Complimentary Premium</h3>
+              <span class="tiny muted">Time-boxed grants · expire automatically, with reminders</span>
+            </div>
+            <table class="data-table" id="comps-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Ends</th>
+                  <th>Granted by</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="empty" id="comps-empty" hidden>
+              No complimentary Premium granted. Add one from the form below when a support case calls for it.
+            </p>
+          </div>
           <div class="grid-2">
             <div class="panel">
               <div class="panel-head">
@@ -475,15 +497,38 @@
                 <label class="field">
                   <span>Action</span>
                   <select id="subscription-kind">
-                    <option value="grant">Grant paid access</option>
+                    <option value="grant">Grant paid access (open-ended)</option>
                     <option value="revoke">Revoke paid access</option>
                     <option value="refund">Log a refund</option>
+                    <option value="comp">Grant complimentary Premium for a set time</option>
+                    <option value="comp-revoke">End a complimentary Premium now</option>
                   </select>
                 </label>
                 <label class="field">
                   <span>Refund amount (cents)</span>
                   <input id="subscription-amount" type="number" min="0" value="1299" />
                 </label>
+                <!--
+                  Complimentary Premium, for support cases. Shown only for the two
+                  comp actions: an open-ended "grant paid access" leaves the member
+                  Premium forever with nothing to prompt a review, so a goodwill
+                  gesture is given a date and the existing reminder machinery ends
+                  it on its own.
+                -->
+                <div id="subscription-comp-fields" hidden>
+                  <label class="field">
+                    <span>Plan the member is told they have</span>
+                    <select id="subscription-plan">
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Days of Premium (1–365)</span>
+                    <input id="subscription-days" type="number" min="1" max="365" value="30" />
+                  </label>
+                </div>
                 <label class="field">
                   <span>Reason</span>
                   <textarea id="subscription-reason" required rows="3" placeholder="Duplicate charge confirmed by the payment provider."></textarea>

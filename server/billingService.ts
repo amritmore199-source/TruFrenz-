@@ -20,7 +20,7 @@
  */
 
 import { createHash, randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { getDb } from "./db";
 import { members, subscriptionEvents, subscriptionReceipts } from "../drizzle/schema";
 import {
@@ -392,6 +392,9 @@ async function verifySandboxReceipt(receipt: StoreReceipt, claimedByMemberId: nu
 export async function verifyReceipt(receipt: StoreReceipt, memberId: number): Promise<VerifiedReceipt> {
   const credentials = readCredentials();
 
+  // A comp is granted server-side only; see `refuseCompChannel`.
+  refuseCompChannel(receipt.channel);
+
   // A configured store is always the only acceptable path for its own channel.
   if (receipt.channel === "play") {
     if (credentials.play) return verifyPlayReceipt(receipt, credentials.play);
@@ -417,6 +420,25 @@ export function sandboxVerificationAllowed(): boolean {
   // Unset: allowed outside production, refused inside it.
   return process.env.NODE_ENV !== "production";
 }
+/**
+ * Refuse any attempt to verify a comp as if it were a purchase.
+ *
+ * Exported so every write path can share it. The reason it matters: the receipt's
+ * channel is taken from the request body and then stored on the row that grants
+ * the entitlement, so a client posting `channel: "comp"` would otherwise fall
+ * through to the development sandbox verifier and mint itself Premium. Comps are
+ * granted server-side by an administrator (`grantComp`), so that is the only
+ * legitimate source.
+ */
+export function refuseCompChannel(channel: string): void {
+  if (channel === "comp") {
+    throw new ReceiptRejected(
+      "That purchase could not be verified. Please contact support.",
+      "comp_not_accepted",
+    );
+  }
+}
+
 /** The rejection for a receipt from a store this deployment cannot verify. */
 function unconfiguredChannel(storeName: string): ReceiptRejected {
   return new ReceiptRejected(
@@ -477,7 +499,15 @@ export async function entitlementForMember(memberId: number): Promise<Entitlemen
 
   return {
     tier: "premium",
-    planId: planIdForProductId(row.productId) ?? "quarterly",
+    /*
+     * The row's own plan id, not one re-derived from the product id.
+     *
+     * A comp is stored with a synthetic product id (`trufrenz.comp.annual`) that
+     * no store catalogue knows, so mapping from the product id silently fell back
+     * to a quarterly plan — and the member was told they had a quarterly plan
+     * while holding an annual grant.
+     */
+    planId: planById(row.planId).id,
     renewsOn: expires.toISOString(),
     // Within the reminder horizon, so the manage screen can say so plainly.
     renewingSoon: expires.getTime() - Date.now() <= REMINDER_HORIZON_MS,
@@ -602,14 +632,23 @@ export async function restoreReceipts(memberId: number, receipts: StoreReceipt[]
 export async function markReceiptCancelled(memberId: number): Promise<Entitlement> {
   const db = await getDb();
   if (!db) return { ...FREE_ENTITLEMENT };
+  /*
+   * Only store receipts can be cancelled.
+   *
+   * This picks the newest receipt by expiry, which for a member holding a comp
+   * would be the comp — and marking that cancelled would put store-cancellation
+   * state on something never bought, while leaving the real subscription
+   * untouched. A comp has no renewal to switch off in the first place.
+   */
   const rows = await db
     .select()
     .from(subscriptionReceipts)
-    .where(eq(subscriptionReceipts.memberId, memberId))
+    .where(and(eq(subscriptionReceipts.memberId, memberId), ne(subscriptionReceipts.channel, "comp")))
     .orderBy(desc(subscriptionReceipts.expiresAt))
     .limit(1);
   const row = rows[0];
-  if (!row) return { ...FREE_ENTITLEMENT };
+  // Nothing bought, so there is nothing a store could have cancelled.
+  if (!row) return entitlementForMember(memberId);
   await db
     .update(subscriptionReceipts)
     .set({ cancelledAt: new Date(), autoRenewing: false, lastVerifiedAt: new Date() })
@@ -651,6 +690,14 @@ export async function revalidateDueReceipts(limit = 50): Promise<{ checked: numb
   const db = await getDb();
   if (!db) return { checked: 0, lapsed: 0 };
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  /*
+   * Every active receipt is in scope, comps included.
+   *
+   * This pass does not contact any store — it compares `expiresAt` against the
+   * clock, so it is the only thing that makes a lapse stick. A comp has no store
+   * to re-check, which makes it *more* dependent on this and not less: excluding
+   * comps here would leave an expired grant granting Premium forever.
+   */
   const rows = await db
     .select()
     .from(subscriptionReceipts)
@@ -674,6 +721,190 @@ export async function revalidateDueReceipts(limit = 50): Promise<{ checked: numb
     }
   }
   return { checked, lapsed };
+}
+
+/* --------------------------------- comps --------------------------------- */
+/**
+ * A complimentary Premium period, granted for a support case.
+ *
+ * Comps travel through `subscription_receipts` rather than a separate table on
+ * purpose. Entitlement is derived from *unexpired receipts*, so a comp inherits
+ * the whole existing machine for free: it grants Premium while it lasts, the
+ * revalidation job downgrades the member when it ends, and the renewal reminder
+ * scan tells them it is about to. A separate table would have needed a second
+ * copy of every one of those, and the second copy is where the drift starts.
+ *
+ * What a comp must *not* inherit is store verification. Its channel is `comp`,
+ * which no store will ever verify, so both the revalidation job and the restore
+ * path skip it by channel rather than by trying and failing.
+ */
+/** How long a comp may run. Long enough for goodwill, short enough to revisit. */
+export const COMP_MAX_DAYS = 365;
+export const COMP_DEFAULT_DAYS = 30;
+export type CompResult = {
+  receiptId: number;
+  expiresAt: Date;
+  planId: PlanId;
+  memberName: string;
+};
+/**
+ * Grant a time-boxed Premium period.
+ *
+ * The plan is validated rather than defaulted: a comp priced as an annual plan
+ * drives the reminder copy ("your Annual plan…") and the manage screen's period
+ * line, so silently substituting a default would show the member a plan they were
+ * never given. The days are clamped, and a reason is mandatory upstream, because
+ * an unexplained permanent grant is indistinguishable from an account takeover
+ * when someone reads the audit log later.
+ */
+export async function grantComp(input: {
+  memberId: number;
+  planId: PlanId;
+  days: number;
+  reason: string;
+  actor: string;
+}): Promise<CompResult> {
+  const db = await getDb();
+  if (!db) throw new ReceiptRejected("Trufrenz could not record that grant.", "storage_unavailable");
+
+  const plan = planById(input.planId);
+  const days = Math.min(Math.max(Math.round(input.days) || COMP_DEFAULT_DAYS, 1), COMP_MAX_DAYS);
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+  const rows = await db.select({ name: members.name }).from(members).where(eq(members.id, input.memberId)).limit(1);
+  const memberName = rows[0]?.name;
+  if (!memberName) throw new ReceiptRejected("That member no longer exists.", "member_not_found");
+
+  /*
+   * Replace any comp this member already has rather than stacking a second one.
+   *
+   * Two live comps would let the *newer* expiry silently win in
+   * `entitlementForMember` (which orders by expiry) while the older row kept its
+   * own reminder window, so the member would be told their Premium ends on a date
+   * that is not the one that actually governs their access.
+   */
+  await db
+    .delete(subscriptionReceipts)
+    .where(and(eq(subscriptionReceipts.memberId, input.memberId), eq(subscriptionReceipts.channel, "comp")));
+
+  const inserted = await db.insert(subscriptionReceipts).values({
+    memberId: input.memberId,
+    channel: "comp",
+    productId: compProductId(plan.id),
+    planId: plan.id,
+    /*
+     * A synthetic unique transaction id. It keeps the table's uniqueness
+     * guarantee meaningful for comps too, and makes a comp identifiable in the
+     * receipt list at a glance.
+     */
+    transactionId: `comp-${input.memberId}-${Date.now()}`,
+    // No purchase token exists, so there is nothing to hash. The column is not
+    // nullable, so a fixed marker is stored rather than a hash of an empty string
+    // that would look like a real token.
+    purchaseTokenHash: "comp-no-token",
+    status: "active" satisfies PurchaseStatus,
+    expiresAt,
+    // Nothing renews a comp: it ends on its date unless a human extends it.
+    autoRenewing: false,
+    cancelledAt: null,
+    lastVerifiedAt: new Date(),
+    /*
+     * `verifiedBy` records *how the entitlement was established*. A human granted
+     * it, which is closer to `sandbox` than to a store verification, and claiming
+     * `store` would put an unverified comp into the same bucket the dashboard uses
+     * to report real revenue.
+     */
+    verifiedBy: "sandbox",
+    grantedBy: input.actor,
+    grantedReason: input.reason.slice(0, 500),
+  });
+
+  await db.update(members).set({ subscriptionTier: "premium" }).where(eq(members.id, input.memberId));
+  await db.insert(subscriptionEvents).values({
+    memberId: input.memberId,
+    memberName,
+    kind: "grant",
+    tier: "premium",
+    // No money changed hands, so this must not add to any revenue figure.
+    amountCents: 0,
+    reason: `Complimentary ${plan.label} for ${days} day(s) · ${input.reason}`,
+    actorEmail: input.actor,
+  });
+
+  return { receiptId: insertIdOf(inserted), expiresAt, planId: plan.id, memberName };
+}
+/**
+ * End a comp early.
+ *
+ * Downgrades the member only if this comp was the one granting access — a member
+ * who bought a real subscription while holding a comp must not lose it because a
+ * support gesture was revoked.
+ */
+export async function revokeComp(input: { memberId: number; reason: string; actor: string }): Promise<{ memberName: string }> {
+  const db = await getDb();
+  if (!db) throw new ReceiptRejected("Trufrenz could not revoke that grant.", "storage_unavailable");
+
+  const rows = await db.select({ name: members.name }).from(members).where(eq(members.id, input.memberId)).limit(1);
+  const memberName = rows[0]?.name;
+  if (!memberName) throw new ReceiptRejected("That member no longer exists.", "member_not_found");
+
+  const comps = await db
+    .select({ id: subscriptionReceipts.id })
+    .from(subscriptionReceipts)
+    .where(and(eq(subscriptionReceipts.memberId, input.memberId), eq(subscriptionReceipts.channel, "comp")));
+  if (comps.length === 0) {
+    throw new ReceiptRejected("That member has no complimentary Premium to revoke.", "no_comp");
+  }
+
+  await db
+    .update(subscriptionReceipts)
+    .set({ status: "revoked", expiresAt: new Date(), cancelledAt: new Date() })
+    .where(and(eq(subscriptionReceipts.memberId, input.memberId), eq(subscriptionReceipts.channel, "comp")));
+
+  // Ask what actually remains, rather than assuming the member is now free.
+  const remaining = await entitlementForMember(input.memberId);
+  await db
+    .update(members)
+    .set({ subscriptionTier: remaining.tier })
+    .where(eq(members.id, input.memberId));
+
+  await db.insert(subscriptionEvents).values({
+    memberId: input.memberId,
+    memberName,
+    kind: "revoke",
+    tier: remaining.tier,
+    amountCents: 0,
+    reason: `Complimentary Premium revoked · ${input.reason}`,
+    actorEmail: input.actor,
+  });
+
+  return { memberName };
+}
+/** The comps currently on file, for the admin Subscriptions module. */
+export async function listComps(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: subscriptionReceipts.id,
+      memberId: subscriptionReceipts.memberId,
+      memberName: members.name,
+      planId: subscriptionReceipts.planId,
+      status: subscriptionReceipts.status,
+      expiresAt: subscriptionReceipts.expiresAt,
+      grantedBy: subscriptionReceipts.grantedBy,
+      grantedReason: subscriptionReceipts.grantedReason,
+      createdAt: subscriptionReceipts.createdAt,
+    })
+    .from(subscriptionReceipts)
+    .leftJoin(members, eq(members.id, subscriptionReceipts.memberId))
+    .where(eq(subscriptionReceipts.channel, "comp"))
+    .orderBy(desc(subscriptionReceipts.expiresAt))
+    .limit(limit);
+}
+/** The synthetic product id stored for a comp, so the receipt list reads clearly. */
+export function compProductId(planId: PlanId): string {
+  return `trufrenz.comp.${planId}`;
 }
 
 /** The product catalogue, as the app should present it. */

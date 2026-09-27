@@ -1296,6 +1296,34 @@
       catalogueBody.appendChild(tr);
     }
 
+    /*
+     * Complimentary Premium. The distinction that matters here is live-vs-ended:
+     * a comp is the only receipt in the system that ends on a date nobody paid
+     * for, so an admin scanning this list needs to see which ones are still
+     * granting access.
+     */
+    const comps = data.comps || [];
+    const compsBody = $("comps-table").querySelector("tbody");
+    clear(compsBody);
+    $("comps-empty").hidden = comps.length > 0;
+    for (const comp of comps) {
+      const tr = el("tr");
+      const name = el("td");
+      name.appendChild(el("div", "cell-strong", comp.memberName || `Member #${comp.memberId}`));
+      name.appendChild(el("div", "cell-sub", `#${comp.memberId}`));
+      tr.appendChild(name);
+      tr.appendChild(el("td", null, comp.planId));
+      const statusCell = el("td");
+      const live = comp.status === "active" && new Date(comp.expiresAt).getTime() > Date.now();
+      const tag = statusTag(live ? "approved" : "suspended");
+      tag.textContent = live ? "active" : comp.status === "revoked" ? "ended early" : "expired";
+      statusCell.appendChild(tag);
+      tr.appendChild(statusCell);
+      tr.appendChild(el("td", null, formatDateTime(comp.expiresAt)));
+      tr.appendChild(el("td", "cell-sub", comp.grantedBy || "—"));
+      tr.appendChild(el("td", "cell-sub", comp.grantedReason || "—"));
+      compsBody.appendChild(tr);
+    }
     const reminders = data.reminders || [];
     const remindersBody = $("reminders-table").querySelector("tbody");
     clear(remindersBody);
@@ -1357,6 +1385,8 @@
     const kind = $("subscription-kind").value;
     const reason = $("subscription-reason").value.trim();
     const amountCents = Number($("subscription-amount").value || 0);
+    const planId = $("subscription-plan").value;
+    const days = Number($("subscription-days").value || 0);
 
     if (reason.length < 8) {
       toast("Add a short reason so the change is auditable.", "error");
@@ -1366,18 +1396,48 @@
       toast("Enter the refund amount in cents.", "error");
       return;
     }
+    /*
+     * The days are validated here rather than left to the server clamp, because a
+     * silently clamped value is worse than a rejected one: the admin would believe
+     * they granted a year while the member gets thirty days.
+     */
+    if (kind === "comp" && (!Number.isFinite(days) || days < 1 || days > 365)) {
+      toast("Enter between 1 and 365 days of Premium.", "error");
+      return;
+    }
 
     try {
       await api("/subscriptions/change", {
         method: "POST",
-        body: JSON.stringify({ memberId, kind, reason, amountCents }),
+        body: JSON.stringify({ memberId, kind, reason, amountCents, planId, days }),
       });
-      toast("Subscription change applied.", "ok");
+      toast(
+        kind === "comp"
+          ? `Complimentary ${planId} Premium granted for ${days} days.`
+          : kind === "comp-revoke"
+            ? "Complimentary Premium ended."
+            : "Subscription change applied.",
+        "ok",
+      );
       $("subscription-reason").value = "";
       await loadSubscriptions();
     } catch (error) {
       toast(error.message, "error");
     }
+  });
+
+  /*
+   * Show the fields that matter for the action chosen.
+   *
+   * All three field groups exist in the markup, so without this the form asks for
+   * a refund amount while granting a comp, and an admin fills in whatever happens
+   * to be on screen. Hiding the irrelevant ones keeps the form honest about what
+   * it will actually do.
+   */
+  $("subscription-kind").addEventListener("change", () => {
+    const kind = $("subscription-kind").value;
+    $("subscription-comp-fields").hidden = kind !== "comp";
+    $("subscription-amount").closest("label").hidden = kind !== "refund";
   });
 
   $("events-kind").addEventListener("change", () => {

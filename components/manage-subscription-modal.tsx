@@ -48,10 +48,54 @@ import {
   chargeLine,
   periodLine,
   storeManagementLine,
+  activeReceiptOf,
+  isComplimentaryChannel,
+  COMP_BILLING_LINE,
+  COMP_CANCEL_EXPLAINER,
   type RestoreState,
   type StoreChannel,
 } from "@/lib/subscription-store";
 import { storeManageActionLabel, storeManageLink, storeManageStepsText } from "@/lib/store-links";
+
+/**
+ * The icon for a receipt's channel.
+ *
+ * A comp gets a gift rather than a phone, because there is no store account
+ * behind it and the phone icon implies an App Store or Play purchase.
+ */
+function receiptChannelIcon(channel: StoreChannel): React.ComponentProps<typeof MaterialIcons>["name"] {
+  if (channel === "play") return "android";
+  if (channel === "app-store") return "phone-iphone";
+  return "card-giftcard";
+}
+
+/**
+ * What to call a receipt.
+ *
+ * A comp's product id is synthetic (`trufrenz.comp.annual`), so reading the plan
+ * off the last dotted segment happens to work — but only by accident, and it
+ * would break the moment that convention changed. The plan is read explicitly
+ * here, and a comp is labelled as granted rather than sold.
+ */
+function receiptPlanLabel(receipt: ReceiptSummary): string {
+  const planLabel =
+    PLANS.find((plan) => receipt.productId.endsWith(`.${plan.id}`))?.label ?? "Premium";
+  return receipt.channel === "comp" ? `${planLabel} · granted` : planLabel;
+}
+
+/**
+ * The status pill for a receipt.
+ *
+ * These rows are receipts, not subscriptions: anything still active is active,
+ * whether or not it renews. The old rule keyed off `autoRenewing`, which read
+ * "Ends soon" for a grant with months left and for any cancelled-but-running
+ * subscription — the exact case where the member is still owed the time.
+ */
+function receiptStatusLabel(receipt: ReceiptSummary): string {
+  if (receipt.status !== "active") return "Ended";
+  if (receipt.channel === "comp") return "Granted";
+  return receipt.autoRenewing ? "Renews" : "Ends";
+}
 
 export type ReceiptSummary = {
   id: number;
@@ -120,6 +164,20 @@ export function ManageSubscriptionModal({
 }: Props) {
   const layout = useResponsiveModalLayout();
   const { glassOpacity } = useAppAppearance();
+  /*
+   * Which entitlement is actually governing access right now.
+   *
+   * `channel` is what this *build* sells through, which is a property of the
+   * platform and is therefore never `comp`. The entitlement may still be a comp —
+   * a grant made in the dashboard on a phone that buys through Play — and that is
+   * precisely the case the copy below has to get right: it must not send someone
+   * who was given Premium to a store account that has no purchase in it.
+   *
+   * The receipt with the latest expiry is the one `entitlementForMember` uses, so
+   * reading the same field here keeps the two in agreement about which receipt
+   * the member's access comes from.
+   */
+  const isComp = isComplimentaryChannel(activeReceiptOf(receipts)?.channel);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [reportingCancel, setReportingCancel] = useState(false);
 
@@ -228,10 +286,14 @@ export function ManageSubscriptionModal({
               {premium ? (
                 <>
                   <View style={styles.detailList}>
-                    <DetailRow icon="repeat" label="Billing" value={chargeLine(subscription.planId)} />
+                    <DetailRow
+                      icon="repeat"
+                      label="Billing"
+                      value={isComp ? COMP_BILLING_LINE : chargeLine(subscription.planId)}
+                    />
                     <DetailRow
                       icon="event"
-                      label="Renews"
+                      label={isComp ? "Ends" : "Renews"}
                       value={
                         subscription.renewsOn
                           ? new Date(subscription.renewsOn).toLocaleDateString("en-IN", {
@@ -242,12 +304,16 @@ export function ManageSubscriptionModal({
                           : "—"
                       }
                     />
-                    <DetailRow
-                      icon="autorenew"
-                      label="Auto-renew"
-                      value={cancelled ? "Stopped" : subscription.autoRenewing ? "On" : "Off"}
-                      tone={cancelled ? "warning" : "positive"}
-                    />
+                    {isComp ? (
+                      <DetailRow icon="card-giftcard" label="Source" value="Complimentary grant" />
+                    ) : (
+                      <DetailRow
+                        icon="autorenew"
+                        label="Auto-renew"
+                        value={cancelled ? "Stopped" : subscription.autoRenewing ? "On" : "Off"}
+                        tone={cancelled ? "warning" : "positive"}
+                      />
+                    )}
                     <DetailRow
                       icon="verified-user"
                       label="Receipt"
@@ -286,13 +352,13 @@ export function ManageSubscriptionModal({
                     style={[styles.receiptRow, index > 0 && styles.receiptDivider]}
                   >
                     <MaterialIcons
-                      name={receipt.channel === "play" ? "android" : "phone-iphone"}
+                      name={receiptChannelIcon(receipt.channel)}
                       size={15}
                       color="#8E7894"
                     />
                     <View style={styles.receiptText}>
                       <Text style={styles.receiptTitle}>
-                        {PLANS.find((plan) => plan.id === receipt.productId.split(".").pop())?.label ?? "Premium"}
+                        {receiptPlanLabel(receipt)}
                         {receipt.cancelledAt ? " · cancelled" : ""}
                       </Text>
                       <Text style={styles.receiptSub}>
@@ -304,9 +370,19 @@ export function ManageSubscriptionModal({
                         })}
                       </Text>
                     </View>
-                    <View style={[styles.statusPill, receipt.autoRenewing ? styles.statusActive : styles.statusStopped]}>
-                      <Text style={[styles.statusText, receipt.autoRenewing ? styles.statusTextActive : styles.statusTextStopped]}>
-                        {receipt.autoRenewing ? "Active" : "Ends soon"}
+                    <View
+                      style={[
+                        styles.statusPill,
+                        receipt.status === "active" ? styles.statusActive : styles.statusStopped,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusText,
+                          receipt.status === "active" ? styles.statusTextActive : styles.statusTextStopped,
+                        ]}
+                      >
+                        {receiptStatusLabel(receipt)}
                       </Text>
                     </View>
                   </View>
@@ -370,7 +446,7 @@ export function ManageSubscriptionModal({
 
                 <Text style={styles.sectionLabel}>CANCELLING</Text>
                 <View style={styles.cancelCard}>
-                  <Text style={styles.cancelBody}>{CANCEL_EXPLAINER}</Text>
+                  <Text style={styles.cancelBody}>{isComp ? COMP_CANCEL_EXPLAINER : CANCEL_EXPLAINER}</Text>
                   {/*
                     This used to be a sentence naming the store, with an
                     open-in-new icon that suggested it was tappable. It was not.
@@ -379,18 +455,38 @@ export function ManageSubscriptionModal({
                     installed-app scheme cannot open — so the instruction is
                     followed by the way to act on it, either way.
                   */}
-                  <Pressable
-                    onPress={() => void openStoreManagement()}
-                    accessibilityRole="link"
-                    accessibilityLabel={storeManageActionLabel(Platform.OS)}
-                    style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
-                  >
-                    <MaterialIcons name="open-in-new" size={13} color="#8A8391" />
-                    <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
-                  </Pressable>
-                  <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
+                  {isComp ? (
+                    <>
+                      <View style={styles.storeHint}>
+                        <MaterialIcons name="card-giftcard" size={13} color="#8A8391" />
+                        <Text style={styles.storeHintText}>{storeManagementLine("comp")}</Text>
+                      </View>
+                      <Text style={styles.storeStepsText}>
+                        Your Premium was granted by the Trufrenz team rather than bought, so no store is involved and
+                        nothing renews. It simply ends on the date above — subscribe any time after that to keep it.
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Pressable
+                        onPress={() => void openStoreManagement()}
+                        accessibilityRole="link"
+                        accessibilityLabel={storeManageActionLabel(Platform.OS)}
+                        style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
+                      >
+                        <MaterialIcons name="open-in-new" size={13} color="#8A8391" />
+                        <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
+                      </Pressable>
+                      <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
+                    </>
+                  )}
 
-                  {confirmingCancel ? (
+                  {/*
+                    A grant has no store renewal to report as cancelled, so the
+                    whole confirmation flow is withheld — offering it would invite
+                    the member to report a cancellation that can never apply.
+                  */}
+                  {isComp ? null : confirmingCancel ? (
                     <View style={styles.confirmBox}>
                       <Text style={styles.confirmText}>
                         Confirm you have turned off auto-renew in your store account. Trufrenz will mark this plan as
@@ -609,6 +705,7 @@ const styles = StyleSheet.create({
   },
   cancelBody: { fontSize: 11.5, color: "#5F5766", lineHeight: 16 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
+  storeHintText: { fontSize: 11, color: "#7C6A83", fontWeight: "700" },
   /*
    * The store row is a link, and it previously looked like one without being
    * one — an open-in-new icon beside instruction text. The affordance now

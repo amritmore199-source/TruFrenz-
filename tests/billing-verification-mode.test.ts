@@ -325,3 +325,41 @@ describe("readiness reflects unusable values", () => {
     expect(play.detail).toContain("unusable");
   });
 });
+
+
+describe("complimentary Premium cannot be self-granted", () => {
+  it("refuses a receipt that claims the comp channel", async () => {
+    // `applyReceipt` takes the channel from this input, so without this guard a
+    // client posting `channel: "comp"` would fall through to the sandbox verifier
+    // and mint itself Premium — the one channel no store can vouch for.
+    await expect(
+      verifyReceipt(
+        { channel: "comp", productId: "trufrenz.comp.annual", purchaseToken: "anything" } as never,
+        1,
+      ),
+    ).rejects.toMatchObject({ code: "comp_not_accepted" });
+  });
+
+  it("still accepts the two real store channels", async () => {
+    // Both are configured-credential-or-refused in production, but neither may be
+    // rejected outright: that would take billing down.
+    for (const channel of ["play", "app-store"] as const) {
+      try {
+        await verifyReceipt({ channel, productId: "trufrenz.premium.monthly", purchaseToken: "tok" } as never, 1);
+      } catch (error) {
+        expect((error as { code?: string }).code).not.toBe("comp_not_accepted");
+      }
+    }
+  });
+});
+
+describe("a device can only ever buy from a real store", () => {
+  it("narrows the purchase channel to the two stores", async () => {
+    const { storeChannelForPlatform } = await import("../lib/store-purchase");
+    // `StoreChannel` includes "comp" for the app's own rendering, but a purchase
+    // originates from a device, so this can never produce a comp.
+    expect(storeChannelForPlatform("ios")).toBe("app-store");
+    expect(storeChannelForPlatform("android")).toBe("play");
+    expect(storeChannelForPlatform("web")).toBe("play");
+  });
+});

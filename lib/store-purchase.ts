@@ -26,8 +26,17 @@ export type StorePurchaseLike = {
   originalTransactionId?: string | null;
 };
 
-/** Which store a purchase came from, given the platform the app is running on. */
-export function storeChannelForPlatform(platform: string): StoreChannel {
+/**
+ * Which store a purchase came from, given the platform the app is running on.
+ *
+ * Deliberately narrower than `StoreChannel`: this describes an actual purchase,
+ * so it can only ever be one of the two real stores. A `comp` is granted
+ * server-side and never originates from a device, which is why it is excluded
+ * here rather than handled below.
+ */
+export type StorePurchaseChannel = Exclude<StoreChannel, "comp">;
+
+export function storeChannelForPlatform(platform: string): StorePurchaseChannel {
   return platform === "ios" ? "app-store" : "play";
 }
 
@@ -73,7 +82,7 @@ export function transactionIdOf(purchase: StorePurchaseLike): string | null {
  */
 export function toReceiptPayload(
   purchase: StorePurchaseLike,
-  channel: StoreChannel,
+  channel: StorePurchaseChannel,
 ): StoreReceiptPayload | null {
   const productId = typeof purchase.productId === "string" ? purchase.productId.trim() : "";
   if (!productId || !planIdForProductId(productId)) return null;

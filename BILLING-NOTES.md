@@ -273,3 +273,127 @@ browser and `verify-otp` has no challenge to match. This is not a defect in the
 billing work — the same request succeeds against `127.0.0.1:3000` directly with a
 cookie jar, and the flow works normally on the sandbox URL. Use the sandbox URL
 when exercising anything that depends on the session cookie.
+
+---
+
+## The next three subscription suggestions
+
+Baseline before this work: `3fba1452`.
+
+### 1. Store-localised prices
+
+The paywall showed rupee figures from the local catalogue even inside a build
+that sells through a store, so a member being charged in another currency saw
+the wrong number. `lib/store-prices.ts` now reads the store's own quote and
+caches it (`trufrenz.store-prices.v1`, 12-hour TTL), and the paywall prefers it
+for the plan price, the saving pill and the accessible label. Anything that can
+only be expressed in rupees — the effective-per-month split, the struck-through
+launch-discount card — is withheld when the store quotes another currency,
+rather than converted at a guessed rate. `priceMismatch` reports, through
+`console.warn` only, a console price that drifted from the published offer: that
+is a configuration error, not something to tell a member about.
+
+Writing the tests found a real bug immediately: the first micros conversion
+checked the *type* of `priceAmountMicros` instead of the value of `price`, and
+leaked Play's micros through as ₹49,000,000 sitting beside a ₹49 display.
+`readAmount` now prefers `price` (already in units) and divides only the micros
+fields.
+
+### 2. Reinstall auto-restore
+
+A subscription outlives the app install. After a reinstall the store still knows
+about a purchase the server may never have seen, and the member sits on free
+while paying, with no reason to suspect the app.
+
+The obvious trigger — "Premium is cached locally but the server has no receipt" —
+is wrong twice over: a reinstall wipes that cache, so it could not fire in the
+case it targets, and it would also fire after a legitimate lapse (refund, expiry,
+exhausted cancellation), nagging someone whose plan really did end.
+`lib/auto-restore.ts` therefore triggers on a disagreement between the two
+authorities instead: the store reports a purchase the server has not honoured.
+It runs once per session (keyed to the session, not the install, so signing into
+another account on the same device is checked again), records the attempt before
+acting, announces a recovery through the app's ordinary toast, and stays silent
+when a check finds nothing to do.
+
+### 3. Time-boxed complimentary Premium
+
+Support cases needed "give this member a month of Premium" without granting
+open-ended access. `grantComp` / `revokeComp` / `listComps` store the grant as a
+`subscription_receipts` row with `channel = "comp"` and its own synthetic product
+id, deliberately reusing the receipt table: entitlement is derived from unexpired
+receipts, so a comp inherits the expiry, reminder and downgrade machinery instead
+of needing a second copy of it. Admin → Subscriptions gains the two actions, a
+plan and day picker (1–365), and a comps panel; the plan and days are validated
+client-side so a silently clamped value can never mislead the admin.
+
+Two real bugs surfaced only from running it against the live database:
+
+**Excluding comps from `revalidateDueReceipts` was wrong.** That pass never
+contacts a store — it compares `expiresAt` against the clock — so it is the only
+thing that makes a lapse stick. Excluding comps left an expired grant granting
+Premium forever, and the e2e run showed exactly that: the entitlement read free
+while the member row still said premium. Every active receipt is now in scope.
+
+**`markReceiptCancelled` picked the newest receipt by expiry**, which for a member
+holding a comp would be the comp. A store-cancellation report would then have
+landed on something never bought, while the real subscription was left untouched.
+It now excludes the comp channel and returns the current entitlement rather than
+assuming free.
+
+A third gap was closed by inspection: the receipt's channel comes from the request
+body and is then trusted for the stored entitlement, so a client posting
+`channel: "comp"` would have fallen through to the sandbox verifier and minted
+itself Premium. `refuseCompChannel` rejects that before any verification runs.
+
+Renewal reminders gained comp wording that never mentions auto-renew, a charge, or
+a store account, and `noticeOffersStoreLink` refuses a store button on any comp
+notice.
+
+**Two consumer-side regressions were found only by browser QA**, after the tests
+were green:
+
+The management sheet derived "is this a comp" from the `channel` prop, which is
+what the *build* sells through and is therefore never `comp`. A granted member on
+a Play device was shown the store link and the "I cancelled in my store account"
+button. It now reads the member's own receipts, taking the latest expiry to match
+`entitlementForMember`; the derivation is a tested pure helper
+(`activeReceiptOf`, `isComplimentaryChannel`) rather than inline component logic.
+
+That fix revealed a second one behind it: the launch reconciliation fetched the
+entitlement but never populated `receipts`, so the list stayed empty until some
+later purchase or restore and the sheet had nothing to reason about. It now
+records the receipts and the verification mode itself.
+
+And the sheet's remaining lines still assumed a sale, so all of it was made
+comp-aware: "Billing" says nothing was charged, "Renews"/"Auto-renew" become
+"Ends"/"Source", the cancellation explainer says there is nothing to cancel and
+the confirmation flow is withheld, and the receipt rows label a grant as granted
+rather than showing a plan-derived label with an "Ends soon" pill.
+
+A related server bug: `entitlementForMember` re-derived the plan from the product
+id, and a comp's product id is synthetic, so it silently fell back to quarterly —
+a member holding an annual grant was told they had a quarterly plan. It now reads
+the row's own `planId`.
+
+**Verification.** `pnpm check` clean, `pnpm lint` 0 errors / 19 warnings (the
+previous baseline was 20), `pnpm test` **446 passed** (1 pre-existing skip),
+`git diff --check` clean. New suites: `tests/store-prices.test.ts` (29),
+`tests/auto-restore.test.ts` (13), plus comp cases in
+`tests/renewal-reminders.test.ts`, `tests/store-links.test.ts` and
+`tests/billing-verification-mode.test.ts`. `drizzle/0005_supreme_microchip.sql`
+was generated, reviewed, applied, and the live e2e confirmed grant → premium →
+reminder with gift wording → forced expiry downgrading both the entitlement and
+the member row → revoke. Admin browser QA granted and ended a comp through the
+real form, and the consumer QA signed in as the granted member and confirmed the
+manage sheet shows no store link, no cancel button, "No charge", "Ends",
+"Source: Complimentary grant" and the annual plan.
+
+**What remains manual.** Nothing here creates the three products in Play Console
+or App Store Connect, and none of it claims they exist. That work needs account
+access this environment does not have: the product ids, prices and periods are
+listed in `STORE-LAUNCH-CHECKLIST.md` and surfaced in Admin → Subscriptions as
+the exact values to enter, along with payments, tax, banking, tester setup, the
+Play service-account grant and the App Store Server API key. Until the
+credentials are set, both channels report `not configured` and the server refuses
+store receipts in production rather than falling back to the sandbox verifier.

@@ -111,3 +111,69 @@ describe("renewal reminder copy", () => {
     expect(renewalDate(new Date("2026-10-04T19:00:00.000Z"))).toBe("5 Oct 2026");
   });
 });
+
+
+describe("comp reminder copy", () => {
+  const expiresAt = new Date("2026-10-10T00:00:00.000Z");
+
+  it("never mentions auto-renew, a charge, or a store account", () => {
+    // A comp has no auto-renew to switch and nothing in a store account to
+    // manage. Sending the member looking for a purchase that does not exist is
+    // the failure mode this copy exists to prevent.
+    for (const kind of ["7d", "3d", "1d"] as const) {
+      const copy = renewalReminderCopy({
+        kind,
+        planLabel: "Monthly",
+        renewsOn: expiresAt,
+        autoRenewing: false,
+        chargeInr: 49,
+        isComp: true,
+      });
+      const text = `${copy.title} ${copy.body}`.toLowerCase();
+      expect(text).not.toContain("auto-renew");
+      expect(text).not.toContain("₹");
+      expect(text).not.toContain("store account");
+      expect(text).toContain("granted");
+    }
+  });
+
+  it("offers a renewal reminder that reads as a gift, not a bill", () => {
+    const copy = renewalReminderCopy({
+      kind: "3d",
+      planLabel: "Quarterly",
+      renewsOn: expiresAt,
+      autoRenewing: false,
+      chargeInr: 139,
+      isComp: true,
+    });
+    expect(copy.title).toMatch(/Complimentary Premium ends/i);
+    expect(copy.body).toMatch(/nothing is charged and there is nothing to cancel/i);
+  });
+
+  it("closes the period without implying a payment ended", () => {
+    const copy = renewalReminderCopy({
+      kind: "expired",
+      planLabel: "Monthly",
+      renewsOn: expiresAt,
+      autoRenewing: false,
+      chargeInr: 49,
+      isComp: true,
+    });
+    expect(copy.title).toMatch(/complimentary Premium has ended/i);
+    expect(copy.body).toMatch(/we granted your account/i);
+    // The member must still be told their data survives.
+    expect(copy.body).toMatch(/still here/i);
+  });
+
+  it("leaves store copy alone when the receipt is not a comp", () => {
+    const copy = renewalReminderCopy({
+      kind: "3d",
+      planLabel: "Monthly",
+      renewsOn: expiresAt,
+      autoRenewing: true,
+      chargeInr: 49,
+    });
+    expect(copy.title).toMatch(/renews/i);
+    expect(copy.body).toMatch(/₹49/);
+  });
+});

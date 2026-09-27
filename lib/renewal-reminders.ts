@@ -114,9 +114,38 @@ export function renewalReminderCopy(input: {
   autoRenewing: boolean;
   /** What the store charges for the next period, in INR. */
   chargeInr: number;
+  /**
+   * True when this is a time-boxed grant rather than a purchase.
+   *
+   * A comp must never be described in store language. There is no auto-renew to
+   * turn back on, no charge, and nothing in a store account to manage — telling a
+   * member to "turn auto-renew back on" when they never bought anything, and
+   * cannot, would send them looking for a purchase that does not exist.
+   */
+  isComp?: boolean;
 }): ReminderCopy {
   const date = renewalDate(input.renewsOn);
   const plan = `${input.planLabel} plan`;
+
+  if (input.isComp) {
+    if (input.kind === "expired") {
+      return {
+        title: "Your complimentary Premium has ended",
+        body:
+          `The Trufrenz Premium we granted your account ended on ${date}. You are back on the free ` +
+          `plan — your chats, friends, groups, and meetups are all still here. If you would like ` +
+          `calling, the live map, and unlimited proposals back, you can subscribe from Manage ` +
+          `Subscription.`,
+      };
+    }
+    return {
+      title: `Complimentary Premium ends ${windowLabel(input.kind)}`,
+      body:
+        `The Trufrenz Premium granted to your account ends on ${date}. This was a gift from our ` +
+        `support team, so nothing is charged and there is nothing to cancel. After ${date} you ` +
+        `return to the free plan; subscribing any time after that brings everything back.`,
+    };
+  }
 
   if (input.kind === "expired") {
     return {

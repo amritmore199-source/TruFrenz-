@@ -90,6 +90,7 @@ export async function runReminderScan(limit = 100, now: Date = new Date()): Prom
       productId: subscriptionReceipts.productId,
       expiresAt: subscriptionReceipts.expiresAt,
       autoRenewing: subscriptionReceipts.autoRenewing,
+      channel: subscriptionReceipts.channel,
     })
     .from(subscriptionReceipts)
     .where(
@@ -146,6 +147,13 @@ export async function runReminderScan(limit = 100, now: Date = new Date()): Prom
       renewsOn: candidate.expiresAt,
       autoRenewing: candidate.autoRenewing,
       chargeInr: nextChargeInr(plan.id),
+      /*
+       * A comp must never be described in store language: there is no
+       * auto-renew to turn back on and nothing in a store account to manage, so
+       * telling the member otherwise would send them looking for a purchase that
+       * does not exist.
+       */
+      isComp: row.channel === "comp",
     });
 
     const noticeId = await insertNotice({

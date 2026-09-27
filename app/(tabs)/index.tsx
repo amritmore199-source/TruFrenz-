@@ -37,6 +37,19 @@ import {
 } from "@/lib/store-links";
 import { canOpenChat, canRequestFriendship } from "@/lib/social-access";
 import { receiptIcon, receiptLabel } from "@/lib/chat-status";
+import {
+  autoRestoreKey,
+  autoRestoreOutcome,
+  decideAutoRestore,
+  shouldAttemptAutoRestore,
+} from "@/lib/auto-restore";
+import {
+  STORE_PRICE_CACHE_KEY,
+  isCatalogueFresh,
+  parseStoredCatalogue,
+  priceMismatch,
+  type StorePriceCatalogue,
+} from "@/lib/store-prices";
 import { isInboxMeetupTransition } from "@/lib/ui-transitions";
 import { SelfieVerificationModal } from "@/components/selfie-verification-modal";
 import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carousel";
@@ -118,6 +131,8 @@ import {
   finishVerifiedPurchase,
   purchasePlanThroughStore,
   storeChannelForPlatform,
+  currentStoreChannel,
+  fetchStorePrices,
   storePurchaseHistory,
   storeSdkAvailable,
   type PurchaseOrigin,
@@ -441,6 +456,12 @@ export default function TrufrenzApp() {
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
   /** "store" once the server verifies with the real store API, "sandbox" until then. */
   const [verification, setVerification] = useState<"store" | "sandbox">("sandbox");
+  /**
+   * Prices the store quoted for this account, or null while the rupee catalogue
+   * is the only source. Cached in AsyncStorage so the paywall is instant on the
+   * next open instead of waiting on the store.
+   */
+  const [storePrices, setStorePrices] = useState<StorePriceCatalogue | null>(null);
   /** Limits the member has already been nudged about, so nothing repeats. */
   const [dismissedNudges, setDismissedNudges] = useState<string[]>([]);
   /** The store this build sells through. */
@@ -852,12 +873,87 @@ export default function TrufrenzApp() {
   useEffect(() => {
     if (!sessionLoaded || isGuestSession(session)) return;
     let active = true;
-    fetchEntitlement()
-      .then((result) => {
-        if (!active || !result.ok) return;
+
+    const reconcile = async () => {
+      const remote = await fetchEntitlement();
+      if (!active || !remote.ok) return;
+      applyRemoteEntitlement(remote.data.entitlement);
+      /*
+       * The reconciliation reads the endpoint directly rather than going through
+       * `refreshEntitlement`, so it has to record the receipts itself. Without
+       * this the list stays empty until some later purchase or restore, and every
+       * screen that reasons about *which* receipt grants access — the management
+       * sheet deciding between store copy and granted copy — is left guessing.
+       */
+      setVerification(remote.data.verification);
+      setReceipts(remote.data.receipts);
+
+      /*
+       * A subscription outlives the app install, so after a reinstall the store
+       * still knows about a purchase the server may never have seen. Without
+       * this check that member would sit on the free plan while paying for
+       * Premium, with no idea why and no reason to suspect the app.
+       *
+       * The server is asked first and the store second, because the server's
+       * answer is what decides whether a store round-trip is worth making.
+       */
+      const storeAvailable = storeSdkAvailable();
+      /*
+       * Keyed to this session, not to the install: signing into a different
+       * account on the same device is exactly the case where the server may be
+       * missing a receipt, so that must be checked again.
+       */
+      const key = autoRestoreKey(session?.enteredAt);
+      const alreadyAttempted = storeAvailable ? await AsyncStorage.getItem(key) : "any";
+
+      let storePurchaseCount = 0;
+      let history: StoreReceiptPayload[] = [];
+      if (storeAvailable && alreadyAttempted === null) {
+        history = await storePurchaseHistory();
+        storePurchaseCount = history.length;
+      }
+
+      const decision = decideAutoRestore({
+        storePurchaseCount,
+        serverReceiptCount: remote.data.receipts.length,
+        serverTier: remote.data.entitlement.tier,
+        storeAvailable,
+      });
+      if (!active || !shouldAttemptAutoRestore(decision, alreadyAttempted)) return;
+
+      // Record the attempt before acting, so a crash mid-restore cannot produce
+      // a second one on the next launch.
+      AsyncStorage.setItem(key, String(Date.now())).catch(() => undefined);
+
+      const result = await restorePurchases(history);
+      if (!active) return;
+
+      const outcome = autoRestoreOutcome(decision, {
+        ok: result.ok,
+        restored: result.ok ? result.data.restored : false,
+        planId: result.ok ? result.data.entitlement.planId : null,
+      });
+      if (outcome.kind === "nothing") return;
+
+      if (outcome.kind === "restored" && result.ok) {
         applyRemoteEntitlement(result.data.entitlement);
-      })
-      .catch(() => undefined);
+        setRestore(restoredState(planIdFrom(result.data.entitlement.planId)));
+        /*
+         * Said out loud, through the app's ordinary toast. The member did not
+         * ask for this check, so it is reported as something the app noticed
+         * rather than dressed up as a welcome-back screen or a prompt to buy
+         * anything.
+         */
+        feedback(outcome.body);
+        return;
+      }
+
+      // A failed check is only worth mentioning to a member the store says is
+      // paying, which is exactly who reaches this branch.
+      feedback(outcome.title);
+    };
+
+    void reconcile().catch(() => undefined);
     return () => {
       active = false;
     };
@@ -872,6 +968,84 @@ export default function TrufrenzApp() {
       if (result.ok) setVerification(result.data.verification);
     }).catch(() => undefined);
   }, []);
+
+  /**
+   * Learn the store's own prices for this member's market.
+   *
+   * The catalogue prices the plans in rupees, but only the store knows what this
+   * account will actually be charged — both platforms localise the price by
+   * country. So the cached quotes are rendered first (or the rupee catalogue on
+   * a first launch), and the store is asked in the background.
+   *
+   * The ordering matters: the cache read must finish before deciding whether to
+   * call the store, because a fresh cache is the reason *not* to. Reading the
+   * cache in a promise chain and then calling the store on the next line would
+   * do both every time, since the chain has not resolved yet.
+   *
+   * Every failure path is silent by design. No store, no network, an unreadable
+   * cache, or an unreadable response all leave the catalogue price in place,
+   * which is exactly the behaviour before this existed.
+   */
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      let cached: StorePriceCatalogue | null = null;
+      try {
+        const raw = await AsyncStorage.getItem(STORE_PRICE_CACHE_KEY);
+        if (raw) {
+          const parsed = parseStoredCatalogue(JSON.parse(raw));
+          // A cache written on the other platform must not be shown here: the
+          // two stores price independently.
+          if (parsed && parsed.channel === currentStoreChannel()) {
+            cached = parsed;
+            if (active) setStorePrices(parsed);
+          }
+        }
+      } catch {
+        // A corrupt cache is the same as no cache.
+      }
+
+      if (!active || !storeSdkAvailable()) return;
+      // `fetchProducts` opens a connection and round-trips to the store, which
+      // is not free, and a console price only changes when operations change it.
+      if (isCatalogueFresh(cached, Date.now())) return;
+
+      const quotes = await fetchStorePrices();
+      if (!active || !quotes) return;
+
+      const catalogue: StorePriceCatalogue = {
+        channel: currentStoreChannel(),
+        fetchedAt: Date.now(),
+        quotes,
+      };
+      setStorePrices(catalogue);
+      AsyncStorage.setItem(STORE_PRICE_CACHE_KEY, JSON.stringify(catalogue)).catch(() => undefined);
+
+      /*
+       * A mismatch between the console price and the price the paywall's own
+       * maths assumes is a configuration error, not a member-facing one: the
+       * member is always shown the store's figure. Most often it means the
+       * launch discount was never entered in the console, which would make the
+       * catalogue's own saving claim untrue, so it is worth saying out loud in
+       * the developer log rather than leaving for a support ticket.
+       */
+      for (const plan of PLANS) {
+        const drift = priceMismatch(plan, catalogue, chargeForPlan(plan.id));
+        if (drift) {
+          console.warn(
+            `[billing] ${plan.id}: the store charges ${drift.storeAmount}, the catalogue expects ` +
+              `${drift.expectedInr}. The store price is shown; check the console matches the published offer.`,
+          );
+        }
+      }
+    };
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [sessionLoaded, session?.enteredAt]);
 
   const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setShowSignup(true); tap(); };
   const closeSignup = () => setShowSignup(false);
@@ -2008,7 +2182,7 @@ export default function TrufrenzApp() {
                 notice must not carry one: sending a member to a cancel screen
                 they did not ask for is how a helpful tip becomes a cancellation.
               */}
-              {noticeOffersStoreLink(notice.kind) &&
+              {noticeOffersStoreLink(notice.kind, notice.body) &&
               (notice.kind === "subscription_expired" || noticeIsCancelledRenewal(notice.body)) ? (
                 <Pressable
                   onPress={() => void openStoreManagement()}
@@ -2090,6 +2264,7 @@ export default function TrufrenzApp() {
           void completeStorePurchase(planId);
         }}
         purchase={purchase}
+        storePrices={storePrices}
       />
       {/*
         Manage Subscription.
