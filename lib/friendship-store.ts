@@ -161,6 +161,25 @@ export function isNewIntroduction(graph: FriendshipGraph, id: string): boolean {
 }
 
 /**
+ * Taking back a request this member sent.
+ *
+ * Deliberately not a decline. A decline records a decision about a request that
+ * arrived, and it is permanent so the member is never asked twice. This is the
+ * member changing their own mind before the other side has answered, so the id
+ * simply leaves the waiting list and the person becomes a fresh introduction
+ * again — they were never turned down, and they should not be treated as if they
+ * were.
+ */
+export function withdrawRequest(graph: FriendshipGraph, id: string): FriendshipGraph {
+  return {
+    accepted: removeId(graph.accepted, id),
+    requested: removeId(graph.requested, id),
+    incoming: graph.incoming,
+    declined: graph.declined,
+  };
+}
+
+/**
  * Ending a friendship, by unfriending or blocking.
  *
  * Deliberately different from declining: the member was already a friend, so

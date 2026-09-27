@@ -238,7 +238,6 @@ export async function markNoticesRead(ids: number[]) {
 export async function fetchConnections() {
   return request<{ connections: ConnectionRow[] }>("/api/account/connections");
 }
-
 /**
  * Sends the changes this device still owes and returns the full circle back.
  *
@@ -251,6 +250,34 @@ export async function pushConnections(rows: ConnectionRow[], removed: string[] =
   return request<{ ok: boolean; applied: number; removed: number; connections: ConnectionRow[] }>(
     "/api/account/connections",
     { method: "POST", body: JSON.stringify({ connections: rows, removed }) },
+  );
+}
+
+/* ------------------------- the member's own words ----------------------- */
+
+/**
+ * Everything the member has said, across every conversation.
+ *
+ * The whole history comes back rather than a delta: a conversation is small, and
+ * a wrong cursor would silently lose messages with no way for the member to
+ * notice. A failure is silent, like the circle — the device keeps rendering its
+ * own threads while offline.
+ */
+export async function fetchMessages() {
+  return request<{ messages: SyncableMessage[] }>("/api/account/messages");
+}
+
+/**
+ * Sends what this device still owes and returns the full history back.
+ *
+ * A repeat of the same message is a no-op on the server, because the id the app
+ * gave it is unique per member — which is what makes it safe to re-send anything
+ * whose reply was lost.
+ */
+export async function pushMessages(rows: SyncableMessage[]) {
+  return request<{ ok: boolean; applied: number; messages: SyncableMessage[] }>(
+    "/api/account/messages",
+    { method: "POST", body: JSON.stringify({ messages: rows }) },
   );
 }
 
@@ -419,3 +446,4 @@ export function accountStateFrom(account: RemoteAccount | null): AccountState | 
 export function actionableNotices(notices: MemberNotice[]): MemberNotice[] {
   return notices.filter((notice) => !notice.readAt);
 }
+import type { SyncableMessage } from "@/lib/message-sync";

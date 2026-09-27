@@ -19,6 +19,7 @@ import { getDb } from "./db";
 import * as billing from "./billingService";
 import * as challenges from "./challengeStore";
 import * as connections from "./connectionService";
+import * as messages from "./messageService";
 import { sendSigninCode, emailConfigured } from "./mailer";
 import { sendSigninSms, smsTransportSummary } from "./sms";
 import * as otpGuard from "./otpGuard";
@@ -777,6 +778,25 @@ export function registerAccountRoutes(app: Express) {
       : [];
     const saved = await connections.applyConnections(req.member!.id, rows, removals);
     res.json({ ok: true, applied: rows.length, removed: removals.length, connections: saved });
+  });
+  /* ------------------------ the member's own words ----------------------- */
+  /*
+   * The circle moved to the server but the words did not, so a message sent on a
+   * phone was absent on a tablet. `GET` returns what the member has said; `POST`
+   * stores what a device still owes.
+   *
+   * Only the member's own messages travel, and that is enforced by the shape of
+   * these routes rather than by the client: there is no field here for the other
+   * person's words, so no device can rewrite what somebody else said.
+   */
+  app.get("/api/account/messages", requireMember, async (req: MemberRequest, res) => {
+    const rows = await messages.listMessages(req.member!.id);
+    res.json({ messages: rows });
+  });
+  app.post("/api/account/messages", requireMember, async (req: MemberRequest, res) => {
+    const rows = messages.normalizeMessages(req.body?.messages);
+    const saved = await messages.applyMessages(req.member!.id, rows);
+    res.json({ ok: true, applied: rows.length, messages: saved });
   });
 
   /* ------------------------- capability-guarded -------------------------- */

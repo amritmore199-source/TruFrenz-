@@ -530,3 +530,51 @@ export const otpSendAttempts = mysqlTable(
   ],
 );
 export type OtpSendAttempt = typeof otpSendAttempts.$inferSelect;
+/**
+ * What the member has said in their conversations.
+ *
+ * Why this exists: the circle moved to the server but the words did not, so a
+ * message sent on a phone was simply absent on a tablet — it had only ever
+ * existed in one browser's storage. The unread marker was computed from a thread
+ * the other device could not see, which meant the same conversation could read as
+ * caught-up on one device and unread on another.
+ *
+ * Only the member's own messages are stored, and that is a deliberate limit
+ * rather than an omission. The app renders the seeded conversation and this table
+ * is layered on top of it, so there is no second copy of somebody else's words to
+ * keep in step — and no way for a device to quietly rewrite what another person
+ * said.
+ *
+ * `clientId` is the id the app already gave the message, and it is what makes an
+ * upload idempotent: a send whose reply was lost is retried with the same id and
+ * lands as a no-op instead of a duplicate, even from a second device.
+ */
+export const memberMessages = mysqlTable(
+  "member_messages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** The member who wrote the message. */
+    memberId: int("memberId").notNull(),
+    /**
+     * The conversation it belongs to. These are the app's chat ids — a peer id for
+     * a direct thread, a group id for a group — rather than a foreign key,
+     * because the seeded directory the app renders is not a table here.
+     */
+    chatId: varchar("chatId", { length: 64 }).notNull(),
+    /** The id the app gave the message, unique per member so a retry is a no-op. */
+    clientId: varchar("clientId", { length: 96 }).notNull(),
+    /** What the member actually wrote. */
+    text: text("text").notNull(),
+    /** The display time the app showed, kept so the bubble reads the same everywhere. */
+    time: varchar("time", { length: 32 }).notNull(),
+    /** Text, photo, voice, location, or a plan card. */
+    kind: mysqlEnum("messageKind", ["text", "photo", "voice", "location", "plan"]).default("text").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("member_messages_client_idx").on(table.memberId, table.clientId),
+    index("member_messages_chat_idx").on(table.memberId, table.chatId),
+  ],
+);
+
+export type MemberMessage = typeof memberMessages.$inferSelect;

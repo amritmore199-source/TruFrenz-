@@ -74,13 +74,13 @@ import {
   DEFAULT_FRIENDSHIPS,
   FRIENDSHIP_STORAGE_KEY,
   acceptFriendship,
-  declineFriendship,
   isNewIntroduction,
   parseFriendships,
   relationshipFor,
   requestFriendship,
   serializeFriendships,
   unfriend,
+  withdrawRequest,
   type FriendshipGraph,
 } from "@/lib/friendship-store";
 import {
@@ -196,6 +196,8 @@ import {
 import {
   fetchBillingProducts,
   fetchEntitlement,
+  fetchMessages,
+  pushMessages,
   fetchConnections,
   pushConnections,
   reportStoreCancellation,
@@ -250,11 +252,34 @@ import {
   type Reaction,
 } from "@/lib/chat-extras";
 import {
+  EMPTY_MESSAGE_SYNC,
+  MESSAGE_SYNC_STORAGE_KEY,
+  acknowledgeMessages,
+  mergeThreads,
+  parseMessageSync,
+  queueMessage,
+  rowFromMessage,
+  serializeMessageSync,
+  type MessageSync,
+} from "@/lib/message-sync";
+import {
   attachmentPreviewLabel,
   createPendingAttachment,
   pendingToDraft,
   type PendingAttachment,
 } from "@/lib/attachment-preview";
+import type { Message as ThreadMessage } from "@/lib/thread-messages";
+import {
+  DEFAULT_QUIET_HOURS,
+  QUIET_HOURS_STORAGE_KEY,
+  describeQuietHours,
+  hourLabel,
+  parseQuietHours,
+  serializeQuietHours,
+  shouldHoldNotification,
+  shiftHour,
+  type QuietHours,
+} from "@/lib/quiet-hours";
 import {
   PLAN_KIND_LABEL,
   castVote,
@@ -301,24 +326,14 @@ const REQUEST_AUDIENCE_LABEL: Record<RequestAudience, string> = {
 type Tab = "Chats" | "Friends" | "Meetups" | "You";
 type AuthStep = "welcome" | "phone" | "code" | "profile" | "photo" | "about";
 type AuthIntent = "signup" | "login";
-type Message = {
-  id: string;
-  from: "me" | "them";
-  text: string;
-  time: string;
-  receipt?: "sending" | "sent" | "delivered" | "read";
-  /** Text is the default; attachments and plan cards render differently. */
-  kind?: MessageKind;
-  /** Local uri for photos and voice notes. */
-  mediaUri?: string;
-  durationSeconds?: number;
-  place?: string;
-  /** Structured plan card carried by the message. */
-  plan?: PlanCard;
-  /** Group poll carried by the message. */
-  poll?: PlanPoll;
-  reactions?: Reaction[];
-};
+/*
+ * The message shape lives in `lib/thread-messages.ts`.
+ *
+ * It moved there so the sync layer can name it without importing this screen,
+ * which is far too large a thing to pull in for a type. The re-export keeps every
+ * existing use in this file working unchanged.
+ */
+type Message = ThreadMessage;
 type Person = {
   id: string;
   name: string;
@@ -557,6 +572,14 @@ export default function TrufrenzApp() {
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationSequence = useRef(0);
   const notificationDemoCycle = useRef(0);
+  /**
+   * Lets the settings preview through a quiet window.
+   *
+   * The preview exists so the member can see what a notification looks like. If
+   * quiet hours silently swallowed it, the button would appear broken at exactly
+   * the hour they are most likely to be setting it up — and they would have no way
+   * to tell a working setting from a dead button.
+   */
   const [toast, setToast] = useState("");
   /*
    * Connections live in one persisted graph. They used to be three plain arrays
@@ -578,6 +601,8 @@ export default function TrufrenzApp() {
   const incomingRequests = friendships.incoming;
   const requestSent = friendships.requested;
   const acceptedFriends = friendships.accepted;
+  /** The people behind `requestSent`, so the waiting list can name them. */
+  const outgoingRequests = suggestions.filter((person) => requestSent.includes(person.id));
   const [interestFilter, setInterestFilter] = useState<string[]>([]);
   const [joinedMeetups, setJoinedMeetups] = useState<string[]>([]);
   const [meetups, setMeetups] = useState<Meetup[]>(meetupSeeds);
@@ -629,6 +654,15 @@ export default function TrufrenzApp() {
   const [chatRowStates, setChatRowStates] = useState<Record<string, ChatRowState>>({});
   const [chatPreferencesLoaded, setChatPreferencesLoaded] = useState(false);
   /**
+   * The nightly window when nothing is allowed to interrupt.
+   *
+   * Separate from mute on purpose: mute silences one conversation forever, this
+   * silences everything for a few hours and then lets go by itself. Both are
+   * honoured when a notification is about to appear.
+   */
+  const [quietHours, setQuietHours] = useState<QuietHours>(DEFAULT_QUIET_HOURS);
+  const [quietHoursLoaded, setQuietHoursLoaded] = useState(false);
+  /**
    * What this device still owes the server about the member's circle.
    *
    * Held in state rather than a ref so the persist effect below can see it
@@ -636,7 +670,25 @@ export default function TrufrenzApp() {
    * something the member can act on and the queue survives to the next launch.
    */
   const [connectionSync, setConnectionSync] = useState<ConnectionSync>(EMPTY_CONNECTION_SYNC);
+  /**
+   * Messages this device owes the server.
+   *
+   * Deliberately separate from `chatMessages`, which is what the screen renders.
+   * The queue is a debt, not a history: it holds only what has not been accepted
+   * yet, so a conversation that has been delivered everywhere leaves nothing
+   * behind.
+   */
+  const [messageSync, setMessageSync] = useState<MessageSync>(EMPTY_MESSAGE_SYNC);
+  const [messageSyncLoaded, setMessageSyncLoaded] = useState(false);
   const connectionSyncRef = useRef<ConnectionSync>(EMPTY_CONNECTION_SYNC);
+  /**
+   * The queue as it is right now, readable without a re-render.
+   *
+   * The push's reply has to know which ids it covered, and the launch merge has to
+   * see anything still owed — both of which happen outside the render that holds
+   * the state.
+   */
+  const messageSyncRef = useRef<MessageSync>(EMPTY_MESSAGE_SYNC);
   const [chatPrivacy, setChatPrivacy] = useState(DEFAULT_CHAT_PRIVACY);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
   /** An attachment that has been picked but not yet sent. */
@@ -798,6 +850,35 @@ export default function TrufrenzApp() {
     return () => { active = false; };
   }, []);
 
+  /**
+   * Read the unsent messages, and keep the mirror current.
+   *
+   * The guard matters more here than anywhere else in this screen: without it the
+   * first render would write an empty queue over a stored one, and every message
+   * a member sent offline would be forgotten on the next launch. That is the
+   * failure this whole module exists to prevent, so it is not allowed to happen
+   * inside the module itself.
+   */
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(MESSAGE_SYNC_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        const stored = parseMessageSync(serialized);
+        messageSyncRef.current = stored;
+        setMessageSync(stored);
+        setMessageSyncLoaded(true);
+      })
+      .catch(() => { if (active) setMessageSyncLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!messageSyncLoaded) return;
+    AsyncStorage.setItem(MESSAGE_SYNC_STORAGE_KEY, serializeMessageSync(messageSync)).catch(() => undefined);
+    messageSyncRef.current = messageSync;
+  }, [messageSync, messageSyncLoaded]);
+
   useEffect(() => {
     AsyncStorage.setItem(CONNECTION_SYNC_STORAGE_KEY, serializeConnectionSync(connectionSync)).catch(() => undefined);
     /*
@@ -840,6 +921,38 @@ export default function TrufrenzApp() {
   }, [connectionSync, session]);
 
   /*
+   * Push whatever the member has said and the account has not accepted yet.
+   *
+   * Re-sending is safe because the id the app gave the message is unique per
+   * member on the server: a retry after a lost reply lands as a no-op rather than
+   * a duplicate. That is what lets this run without any guesswork about which
+   * sends actually made it.
+   *
+   * The reply is merged rather than assigned. The server's history and anything
+   * still queued are both laid over the threads the app already renders, so a
+   * message typed while this request was in flight is not thrown away by the
+   * answer that did not include it.
+   */
+  useEffect(() => {
+    if (!session || session.mode !== "member") return;
+    const queued = messageSync.queued;
+    if (queued.length === 0) return;
+    let active = true;
+    void (async () => {
+      const result = await pushMessages(queued);
+      if (!active) return;
+      if (!result.ok) return;
+      const sentIds = queued.map((row) => row.clientId);
+      setMessageSync((current) => acknowledgeMessages(current, sentIds, Date.now()));
+      const stillOwed = messageSyncRef.current.queued.filter((row) => !sentIds.includes(row.clientId));
+      setChatMessages((current) =>
+        mergeThreads({ seeds: current, server: result.data.messages, queued: stillOwed }),
+      );
+    })();
+    return () => { active = false; };
+  }, [messageSync, session]);
+
+  /*
    * Mute, archive, and frozen threads are written down.
    *
    * The guard is the same as everywhere else here: without it the first render
@@ -862,6 +975,28 @@ export default function TrufrenzApp() {
     if (!chatPreferencesLoaded) return;
     AsyncStorage.setItem(CHAT_PREFERENCES_STORAGE_KEY, serializeChatPreferences(compactChatPreferences(chatRowStates))).catch(() => undefined);
   }, [chatRowStates, chatPreferencesLoaded]);
+
+  /*
+   * Quiet hours are stored the same guarded way as every other preference. A
+   * write before the read would disable a window the member had deliberately set
+   * for the night they are trying to sleep through.
+   */
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(QUIET_HOURS_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        setQuietHours(parseQuietHours(serialized));
+        setQuietHoursLoaded(true);
+      })
+      .catch(() => { if (active) setQuietHoursLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!quietHoursLoaded) return;
+    AsyncStorage.setItem(QUIET_HOURS_STORAGE_KEY, serializeQuietHours(quietHours)).catch(() => undefined);
+  }, [quietHours, quietHoursLoaded]);
 
   /*
    * One write path for the whole circle.
@@ -887,6 +1022,25 @@ export default function TrufrenzApp() {
    */
   const dropConnection = useCallback((peerId: string) => {
     setFriendships((current) => clearConnection(current, peerId));
+    setConnectionSync((current) => queueRemoval(current, peerId));
+  }, []);
+
+  /**
+   * Takes back a request this member sent, before the other side has answered.
+   *
+   * This is not a decline, and the difference is the whole point. Declining is a
+   * decision about a request that arrived, and it is kept so the same person is
+   * never asked twice. Someone whose request is simply withdrawn was never turned
+   * down — they never knew about it — so the row is removed rather than rewritten
+   * as declined. Recording a decline here would quietly bar them from the
+   * member's suggestions forever, and would tell a later visitor to the account
+   * that a decision had been made when none had.
+   *
+   * Queued as a removal rather than a state change so the server forgets it too,
+   * which keeps the two copies of the circle from disagreeing on the next launch.
+   */
+  const withdrawSentRequest = useCallback((peerId: string) => {
+    setFriendships((current) => withdrawRequest(current, peerId));
     setConnectionSync((current) => queueRemoval(current, peerId));
   }, []);
 
@@ -996,6 +1150,24 @@ export default function TrufrenzApp() {
                   server: graphFromRows(connectionsResult.data.connections),
                   pending: queued.pending,
                   hasPushed: queued.pushed,
+                }),
+              );
+            }
+            /*
+             * Then the words. The history is layered over the threads the app
+             * already has rather than replacing them, so the seeded conversation
+             * stays readable and anything the member sent while offline is still
+             * on screen waiting to go out.
+             */
+            const messagesResult = await fetchMessages();
+            if (!active) return;
+            if (messagesResult.ok) {
+              const queued = messageSyncRef.current.queued;
+              setChatMessages((current) =>
+                mergeThreads({
+                  seeds: current,
+                  server: messagesResult.data.messages,
+                  queued,
                 }),
               );
             }
@@ -1931,7 +2103,7 @@ export default function TrufrenzApp() {
     // A suspended account keeps read access but cannot post new messages.
     if (!allowAction("send-messages")) return;
     const message: Message = { id: `${Date.now()}`, from: "me", text, time: "now", receipt: "sent" };
-    setChatMessages((current) => ({ ...current, [selectedChat]: [...(current[selectedChat] ?? []), message] }));
+    pushMessage(message);
     void runGuardedAction("message", {
       thread: selectedChat,
       groupId: selectedChat.startsWith("group") ? selectedChat : null,
@@ -1943,9 +2115,23 @@ export default function TrufrenzApp() {
     tap();
   };
 
+  /**
+   * Shows a message and queues it for the account.
+   *
+   * Every outgoing message goes through here, so this is the one place that has
+   * to remember the server. The message appears immediately — the member should
+   * never wait on a network round trip to see their own words — and the queue is
+   * written down before the request leaves, so a send interrupted by a crash is
+   * still delivered on the next launch rather than silently lost.
+   *
+   * Only what the member wrote travels. Attachments carry a local uri that means
+   * nothing on another device, so the description travels instead of the file.
+   */
   const pushMessage = (message: Message) => {
     if (!selectedChat) return;
     setChatMessages((current) => ({ ...current, [selectedChat]: [...(current[selectedChat] ?? []), message] }));
+    const row = rowFromMessage(selectedChat, message);
+    if (row) setMessageSync((current) => queueMessage(current, row));
   };
 
   const activeRowState = selectedChat ? rowStateFor(chatRowStates, selectedChat) : DEFAULT_CHAT_ROW_STATE;
@@ -2285,9 +2471,27 @@ export default function TrufrenzApp() {
    * itself still arrives and the unread count still updates; only the interruption
    * is suppressed.
    */
-  const showIncomingNotification = (next: IncomingNotification) => {
+  const showIncomingNotification = (
+    next: IncomingNotification,
+    options: { preview?: boolean } = {},
+  ) => {
     const source = "chatId" in next && typeof next.chatId === "string" ? next.chatId : null;
     if (source && rowStateFor(chatRowStates, source).muted) return;
+    /*
+     * Quiet hours hold the interruption, not the message. The conversation still
+     * updates and the unread count still moves — the member just is not pulled out
+     * of whatever they were doing, which is the whole point of the window.
+     *
+     * The exemption is passed in rather than kept in a ref that the preview sets.
+     * A ref has to be cleared by the same call that consumes it, so any early
+     * return above — a muted chat, for instance — would leave it set and hand the
+     * next genuine notification a free pass through the window. The setting would
+     * appear to stop working for one message, with nothing on screen to explain
+     * why.
+     */
+    if (!options.preview && shouldHoldNotification({ quiet: quietHours, at: new Date(), chatMuted: false })) {
+      return;
+    }
     if (notificationTimer.current) clearTimeout(notificationTimer.current);
     setIncomingNotification(next);
     notificationTimer.current = setTimeout(() => setIncomingNotification(null), 5200);
@@ -2330,13 +2534,13 @@ export default function TrufrenzApp() {
       const time = "Today · 10:30 AM";
       const preview = `${meetupTitle} · ${venue} · ${time}`;
       setChatMessages((current) => ({ ...current, [chatId]: [...(current[chatId] ?? []), { id, from: "them", text: preview, time: "now" }] }));
-      showIncomingNotification(createIncomingMeetupInviteNotification({ id, senderName: "Sam Rivera", chatId, meetupTitle, venue, time }));
+      showIncomingNotification(createIncomingMeetupInviteNotification({ id, senderName: "Sam Rivera", chatId, meetupTitle, venue, time }), { preview: true });
       return;
     }
     const chatId = "maya";
     const messagePreview = "Want to grab coffee this Saturday?";
     setChatMessages((current) => ({ ...current, [chatId]: [...(current[chatId] ?? []), { id, from: "them", text: messagePreview, time: "now" }] }));
-    showIncomingNotification(createIncomingMessageNotification({ id, senderName: "Maya Chen", chatId, messagePreview }));
+    showIncomingNotification(createIncomingMessageNotification({ id, senderName: "Maya Chen", chatId, messagePreview }), { preview: true });
   };
 
   const shareApproximateArea = () => {
@@ -2395,8 +2599,16 @@ export default function TrufrenzApp() {
   const sendFriendRequest = (person: Person) => {
     if (requireAccount("send-friend-request")) return;
     if (!joined) { feedback("Create your phone-verified profile before sending a request."); openSignup(); return; }
-    const myVerification = "phone-only" as const;
-    if (!canRequestFriendship(myVerification)) {
+    /*
+     * The gate reads the member's own verification, not a fixed value.
+     *
+     * This was pinned to "phone-only", which meant every member was told to
+     * verify a second time even after a selfie or ID check had been approved —
+     * the prompt could never be satisfied and requests could never be sent. The
+     * value is the one the session already carries, so an approved member is
+     * let through here and an unverified one still sees the prompt.
+     */
+    if (!canRequestFriendship(myProfile.verification)) {
       setVerificationPrompt(true);
       return;
     }
@@ -2762,7 +2974,8 @@ export default function TrufrenzApp() {
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>A SMALLER INTERNET, A CLOSER CIRCLE</Text><Text style={styles.pageTitle}>Friends, not profiles.</Text><Text style={styles.pageSub}>Meet kind people nearby, then connect only when you both say yes.</Text></View>
     <View style={styles.friendsTools}><View style={styles.searchBar}><Icon name="search" size={17} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name or interest" placeholderTextColor="#a4a39f" style={styles.searchInput} /><Icon name="tune" size={17} color="#83721f" /></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestFilterRow}>{["Nearby", "Verified", "Coffee", "Books", "Hiking"].map((tag) => <Pressable key={tag} onPress={() => toggleInterest(tag)} style={[styles.filterChip, interestFilter.includes(tag) && styles.filterChipActive]}><Text style={[styles.filterChipText, interestFilter.includes(tag) && styles.filterChipTextActive]}>{tag}</Text></Pressable>)}</ScrollView></View>
       <View style={[styles.friendsScroll, styles.friendsContent]}>
-      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { setFriendships((current) => declineFriendship(current, id)); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
+      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
+      {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#7393A9" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>Request sent · waiting quietly</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
       <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#83721f" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
       {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#7895A5" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
       <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const personRelationship = relationshipFor(friendships, person.id); const sent = personRelationship !== "stranger"; const sharedInterests = findCommonInterests(joined && profileInterests.length ? profileInterests : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Pressable accessibilityRole="button" accessibilityLabel={`View ${person.name} profile`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborTapArea, pressed && styles.pressed]}><Image source={person.image} style={styles.neighborAvatar} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Open ${person.name} details`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborInfo, pressed && styles.pressed]}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text>{visibleStatus(person.status) ? <Text style={styles.neighborStatus} numberOfLines={1}>{statusLabel(visibleStatus(person.status))}</Text> : null}<View style={styles.neighborMeta}><Icon name="place" size={11} color="#8e8b85" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#83721f" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></Pressable>{personRelationship === "request-received" ? <Pressable accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(person.id)} style={styles.compactRequestButton}><Icon name="check" size={13} color="#5C8A76" /><Text style={[styles.compactRequestText, styles.requestSentText]}>Accept</Text></Pressable> : <Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#83721f"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable>}</Frosted>; })}
@@ -2800,6 +3013,14 @@ export default function TrufrenzApp() {
     <Text style={styles.settingsLabel}>PRIVACY & LITTLE EXTRAS</Text>
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#a4a19b" /></Pressable>
+      <View style={styles.settingDivider} />
+      {/*
+        Quiet hours, above the subscription row because it applies to everyone
+        rather than to a paid tier. The switch is the whole feature; the two
+        hours underneath only appear once it is on, so the row stays one line for
+        the members who never want it.
+      */}
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="bedtime" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Quiet hours</Text><Text style={styles.settingSub}>{describeQuietHours(quietHours)}</Text>{quietHours.enabled ? <View style={styles.quietHoursControls}><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(quietHours.startHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#527084" /></Pressable><Text style={styles.quietHourValue}>Starts {hourLabel(quietHours.startHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(shiftHour(quietHours.startHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#527084" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(quietHours.endHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#527084" /></Pressable><Text style={styles.quietHourValue}>Ends {hourLabel(quietHours.endHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(shiftHour(quietHours.endHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#527084" /></Pressable></View> : null}</View><View style={styles.toggleFrame}><Switch value={quietHours.enabled} onValueChange={(value) => { setQuietHours((current) => ({ ...current, enabled: value })); tap(); feedback(value ? `Quiet from ${hourLabel(quietHours.startHour)} to ${hourLabel(quietHours.endHour)}.` : "Quiet hours off. Notifications can reach you again."); }} trackColor={{ false: "#dddace", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       <Pressable onPress={() => { tap(); if (paidTier) { setManageOpen(true); } else { openPaywall(undefined, subscription.planId); } }} accessibilityRole="button" accessibilityLabel={paidTier ? `Manage Trufrenz Premium, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#83721f" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? `${activePlanLine(subscription)} · manage` : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#7393A8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#a5a49e" /></Pressable>
     </Frosted>
@@ -3422,6 +3643,18 @@ const styles = StyleSheet.create({
   requestHeading: { color: "#504d3f", fontSize: 14, fontWeight: "700", marginTop: 4 },
   requestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "#f2e9be", alignItems: "center", justifyContent: "center" },
   requestCountText: { color: "#83721f", fontSize: 9, fontWeight: "700" },
+  /*
+   * The waiting list is tinted cooler than the received list on purpose. One
+   * asks the member to decide something now; the other is a state they are only
+   * watching, and the two should not read as the same kind of demand.
+   */
+  outgoingRequestPanel: { padding: 12, borderRadius: 18, backgroundColor: "rgba(233, 241, 250, 0.5)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)", marginBottom: 17 },
+  outgoingRequestHeading: { color: "#4e4c47", fontSize: 14, fontWeight: "800", marginTop: 4 },
+  outgoingRequestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "rgba(205, 225, 240, 0.92)", alignItems: "center", justifyContent: "center" },
+  outgoingRequestCountText: { color: "#4e6575", fontSize: 9, fontWeight: "800" },
+  outgoingRequestCopy: { color: "#6c777c", fontSize: 11, lineHeight: 15, marginTop: 4 },
+  withdrawRequestButton: { minHeight: 29, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.45)", backgroundColor: "rgba(255, 255, 255, 0.56)", alignItems: "center", justifyContent: "center" },
+  withdrawRequestText: { color: "#527084", fontSize: 10.5, fontWeight: "800" },
   requestRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 12 },
   requestAvatar: { width: 42, height: 42, borderRadius: 15 },
   requestDetails: { flex: 1, gap: 3 },
@@ -3598,6 +3831,9 @@ const styles = StyleSheet.create({
   toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.62)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", shadowColor: "#726f68", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
   settingTitle: { color: "#58564f", fontSize: 9, fontWeight: "700" },
   settingSub: { color: "#94928d", fontSize: 7, marginTop: 3 },
+  quietHoursControls: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 7 },
+  quietHourButton: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.42)", backgroundColor: "rgba(255, 255, 255, 0.6)", alignItems: "center", justifyContent: "center" },
+  quietHourValue: { color: "#5d7382", fontSize: 11, fontWeight: "700", marginRight: 3 },
   settingDivider: { height: 1, backgroundColor: "rgba(219, 216, 204, 0.50)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#f3ecc5", alignItems: "center", justifyContent: "center" },
   footerNote: { color: "#9e9c97", fontSize: 8, textAlign: "center", marginTop: 15 },

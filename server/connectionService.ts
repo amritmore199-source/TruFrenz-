@@ -72,6 +72,35 @@ export async function listConnections(memberId: number): Promise<ConnectionRow[]
  * because the caller needs the authoritative version to display and the member
  * should never see a half-applied state.
  */
+/**
+ * Splits one batch into the rows to write and the people to forget.
+ *
+ * Both decisions live here rather than inside the database call, because both are
+ * rules rather than queries and both have been wrong before.
+ *
+ * A removal is how a withdrawn request travels: the member took back a request
+ * they sent, so the row is deleted instead of being rewritten as a decline. A
+ * decline is a permanent answer to a request that arrived, and writing one here
+ * would bar the other person from the member's suggestions for good on the
+ * strength of a decision nobody made.
+ *
+ * A state in the same batch wins over a removal, because the client sends what it
+ * still owes and the newest fact is the state it just recorded. Without that, a
+ * request sent and then withdrawn in one flush would delete the row the member
+ * had just created.
+ */
+export function planConnectionWrite(
+  rows: readonly ConnectionRow[],
+  removals: readonly string[],
+): { writes: ConnectionRow[]; removals: string[] } {
+  const clean = normalizeRows(rows);
+  const writtenIds = new Set(clean.map((row) => row.peerId));
+  const forgotten = removals.filter(
+    (peerId) => typeof peerId === "string" && peerId.length > 0 && peerId.length <= 64 && !writtenIds.has(peerId),
+  );
+  return { writes: clean, removals: forgotten };
+}
+
 export async function applyConnections(
   memberId: number,
   rows: readonly ConnectionRow[],
@@ -79,17 +108,13 @@ export async function applyConnections(
 ): Promise<ConnectionRow[]> {
   const db = await getDb();
   if (!db) return listConnections(memberId);
-  const clean = normalizeRows(rows);
-  const cleanRemovals = removals.filter((peerId) => typeof peerId === "string" && peerId.length > 0 && peerId.length <= 64);
+  const { writes: clean, removals: cleanRemovals } = planConnectionWrite(rows, removals);
   if (clean.length === 0 && cleanRemovals.length === 0) return listConnections(memberId);
 
-  /* A newer state wins over a stale removal from the same batch. */
-  const writtenIds = new Set(clean.map((row) => row.peerId));
-  const deletions = cleanRemovals.filter((peerId) => !writtenIds.has(peerId));
-  if (deletions.length > 0) {
+  if (cleanRemovals.length > 0) {
     await db
       .delete(memberConnections)
-      .where(and(eq(memberConnections.memberId, memberId), inArray(memberConnections.peerId, deletions)));
+      .where(and(eq(memberConnections.memberId, memberId), inArray(memberConnections.peerId, cleanRemovals)));
   }
   for (const row of clean) {
     await db

@@ -10,6 +10,7 @@ import {
   requestFriendship,
   serializeFriendships,
   unfriend,
+  withdrawRequest,
   type FriendshipGraph,
 } from "../lib/friendship-store";
 
@@ -130,6 +131,34 @@ describe("ending a connection", () => {
     const graph = unfriend({ ...empty(), accepted: ["maya"] }, "maya");
 
     expect(isNewIntroduction(graph, "maya")).toBe(true);
+  });
+});
+
+describe("taking back a request we sent", () => {
+  it("removes it from the waiting list without filing a decline", () => {
+    const waiting: FriendshipGraph = { ...empty(), accepted: ["sam"], requested: ["leo"], incoming: ["aria"] };
+    const after = withdrawRequest(waiting, "leo");
+
+    expect(after.requested).toEqual([]);
+    // Withdrawing our own unanswered request is not a decision about a request
+    // that arrived, so it must not be remembered as a refusal. Filing it as one
+    // would silently stop that person from ever reaching out again.
+    expect(after.declined).toEqual([]);
+    expect(after.accepted).toEqual(["sam"]);
+    expect(after.incoming).toEqual(["aria"]);
+  });
+
+  it("leaves the person able to be introduced again later", () => {
+    const after = withdrawRequest({ ...empty(), requested: ["leo"] }, "leo");
+
+    expect(isNewIntroduction(after, "leo")).toBe(true);
+    expect(relationshipFor(after, "leo")).toBe("stranger");
+  });
+
+  it("stays withdrawn across a reload", () => {
+    const after = withdrawRequest({ ...empty(), requested: ["leo"] }, "leo");
+
+    expect(parseFriendships(serializeFriendships(after)).requested).toEqual([]);
   });
 });
 

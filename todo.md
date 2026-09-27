@@ -697,3 +697,88 @@ render level next to the incoming-notification banner. Details in
 - **Chat, groups, and meetups run on local demo data**, not a real-time backend.
 - **Store cancellation** hands the member to their store account, which is how
   both stores require it; the app cannot cancel on their behalf.
+
+---
+
+## Round: message persistence, sent-request management, quiet hours
+
+The three suggestions from the previous review, plus three real bugs found while
+building and testing them.
+
+### What was added
+
+- **Cross-device messages (`lib/message-sync.ts`, `server/messageService.ts`).**
+  A member's own outgoing messages are queued on the device, pushed with the
+  account session, and merged back on launch, so a message sent on a phone is
+  present on a tablet. The `member_messages` table (migration `0009`) enforces a
+  unique `(memberId, clientId)` pair, which makes a retry after a lost reply a
+  no-op instead of a duplicate. Only the member's own words travel: the route has
+  no field for the other person's, and the client refuses to upload an inbound
+  row, so no device can rewrite what somebody else said.
+- **Sent-request management.** A "WAITING ON THEM" panel lists requests the
+  member has sent, with a Withdraw control on each. Incoming requests keep
+  Accept/Decline.
+- **Quiet Hours (`lib/quiet-hours.ts`).** A persisted, off-by-default window that
+  suppresses in-app message banners while leaving messages and unread counts
+  updating normally. The settings preview deliberately bypasses the window, so a
+  member can still check what a banner looks like at 3am.
+
+### Bugs found and fixed
+
+1. **Withdraw was recording a decline.** The control called
+   `applyConnectionChange(id, "declined")`. A decline is a permanent answer to a
+   request that *arrived*; withdrawing is the member changing their own mind
+   before the other side has seen it. Filing it as a decline would have barred
+   that person from the member's suggestions for good. Withdrawal now removes the
+   row locally (`withdrawRequest`) and queues a removal, and the server deletes
+   the row instead of writing a state.
+2. **Declining an incoming request never reached the server.** It edited the local
+   graph directly, so the server still held the request and it came back as
+   unanswered on the next launch. It now goes through the synced path.
+3. **The request gate was hardcoded to `"phone-only"`.** `canRequestFriendship`
+   was called with a fixed tier instead of the member's own, so an approved
+   member was asked to verify a second time and requests could never be sent —
+   the prompt was unsatisfiable. It now reads the session's verification.
+4. **An unknown message kind was silently relabelled as text** by the server
+   normaliser. A voice note stored as text reads differently on the second device
+   from the one the member sent. Both sides now refuse such a row; a missing kind
+   still defaults to text.
+5. **A midnight bug in the Quiet Hours countdown.** At 03:30 inside a 22→07
+   window it reported 1650 minutes remaining instead of 210.
+6. **The Quiet Hours preview exemption could leak.** It was held in a ref that the
+   notification call cleared on its way through. Any early return between the two
+   — a muted chat, most obviously — left it set, so the next genuine message
+   sailed past the window. The exemption is now passed in at the two preview call
+   sites, and the mute check is pinned ahead of it.
+7. **An unknown message kind was still being stored** when the request did not come
+   from the app. The normaliser now refuses such a row on both sides; a missing
+   kind still defaults to text, which is what older builds send.
+
+### Verification
+
+- `pnpm check` clean, `pnpm lint` 0 errors (29 warnings, none new),
+  `pnpm test` **748 passed | 1 skipped** across 48 files, `git diff --check` clean.
+- Server contract driven end to end over HTTP with a real member session: push
+  two messages, fetch them back, re-push the same id (no duplicate), then send a
+  request, withdraw it, and confirm the server returns **no row** and no declined
+  state. The temporary member and its rows were deleted afterwards (member count
+  back to 17).
+- Browser QA at phone width: the waiting panel appears after a request, Withdraw
+  removes it and returns the row to "Request" as a fresh introduction, and the
+  You tab renders the Quiet Hours control and glass controls without overflow. A
+  request sent while the member's tier was raised to ID+selfie went through, which
+  is the case the hardcoded gate had been blocking.
+- The banner was driven with a quiet window covering the current hour: the preview
+  still appears (so the setting can be checked), and a muted chat still refuses a
+  preview. The window was returned to its default (off, 22:00–07:00) and the demo
+  member's tier was restored to phone-only afterwards.
+
+### Limits worth knowing
+
+- Cross-device persistence covers **the signed-in member's own outgoing
+  messages**. There is still no real-time transport, so a message is not yet
+  delivered to the other person's device — that is the next service step, not a
+  bug in this round.
+- The connection graph is still stored per member against seeded directory ids;
+  it is not yet a two-sided graph where a request is genuinely sent between two
+  accounts.
