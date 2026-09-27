@@ -36,20 +36,46 @@ function release(timerRef: TimerHandle | null): void {
 }
 
 /** One pass, with failures contained so the job can never take the server down. */
-export async function runRevalidationPass(limit = 50): Promise<{ checked: number; lapsed: number }> {
+export async function runRevalidationPass(
+  limit = 50,
+): Promise<{ checked: number; lapsed: number; remindersSent: number }> {
+  let result = { checked: 0, lapsed: 0 };
   try {
-    const result = await revalidateDueReceipts(limit);
+    result = await revalidateDueReceipts(limit);
     if (result.checked > 0) {
       console.log(
         `[billing] revalidated ${result.checked} receipt${result.checked === 1 ? "" : "s"}` +
           (result.lapsed > 0 ? `, ${result.lapsed} lapsed to free` : ""),
       );
     }
-    return result;
   } catch (error) {
     console.error("[billing] revalidation pass failed", error);
-    return { checked: 0, lapsed: 0 };
   }
+
+  /*
+   * Renewal reminders run in the same pass, and deliberately *after*
+   * revalidation: revalidation is what marks a lapsed receipt expired, and the
+   * reminder scan is what tells the member. The other order would let someone
+   * lose Premium silently a moment before the notice was generated.
+   *
+   * The scan has its own try/catch because a reminder failure must not undo the
+   * fact that revalidation already succeeded.
+   */
+  let remindersSent = 0;
+  try {
+    const reminders = await runReminderScan(limit * 4);
+    remindersSent = reminders.sent;
+    if (reminders.sent > 0) {
+      console.log(
+        `[billing] sent ${reminders.sent} renewal reminder${reminders.sent === 1 ? "" : "s"}` +
+          (reminders.skipped > 0 ? `, ${reminders.skipped} already sent` : ""),
+      );
+    }
+  } catch (error) {
+    console.error("[billing] renewal reminder scan failed", error);
+  }
+
+  return { ...result, remindersSent };
 }
 
 /**
@@ -107,3 +133,4 @@ export function stopRevalidationJob(): void {
     timer = null;
   }
 }
+import { runReminderScan } from "./subscription-reminders";

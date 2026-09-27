@@ -1919,8 +1919,9 @@ export default function TrufrenzApp() {
     {/*
       Account notices.
       Warnings, verification outcomes, and announcements from the safety team
-      are delivered to the account, so they are listed here where the member
-      can read them at their own pace and mark them as read.
+      are delivered to the account, along with billing reminders before a
+      subscription period ends. They are listed here where the member can read
+      them at their own pace and mark them as read.
     */}
     {memberNotices.length > 0 ? (
       <Frosted style={styles.appearancePanel}>
@@ -1930,7 +1931,7 @@ export default function TrufrenzApp() {
             <Text style={styles.settingTitle}>Notices for you</Text>
             <Text style={styles.settingSub}>
               {unreadNotices.length > 0
-                ? `${unreadNotices.length} unread · from the safety team`
+                ? `${unreadNotices.length} unread · safety and billing`
                 : "Everything here has been read."}
             </Text>
           </View>

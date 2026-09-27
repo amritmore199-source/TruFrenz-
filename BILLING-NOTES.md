@@ -146,3 +146,65 @@ rather than trusted.
 
 **Verification.** `pnpm check` clean, `pnpm lint` 0 errors, `pnpm test`
 338 passed (1 pre-existing skip), `git diff --check` clean.
+
+## Store launch readiness, production Apple verification, and renewal reminders (verified)
+Three gaps were closed: the store products had no console-ready specification, the
+App Store verifier trusted a decoded JWS payload without checking who signed it,
+and a lapsed or lapsing subscription was never announced to the member.
+**1. Launch readiness** (`server/storeReadiness.ts`, `STORE-LAUNCH-CHECKLIST.md`).
+`consoleCatalogue()` renders the three products in the exact shape they must be
+typed into each console (ids, INR prices, billing periods, store display names).
+`storeReadiness()` reports Play and App Store separately as `not-configured`,
+`partial`, or `ready`, listing which environment variables are present by *name*
+and what a human still has to do in each console. It never treats the local
+catalogue as evidence that a product exists: `readyToSell` stays false with no
+credentials, which a test pins explicitly. Surfaced in Admin → Subscriptions as a
+readiness panel, the console catalogue, and a reminder log; the endpoint was
+verified over HTTP and the payload contains no key material.
+**2. Production Apple verification.** `@apple/app-store-server-library` v3.1.0
+(Apple's own) now verifies the client's signed transaction against Apple's root
+certificates, which ship in `server/apple-roots/` so verification cannot depend on
+reaching apple.com. Bundle id and certificate revocation are checked. The
+authoritative period end is then read from the **App Store Server API** via
+`getTransactionInfo` with our server key, and Apple's signed response is verified
+the same way — a decoded client payload is never trusted on its own. A 404 is
+reported as a missing purchase; a network failure is reported as retryable rather
+than as a bad receipt. `autoRenewStatus` other than `1` is read conservatively as
+"will not renew".
+**The security fix.** `verifyReceipt` used to fall through to the sandbox verifier
+whenever a channel had no credentials. On a deployment holding only Play
+credentials, a fabricated App Store receipt would therefore have been accepted —
+the sandbox path checks the *shape* of a token, nothing more. An unconfigured
+channel is now rejected with `channel_not_configured` unless
+`BILLING_ALLOW_SANDBOX=true`, which unset means "allowed outside production,
+refused inside it". Tests cover both directions and both channels.
+**3. Renewal reminders.** `lib/renewal-reminders.ts` decides *when* and *what*
+(pure, so every boundary is exact); `server/subscription-reminders.ts` sends it.
+Members are told 7 days, 3 days, and 1 day before a period ends, then once more
+after it has ended. The window is chosen closest-first, so a scan that first runs
+with two days left sends one "3 days" notice rather than three back-to-back.
+Auto-renewing and cancelled plans get deliberately different wording — a courtesy
+versus a warning that access really will stop — and dates are rendered in IST,
+the market the prices are for. Dedupe is a unique `(receiptId, reminderKind)` row
+in `subscription_reminders`, claimed *before* the notice is sent, which makes
+delivery exactly-once without a lock. The scan runs inside `runRevalidationPass`
+and deliberately *after* revalidation, since revalidation is what expires a
+receipt and the scan is what tells the member; a failure in either is contained
+so it cannot undo the other. Notices land in the member's existing account notice
+list, so `NoticeKind` gained `subscription_renewal` and `subscription_expired`.
+**A latent bug found and fixed.** The mysql2 driver resolves `db.insert(...)` to an
+*array* whose first element holds the result, so reading `.insertId` straight off
+the result silently yields `undefined`. Three call sites stored that value, which
+meant the reminder-to-notice link (`noticeId`) was always null. `insertIdOf()` in
+`server/db.ts` reads the correct position and is now covered by tests.
+**Verification.** `pnpm check` clean, `pnpm lint` 0 errors, `pnpm test`
+370 passed (1 pre-existing skip), `git diff --check` clean. Migration
+`0004_cool_firedrake.sql` reviewed and applied. The reminder scan was exercised
+against the real database: pass 1 sent two notices, pass 2 sent none (dedupe),
+a lapsed period produced exactly one expiry notice, and pass 4 repeated nothing —
+then the demo receipts were restored to their original expiry and tier split
+(1 premium / 13 free), with the reminder rows and test notices removed.
+The Admin → Subscriptions readiness panels were confirmed in the browser.
+**Still manual, and not claimed otherwise.** Creating the products, prices, tax,
+banking, and testers in Play Console and App Store Connect. No API exists for
+those, so the dashboard reports `not configured` until the credentials are added.

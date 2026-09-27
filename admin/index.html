@@ -391,6 +391,58 @@
         </section>
 
         <section id="view-subscriptions" class="view" hidden>
+          <!--
+            Store launch readiness.
+            This panel is deliberately blunt about what is NOT finished. A
+            product id existing in this codebase proves nothing about a store
+            console, so each channel reports only what is actually configured on
+            this server, and the manual console steps are listed separately.
+          -->
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Store launch readiness</h3>
+              <span class="tiny muted" id="readiness-mode">—</span>
+            </div>
+            <div class="grid-2" id="readiness-channels"></div>
+          </div>
+          <div class="panel flush">
+            <div class="panel-head">
+              <h3>Store product catalogue</h3>
+              <span class="tiny muted">Enter these exact ids in Play Console and App Store Connect</span>
+            </div>
+            <table class="data-table" id="catalogue-table">
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Product id</th>
+                  <th>Store name</th>
+                  <th>Price</th>
+                  <th>Billing period</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="panel flush">
+            <div class="panel-head">
+              <h3>Renewal reminders sent</h3>
+              <span class="tiny muted">One per member per window: 7 days, 3 days, 1 day, then expiry</span>
+            </div>
+            <table class="data-table" id="reminders-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Member</th>
+                  <th>Window</th>
+                  <th>Period ended</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="empty" id="reminders-empty" hidden>
+              No renewal reminders sent yet. They go out automatically inside the last week of a period.
+            </p>
+          </div>
           <div class="grid-2">
             <div class="panel">
               <div class="panel-head">

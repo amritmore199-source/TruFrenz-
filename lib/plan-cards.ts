@@ -183,8 +183,11 @@ export function winningProposal(poll: PlanPoll): PlanProposal | null {
 }
 
 /** Chat-row preview text for a plan card, so the inbox stays readable. */
-export function planPreview(card: PlanCard): string {
-  const timing = planTiming(card);
+export function planPreview(card: PlanCard, now: Date = new Date()): string {
+  // The clock is injected for the same reason `planTiming` takes one: this
+  // string contains "Today" or "In 3 days", so a test that could not pin the
+  // date would pass or fail depending on the day it ran.
+  const timing = planTiming(card, now);
   const label = PLAN_KIND_LABEL[card.kind];
   if (card.status === "accepted") return `${card.kind === "meetup" ? "🗓️" : "☕"} ${label} confirmed · ${timing.label}`;
   if (card.status === "declined") return `${label} declined · ${card.proposal.place}`;

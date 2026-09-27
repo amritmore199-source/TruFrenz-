@@ -586,11 +586,26 @@ export function registerAdminRoutes(app: Express) {
   app.get("/api/admin/subscriptions", requireAdmin, async (req, res) => {
     const kind = String(req.query.kind ?? "all");
     const allowed = ["grant", "revoke", "refund"];
-    const [paid, events] = await Promise.all([
+    const [paid, events, reminders] = await Promise.all([
       adminDb.listPaidMembers(),
       adminDb.listSubscriptionEvents(allowed.includes(kind) ? (kind as "grant") : undefined),
+      reminderHistory(25),
     ]);
-    res.json({ paidMembers: paid, events });
+    /*
+     * `readiness` reports what this deployment can actually verify, and what a
+     * human still has to do in each store console. It is computed on every
+     * request rather than stored, so it cannot drift into claiming a product is
+     * live when the store console was never touched: only configured
+     * credentials and a readable signing key move a channel to "ready".
+     */
+    res.json({
+      paidMembers: paid,
+      events,
+      reminders,
+      readiness: storeReadiness(),
+      verificationMode: verificationMode(),
+      sandboxAllowed: sandboxVerificationAllowed(),
+    });
   });
 
   app.post(
@@ -648,3 +663,6 @@ export function registerAdminRoutes(app: Express) {
 
   console.log("[admin] dashboard API registered at /api/admin");
 }
+import { sandboxVerificationAllowed, verificationMode } from "./billingService";
+import { reminderHistory } from "./subscription-reminders";
+import { storeReadiness } from "./storeReadiness";

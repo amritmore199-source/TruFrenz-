@@ -5,6 +5,7 @@ import {
   mysqlTable,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -146,6 +147,8 @@ export const memberNotices = mysqlTable("member_notices", {
     "verification_rejected",
     "announcement",
     "refund",
+    "subscription_renewal",
+    "subscription_expired",
   ]).notNull(),
   title: varchar("title", { length: 160 }).notNull(),
   body: text("body").notNull(),
@@ -349,3 +352,33 @@ export const dailyMetrics = mysqlTable("daily_metrics", {
 });
 
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
+/**
+ * One row per renewal reminder already delivered.
+ *
+ * The revalidation job runs every six hours, so a naive "expires in 3 days"
+ * scan would send the same notice eight times before the period ended. The
+ * unique key is the receipt plus the reminder window, which makes delivery
+ * idempotent: the insert is attempted first, and only the caller that wins the
+ * insert sends the notice. A later renewal writes a new receipt with a new
+ * expiry, so the next period's reminders are not suppressed by this one's.
+ */
+export const subscriptionReminders = mysqlTable(
+  "subscription_reminders",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    memberId: int("memberId").notNull(),
+    receiptId: int("receiptId").notNull(),
+    /** Which window this reminder filled: "7d", "3d", "1d" or "expired". */
+    reminderKind: varchar("reminderKind", { length: 16 }).notNull(),
+    /** The receipt expiry the reminder was computed against. */
+    periodEndsAt: timestamp("periodEndsAt").notNull(),
+    /** When the member was actually notified. */
+    deliveredAt: timestamp("deliveredAt").defaultNow().notNull(),
+    /** The notice row this reminder produced, for support traceability. */
+    noticeId: int("noticeId"),
+  },
+  (table) => [
+    uniqueIndex("subscription_reminders_receipt_kind").on(table.receiptId, table.reminderKind),
+  ],
+);
+export type SubscriptionReminder = typeof subscriptionReminders.$inferSelect;

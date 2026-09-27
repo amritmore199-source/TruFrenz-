@@ -1,4 +1,37 @@
 # Trufrenz — build tracker
+## Store launch readiness, production receipt verification, and renewal reminders — DONE (verified)
+- **Launch readiness** (`server/storeReadiness.ts` + `STORE-LAUNCH-CHECKLIST.md`):
+  canonical console-ready catalogue (ids, INR prices, billing periods) plus a
+  readiness report that treats Play and App Store separately and never claims a
+  product is live just because the local catalogue names it. Surfaced in
+  Admin → Subscriptions. Creating products, tax, banking, and testers in the two
+  consoles stays manual operational work — no store API can do it.
+- **Production Apple verification**: Apple's own `@apple/app-store-server-library`
+  verifies the signed transaction against bundled Apple root certificates (bundle
+  id and revocation included), then the period end is read from the App Store
+  Server API and its signed response verified too. A client-decoded payload is no
+  longer trusted on its own.
+- **Security fix**: an unconfigured store channel is now **rejected**
+  (`channel_not_configured`) instead of falling through to the shape-checking
+  sandbox verifier. `BILLING_ALLOW_SANDBOX=true` is the only way back in, and
+  unset means "refused in production".
+- **Renewal reminders**: one notice per member per window at 7 days, 3 days,
+  1 day, then expiry, deduplicated by a unique `(receiptId, reminderKind)` row so
+  the 6-hourly scan can never repeat itself. Auto-renewing and cancelled plans
+  read differently; dates render in IST. Runs inside `runRevalidationPass`, after
+  revalidation.
+- **Notices**: `NoticeKind` gained `subscription_renewal` / `subscription_expired`;
+  migration `0004_cool_firedrake.sql` applied. They appear in the member's
+  existing account notice list.
+- **Bug fixed**: mysql2 returns inserts as an array, so the old `.insertId` reads
+  were always `undefined` and the reminder→notice link was null. `insertIdOf()`
+  in `server/db.ts` fixes three call sites; covered by tests.
+- Tests added: `renewal-reminders` (14), `billing-verification-mode` (17), plus
+  revalidation-job reminder coverage and a de-flaked `plan-cards` preview test.
+- `pnpm check` clean · `pnpm lint` 0 errors · `pnpm test` 370 passed (1 skip) ·
+  `git diff --check` clean. Reminder scan exercised against the live database
+  (send → dedupe → expiry → no repeat), then demo data restored to
+  1 premium / 13 free.
 
 ## Store billing, revalidation job, and launch reconciliation — DONE (verified)
 

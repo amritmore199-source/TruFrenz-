@@ -1229,6 +1229,74 @@
       tr.appendChild(el("td", "cell-sub", event.actorEmail));
       eventsBody.appendChild(tr);
     }
+
+    /*
+     * Store readiness. The wording here matters as much as the data: this panel
+     * must never read as "the products exist". It reports what this server can
+     * verify, and lists everything a person still has to do in each console.
+     */
+    const readiness = data.readiness || { channels: [], catalogue: [] };
+    $("readiness-mode").textContent =
+      `Verification: ${data.verificationMode === "store" ? "live store APIs" : "sandbox"}` +
+      (data.sandboxAllowed ? " · sandbox fallback allowed here" : " · sandbox fallback refused");
+
+    const channels = $("readiness-channels");
+    clear(channels);
+    for (const channel of readiness.channels || []) {
+      const card = el("div", "panel");
+      const head = el("div", "panel-head");
+      head.appendChild(el("h4", null, channel.label));
+      const tag = statusTag(channel.state === "ready" ? "approved" : channel.state === "partial" ? "warned" : "suspended");
+      tag.textContent =
+        channel.state === "ready" ? "credentials ready" : channel.state === "partial" ? "incomplete" : "not configured";
+      head.appendChild(tag);
+      card.appendChild(head);
+
+      card.appendChild(el("p", "tiny muted", channel.detail));
+
+      const envList = el("ul", "feed");
+      for (const name of channel.requiredEnv) {
+        const present = channel.presentEnv.includes(name);
+        envList.appendChild(el("li", "tiny", `${present ? "✓" : "✗"} ${name}`));
+      }
+      card.appendChild(el("p", "tiny muted", "Server configuration:"));
+      card.appendChild(envList);
+
+      card.appendChild(el("p", "tiny muted", "Manual console work still required:"));
+      const steps = el("ol", "feed");
+      for (const step of channel.manualSteps) steps.appendChild(el("li", "tiny", step));
+      card.appendChild(steps);
+      channels.appendChild(card);
+    }
+
+    const catalogueBody = $("catalogue-table").querySelector("tbody");
+    clear(catalogueBody);
+    for (const product of readiness.catalogue || []) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "cell-strong", product.planLabel));
+      tr.appendChild(el("td", null, product.productId));
+      tr.appendChild(el("td", "cell-sub", product.storeName));
+      tr.appendChild(el("td", null, `₹${product.priceInr}`));
+      tr.appendChild(el("td", "cell-sub", product.billingPeriod));
+      catalogueBody.appendChild(tr);
+    }
+
+    const reminders = data.reminders || [];
+    const remindersBody = $("reminders-table").querySelector("tbody");
+    clear(remindersBody);
+    $("reminders-empty").hidden = reminders.length > 0;
+    for (const reminder of reminders) {
+      const tr = el("tr");
+      tr.appendChild(el("td", null, formatDateTime(reminder.deliveredAt)));
+      tr.appendChild(el("td", "cell-strong", reminder.memberName || `Member #${reminder.memberId}`));
+      const windowCell = el("td");
+      windowCell.appendChild(
+        el("span", "pill", reminder.reminderKind === "expired" ? "expired" : `${reminder.reminderKind} left`),
+      );
+      tr.appendChild(windowCell);
+      tr.appendChild(el("td", "cell-sub", formatDateTime(reminder.periodEndsAt)));
+      remindersBody.appendChild(tr);
+    }
   }
 
   async function subscriptionChange(member, kind) {

@@ -154,10 +154,19 @@ describe("group polls", () => {
 
 describe("plan previews", () => {
   it("summarises each plan state for the inbox row", () => {
+    /*
+     * The clock is pinned. `buildHangout()` proposes 2026-09-26, and the preview
+     * reads "Today" only when that really is today — so without this the test
+     * would pass on the day it was written and fail every day after.
+     */
     const card = buildHangout();
-    expect(planPreview(card)).toContain("Hangout suggested");
-    expect(planPreview({ ...card, status: "accepted" })).toContain("Hangout confirmed");
-    expect(planPreview({ ...card, status: "accepted" })).toContain("Today");
-    expect(planPreview({ ...card, status: "declined" })).toContain("declined");
+    expect(planPreview(card, now)).toContain("Hangout suggested");
+    expect(planPreview({ ...card, status: "accepted" }, now)).toContain("Hangout confirmed");
+    expect(planPreview({ ...card, status: "accepted" }, now)).toContain("Today");
+    expect(planPreview({ ...card, status: "declined" }, now)).toContain("declined");
+    // A week later the same plan reads as having passed, which is the honest
+    // inbox line rather than a stale "confirmed".
+    const later = new Date("2026-10-03T12:00:00.000Z");
+    expect(planPreview({ ...card, status: "accepted" }, later)).toContain("This date has passed");
   });
 });

@@ -228,10 +228,19 @@ async function verifyPlayReceipt(
 /**
  * Verify an App Store subscription transaction.
  *
- * The signed JWS payload is decoded and its claims are checked: the bundle id
- * must match, the product must be ours, and the expiry must be in the future.
- * A production launch should also confirm the signature chain against Apple's
- * root certificates; the structure here keeps that as a single added step.
+ * Three steps, and all three matter:
+ *
+ * 1. **Signature chain.** The client hands us a signed transaction, but a
+ *    decoded JWS payload is only a claim — anything can produce one. Apple's
+ *    own verifier confirms the signature chains to Apple's published roots,
+ *    that it was signed for *our* bundle id, and that the signing certificate
+ *    has not been revoked.
+ * 2. **Authoritative read.** That signature proves Apple signed that
+ *    transaction, not that the subscription is still current. The period end is
+ *    therefore read back from the App Store Server API for that transaction id
+ *    using our server key, and Apple's signed response is verified the same way.
+ * 3. **Our rules.** The product must be one we sell, the period must not
+ *    already be over, and a refund ends access at once.
  */
 async function verifyAppleReceipt(
   receipt: StoreReceipt,
@@ -240,38 +249,78 @@ async function verifyAppleReceipt(
   const planId = planIdForProductId(receipt.productId);
   if (!planId) throw new ReceiptRejected("That product is not part of Trufrenz Premium.", "unknown_product");
 
-  const payload = receipt.signedTransaction?.split(".")[1] ?? null;
-  if (!payload) throw new ReceiptRejected("The App Store did not return a signed transaction.", "missing_receipt");
+  const signedTransaction = receipt.signedTransaction?.trim();
+  if (!signedTransaction) {
+    throw new ReceiptRejected("The App Store did not return a signed transaction.", "missing_receipt");
+  }
 
-  let claims: Record<string, unknown>;
+  // 1. The client's transaction, verified against Apple's certificate chain.
+  let decoded: AppleTransactionClaims;
   try {
-    claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
+    decoded = await verifyAppleSignedTransaction(signedTransaction, credentials);
   } catch {
-    throw new ReceiptRejected("That App Store receipt could not be read.", "malformed_receipt");
+    // Why it failed is worth an audit log, not a member-facing message.
+    throw new ReceiptRejected("That App Store receipt could not be verified.", "unverified_receipt");
   }
 
-  if (typeof claims.bundleId === "string" && claims.bundleId !== credentials.bundleId) {
-    throw new ReceiptRejected("That receipt belongs to a different app.", "bundle_mismatch");
-  }
-  if (typeof claims.productId === "string" && claims.productId !== receipt.productId) {
+  if (decoded.productId && decoded.productId !== receipt.productId) {
     throw new ReceiptRejected("That receipt is for a different product.", "product_mismatch");
   }
 
-  const expiryMs = typeof claims.expiresDate === "number" ? claims.expiresDate : Number(claims.expiresDate);
-  if (!Number.isFinite(expiryMs)) throw new ReceiptRejected("The App Store receipt has no expiry.", "missing_expiry");
-  if (expiryMs <= Date.now()) throw new ReceiptRejected("That App Store subscription has already ended.", "subscription_expired");
+  const claimedTransactionId = decoded.transactionId ?? receipt.purchaseToken;
+  if (!claimedTransactionId) {
+    throw new ReceiptRejected("That App Store receipt has no transaction id.", "malformed_receipt");
+  }
 
-  const revoked = Boolean(claims.revocationDate);
-  if (revoked) throw new ReceiptRejected("That App Store purchase was refunded.", "receipt_revoked");
+  // 2. Ask Apple what this subscription is right now: the authoritative period.
+  let authoritative: AppleTransactionClaims | null = null;
+  try {
+    authoritative = await fetchAppleTransaction(claimedTransactionId, credentials);
+  } catch (error) {
+    // A missing transaction is a definitive answer; a network failure is not,
+    // and must never be reported to the member as a bad receipt.
+    const message = error instanceof Error ? error.message : "";
+    if (/404|not found/i.test(message)) {
+      throw new ReceiptRejected("The App Store has no record of that purchase.", "receipt_not_found");
+    }
+    throw new ReceiptRejected(
+      "The App Store could not be reached to confirm the purchase. Try again in a moment.",
+      "store_unreachable",
+    );
+  }
+
+  const final = authoritative ?? decoded;
+  if (final.productId && final.productId !== receipt.productId) {
+    throw new ReceiptRejected("That receipt is for a different product.", "product_mismatch");
+  }
+
+  const expiryMs = Number(final.expiresDate);
+  if (!Number.isFinite(expiryMs) || expiryMs <= 0) {
+    throw new ReceiptRejected("The App Store receipt has no expiry.", "missing_expiry");
+  }
+  if (expiryMs <= Date.now()) {
+    throw new ReceiptRejected("That App Store subscription has already ended.", "subscription_expired");
+  }
+  if (final.revocationDate) {
+    throw new ReceiptRejected("That App Store purchase was refunded.", "receipt_revoked");
+  }
+
+  /*
+   * `autoRenewStatus` is 1 when the subscription will renew and 0 when the
+   * member has switched renewal off. Anything else means we could not tell, and
+   * the safe reading is "will not renew": a needless reminder beats promising
+   * someone their plan continues when it may not.
+   */
+  const renewing = Number(final.autoRenewStatus) === 1;
 
   return {
     productId: receipt.productId,
     planId,
-    transactionId: `apple:${String(claims.transactionId ?? receipt.originalTransactionId ?? randomUUID())}`,
+    transactionId: `apple:${String(final.transactionId ?? claimedTransactionId)}`,
     expiresAt: new Date(expiryMs),
     verifiedBy: "store",
-    autoRenewing: claims.autoRenewStatus !== 0,
-    cancelledAt: null,
+    autoRenewing: renewing,
+    cancelledAt: renewing ? null : new Date(),
   };
 }
 
@@ -323,11 +372,57 @@ async function verifySandboxReceipt(receipt: StoreReceipt, claimedByMemberId: nu
 }
 
 /** Verify a receipt with whichever path this deployment supports. */
+/**
+ * Verify a receipt with whichever path this deployment supports.
+ *
+ * The dangerous case is a deployment that can verify one store but not the
+ * other. Falling back to the sandbox there would let a production server that
+ * holds only Play credentials hand out Premium to anyone who posts a made-up
+ * App Store receipt, because the sandbox path checks the *shape* of a token and
+ * nothing more. So the fallback is gated behind an explicit opt-in:
+ *
+ * - Channel unconfigured and `BILLING_ALLOW_SANDBOX` is not `true` → rejected.
+ *   This is the correct behaviour for production.
+ * - `BILLING_ALLOW_SANDBOX=true` → the sandbox path runs, for development and
+ *   for reviewing the purchase flow before either store account exists.
+ *
+ * Unset means "allowed outside production, refused inside it", so a developer's
+ * local server keeps working while a deployed one cannot be talked into it.
+ */
 export async function verifyReceipt(receipt: StoreReceipt, memberId: number): Promise<VerifiedReceipt> {
   const credentials = readCredentials();
-  if (receipt.channel === "play" && credentials.play) return verifyPlayReceipt(receipt, credentials.play);
-  if (receipt.channel === "app-store" && credentials.apple) return verifyAppleReceipt(receipt, credentials.apple);
+
+  // A configured store is always the only acceptable path for its own channel.
+  if (receipt.channel === "play") {
+    if (credentials.play) return verifyPlayReceipt(receipt, credentials.play);
+    if (!sandboxVerificationAllowed()) throw unconfiguredChannel("Google Play");
+  }
+  if (receipt.channel === "app-store") {
+    if (credentials.apple) return verifyAppleReceipt(receipt, credentials.apple);
+    if (!sandboxVerificationAllowed()) throw unconfiguredChannel("the App Store");
+  }
+
   return verifySandboxReceipt(receipt, memberId);
+}
+/**
+ * Whether the development-only sandbox verifier may run at all.
+ *
+ * Exported so the readiness report and the tests can assert on the same rule
+ * the purchase path uses, rather than re-deriving it.
+ */
+export function sandboxVerificationAllowed(): boolean {
+  const raw = process.env.BILLING_ALLOW_SANDBOX?.trim().toLowerCase();
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  // Unset: allowed outside production, refused inside it.
+  return process.env.NODE_ENV !== "production";
+}
+/** The rejection for a receipt from a store this deployment cannot verify. */
+function unconfiguredChannel(storeName: string): ReceiptRejected {
+  return new ReceiptRejected(
+    `Purchases from ${storeName} are not enabled on Trufrenz yet. Please update the app and try again.`,
+    "channel_not_configured",
+  );
 }
 
 /* ------------------------------- entitlements ---------------------------- */
@@ -336,6 +431,8 @@ export type Entitlement = {
   tier: Tier;
   planId: PlanId;
   renewsOn: string | null;
+  /** True when the current period ends within the week. Drives the renewal nudge. */
+  renewingSoon: boolean;
   autoRenewing: boolean;
   cancelledAt: string | null;
   lastVerifiedAt: string | null;
@@ -346,6 +443,7 @@ export const FREE_ENTITLEMENT: Entitlement = {
   tier: "free",
   planId: "quarterly",
   renewsOn: null,
+  renewingSoon: false,
   autoRenewing: false,
   cancelledAt: null,
   lastVerifiedAt: null,
@@ -381,6 +479,8 @@ export async function entitlementForMember(memberId: number): Promise<Entitlemen
     tier: "premium",
     planId: planIdForProductId(row.productId) ?? "quarterly",
     renewsOn: expires.toISOString(),
+    // Within the reminder horizon, so the manage screen can say so plainly.
+    renewingSoon: expires.getTime() - Date.now() <= REMINDER_HORIZON_MS,
     autoRenewing: row.autoRenewing,
     cancelledAt: row.cancelledAt ? new Date(row.cancelledAt).toISOString() : null,
     lastVerifiedAt: row.lastVerifiedAt ? new Date(row.lastVerifiedAt).toISOString() : null,
@@ -447,7 +547,9 @@ export async function applyReceipt(memberId: number, receipt: StoreReceipt): Pro
       lastVerifiedAt: new Date(),
       verifiedBy: verified.verifiedBy,
     });
-    receiptId = Number((inserted as unknown as { insertId?: number })?.insertId ?? 0);
+    // See `insertIdOf`: the id sits at `[0].insertId` with the mysql2 driver,
+    // so a receipt reference stored here would otherwise be null.
+    receiptId = insertIdOf(inserted);
   }
 
   const tier: Tier = "premium";
@@ -582,3 +684,10 @@ export function storeCatalog() {
     chargeInr: chargeForPlan(planId),
   }));
 }
+import {
+  fetchAppleTransaction,
+  verifyAppleSignedTransaction,
+  type AppleTransactionClaims,
+} from "./storeReadiness";
+import { REMINDER_HORIZON_MS } from "../lib/renewal-reminders";
+import { insertIdOf } from "./db";

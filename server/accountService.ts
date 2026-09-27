@@ -16,7 +16,7 @@ import { randomBytes, createHash } from "node:crypto";
 
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 
-import { getDb } from "./db";
+import { getDb, insertIdOf } from "./db";
 import { analyticsEvents, memberNotices, memberSessions, members } from "../drizzle/schema";
 import {
   canAccount,
@@ -240,7 +240,14 @@ export type NoticeKind =
   | "verification_approved"
   | "verification_rejected"
   | "announcement"
-  | "refund";
+  | "refund"
+  /*
+   * Billing notices written by the renewal reminder scan. They are member-facing
+   * like the rest, so they belong in the same list rather than in a separate
+   * inbox the member would have to know to go looking for.
+   */
+  | "subscription_renewal"
+  | "subscription_expired";
 
 /**
  * Deliver a member-facing notice. This is the other half of a moderation
@@ -265,8 +272,8 @@ export async function sendMemberNotice(input: {
     actorEmail: input.actorEmail ?? null,
   });
 
-  const insertId = (result as unknown as { insertId?: number })?.insertId;
-  return Number(insertId ?? 0);
+  // See `insertIdOf`: the id sits at `[0].insertId` with the mysql2 driver.
+  return insertIdOf(result);
 }
 
 export async function listMemberNotices(memberId: number, limit = 50) {

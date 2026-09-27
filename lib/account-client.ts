@@ -177,6 +177,12 @@ export type RemoteEntitlement = {
   tier: "free" | "premium";
   planId: string;
   renewsOn: string | null;
+  /**
+   * True when the current period ends within a week. The server computes this so
+   * the manage screen can say "renews in a few days" without duplicating the
+   * reminder window rules on the client, where they could drift.
+   */
+  renewingSoon: boolean;
   autoRenewing: boolean;
   cancelledAt: string | null;
   lastVerifiedAt: string | null;

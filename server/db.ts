@@ -89,4 +89,24 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/**
+ * The auto-increment id a Drizzle insert just produced, or 0 when unavailable.
+ *
+ * This needs a helper because the shape is easy to get wrong: with the mysql2
+ * driver, `db.insert(...)` resolves to an *array* whose first element is the
+ * driver's result object, so the id lives at `[0].insertId`. Reading
+ * `.insertId` straight off the result silently yields `undefined`, and callers
+ * that store it end up with a null reference and no error to show for it.
+ *
+ * Returning 0 rather than throwing keeps this usable on the paths where a
+ * missing id is tolerable — a notice that cannot be linked back to its reminder
+ * should not fail the reminder.
+ */
+export function insertIdOf(result: unknown): number {
+  const candidate = Array.isArray(result) ? result[0] : result;
+  const id = (candidate as { insertId?: unknown } | null | undefined)?.insertId;
+  const parsed = Number(id);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 // TODO: add feature queries here as your schema grows.
