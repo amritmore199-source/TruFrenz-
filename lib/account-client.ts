@@ -83,18 +83,75 @@ async function request<T>(
 
 /* ------------------------------ sign-in -------------------------------- */
 
+/** Which channel a code travelled over. */
+export type SigninChannel = "phone" | "email";
+
+/**
+ * What the server reports about a code request.
+ *
+ * `delivery` is the honest answer, and it is why this type carries more than an
+ * `ok` flag: "demo" means the code came back in the response because nothing
+ * can send it, and "unavailable" means nothing can send it and demo mode is
+ * off, so the member should not be shown a code box that can never be
+ * satisfied.
+ */
+export type CodeRequestResult = {
+  ok: boolean;
+  channel: SigninChannel;
+  /** Partly hidden: "•••• 0142" or "d•••@example.com". */
+  destination: string;
+  isNewAccount: boolean;
+  /** Present only when no provider exists and demo mode is on. */
+  demoCode?: string;
+  delivery: SigninChannel | "demo" | "unavailable";
+  /** Set when a configured channel could not deliver. */
+  deliveryUnavailable?: boolean;
+};
+
 export async function requestOtp(phone: string, purpose: "signup" | "login") {
-  return request<{
-    ok: boolean;
-    phone: string;
-    isNewAccount: boolean;
-    /** Present only when the server has no SMS provider configured. */
-    demoCode?: string;
-    delivery: "sms" | "demo";
-  }>("/api/account/request-otp", {
+  return request<CodeRequestResult>("/api/account/request-otp", {
     method: "POST",
     body: JSON.stringify({ phone, purpose }),
   });
+}
+
+/** Ask for a code by email, which needs no SMS provider to work. */
+export async function requestEmailOtp(email: string, purpose: "signup" | "login") {
+  return request<CodeRequestResult>("/api/account/request-email-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, purpose }),
+  });
+}
+
+/**
+ * Check a code without spending the sign-in.
+ *
+ * Separate from completion because this app's onboarding spans several screens.
+ * Verifying early and creating the account later is exactly what used to fail:
+ * the old single route deleted the challenge the moment the code matched, so
+ * the final call had nothing to work with and the account was never created on
+ * the server at all.
+ */
+export async function verifyCode(code: string) {
+  return request<{ ok: boolean; verified: boolean; channel: SigninChannel; destination: string }>(
+    "/api/account/verify-code",
+    { method: "POST", body: JSON.stringify({ code }) },
+  );
+}
+
+/** Create the account, or sign in, using a code that was already accepted. */
+export async function completeSignin(input: {
+  name?: string;
+  dateOfBirth?: string;
+  age?: number;
+  homeArea?: string;
+  email?: string;
+  phone?: string;
+}) {
+  return request<{ ok: boolean; token: string; account: RemoteAccount }>(
+    "/api/account/complete-signin",
+    { method: "POST", body: JSON.stringify(input) },
+  );
 }
 
 export async function verifyOtp(input: {

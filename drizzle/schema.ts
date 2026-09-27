@@ -87,6 +87,18 @@ export const members = mysqlTable("members", {
   phoneE164: varchar("phoneE164", { length: 20 }).unique(),
   /** Contact email captured during onboarding for account recovery. */
   email: varchar("email", { length: 320 }),
+  /**
+   * When the member proved they control `email`.
+   *
+   * Without this the address was only a contact hint, which meant a member who
+   * lost their phone number had no way back into their account at all. A
+   * verified address is a real recovery identity.
+   */
+  emailVerifiedAt: timestamp("emailVerifiedAt"),
+  /** Set when the provider reports the address is undeliverable. */
+  emailBouncedAt: timestamp("emailBouncedAt"),
+  /** Whether this member wants renewal and safety notices by email too. */
+  emailNotices: boolean("emailNotices").default(true).notNull(),
   age: int("age"),
   dateOfBirth: varchar("dateOfBirth", { length: 10 }),
   homeArea: varchar("homeArea", { length: 120 }),
@@ -395,3 +407,50 @@ export const subscriptionReminders = mysqlTable(
   ],
 );
 export type SubscriptionReminder = typeof subscriptionReminders.$inferSelect;
+
+/**
+ * A pending one-time-code challenge.
+ *
+ * These used to live in an in-memory Map, which was wrong in three ways: every
+ * server restart dropped every in-flight sign-in, a second instance could not
+ * see a challenge the first one issued, and a sign-up that spans several
+ * screens had no way to survive the wait. Storing them here fixes all three.
+ *
+ * The code itself is never stored: only a keyed hash of it, so a database leak
+ * does not hand an attacker working codes.
+ */
+export const signinChallenges = mysqlTable(
+  "signin_challenges",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** The opaque value handed to the client in an httpOnly cookie. */
+    challengeId: varchar("challengeId", { length: 64 }).notNull(),
+    /** Which channel the code travelled over. */
+    channel: mysqlEnum("channel", ["phone", "email"]).notNull(),
+    /** The E.164 number or the normalised address the code was sent to. */
+    destination: varchar("destination", { length: 320 }).notNull(),
+    /** SHA-256 of the code, so the plaintext never touches the database. */
+    codeHash: varchar("codeHash", { length: 64 }).notNull(),
+    /** Why the member is signing in, which decides what the code unlocks. */
+    purpose: mysqlEnum("purpose", ["signup", "login"]).notNull(),
+    /** Failed attempts so far, counted against MAX_OTP_ATTEMPTS. */
+    attempts: int("attempts").default(0).notNull(),
+    /**
+     * Set once the code has been accepted.
+     *
+     * This is what lets a sign-up span several screens: a member proves the
+     * code, then fills in a profile, then joins. The challenge stays valid but
+     * can only be spent once, on the final account-creating call.
+     */
+    verifiedAt: timestamp("verifiedAt"),
+    expiresAt: timestamp("expiresAt").notNull(),
+    /** When the account-creating call finally consumed it. */
+    consumedAt: timestamp("consumedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("signin_challenges_challenge_id").on(table.challengeId),
+    uniqueIndex("signin_challenges_channel_destination").on(table.channel, table.destination),
+  ],
+);
+export type SigninChallenge = typeof signinChallenges.$inferSelect;

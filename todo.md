@@ -1,6 +1,31 @@
 # Trufrenz — build tracker
 ## Three subscription suggestions — DONE (verified)
 
+## OTP sign-in: bug fixes and email delivery
+
+- **Fixed: sign-up never created a server-side account.** The old verify route
+  deleted the challenge the moment the code matched, but onboarding runs three
+  more screens before the account is made — so the final call had nothing to
+  work with, the server errored, and the app walked the member backwards to the
+  profile step, which reads as "the code was rejected". `finishSignup` also only
+  wrote to local storage. Split into `verify-code` (proves without spending) and
+  idempotent `complete-signin` (creates at the end).
+- **Fixed: challenges were in an in-memory Map.** A restart dropped every
+  in-flight sign-in and a second instance could not see them. Moved to the
+  `signin_challenges` table with the code stored as a salted SHA-256 hash.
+- **Added: email OTP.** New `request-email-otp` route, `server/mailer.ts`
+  provider adapter, `lib/email.ts` shared validation, and
+  `members.emailVerifiedAt`. Email is now a real recovery identity rather than a
+  contact hint — previously a member who lost their phone could not get back in.
+- **Added: a channel switcher** on the phone step, with copy that names the
+  channel actually used.
+- **Added: honest delivery reporting.** The server says whether a code was sent,
+  shown as a prototype code, or cannot be delivered at all; the old flow always
+  claimed success.
+- Verified in the browser: a fresh email sign-up walked all four steps, created
+  member 180001 with a verified email, and matched the database. 491 tests pass.
+
+
 - **Store-localised prices**: `lib/store-prices.ts` reads the store's own quote
   and caches it (12-hour TTL), and the paywall prefers it for the plan price, the
   saving line and the a11y label. Rupee-only extras (effective-per-month, the

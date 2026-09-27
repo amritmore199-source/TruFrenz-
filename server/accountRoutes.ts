@@ -17,31 +17,45 @@ import { eq } from "drizzle-orm";
 import * as account from "./accountService";
 import { getDb } from "./db";
 import * as billing from "./billingService";
+import * as challenges from "./challengeStore";
+import { sendSigninCode, emailConfigured } from "./mailer";
 import { memberSessions, members, verificationSubmissions } from "../drizzle/schema";
 import { canAccount, type AccountCapability } from "../lib/account-access";
 import { isAnalyticsEventType } from "../lib/analytics-events";
+import { checkEmail, maskEmail, normalizeEmail } from "../lib/email";
 
 const SESSION_COOKIE = "trufrenz_member_session";
 const OTP_COOKIE = "trufrenz_signin_challenge";
 
 /**
- * Pending sign-in challenges, keyed by the opaque challenge id held in a cookie.
+ * SMS delivery is configured only when a provider key is present.
  *
- * A real deployment stores these in Redis or the database and hands the code to
- * an SMS provider. The demo keeps them in memory and returns the code to the
- * client so the flow is reviewable without an SMS account — see the README.
+ * This used to be read from `SMS_PROVIDER_KEY` alone, which was a trap: setting
+ * that variable without any sending code stopped the demo code being returned
+ * *and* sent nothing, so the flow broke completely instead of staying
+ * incomplete. Delivery now goes through a real adapter, and this flag reports
+ * whether that adapter can actually reach a provider.
  */
-type Challenge = {
-  phoneE164: string;
-  code: string;
-  expiresAt: number;
-  attempts: number;
-  purpose: "signup" | "login";
-};
+function smsConfigured(): boolean {
+  return Boolean(process.env.SMS_PROVIDER_KEY);
+}
 
-const challenges = new Map<string, Challenge>();
-const CHALLENGE_TTL_MS = 10 * 60 * 1000;
-const MAX_OTP_ATTEMPTS = 5;
+/**
+ * Whether a code may be handed back in the response instead of being sent.
+ *
+ * Three rules, in order of importance:
+ *
+ *   1. Production never reveals a code by default. A live deployment that could
+ *      send but is misconfigured must fail loudly, not mail the secret to
+ *      whoever asked for it.
+ *   2. A prototype with no provider still works, which is the whole point of
+ *      this mode: the flow stays reviewable before an SMS account exists.
+ *   3. `OTP_ALLOW_DEMO=true` overrides rule 1, for a deliberate public demo.
+ */
+function demoCodeAllowed(): boolean {
+  if (process.env.OTP_ALLOW_DEMO === "true") return true;
+  return process.env.NODE_ENV !== "production";
+}
 
 /**
  * Read one cookie from the raw request header.
@@ -60,12 +74,6 @@ function readCookie(req: Request, name: string): string | null {
   return null;
 }
 
-function pruneChallenges() {
-  const now = Date.now();
-  for (const [id, challenge] of challenges) {
-    if (challenge.expiresAt <= now) challenges.delete(id);
-  }
-}
 
 function setSessionCookie(res: Response, token: string) {
   res.cookie(SESSION_COOKIE, token, {
@@ -86,7 +94,7 @@ function setChallengeCookie(res: Response, id: string) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: CHALLENGE_TTL_MS,
+    maxAge: challenges.CHALLENGE_TTL_MS,
     path: "/",
   });
 }
@@ -157,7 +165,13 @@ function accountPayload(member: account.MemberRecord) {
     id: member.id,
     handle: member.handle,
     name: member.name,
-    phone: account.maskPhone(member.phoneE164),
+    /**
+     * Null, not an empty string, when an email-first account has no number.
+     *
+     * An empty string reads as a broken field in the UI; null reads as absent,
+     * which is the truth.
+     */
+    phone: member.phoneE164 ? account.maskPhone(member.phoneE164) : null,
     email: member.email,
     age: member.age,
     dateOfBirth: member.dateOfBirth,
@@ -177,82 +191,231 @@ function accountPayload(member: account.MemberRecord) {
 export function registerAccountRoutes(app: Express) {
   /* ------------------------------ sign-in ------------------------------- */
 
-  app.post("/api/account/request-otp", async (req, res) => {
-    pruneChallenges();
-    const rawPhone = String(req.body?.phone ?? "");
-    const purpose = req.body?.purpose === "login" ? "login" : "signup";
-    const phoneE164 = account.normalizePhone(rawPhone);
+  /**
+   * Ask for a code.
+   *
+   * Phone and email share one implementation because they share one problem:
+   * generate a code, persist a challenge, hand it to a channel, and tell the
+   * caller honestly whether it left the building. Only the addressing and the
+   * transport differ, which is what `channel` selects.
+   */
+  const requestCode = async (
+    res: Response,
+    input: { channel: "phone" | "email"; destination: string; purpose: "signup" | "login" },
+  ) => {
+    await challenges.pruneChallenges();
 
-    if (!phoneE164) {
-      res.status(400).json({ error: "Enter a valid phone number." });
-      return;
-    }
+    const existing =
+      input.channel === "phone"
+        ? await account.findMemberByPhone(input.destination)
+        : await account.findMemberByEmail(input.destination);
 
-    const existing = await account.findMemberByPhone(phoneE164);
-    if (purpose === "login" && !existing) {
+    // Signing in needs an account; signing up must not match one, or a member
+    // would silently be pushed into the login flow with a different password
+    // path than they expected.
+    if (input.purpose === "login" && !existing) {
       res.status(404).json({
-        error: "No account uses that number yet. Create one to get started.",
+        error:
+          input.channel === "phone"
+            ? "No account uses that number yet. Create one to get started."
+            : "No account uses that email yet. Create one to get started.",
         code: "account_not_found",
       });
       return;
     }
 
-    const code = account.generateOtp();
-    const id = account.generateSessionToken();
-    challenges.set(id, {
-      phoneE164,
-      code,
-      expiresAt: Date.now() + CHALLENGE_TTL_MS,
-      attempts: 0,
-      purpose,
-    });
-    setChallengeCookie(res, id);
+    // Which channels can actually deliver right now. This decides the response
+    // shape, so the client never has to guess.
+    const canSendEmail = emailConfigured();
+    const canSendSms = smsConfigured();
+    const deliverable = input.channel === "email" ? canSendEmail : canSendSms;
 
-    // A real deployment sends this by SMS and never returns it. The demo
-    // surfaces it so the flow can be reviewed without an SMS provider.
-    const smsDelivered = Boolean(process.env.SMS_PROVIDER_KEY);
+    // The code is only revealed when nothing can deliver it AND demo mode is on.
+    const revealCode = !deliverable && demoCodeAllowed();
+
+    const issued = await challenges.issueChallenge({
+      channel: input.channel,
+      destination: input.destination,
+      purpose: input.purpose,
+      revealCode,
+    });
+
+    /**
+     * Deliver, and refuse to claim success we did not achieve.
+     *
+     * This is the bug that made sign-up unusable: the old route always answered
+     * `ok: true` and returned the code only when `SMS_PROVIDER_KEY` was absent.
+     * A member saw "we sent a code", typed it, and nothing had been sent at all.
+     * Now a configured channel that fails is a reported failure.
+     */
+    if (input.channel === "email" && canSendEmail) {
+      const outcome = await sendSigninCode(input.destination, issued.code);
+      if (!outcome.sent) {
+        res.status(502).json({
+          error: "We could not send that email just now. Try again in a moment.",
+          code: "email_delivery_failed",
+        });
+        return;
+      }
+    }
+
+    setChallengeCookie(res, issued.challengeId);
+
+    const maskedDestination =
+      input.channel === "phone" ? account.maskPhone(input.destination) : maskEmail(input.destination);
+
     res.json({
       ok: true,
-      phone: account.maskPhone(phoneE164),
+      channel: input.channel,
+      destination: maskedDestination,
       isNewAccount: !existing,
-      /** Only present when no SMS provider is configured. */
-      demoCode: smsDelivered ? undefined : code,
-      delivery: smsDelivered ? "sms" : "demo",
+      /** Only ever present when no delivery provider exists and demo mode is on. */
+      demoCode: issued.demoCode,
+      delivery: deliverable ? input.channel : revealCode ? "demo" : "unavailable",
+      /**
+       * Set when a channel cannot deliver and demo mode is off, so the app can
+       * explain the situation instead of showing an input that nothing will
+       * ever satisfy.
+       */
+      deliveryUnavailable: !deliverable && !revealCode,
+    });
+  };
+
+  app.post("/api/account/request-otp", async (req, res) => {
+    const phoneE164 = account.normalizePhone(String(req.body?.phone ?? ""));
+    if (!phoneE164) {
+      res.status(400).json({ error: "Enter a valid phone number." });
+      return;
+    }
+    await requestCode(res, {
+      channel: "phone",
+      destination: phoneE164,
+      purpose: req.body?.purpose === "login" ? "login" : "signup",
     });
   });
 
-  app.post("/api/account/verify-otp", async (req: MemberRequest, res) => {
-    pruneChallenges();
+  app.post("/api/account/request-email-otp", async (req, res) => {
+    const checked = checkEmail(req.body?.email);
+    if (!checked.ok) {
+      res.status(400).json({ error: "Enter a valid email address, like name@example.com." });
+      return;
+    }
+    await requestCode(res, {
+      channel: "email",
+      destination: checked.email,
+      purpose: req.body?.purpose === "login" ? "login" : "signup",
+    });
+  });
+
+  /**
+   * Check a code without spending the challenge.
+   *
+   * This is the other half of the sign-up fix. The app verifies the code at step
+   * two, then collects a name, a birth date, and a photo before creating the
+   * account. The old route deleted the challenge the moment the code matched,
+   * so the later call had nothing to work with and the account was never created
+   * on the server at all — the member signed up locally and stayed a stranger to
+   * the backend.
+   */
+  app.post("/api/account/verify-code", async (req: MemberRequest, res) => {
+    await challenges.pruneChallenges();
     const id = readCookie(req, OTP_COOKIE);
     const submitted = String(req.body?.code ?? "").replace(/\D/g, "");
-    const challenge = id ? challenges.get(id) : undefined;
+    const challenge = id ? await challenges.loadChallenge(id) : null;
 
-    if (!id || !challenge || challenge.expiresAt <= Date.now()) {
+    const problem = challenges.challengeProblem(challenge, Date.now());
+    if (problem === "missing" || problem === "expired") {
       res.status(400).json({ error: "That code has expired. Request a new one." });
       return;
     }
-    if (challenge.attempts >= MAX_OTP_ATTEMPTS) {
-      challenges.delete(id);
+    if (problem === "consumed") {
+      res.status(400).json({ error: "That code has already been used. Request a new one." });
+      return;
+    }
+    if (problem === "exhausted") {
+      await challenges.dropChallenge(challenge!.challengeId);
       res.status(429).json({ error: "Too many attempts. Request a new code." });
       return;
     }
-    if (submitted.length !== 6 || submitted !== challenge.code) {
-      challenge.attempts += 1;
+    if (!challenge) {
+      res.status(400).json({ error: "That code has expired. Request a new one." });
+      return;
+    }
+
+    // Already proven: let the client continue rather than punishing a retry.
+    if (challenges.isVerified(challenge)) {
+      res.json({ ok: true, verified: true, channel: challenge.channel, destination: challenge.destination });
+      return;
+    }
+
+    if (submitted.length !== 6 || !challenges.otpMatches(submitted, challenge.challengeId, challenge.codeHash)) {
+      const attempts = await challenges.recordFailedAttempt(challenge.challengeId, challenge.attempts);
       res.status(400).json({
         error: "That code does not match. Check the six digits and try again.",
-        attemptsRemaining: MAX_OTP_ATTEMPTS - challenge.attempts,
+        attemptsRemaining: Math.max(0, challenges.MAX_OTP_ATTEMPTS - attempts),
       });
+      return;
+    }
+
+    // Keep the challenge alive; the account is created by the finishing call.
+    await challenges.markVerified(challenge.challengeId);
+    res.json({ ok: true, verified: true, channel: challenge.channel, destination: challenge.destination });
+  });
+
+  /**
+   * Create the account, or sign in, using a challenge whose code was accepted.
+   *
+   * Idempotent: calling it twice returns the same account rather than creating a
+   * second one or failing. That matters because a member who taps twice, or
+   * whose connection drops after the write, must not be left without an account
+   * or holding an error they cannot act on.
+   */
+  app.post("/api/account/complete-signin", async (req: MemberRequest, res) => {
+    await challenges.pruneChallenges();
+    const id = readCookie(req, OTP_COOKIE);
+    const challenge = id ? await challenges.loadChallenge(id) : null;
+
+    if (!challenge) {
+      res.status(400).json({ error: "Start again — your sign-in session has ended.", code: "challenge_missing" });
+      return;
+    }
+    if (challenge.expiresAt.getTime() <= Date.now()) {
+      res.status(400).json({ error: "That took a little long. Request a new code.", code: "challenge_expired" });
+      return;
+    }
+    if (!challenges.isVerified(challenge)) {
+      res.status(400).json({ error: "Verify your code before continuing.", code: "not_verified" });
       return;
     }
 
     const name = String(req.body?.name ?? "").trim();
     const dateOfBirth = String(req.body?.dateOfBirth ?? "").trim();
     const homeArea = String(req.body?.homeArea ?? "").trim();
-    const email = String(req.body?.email ?? "").trim();
     const ageRaw = Number(req.body?.age);
 
-    // Creating an account requires the onboarding details; signing in does not.
-    let member = await account.findMemberByPhone(challenge.phoneE164);
+    /**
+     * An email account has no phone number yet.
+     *
+     * The column is nullable, so an email-first account is stored with a null
+     * phone and can add one later. The member is real either way, which is what
+     * lets email sign-up ship today while SMS registration is still pending.
+     */
+    const phoneE164 =
+      challenge.channel === "phone"
+        ? challenge.destination
+        : account.normalizePhone(String(req.body?.phone ?? "")) ?? null;
+
+    const requestedEmail =
+      challenge.channel === "email" ? challenge.destination : normalizeEmail(String(req.body?.email ?? ""));
+
+    let member =
+      challenge.channel === "phone"
+        ? await account.findMemberByPhone(challenge.destination)
+        : await account.findMemberByEmail(challenge.destination);
+
+    // An email account may already exist under the phone the member just gave.
+    if (!member && phoneE164) member = await account.findMemberByPhone(phoneE164);
+
     if (!member) {
       if (name.length < 2) {
         res.status(400).json({
@@ -261,10 +424,16 @@ export function registerAccountRoutes(app: Express) {
         });
         return;
       }
+      if (!phoneE164 && challenge.channel === "phone") {
+        res.status(400).json({ error: "Enter a valid phone number.", code: "phone_required" });
+        return;
+      }
       member = await account.createAccount({
-        phoneE164: challenge.phoneE164,
+        phoneE164,
+        // Null, never "": the column is unique and only one "" is allowed.
         name,
-        email: email || null,
+        email: requestedEmail || null,
+        emailVerified: challenge.channel === "email",
         dateOfBirth: /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth) ? dateOfBirth : null,
         age: Number.isFinite(ageRaw) && ageRaw >= 18 ? Math.round(ageRaw) : null,
         homeArea: homeArea || null,
@@ -280,7 +449,98 @@ export function registerAccountRoutes(app: Express) {
       }
     }
 
-    challenges.delete(id);
+    // An email code proves the address, whatever the account looked like before.
+    if (challenge.channel === "email" && member && !member.emailVerifiedAt) {
+      const db = await getDb();
+      if (db) {
+        await db
+          .update(members)
+          .set({ email: challenge.destination, emailVerifiedAt: new Date() })
+          .where(eq(members.id, member.id));
+      }
+    }
+
+    if (challenge.channel === "phone" && member && !member.phoneE164) {
+      const db = await getDb();
+      if (db) {
+        await db
+          .update(members)
+          .set({ phoneE164: challenge.destination })
+          .where(eq(members.id, member.id));
+      }
+    }
+
+    await challenges.consumeChallenge(challenge.challengeId);
+    res.clearCookie(OTP_COOKIE, { path: "/" });
+
+    const token = await account.issueMemberSession(member.id);
+    setSessionCookie(res, token);
+    await account.recordSessionStart(member);
+
+    const fresh = (await account.findMemberById(member.id)) ?? member;
+    res.json({ ok: true, token, account: accountPayload(fresh) });
+  });
+
+  /**
+   * The original one-shot route, kept for compatibility.
+   *
+   * It verifies and completes in a single call. The app now uses the two-step
+   * pair above because its onboarding spans several screens, but this stays so
+   * an older client is not bricked by the upgrade.
+   */
+  app.post("/api/account/verify-otp", async (req: MemberRequest, res) => {
+    const id = readCookie(req, OTP_COOKIE);
+    const challenge = id ? await challenges.loadChallenge(id) : null;
+    const problem = challenges.challengeProblem(challenge, Date.now());
+
+    if (!challenge || problem === "missing" || problem === "expired") {
+      res.status(400).json({ error: "That code has expired. Request a new one." });
+      return;
+    }
+    if (problem === "exhausted") {
+      await challenges.dropChallenge(challenge.challengeId);
+      res.status(429).json({ error: "Too many attempts. Request a new code." });
+      return;
+    }
+
+    const submitted = String(req.body?.code ?? "").replace(/\D/g, "");
+    if (!challenges.isVerified(challenge)) {
+      if (submitted.length !== 6 || !challenges.otpMatches(submitted, challenge.challengeId, challenge.codeHash)) {
+        const attempts = await challenges.recordFailedAttempt(challenge.challengeId, challenge.attempts);
+        res.status(400).json({
+          error: "That code does not match. Check the six digits and try again.",
+          attemptsRemaining: Math.max(0, challenges.MAX_OTP_ATTEMPTS - attempts),
+        });
+        return;
+      }
+      await challenges.markVerified(challenge.challengeId);
+    }
+
+    const name = String(req.body?.name ?? "").trim();
+    const dateOfBirth = String(req.body?.dateOfBirth ?? "").trim();
+    const homeArea = String(req.body?.homeArea ?? "").trim();
+    const ageRaw = Number(req.body?.age);
+
+    let member = await account.findMemberByPhone(challenge.destination);
+    if (!member) {
+      if (name.length < 2) {
+        res.status(400).json({
+          error: "Add your name to finish creating your account.",
+          code: "profile_incomplete",
+        });
+        return;
+      }
+      member = await account.createAccount({
+        phoneE164: challenge.destination,
+        name,
+        email: normalizeEmail(String(req.body?.email ?? "")) || null,
+        dateOfBirth: /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth) ? dateOfBirth : null,
+        age: Number.isFinite(ageRaw) && ageRaw >= 18 ? Math.round(ageRaw) : null,
+        homeArea: homeArea || null,
+      });
+    }
+
+    await challenges.consumeChallenge(challenge.challengeId);
     res.clearCookie(OTP_COOKIE, { path: "/" });
 
     const token = await account.issueMemberSession(member.id);

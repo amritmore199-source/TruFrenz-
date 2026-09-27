@@ -153,7 +153,8 @@ import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSw
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
-import { accountStateFrom, fetchNotices, fetchSession, markNoticesRead, reportEvents, requestOtp, runGuardedAction, verifyOtp, type MemberNotice, type RemoteAccount } from "@/lib/account-client";
+import { accountStateFrom, completeSignin, fetchNotices, fetchSession, markNoticesRead, reportEvents, requestEmailOtp, requestOtp, runGuardedAction, verifyCode, type MemberNotice, type RemoteAccount, type SigninChannel } from "@/lib/account-client";
+import { isValidEmail } from "@/lib/email";
 import { blockedActionMessage, canAccount, describeRestriction, requiresAccountNotice } from "@/lib/account-access";
 import { addProfilePhoto, createInitialProfile, statusLabel, visibleStatus, type EditableProfile, type RequestAudience, type ViewerRelationship } from "@/lib/profile-details";
 
@@ -435,8 +436,17 @@ export default function TrufrenzApp() {
   const [phone, setPhone] = useState("");
   /** True while a sign-in request is in flight, so the button can show progress. */
   const [authBusy, setAuthBusy] = useState(false);
-  /** One-time code echoed by the server when no SMS provider is configured. */
+  /** One-time code echoed by the server when no provider can deliver it. */
   const [demoCode, setDemoCode] = useState<string | null>(null);
+  /** Which channel the member chose: a phone number or an email address. */
+  const [authChannel, setAuthChannel] = useState<SigninChannel>("phone");
+  /**
+   * The address the code went to, partly hidden.
+   *
+   * The server decides this, so the code step can say "d•••@example.com"
+   * without the app ever holding the full address it should not display.
+   */
+  const [otpDestination, setOtpDestination] = useState("");
   /** The signed-in account as the server reports it, including its status. */
   const [remoteAccount, setRemoteAccount] = useState<RemoteAccount | null>(null);
   /** Notices the safety team sent to this account (warnings, outcomes). */
@@ -1097,7 +1107,7 @@ export default function TrufrenzApp() {
     setSelectedChat(null);
     setTab("You");
   };
-  const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setShowSignup(true); tap(); };
+  const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setDemoCode(null); setPasscode(""); setShowSignup(true); tap(); };
   const closeSignup = () => setShowSignup(false);
   const persistSession = (next: StoredSession) => {
     setSession(next);
@@ -1168,40 +1178,111 @@ export default function TrufrenzApp() {
     return false;
   };
 
+  /**
+   * Finish the sign-up by creating the account on the server.
+   *
+   * This is the fix for the bug where a code was accepted but no account
+   * appeared. The code is proven earlier; this call is what actually creates
+   * the member. It is deliberately async now — the old version only wrote to
+   * local storage and returned, so the server never learned the account existed
+   * and every server-side action stayed blocked.
+   *
+   * Safe to retry: the endpoint is idempotent, so a double tap or a dropped
+   * connection returns the same account rather than making a second one.
+   */
   const finishSignup = () => {
-    if (email.trim() && !isValidCredential("Email", email)) { feedback("Check the recovery email address, or leave it blank"); return; }
+    if (email.trim() && !isValidEmail(email)) { feedback("Check the recovery email address, or leave it blank"); return; }
     const parsedDob = dateOfBirth ? parseDateOfBirth(dateOfBirth) : null;
-    persistSession(createMemberSession({ name: fullName.trim(), locality: locality.trim(), dateOfBirth: parsedDob ? formatDateOfBirth(parsedDob) : undefined, age: parsedDob ? ageFromDateOfBirth(parsedDob) : undefined }));
-    setJoined(true);
-    setShowSignup(false);
-    setTab("Chats");
-    feedback(`Welcome, ${fullName.trim().split(" ")[0] || "friend"}. Your circle is ready.`);
+    const name = fullName.trim();
+    void (async () => {
+      setAuthBusy(true);
+      const result = await completeSignin({
+        name,
+        dateOfBirth: parsedDob ? formatDateOfBirth(parsedDob) : undefined,
+        age: parsedDob ? ageFromDateOfBirth(parsedDob) : undefined,
+        homeArea: locality.trim() || undefined,
+        email: email.trim() || undefined,
+      });
+      setAuthBusy(false);
+
+      if (!result.ok) {
+        // The one recoverable failure: the code window lapsed mid-onboarding.
+        if (result.code === "challenge_missing" || result.code === "challenge_expired") {
+          setAuthStep("phone");
+          setDemoCode(null);
+          feedback("That sign-in timed out. Enter your details again to get a fresh code.");
+          return;
+        }
+        feedback(result.error);
+        return;
+      }
+
+      const remote = result.data.account;
+      setRemoteAccount(remote);
+      setFullName(remote.name);
+      setLocality(remote.homeArea ?? locality.trim() ?? "Nearby");
+      if (remote.dateOfBirth) setDateOfBirth(remote.dateOfBirth);
+      persistSession(createMemberSession({
+        name: remote.name,
+        locality: remote.homeArea ?? "Nearby",
+        verification: remote.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
+        dateOfBirth: remote.dateOfBirth ?? undefined,
+        age: remote.age ?? undefined,
+      }));
+      setJoined(true);
+      setShowSignup(false);
+      setTab("Chats");
+      feedback(`Welcome, ${remote.name.split(" ")[0] || "friend"}. Your circle is ready.`);
+    })();
   };
 
   const continueAuth = () => {
     if (authStep === "phone") {
-      if (!isValidCredential("Phone", phone)) { feedback("Enter a valid phone number to continue"); return; }
-      // Ask the account service for a real one-time code. When the server is
-      // unreachable the flow still advances locally so the app stays usable.
+      // Validate whichever channel the member chose, and say so in the words of
+      // that channel rather than always talking about phone numbers.
+      if (authChannel === "phone" && !isValidCredential("Phone", phone)) {
+        feedback("Enter a valid phone number to continue");
+        return;
+      }
+      if (authChannel === "email" && !isValidEmail(email)) {
+        feedback("Enter a valid email address, like name@example.com");
+        return;
+      }
       void (async () => {
         setAuthBusy(true);
-        const result = await requestOtp(phone, authIntent);
+        // Each channel has its own route, because they have their own provider.
+        const result =
+          authChannel === "email"
+            ? await requestEmailOtp(email, authIntent)
+            : await requestOtp(phone, authIntent);
         setAuthBusy(false);
         if (!result.ok) {
           feedback(
             result.code === "account_not_found"
-              ? "No account uses that number yet. Switch to Sign up to create one."
+              ? `No account uses that ${authChannel === "email" ? "email" : "number"} yet. Switch to Sign up to create one.`
               : result.error,
           );
           return;
         }
+
+        setOtpDestination(result.data.destination);
         setDemoCode(result.data.demoCode ?? null);
         setAuthStep("code");
-        feedback(
-          result.data.demoCode
-            ? `Prototype delivery: your code is ${result.data.demoCode}.`
-            : `We sent a code to ${result.data.phone}.`,
-        );
+
+        // Say exactly what happened. The old flow always claimed a code had been
+        // sent, even when no provider existed — which is how a member ended up
+        // typing a code that nothing would ever accept.
+        if (result.data.demoCode) {
+          feedback(`No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so here is your code: ${result.data.demoCode}`);
+        } else if (result.data.deliveryUnavailable) {
+          feedback(`Code delivery is not connected yet. Add a provider to receive codes by ${authChannel === "email" ? "email" : "SMS"}.`);
+        } else {
+          feedback(
+            authChannel === "email"
+              ? `We emailed a code to ${result.data.destination}. It expires in 10 minutes.`
+              : `We sent a code to ${result.data.destination}. It expires in 10 minutes.`,
+          );
+        }
       })();
       return;
     }
@@ -1209,21 +1290,33 @@ export default function TrufrenzApp() {
       if (!isValidDemoCode(passcode)) { feedback("Enter the 6-digit code to continue"); return; }
       void (async () => {
         setAuthBusy(true);
-        const result = await verifyOtp({
-          code: passcode,
-          // Signing in does not need onboarding fields; creating an account does.
-          name: authIntent === "login" ? undefined : fullName.trim() || undefined,
-          dateOfBirth: authIntent === "login" ? undefined : dateOfBirth || undefined,
-          age: authIntent === "login" ? undefined : ageFromDateOfBirth(parseDateOfBirth(dateOfBirth) ?? new Date()) ?? undefined,
-          homeArea: authIntent === "login" ? undefined : locality.trim() || undefined,
-          email: authIntent === "login" ? undefined : email.trim() || undefined,
-        });
+        // Step one: prove the code. This no longer spends the sign-in, so a
+        // member who still has a name and photo to give keeps their progress.
+        const verified = await verifyCode(passcode);
+        if (!verified.ok) {
+          setAuthBusy(false);
+          feedback(verified.error);
+          return;
+        }
+
+        /**
+         * Signing in finishes here; signing up continues into onboarding.
+         *
+         * The account is created by completeSignin at the end of onboarding, so
+         * a member is never created with a half-filled profile.
+         */
+        if (authIntent === "signup") {
+          setAuthBusy(false);
+          setAuthStep("profile");
+          return;
+        }
+
+        const result = await completeSignin({});
         setAuthBusy(false);
 
         if (!result.ok) {
           if (result.code === "profile_incomplete") {
-            // The code was valid but the account is new: finish creating it at
-            // the end of onboarding.
+            // An older account with no name yet: finish it through onboarding.
             setAuthStep("profile");
             feedback("Add your name to finish creating your account.");
             return;
@@ -1232,38 +1325,33 @@ export default function TrufrenzApp() {
           return;
         }
 
-        setRemoteAccount(result.data.account);
-
-        if (authIntent === "login") {
-          const account = result.data.account;
-          // Reflect the account's own details so the greeting and profile are
-          // the member's, not the placeholder the device had before.
-          setFullName(account.name);
-          setLocality(account.homeArea ?? "Nearby");
-          if (account.dateOfBirth) setDateOfBirth(account.dateOfBirth);
-          setMyProfile((current) => ({
-            ...current,
+        const account = result.data.account;
+        setRemoteAccount(account);
+        // Reflect the account's own details so the greeting and profile are the
+        // member's, not the placeholder the device had before.
+        setFullName(account.name);
+        setLocality(account.homeArea ?? "Nearby");
+        if (account.dateOfBirth) setDateOfBirth(account.dateOfBirth);
+        setMyProfile((current) => ({
+          ...current,
+          name: account.name,
+          locality: account.homeArea ?? current.locality,
+          age: account.age ?? current.age,
+          verification: account.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
+        }));
+        persistSession(
+          createMemberSession({
             name: account.name,
-            locality: account.homeArea ?? current.locality,
-            age: account.age ?? current.age,
+            locality: account.homeArea ?? "Nearby",
             verification: account.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
-          }));
-          persistSession(
-            createMemberSession({
-              name: account.name,
-              locality: account.homeArea ?? "Nearby",
-              verification: account.verificationTier === "id_selfie" ? "id-selfie" : "phone-only",
-              dateOfBirth: account.dateOfBirth ?? undefined,
-              age: account.age ?? undefined,
-            }),
-          );
-          setJoined(true);
-          setShowSignup(false);
-          setTab("Chats");
-          feedback("Welcome back. Your conversations are waiting.");
-          return;
-        }
-        setAuthStep("profile");
+            dateOfBirth: account.dateOfBirth ?? undefined,
+            age: account.age ?? undefined,
+          }),
+        );
+        setJoined(true);
+        setShowSignup(false);
+        setTab("Chats");
+        feedback("Welcome back. Your conversations are waiting.");
       })();
       return;
     }
@@ -2461,10 +2549,20 @@ export default function TrufrenzApp() {
           <KeyboardAvoidingView style={styles.modalKeyboard} behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <View style={styles.modalHeader}><View style={styles.brandMark}><View style={styles.brandIcon}><Icon name="spa" size={16} color="#4A4210" /></View><Text style={styles.brandWord}>Trufrenz</Text></View><Pressable onPress={closeSignup} accessibilityLabel="Close signup" style={styles.roundAction}><Icon name="close" size={19} color="#726e59" /></Pressable></View>
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : "STEP 1 OF 4 · PHONE") : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
+              <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : `STEP 1 OF 4 · ${authChannel === "email" ? "EMAIL" : "PHONE"}`) : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
-              <Text style={styles.modalSubtitle}>{authStep === "phone" ? "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `Prototype delivery: your code is ${demoCode}. A live build sends this by SMS.` : `We sent a 6-digit code to ${phone || "your phone"}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
-              {authStep === "phone" ? <><View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View><Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
+              <Text style={styles.modalSubtitle}>{authStep === "phone" ? authChannel === "email" ? "Email verification is required. Your address is used for account recovery, never shown on your profile." : "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so your code is ${demoCode}. A live build sends this by ${authChannel === "email" ? "email" : "SMS"}.` : authChannel === "email" ? `We emailed a 6-digit code to ${otpDestination || email || "your address"}. It expires in 10 minutes.` : `We sent a 6-digit code to ${otpDestination || phone || "your phone"}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
+              {authStep === "phone" ? <><View style={styles.channelRow}>
+                <Pressable onPress={() => { setAuthChannel("phone"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "phone" && styles.channelButtonActive]}>
+                  <Icon name="smartphone" size={15} color={authChannel === "phone" ? "#4A4210" : "#7A8FA0"} />
+                  <Text style={[styles.channelButtonText, authChannel === "phone" && styles.channelButtonTextActive]}>Phone</Text>
+                </Pressable>
+                <Pressable onPress={() => { setAuthChannel("email"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "email" && styles.channelButtonActive]}>
+                  <Icon name="mail-outline" size={15} color={authChannel === "email" ? "#4A4210" : "#7A8FA0"} />
+                  <Text style={[styles.channelButtonText, authChannel === "email" && styles.channelButtonTextActive]}>Email</Text>
+                </Pressable>
+              </View>
+              {authChannel === "email" ? <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL ADDRESS · REQUIRED</Text><TextInput value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View>}<Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
               {authStep === "code" ? <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#a7a6a1" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View> : null}
               {authStep === "profile" ? <>
                 <View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={(value) => { setFullName(value); setProfileErrors((current) => ({ ...current, name: undefined })); }} placeholder="What do people call you?" placeholderTextColor="#a7a6a1" style={styles.fieldInput} returnKeyType="done" /></View>
@@ -2502,7 +2600,7 @@ export default function TrufrenzApp() {
                 <Text style={styles.fieldLabel}>BEFORE YOU JOIN · HOW TRUFRENZ STAYS KIND</Text>
                 <SafetyOnboardingCarousel onComplete={finishSignup} />
               </> : null}
-              <ActionButton onPress={continueAuth} disabled={authBusy} style={styles.authContinue}><Text style={styles.actionText}>{authBusy ? "Please wait…" : authStep === "phone" ? (authIntent === "login" ? "Send my login code" : "Send my code") : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
+              <ActionButton onPress={continueAuth} disabled={authBusy} style={styles.authContinue}><Text style={styles.actionText}>{authBusy ? "Please wait…" : authStep === "phone" ? (authIntent === "login" ? `Send my login code by ${authChannel === "email" ? "email" : "SMS"}` : `Send my code by ${authChannel === "email" ? "email" : "SMS"}`) : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
               <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#83721f" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
               <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#8496A3" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
               <Text style={styles.prototypeNote}>Prototype only: phone codes and identity checks are not connected to a live verification service.</Text>
@@ -3118,6 +3216,22 @@ const styles = StyleSheet.create({
   noticeCopy: { flex: 1, gap: 2 },
   noticeTitle: { fontSize: 13, lineHeight: 17, fontWeight: "700", color: "#4a4737" },
   noticeBody: { fontSize: 12, lineHeight: 17, color: "#6a6760" },
+  channelRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
+  channelButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.34)",
+  },
+  channelButtonActive: { backgroundColor: "rgba(247, 240, 205, 0.85)", borderColor: "rgba(196, 168, 74, 0.5)" },
+  channelButtonText: { fontSize: 13, fontWeight: "600", color: "#7A8FA0" },
+  channelButtonTextActive: { color: "#4A4210" },
   noticeMeta: { fontSize: 10.5, lineHeight: 14, color: "#99968e", letterSpacing: 0.3 },
 
   noticeStoreAction: {

@@ -16,6 +16,7 @@ import { randomBytes, createHash } from "node:crypto";
 
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 
+import { checkEmail, normalizeEmail } from "../lib/email";
 import { getDb, insertIdOf } from "./db";
 import { analyticsEvents, memberNotices, memberSessions, members } from "../drizzle/schema";
 import {
@@ -74,10 +75,6 @@ export function maskPhone(phoneE164: string | null): string {
   return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : "";
 }
 
-/** A six-digit OTP, generated with a cryptographically secure source. */
-export function generateOtp(): string {
-  return String(randomBytes(4).readUInt32BE(0) % 1000000).padStart(6, "0");
-}
 
 export function generateSessionToken(): string {
   return randomBytes(32).toString("hex");
@@ -89,6 +86,21 @@ export async function findMemberByPhone(phoneE164: string) {
   const db = await getDb();
   if (!db) return undefined;
   const rows = await db.select().from(members).where(eq(members.phoneE164, phoneE164)).limit(1);
+  return rows[0];
+}
+
+/**
+ * Find a member by their recovery address.
+ *
+ * Stored lowercased, so the comparison is exact. A member who signed up with
+ * "Dana@Example.com" is found again by typing "dana@example.com".
+ */
+export async function findMemberByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const normalized = normalizeEmail(email);
+  if (!normalized) return undefined;
+  const rows = await db.select().from(members).where(eq(members.email, normalized)).limit(1);
   return rows[0];
 }
 
@@ -125,9 +137,18 @@ export async function deriveHandle(name: string): Promise<string> {
 /* ------------------------------- sign-up -------------------------------- */
 
 export type CreateAccountInput = {
-  phoneE164: string;
+  /**
+   * Null for an email-first account that has not added a number yet.
+   *
+   * Must be null rather than an empty string: the column is unique, and MySQL
+   * allows many NULLs but only one "". Two email sign-ups without numbers would
+   * collide on the empty string and the second would fail.
+   */
+  phoneE164: string | null;
   name: string;
   email?: string | null;
+  /** True when the address was proven by a code before the account was made. */
+  emailVerified?: boolean;
   dateOfBirth?: string | null;
   age?: number | null;
   homeArea?: string | null;
@@ -141,7 +162,14 @@ export async function createAccount(input: CreateAccountInput): Promise<MemberRe
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const existing = await findMemberByPhone(input.phoneE164);
+  const emailCheck = checkEmail(input.email ?? "");
+
+  // Idempotent by whichever identity the member actually has. An email-first
+  // account has no number yet, so looking up by phone alone would create a
+  // duplicate every time they came back.
+  const existing =
+    (input.phoneE164 ? await findMemberByPhone(input.phoneE164) : undefined) ??
+    (emailCheck.ok ? await findMemberByEmail(emailCheck.email) : undefined);
   if (existing) return existing;
 
   const handle = await deriveHandle(input.name || "member");
@@ -149,17 +177,26 @@ export async function createAccount(input: CreateAccountInput): Promise<MemberRe
     handle,
     name: input.name.trim().slice(0, 120) || "Member",
     phoneE164: input.phoneE164,
-    email: input.email ? input.email.trim().slice(0, 320) : null,
+    // Normalised, so the same mailbox cannot appear as two addresses.
+    email: emailCheck.ok ? emailCheck.email : null,
+    // Creating an account after an email code marks the address as proven.
+    emailVerifiedAt: input.emailVerified === true ? new Date() : null,
     age: input.age ?? null,
     dateOfBirth: input.dateOfBirth ?? null,
     homeArea: input.homeArea ? input.homeArea.trim().slice(0, 120) : null,
-    // A completed phone sign-up earns the phone verification tier.
+    /**
+     * Any completed sign-up earns the phone tier, including an email-first one:
+     * the account is verified, just over a different channel. Upgrading to
+     * id_selfie is a separate review.
+     */
     verificationTier: "phone",
     accountStatus: "active",
     subscriptionTier: "free",
   });
 
-  const created = await findMemberByPhone(input.phoneE164);
+  const created =
+    (input.phoneE164 ? await findMemberByPhone(input.phoneE164) : undefined) ??
+    (emailCheck.ok ? await findMemberByEmail(emailCheck.email) : undefined);
   if (!created) throw new Error("Account creation failed");
 
   await recordEvent({ eventType: "signup", memberId: created.id });

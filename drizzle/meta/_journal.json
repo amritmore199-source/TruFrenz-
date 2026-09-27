@@ -43,6 +43,13 @@
       "when": 1790480534054,
       "tag": "0005_supreme_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1790508335015,
+      "tag": "0006_jazzy_dark_beast",
+      "breakpoints": true
     }
   ]
 }
