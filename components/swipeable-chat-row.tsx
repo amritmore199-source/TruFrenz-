@@ -38,6 +38,11 @@ export type ChatRowData = {
 };
 
 type Props = {
+  /**
+   * Unread messages derived from the member's read marker. Falls back to the
+   * seeded count so the row still renders if a caller omits it.
+   */
+  unreadCount?: number;
   chat: ChatRowData;
   state: ChatRowState;
   statusLine?: string | null;
@@ -67,14 +72,19 @@ export function swipeArchiveWidth(): number {
  * The buttons are deliberately small and icon-only so the conversation preview
  * keeps the row's width; the accessible labels still spell out the action.
  */
-export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute, onToggleArchive }: Props) {
+export function SwipeableChatRow({ chat, state, statusLine, unreadCount, onOpen, onToggleMute, onToggleArchive }: Props) {
   const { glassOpacity } = useAppAppearance();
   const translateX = useRef(new Animated.Value(0)).current;
   const offsetRef = useRef(0);
   const committedRef = useRef(false);
   const [revealed, setRevealed] = useState(false);
   const availability = availabilityView(chat.kind === "group" ? undefined : chat.availability);
-  const unread = displayUnread(chat.unread, state);
+  /*
+   * The badge comes from the caller's derived count, not from the seeded number
+   * on the chat. A seeded count can never clear, so a conversation the member had
+   * read kept claiming unread messages.
+   */
+  const unread = displayUnread(unreadCount ?? chat.unread, state);
   const reveal = swipeRevealWidth();
   const archiveReveal = swipeArchiveWidth();
 

@@ -1,4 +1,41 @@
 # Trufrenz — build tracker
+## Connections and conversation threads — DONE (verified)
+- **An incoming friend request asked the member to ask again.** The profile
+  actions and the discovery row were gated on a *seeded* list, so a request that
+  arrived from the other side still read as a stranger to be introduced and the
+  prominent button said "Ask for Friendship". In the profile panel the only
+  choice was Report or Block. Both now read one graph (`lib/friendship-store.ts`),
+  so a pending incoming request offers **Accept**, and accepting opens the chat
+  immediately instead of leaving the member to find the row.
+- **Nothing about connections survived a reload.** Acceptance, unfriending and
+  declining all lived in React state, so every launch put the request back as if
+  it had never been answered. The graph is now persisted (`trufrenz.friendships.v1`)
+  behind a hydration guard — without the guard the defaults would overwrite the
+  stored graph on the first render and silently discard every friendship.
+  Declining is also recorded, so a request cannot reappear in discovery.
+- **Discovery only offers genuine introductions.** Someone already connected, or
+  asked, or declined, is no longer re-presented as a new person to meet, which is
+  what kept resurfacing the confusing ask-again prompt.
+- **The unread badge never cleared.** It read a seeded number on the chat, so a
+  conversation the member had read kept claiming unread messages. `lib/thread-state.ts`
+  stores where the member actually stopped, and both the row badge and the count
+  derive from it. The badge now clears on the visit that reads the thread.
+- **There was no way to find your place in a long thread.** A quiet divider is now
+  drawn before the first message the member has not seen, with a count of what
+  arrived from the other person. It is frozen for the visit, because marking a
+  thread read happens the moment it opens — without that, the divider would
+  vanish as the member arrived and a thread shorter than one screen would never
+  show one. It is drawn only when something is genuinely new.
+- **The safety note repeated on every visit.** It is now shown once per
+  conversation and can be dismissed, giving back a row of height on a screen that
+  was already tight.
+- **Leaving a thread needed the header corner.** A downward drag from the top of
+  the conversation now closes it. The decision is pure and tested: a mostly
+  horizontal drag, a drag from anywhere below the top of the list (which is how a
+  member scrolls back), and a drag while the keyboard is up are all refused, and
+  a pull that does not commit springs back.
+- **The request row had no accessible names at all.** Accept and decline were
+  unlabelled icon buttons; both now describe themselves.
 ## Chat screen: composer, header actions, dead space — DONE (verified)
 - **The composer was under the keyboard again, and the tests were why.** The lift
   was `keyboardHeight - bottomInset`, but the keyboard reports its height from

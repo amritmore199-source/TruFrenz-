@@ -248,7 +248,20 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             <View style={styles.safetyNote}>
               <MaterialIcons name="lock-outline" size={15} color="#7893A2" />
               <Text style={styles.safetyText}>
-                {relationship === "accepted" ? "You’re already friends. Share only what feels comfortable." : "Chat opens only after you both accept. Declining is quiet."}
+                {/*
+                  The notice has to match who asked whom. A request that arrived
+                  is waiting on this member's answer, so telling them chat opens
+                  "after you both accept" describes a step they do not take — and
+                  makes the ask-for-friendship wording look correct when it is
+                  the other way round.
+                */}
+                {relationship === "accepted"
+                  ? "You’re already friends. Share only what feels comfortable."
+                  : relationship === "request-received"
+                    ? "They’ve asked to connect. Accept and the chat opens straight away."
+                    : relationship === "request-sent"
+                      ? "Your request is with them. Chat opens as soon as they accept."
+                      : "Chat opens only after you both accept. Declining is quiet."}
               </Text>
             </View>
           </ScrollView>

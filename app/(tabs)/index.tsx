@@ -12,6 +12,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  PanResponder,
   ScrollView,
   StatusBar,
   type StyleProp,
@@ -20,6 +21,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,6 +70,33 @@ import { EditProfileModal } from "@/components/edit-profile-modal";
 import { QuickRepliesModal } from "@/components/quick-replies-modal";
 import { IncomingNotificationBanner } from "@/components/incoming-notification-banner";
 import { findCommonInterests } from "@/lib/discovery-interests";
+import {
+  DEFAULT_FRIENDSHIPS,
+  FRIENDSHIP_STORAGE_KEY,
+  acceptFriendship,
+  declineFriendship,
+  isNewIntroduction,
+  parseFriendships,
+  relationshipFor,
+  requestFriendship,
+  serializeFriendships,
+  unfriend,
+  type FriendshipGraph,
+} from "@/lib/friendship-store";
+import {
+  EMPTY_THREAD_STATE,
+  THREAD_STATE_STORAGE_KEY,
+  firstUnreadIndex,
+  hasSeenSafetyNote,
+  markSafetyNoteSeen,
+  markThreadRead,
+  parseThreadState,
+  readMarkerLabel,
+  serializeThreadState,
+  unreadForRow,
+  type ThreadState,
+} from "@/lib/thread-state";
+import { decideThreadDrag, type ThreadDragDecision } from "@/lib/thread-gesture";
 import { formatMeetupInvite, type MeetupInviteDraft } from "@/lib/meetup-invite";
 import { mergeMeetupRefresh } from "@/lib/meetup-feed";
 import { resolveChatProfile } from "@/lib/chat-profile";
@@ -439,6 +468,9 @@ export default function TrufrenzApp() {
     the bottom tab bar step out of the way while the member is typing.
   */
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  // Drives the drag threshold. react-native's Dimensions is not reactive, so the
+  // hook is used: a rotation or a split-screen resize has to move the threshold.
+  const { height: windowHeight } = useWindowDimensions();
   const [showSignup, setShowSignup] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -497,10 +529,26 @@ export default function TrufrenzApp() {
   const notificationSequence = useRef(0);
   const notificationDemoCycle = useRef(0);
   const [toast, setToast] = useState("");
-  const [requestSent, setRequestSent] = useState<string[]>([]);
-  const [acceptedFriends, setAcceptedFriends] = useState<string[]>(["maya", "sam", "noah"]);
+  /*
+   * Connections live in one persisted graph. They used to be three plain arrays
+   * seeded with constants and written nowhere, so accepting a request granted
+   * chat only until the next reload — and a request that arrived from the other
+   * side kept coming back, which is what made the app ask a member to "ask for
+   * friendship" from someone who had already asked them.
+   */
+  const [friendships, setFriendships] = useState<FriendshipGraph>(DEFAULT_FRIENDSHIPS);
+  const [friendshipsLoaded, setFriendshipsLoaded] = useState(false);
+  /*
+   * What the member has already seen. Kept in one persisted record beside the
+   * connection graph, for the same reason: anything the member has done has to
+   * outlive the session, or the app asks them to do it again.
+   */
+  const [threadState, setThreadState] = useState<ThreadState>(EMPTY_THREAD_STATE);
+  const [threadStateLoaded, setThreadStateLoaded] = useState(false);
   const [suggestions, setSuggestions] = useState<Person[]>(suggestionSeeds);
-  const [incomingRequests, setIncomingRequests] = useState<string[]>(["aria"]);
+  const incomingRequests = friendships.incoming;
+  const requestSent = friendships.requested;
+  const acceptedFriends = friendships.accepted;
   const [interestFilter, setInterestFilter] = useState<string[]>([]);
   const [joinedMeetups, setJoinedMeetups] = useState<string[]>([]);
   const [meetups, setMeetups] = useState<Meetup[]>(meetupSeeds);
@@ -664,6 +712,51 @@ export default function TrufrenzApp() {
     });
     return () => { active = false; };
   }, []);
+
+  /*
+   * Connections are restored on launch, and only written once they have loaded.
+   *
+   * The guard matters: without it the defaults would be written over the stored
+   * graph on the first render, before the read resolves, which would quietly
+   * discard every friendship the member had built.
+   */
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(FRIENDSHIP_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        setFriendships(parseFriendships(serialized));
+        setFriendshipsLoaded(true);
+      })
+      .catch(() => {
+        if (active) setFriendshipsLoaded(true);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!friendshipsLoaded) return;
+    AsyncStorage.setItem(FRIENDSHIP_STORAGE_KEY, serializeFriendships(friendships)).catch(() => undefined);
+  }, [friendships, friendshipsLoaded]);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(THREAD_STATE_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        setThreadState(parseThreadState(serialized));
+        setThreadStateLoaded(true);
+      })
+      .catch(() => {
+        if (active) setThreadStateLoaded(true);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!threadStateLoaded) return;
+    AsyncStorage.setItem(THREAD_STATE_STORAGE_KEY, serializeThreadState(threadState)).catch(() => undefined);
+  }, [threadState, threadStateLoaded]);
 
   useEffect(() => {
     if (!quickRepliesLoaded) return;
@@ -1480,7 +1573,11 @@ export default function TrufrenzApp() {
       const state = rowStateFor(chatRowStates, chat.id);
       if (state.archived !== showArchived) return false;
       const queryMatch = !q || `${chat.name} ${chat.lastMessage}`.toLowerCase().includes(q);
-      const unread = displayUnread(chat.unread, state);
+      /*
+       * The badge reads the read marker, not just the seeded count, so opening a
+       * conversation clears its number instead of lighting it forever.
+       */
+      const unread = unreadForRow({ seedUnread: chat.unread, messages: chatMessages[chat.id] ?? [], state: threadState, chatId: chat.id });
       const filterMatch = chatFilter === "All" || (chatFilter === "Unread" ? unread > 0 : chat.kind === "group");
       return queryMatch && filterMatch;
     });
@@ -1522,7 +1619,13 @@ export default function TrufrenzApp() {
     const q = search.trim().toLowerCase();
     const searchMatch = !q || `${person.name} ${person.locality} ${person.interests.join(" ")}`.toLowerCase().includes(q);
     const interestMatch = interestFilter.length === 0 || interestFilter.some((tag) => tag === "Verified" ? person.verification === "ID + selfie verified" : tag === "Nearby" ? person.locality.includes("Pacific Heights") : person.interests.some((value) => value.toLowerCase().includes(tag.toLowerCase())));
-    return discoverable && searchMatch && interestMatch && !acceptedFriends.includes(person.id) && !incomingRequests.includes(person.id);
+    /*
+     * Only genuine introductions appear here. Someone already connected, already
+     * asked, waiting to be answered, or previously declined is not a new person
+     * to introduce — and the declined case is what kept re-offering a request
+     * that had arrived from the other side as "Ask for Friendship".
+     */
+    return discoverable && searchMatch && interestMatch && isNewIntroduction(friendships, person.id);
   }), [search, interestFilter, acceptedFriends, incomingRequests, discoverable, suggestions]);
 
   const threadAvailabilityLabel = (() => {
@@ -1551,13 +1654,15 @@ export default function TrufrenzApp() {
     setProfilePerson(person);
   };
 
-  const profileRelationship = (person: Person | null): ViewerRelationship => {
-    if (!person) return "stranger";
-    if (acceptedFriends.includes(person.id)) return "accepted";
-    if (requestSent.includes(person.id)) return "request-sent";
-    if (incomingRequests.includes(person.id)) return "request-received";
-    return "stranger";
-  };
+  /*
+   * One authority for "what is this person to me?".
+   *
+   * This used to be re-derived from whichever array the caller had to hand, so
+   * the profile and the discovery list could disagree about the same person —
+   * one showing Chat, the other offering to ask for friendship.
+   */
+  const profileRelationship = (person: Person | null): ViewerRelationship =>
+    person ? relationshipFor(friendships, person.id) : "stranger";
 
   const openProfileEditor = () => {
     if (isGuestSession(session)) { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); return; }
@@ -1599,8 +1704,7 @@ export default function TrufrenzApp() {
     if (!person) return;
     if (action === "ask-friendship") { sendFriendRequest(person); return; }
     if (action === "accept-request") {
-      setIncomingRequests((current) => current.filter((id) => id !== person.id));
-      setAcceptedFriends((current) => [...current, person.id]);
+      setFriendships((current) => acceptFriendship(current, person.id));
       feedback(`You and ${person.name.split(" ")[0]} are now friends. Say hello.`);
       return;
     }
@@ -1616,7 +1720,7 @@ export default function TrufrenzApp() {
       return;
     }
     if (action === "report") { feedback("Report sent to the safety team. They follow up within a day."); return; }
-    setAcceptedFriends((current) => current.filter((id) => id !== person.id));
+    setFriendships((current) => unfriend(current, person.id));
     setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, person.id] } }));
     feedback(`${person.name.split(" ")[0]} is blocked. They can no longer reach you.`);
   };
@@ -1876,8 +1980,86 @@ export default function TrufrenzApp() {
   /** Clear any waiting attachment when the member leaves the conversation. */
   const closeThread = useCallback(() => {
     clearPendingAttachment();
+    // Releasing the frozen marker here means the next visit shows nothing new,
+    // which is correct: the member has just read the thread.
+    setFrozenUnreadStart(null);
     setSelectedChat(null);
   }, [clearPendingAttachment]);
+
+  /*
+   * The conversation the member is looking at counts as read.
+   *
+   * Marked on the last message while the thread is open, which is what lets the
+   * row's unread badge clear: the badge reads the same marker, so a number can
+   * never survive a visit to the thread that produced it.
+   */
+  useEffect(() => {
+    if (!selectedChat) return;
+    const messages = chatMessages[selectedChat];
+    if (!messages || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    setThreadState((current) => markThreadRead(current, selectedChat, last.id));
+  }, [selectedChat, chatMessages]);
+
+  /*
+   * Leaving a conversation by dragging it down.
+   *
+   * The Back button sits in the header corner, which a thumb cannot reach on a
+   * phone held in one hand. PanResponder is used here for the same reason the
+   * chat rows use it: the decision stays in a tested pure function, and the
+   * gesture needs no worklet bridging.
+   */
+  /*
+   * The marker is frozen while a thread is open.
+   *
+   * Marking a conversation read happens the moment it opens, so the divider would
+   * disappear at the instant the member arrived to read it — and a short thread
+   * would never show one at all. Holding the opening position keeps the divider
+   * where it belongs for the visit, while the stored marker still advances so the
+   * row's badge clears.
+   */
+  const [frozenUnreadStart, setFrozenUnreadStart] = useState<number | null>(null);
+  const threadScrollRef = useRef<ScrollView>(null);
+  const threadScrollOffsetRef = useRef(0);
+  const [threadDrag, setThreadDrag] = useState<ThreadDragDecision>({ close: false, offset: 0, progress: 0 });
+  const threadGestureRef = useRef({ keyboardOpen: false, viewportHeight: 800 });
+
+  const threadDragResponder = useMemo(
+    () =>
+      PanResponder.create({
+        /*
+         * Only claim the drag once it is clearly a downward pull from the top of
+         * the thread, so scrolling and horizontal swipes are never stolen.
+         */
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          gesture.dy > 12 && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 1.4 && threadScrollOffsetRef.current <= 4 && !threadGestureRef.current.keyboardOpen,
+        onPanResponderMove: (_event, gesture) => {
+          const decision = decideThreadDrag({
+            dx: gesture.dx,
+            dy: gesture.dy,
+            scrollOffset: threadScrollOffsetRef.current,
+            viewportHeight: threadGestureRef.current.viewportHeight,
+            keyboardOpen: threadGestureRef.current.keyboardOpen,
+          });
+          setThreadDrag(decision);
+        },
+        onPanResponderRelease: (_event, gesture) => {
+          const decision = decideThreadDrag({
+            dx: gesture.dx,
+            dy: gesture.dy,
+            scrollOffset: threadScrollOffsetRef.current,
+            viewportHeight: threadGestureRef.current.viewportHeight,
+            keyboardOpen: threadGestureRef.current.keyboardOpen,
+          });
+          setThreadDrag({ close: false, offset: 0, progress: 0 });
+          // A pull that does not commit springs back: the screen returns to rest
+          // and nothing is dismissed by accident.
+          if (decision.close) closeThread();
+        },
+        onPanResponderTerminate: () => setThreadDrag({ close: false, offset: 0, progress: 0 }),
+      }),
+    [closeThread],
+  );
   const toggleChatArchive = () => {
     if (!selectedChat) return;
     setChatRowStates((current) => toggleArchived(current, selectedChat));
@@ -1888,7 +2070,7 @@ export default function TrufrenzApp() {
     if (!selectedChat) return;
     const name = currentThread?.name ?? "them";
     setChatRowStates((current) => archiveOnUnfriend(current, selectedChat));
-    setAcceptedFriends((current) => current.filter((id) => id !== selectedChat));
+    setFriendships((current) => unfriend(current, selectedChat));
     feedback(`You unfriended ${name.split(" ")[0]}. The conversation is archived and read-only, and your messages stay on your device.`);
     tap();
   };
@@ -1897,7 +2079,7 @@ export default function TrufrenzApp() {
     if (!selectedChat) return;
     const name = currentThread?.name ?? "them";
     setChatRowStates((current) => archiveOnUnfriend(current, selectedChat));
-    setAcceptedFriends((current) => current.filter((id) => id !== selectedChat));
+    setFriendships((current) => unfriend(current, selectedChat));
     setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, selectedChat] } }));
     feedback(`${name.split(" ")[0]} is blocked and can no longer reach you anywhere in Trufrenz.`);
   };
@@ -2006,13 +2188,21 @@ export default function TrufrenzApp() {
   };
 
   const acceptRequest = (id: string) => {
-    setAcceptedFriends((current) => current.includes(id) ? current : [...current, id]);
-    setIncomingRequests((current) => current.filter((item) => item !== id));
+    setFriendships((current) => acceptFriendship(current, id));
     const person = suggestions.find((item) => item.id === id);
     if (person) {
       setChatMessages((current) => current[person.id] ? current : { ...current, [person.id]: [{ id: `hello-${Date.now()}`, from: "them", text: "Thanks for accepting my friend request. Nice to meet you!", time: "now" }] });
     }
-    feedback("Friend request accepted. You can chat now.");
+    /*
+     * Accepting opens the conversation.
+     *
+     * The member asked for chat to turn on the moment a request they received is
+     * accepted. Saying "you can chat now" and leaving them to find the row makes
+     * them do the work twice, so acceptance takes them straight there.
+     */
+    setSelectedChat(id);
+    setTab("Chats");
+    feedback(`You and ${person?.name.split(" ")[0] ?? "they"} are now friends. Say hello.`);
   };
 
   const sendFriendRequest = (person: Person) => {
@@ -2024,7 +2214,7 @@ export default function TrufrenzApp() {
       return;
     }
     if (!allowAction("send-friend-requests")) return;
-    setRequestSent((current) => current.includes(person.id) ? current : [...current, person.id]);
+    setFriendships((current) => requestFriendship(current, person.id));
     void runGuardedAction("friend-request", { targetName: person.name });
     feedback("Request sent quietly. Chat opens after they accept.");
     tap();
@@ -2039,6 +2229,8 @@ export default function TrufrenzApp() {
     if (requireAccount("open-chat")) return;
     const isGroup = seedConversations.some((chat) => chat.id === id && chat.kind === "group");
     if (!canOpenChat(acceptedFriends.includes(id), isGroup)) { feedback("Accept a friend request before starting a chat."); return; }
+    // Freeze the divider at the position the member is arriving with.
+    setFrozenUnreadStart(firstUnreadIndex(chatMessages[id] ?? [], threadState, id));
     setSelectedChat(id);
     setTab("Chats");
     setTypingChat(id);
@@ -2140,25 +2332,62 @@ export default function TrufrenzApp() {
        * indicator. Open: the container cancels that edge and lifts by the whole
        * keyboard height, so the field lands directly on the keys.
        */
-      return <View style={[styles.threadScreen, { paddingBottom: composerLift, marginBottom: keyboardOpen ? -insets.bottom : 0 }]}>
+      /*
+       * Where the member stopped last time, and how much has arrived since.
+       *
+       * Both come from the persisted read marker rather than the seeded badge,
+       * so a conversation that has been read stops claiming to be unread.
+       */
+      // The frozen position wins while the thread is open, so the divider does not
+      // vanish the moment the visit marks the thread read.
+      const unreadStart = frozenUnreadStart ?? firstUnreadIndex(conversationMessages, threadState, selectedChat);
+      const unreadCount = unreadStart !== null && unreadStart >= 0
+        ? conversationMessages.slice(unreadStart).filter((message) => message.from === "them").length
+        : unreadForRow({ seedUnread: currentThread.unread ?? 0, messages: conversationMessages, state: threadState, chatId: selectedChat });
+      const showSafetyNote = !hasSeenSafetyNote(threadState, selectedChat);
+      threadGestureRef.current.keyboardOpen = keyboardOpen;
+      threadGestureRef.current.viewportHeight = windowHeight;
+
+      return <View
+        style={[styles.threadScreen, { paddingBottom: composerLift, marginBottom: keyboardOpen ? -insets.bottom : 0 }, threadDrag.offset ? { transform: [{ translateY: threadDrag.offset }] } : null]}
+        {...threadDragResponder.panHandlers}
+      >
         {topBar(true)}
-        {keyboardOpen ? null : <View style={styles.threadSafety}><Icon name="lock-outline" size={13} color="#7D8AA0" /><Text style={styles.threadSafetyText}>Only friends can see these messages. Your exact location is never shared.</Text></View>}
+        {/*
+          Shown once per conversation, then folded away. This was the last element
+          on the screen that cost a row of height, and repeating a reassurance to
+          someone who has already read it spends space without adding trust.
+        */}
+        {keyboardOpen || !showSafetyNote ? null : <Pressable accessibilityRole="button" accessibilityLabel="Dismiss the safety note" onPress={() => setThreadState((current) => markSafetyNoteSeen(current, selectedChat))} style={styles.threadSafety}><Icon name="lock-outline" size={13} color="#7D8AA0" /><Text style={styles.threadSafetyText}>Only friends can see these messages. Your exact location is never shared.</Text></Pressable>}
         <ScrollView
+          ref={threadScrollRef}
           style={styles.threadBody}
           contentContainerStyle={[styles.threadContent, keyboardOpen ? styles.threadContentKeyboard : styles.threadContentCompact]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
+          onScroll={(event) => { threadScrollOffsetRef.current = event.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={16}
         >
           <View style={styles.dayDivider}><View style={styles.dividerLine} /><Text style={styles.dayLabel}>TODAY</Text><View style={styles.dividerLine} /></View>
           <View style={styles.sharedInterest}><Icon name="auto-awesome" size={15} color="#83721f" /><Text style={styles.sharedInterestText}>You both like slow weekend mornings</Text></View>
-          {conversationMessages.map((message) => {
+          {conversationMessages.map((message, messageIndex) => {
             const receipt = outgoingReceipt(message.receipt ?? (message.from === "me" ? "sent" : undefined), chatPrivacy.shareReadReceipts);
             const showReceipt = shouldShowReceipt({ from: message.from, receipt: message.receipt ?? (message.from === "me" ? "sent" : undefined) }, chatPrivacy.shareReadReceipts) && receipt;
             const mine = message.from === "me";
             const visibleReactions = summariseReactions(message.reactions ?? []);
+            // Placed once, before the first message the member has not seen, so a
+            // long conversation resumes exactly where they stopped.
+            /*
+             * Only drawn when something is genuinely new. A marker on a thread
+             * the member is already caught up on would be noise: it says "you
+             * stopped here", which is only worth showing when there is more.
+             */
+            const marksBoundary = unreadStart !== null && unreadCount > 0 && messageIndex === unreadStart;
             return (
-              <View key={message.id} style={[styles.messageRow, mine && styles.myMessageRow]}>
+              <React.Fragment key={message.id}>
+              {marksBoundary ? <View style={styles.readMarker}><View style={styles.readMarkerLine} /><Text style={styles.readMarkerLabel}>{readMarkerLabel(unreadCount)}</Text><View style={styles.readMarkerLine} /></View> : null}
+              <View style={[styles.messageRow, mine && styles.myMessageRow]}>
                 <View style={styles.messageColumn}>
                   {currentThread.kind === "group" && !mine && message.kind !== "plan" ? <Text style={styles.senderLabel}>{currentThread.name.split(" ")[0]} · {message.from === "them" ? "Member" : "You"}</Text> : null}
                   {message.plan ? (
@@ -2231,6 +2460,7 @@ export default function TrufrenzApp() {
                   ) : null}
                 </View>
               </View>
+              </React.Fragment>
             );
           })}
           {typingChat === selectedChat ? <View style={styles.typingRow}><View style={[styles.typingBubble, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.86)", glassOpacity, glassTintChoice, "chip") }]}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
@@ -2316,6 +2546,7 @@ export default function TrufrenzApp() {
               chat={{ ...chat, verified: Boolean(chat.verified), availability: chat.kind === "group" ? undefined : (person?.available === false ? "unavailable" : "available") }}
               state={rowStateFor(chatRowStates, chat.id)}
               statusLine={status ? statusLabel(status) : null}
+              unreadCount={unreadForRow({ seedUnread: chat.unread, messages: chatMessages[chat.id] ?? [], state: threadState, chatId: chat.id })}
               onOpen={() => startThread(chat.id)}
               onToggleMute={() => { setChatRowStates((current) => toggleMuted(current, chat.id)); feedback(rowStateFor(chatRowStates, chat.id).muted ? "Unmuted." : "Muted. Messages still arrive, just without the badge."); }}
               onToggleArchive={() => { setChatRowStates((current) => toggleArchived(current, chat.id)); feedback(rowStateFor(chatRowStates, chat.id).archived ? "Moved back to your inbox." : "Archived. Find it again under Archived."); }}
@@ -2334,10 +2565,10 @@ export default function TrufrenzApp() {
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>A SMALLER INTERNET, A CLOSER CIRCLE</Text><Text style={styles.pageTitle}>Friends, not profiles.</Text><Text style={styles.pageSub}>Meet kind people nearby, then connect only when you both say yes.</Text></View>
     <View style={styles.friendsTools}><View style={styles.searchBar}><Icon name="search" size={17} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name or interest" placeholderTextColor="#a4a39f" style={styles.searchInput} /><Icon name="tune" size={17} color="#83721f" /></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestFilterRow}>{["Nearby", "Verified", "Coffee", "Books", "Hiking"].map((tag) => <Pressable key={tag} onPress={() => toggleInterest(tag)} style={[styles.filterChip, interestFilter.includes(tag) && styles.filterChipActive]}><Text style={[styles.filterChipText, interestFilter.includes(tag) && styles.filterChipTextActive]}>{tag}</Text></Pressable>)}</ScrollView></View>
       <View style={[styles.friendsScroll, styles.friendsContent]}>
-      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable onPress={() => { setIncomingRequests((current) => current.filter((item) => item !== id)); feedback("Request quietly dismissed."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
+      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { setFriendships((current) => declineFriendship(current, id)); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
       <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#83721f" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
       {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#7895A5" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
-      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const sent = requestSent.includes(person.id); const sharedInterests = findCommonInterests(joined && profileInterests.length ? profileInterests : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Pressable accessibilityRole="button" accessibilityLabel={`View ${person.name} profile`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborTapArea, pressed && styles.pressed]}><Image source={person.image} style={styles.neighborAvatar} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Open ${person.name} details`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborInfo, pressed && styles.pressed]}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text>{visibleStatus(person.status) ? <Text style={styles.neighborStatus} numberOfLines={1}>{statusLabel(visibleStatus(person.status))}</Text> : null}<View style={styles.neighborMeta}><Icon name="place" size={11} color="#8e8b85" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#83721f" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></Pressable><Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#83721f"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable></Frosted>; })}
+      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const personRelationship = relationshipFor(friendships, person.id); const sent = personRelationship !== "stranger"; const sharedInterests = findCommonInterests(joined && profileInterests.length ? profileInterests : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Pressable accessibilityRole="button" accessibilityLabel={`View ${person.name} profile`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborTapArea, pressed && styles.pressed]}><Image source={person.image} style={styles.neighborAvatar} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Open ${person.name} details`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborInfo, pressed && styles.pressed]}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#63A087" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text>{visibleStatus(person.status) ? <Text style={styles.neighborStatus} numberOfLines={1}>{statusLabel(visibleStatus(person.status))}</Text> : null}<View style={styles.neighborMeta}><Icon name="place" size={11} color="#8e8b85" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#83721f" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></Pressable>{personRelationship === "request-received" ? <Pressable accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(person.id)} style={styles.compactRequestButton}><Icon name="check" size={13} color="#5C8A76" /><Text style={[styles.compactRequestText, styles.requestSentText]}>Accept</Text></Pressable> : <Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#5C8A76" : "#83721f"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable>}</Frosted>; })}
       {discoverable && filteredSuggestions.length === 0 ? <View style={styles.noMatches}><Icon name="search-off" size={17} color="#83721f" /><Text style={styles.noMatchesText}>No neighbors match those filters yet.</Text></View> : null}</View>
       <Frosted style={styles.noPressureCard}><View style={styles.noPressureIcon}><Icon name="favorite-border" size={16} color="#83721f" /></View><View style={{ flex: 1 }}><Text style={styles.noPressureTitle}>No open DMs, no awkwardness.</Text><Text style={styles.noPressureText}>Chat starts only after you both accept. Declining is quiet.</Text></View></Frosted>
       </View>
@@ -2927,6 +3158,13 @@ const styles = StyleSheet.create({
   dayDivider: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 6 },
   dividerLine: { flex: 1, height: 1, backgroundColor: "rgba(212, 206, 179, 0.58)" },
   dayLabel: { color: "#979590", fontSize: 8, letterSpacing: 1 },
+  /*
+   * The read marker. Deliberately quiet: a hairline and a small label, so it
+   * reads as a bookmark between messages rather than as a message of its own.
+   */
+  readMarker: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 7, paddingHorizontal: 4 },
+  readMarkerLine: { flex: 1, height: 1, backgroundColor: "rgba(131, 114, 31, 0.30)" },
+  readMarkerLabel: { color: "#83721f", fontSize: 8.5, letterSpacing: 0.6, fontWeight: "600" },
   sharedInterest: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 11, backgroundColor: "rgba(246, 239, 209, 0.80)", paddingHorizontal: 10, paddingVertical: 6, marginBottom: 5 },
   sharedInterestText: { color: "#83721f", fontSize: 8 },
   messageRow: { flexDirection: "row", justifyContent: "flex-start" },
