@@ -34,7 +34,7 @@ type AdminContext = {
 type AdminRequest = Request & { admin?: AdminContext };
 
 const DEMO_ADMIN = {
-  email: "safety@trufrenz.app",
+  email: "safety@trufrenz.net",
   displayName: "Safety Lead",
   password: "Trufrenz#Safety2026",
 };

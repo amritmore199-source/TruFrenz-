@@ -43,7 +43,7 @@ import { deliverBroadcast, revokeMemberSessions, sendMemberNotice } from "./acco
  * into during development; the dashboard shows these credentials on its login
  * screen and flags them as needing replacement before any real deployment.
  */
-export const DEMO_ADMIN_EMAIL = "safety@trufrenz.app";
+export const DEMO_ADMIN_EMAIL = "safety@trufrenz.net";
 export const DEMO_ADMIN_PASSWORD = "Trufrenz#Safety2026";
 export const DEMO_ADMIN_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 /** Fixed salt keeps the seeded hash stable across restarts. */
@@ -986,14 +986,14 @@ export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
     { handle: "sam", name: "Sam Rivera", phoneE164: "+14155550102", email: "sam@example.com", age: 28, dateOfBirth: "1998-01-09", homeArea: "Mission District", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 90) },
     { handle: "noah", name: "Noah Kim", phoneE164: "+14155550103", email: "noah@example.com", age: 34, dateOfBirth: "1992-07-22", homeArea: "Hayes Valley", verificationTier: "id_selfie", subscriptionTier: "free", available: false, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 5) },
     { handle: "aria", name: "Aria Patel", phoneE164: "+14155550104", email: "aria@example.com", age: 26, dateOfBirth: "2000-03-02", homeArea: "SoMa", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 1, lastActiveAt: new Date(Date.now() - 1000 * 60 * 30) },
-    { handle: "jules", name: "Jules Morgan", phoneE164: "+14155550105", email: "jules@example.com", age: 31, dateOfBirth: "1995-11-14", homeArea: "Nob Hill", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 4, accountStatus: "warned", statusReason: "Repeatedly pushing dating-style messages after being asked to stop.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 20), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 20) },
-    { handle: "devon", name: "Devon Blake", phoneE164: "+14155550106", email: "devon@example.com", age: 29, dateOfBirth: "1997-06-30", homeArea: "Richmond", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 7, accountStatus: "suspended", statusReason: "Seven confirmed reports of inappropriate messaging.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 48), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 48) },
+    { handle: "jules", name: "Jules Morgan", phoneE164: "+14155550105", email: "jules@example.com", age: 31, dateOfBirth: "1995-11-14", homeArea: "Nob Hill", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 4, accountStatus: "warned", statusReason: "Repeatedly pushing dating-style messages after being asked to stop.", statusChangedBy: "safety@trufrenz.net", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 20), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 20) },
+    { handle: "devon", name: "Devon Blake", phoneE164: "+14155550106", email: "devon@example.com", age: 29, dateOfBirth: "1997-06-30", homeArea: "Richmond", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 7, accountStatus: "suspended", statusReason: "Seven confirmed reports of inappropriate messaging.", statusChangedBy: "safety@trufrenz.net", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 48), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 48) },
     { handle: "lena", name: "Lena Okafor", phoneE164: "+14155550107", email: "lena@example.com", age: 33, dateOfBirth: "1993-09-05", homeArea: "Sunset", verificationTier: "id_selfie", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 8) },
-    { handle: "ravi", name: "Ravi Nair", phoneE164: "+14155550108", email: "ravi@example.com", age: 27, dateOfBirth: "1999-02-17", homeArea: "Bernal Heights", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 2, accountStatus: "banned", statusReason: "Hate speech confirmed by the blocked keyword list and moderator review.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 72), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 72) },
+    { handle: "ravi", name: "Ravi Nair", phoneE164: "+14155550108", email: "ravi@example.com", age: 27, dateOfBirth: "1999-02-17", homeArea: "Bernal Heights", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 2, accountStatus: "banned", statusReason: "Hate speech confirmed by the blocked keyword list and moderator review.", statusChangedBy: "safety@trufrenz.net", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 72), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 72) },
     { handle: "tess", name: "Tess Alvarez", phoneE164: "+14155550109", email: "tess@example.com", age: 25, dateOfBirth: "2001-05-21", homeArea: "Castro", verificationTier: "phone", subscriptionTier: "premium", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 3) },
     { handle: "omar", name: "Omar Haddad", phoneE164: "+14155550110", email: "omar@example.com", age: 36, dateOfBirth: "1990-12-01", homeArea: "Marina", verificationTier: "id_selfie", subscriptionTier: "free", available: true, reportCount: 1, lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 11) },
     { handle: "ivy", name: "Ivy Nakamura", phoneE164: "+14155550111", email: "ivy@example.com", age: 32, dateOfBirth: "1994-08-08", homeArea: "North Beach", verificationTier: "phone", subscriptionTier: "free", available: true, reportCount: 0, lastActiveAt: new Date(Date.now() - 1000 * 60 * 40) },
-    { handle: "cruz", name: "Cruz Delgado", phoneE164: "+14155550112", email: "cruz@example.com", age: 41, dateOfBirth: "1985-04-11", homeArea: "Excelsior", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 5, accountStatus: "suspended", statusReason: "Impersonation confirmed: profile photo is a stock image.", statusChangedBy: "safety@trufrenz.app", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 36), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 36) },
+    { handle: "cruz", name: "Cruz Delgado", phoneE164: "+14155550112", email: "cruz@example.com", age: 41, dateOfBirth: "1985-04-11", homeArea: "Excelsior", verificationTier: "none", subscriptionTier: "free", available: false, reportCount: 5, accountStatus: "suspended", statusReason: "Impersonation confirmed: profile photo is a stock image.", statusChangedBy: "safety@trufrenz.net", statusChangedAt: new Date(Date.now() - 1000 * 60 * 60 * 36), lastActiveAt: new Date(Date.now() - 1000 * 60 * 60 * 36) },
   ];
 
   await db.insert(members).values(memberRows);
@@ -1024,8 +1024,8 @@ export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
     { memberId: idFor("aria"), memberName: "Aria Patel", submittedName: "Aria Patel", submittedDob: "2000-03-02", selfieRef: "seed/aria-selfie.jpg", idDocumentRef: "seed/aria-id.jpg", riskScore: 8, status: "pending", submittedAt: new Date(Date.now() - 1000 * 60 * 55) },
     { memberId: idFor("omar"), memberName: "Omar Haddad", submittedName: "Omar Haddad", submittedDob: "1990-12-01", selfieRef: "seed/omar-selfie.jpg", idDocumentRef: "seed/omar-id.jpg", riskScore: 21, status: "pending", submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 3) },
     { memberId: idFor("tess"), memberName: "Tess Alvarez", submittedName: "Tess Alvarez", submittedDob: "2001-05-21", selfieRef: "seed/tess-selfie.jpg", idDocumentRef: "seed/tess-id.jpg", riskScore: 74, status: "pending", submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 26) },
-    { memberId: idFor("sam"), memberName: "Sam Rivera", submittedName: "Sam Rivera", submittedDob: "1998-01-09", selfieRef: "seed/sam-selfie.jpg", idDocumentRef: "seed/sam-id.jpg", riskScore: 12, status: "approved", reviewedBy: "safety@trufrenz.app", reviewedAt: new Date(Date.now() - 1000 * 60 * 60 * 50) },
-    { memberId: idFor("ravi"), memberName: "Ravi Nair", submittedName: "Ravi Kumar", submittedDob: "1999-02-17", selfieRef: "seed/ravi-selfie.jpg", idDocumentRef: "seed/ravi-id.jpg", riskScore: 88, status: "rejected", rejectionReason: "The name on the ID does not match the profile name.", reviewedBy: "safety@trufrenz.app", reviewedAt: new Date(Date.now() - 1000 * 60 * 60 * 30) },
+    { memberId: idFor("sam"), memberName: "Sam Rivera", submittedName: "Sam Rivera", submittedDob: "1998-01-09", selfieRef: "seed/sam-selfie.jpg", idDocumentRef: "seed/sam-id.jpg", riskScore: 12, status: "approved", reviewedBy: "safety@trufrenz.net", reviewedAt: new Date(Date.now() - 1000 * 60 * 60 * 50) },
+    { memberId: idFor("ravi"), memberName: "Ravi Nair", submittedName: "Ravi Kumar", submittedDob: "1999-02-17", selfieRef: "seed/ravi-selfie.jpg", idDocumentRef: "seed/ravi-id.jpg", riskScore: 88, status: "rejected", rejectionReason: "The name on the ID does not match the profile name.", reviewedBy: "safety@trufrenz.net", reviewedAt: new Date(Date.now() - 1000 * 60 * 60 * 30) },
   ]);
 
   await db.insert(reports).values([
@@ -1035,8 +1035,8 @@ export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
     { subjectType: "group", subjectId: idFor("jules"), subjectLabel: "Rooftop Socials", reporterName: "Lena Okafor", reason: "Spam invites", contentExcerpt: "Join my paid events channel", severity: "medium", reportCount: 4, autoFlagged: true, status: "open", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 14) },
     { subjectType: "profile", subjectId: idFor("jules"), subjectLabel: "Jules Morgan", reporterName: "Tess Alvarez", reason: "Not interested in friendship", contentExcerpt: "Repeatedly pushing dating-style messages", severity: "medium", reportCount: 4, autoFlagged: false, status: "open", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 18) },
     { subjectType: "message", subjectId: idFor("ravi"), subjectLabel: "Message from Ravi Nair", reporterName: "Omar Haddad", reason: "Hate speech", contentExcerpt: "Flagged automatically by the blocked keyword list", severity: "critical", reportCount: 2, autoFlagged: true, status: "open", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 60) },
-    { subjectType: "profile", subjectId: idFor("aria"), subjectLabel: "Aria Patel", reporterName: "Ivy Nakamura", reason: "Fake photos", contentExcerpt: "Photos look like someone else", severity: "low", reportCount: 1, autoFlagged: false, status: "dismissed", resolutionNote: "Photos verified against the ID on file.", resolvedBy: "safety@trufrenz.app", resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 8), createdAt: new Date(Date.now() - 1000 * 60 * 60 * 20) },
-    { subjectType: "profile", subjectId: idFor("ravi"), subjectLabel: "Ravi Nair", reporterName: "Lena Okafor", reason: "Harassment", contentExcerpt: "Abusive language in a group chat", severity: "high", reportCount: 2, autoFlagged: false, status: "banned", resolutionNote: "Third confirmed harassment case.", resolvedBy: "safety@trufrenz.app", resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 40), createdAt: new Date(Date.now() - 1000 * 60 * 60 * 70) },
+    { subjectType: "profile", subjectId: idFor("aria"), subjectLabel: "Aria Patel", reporterName: "Ivy Nakamura", reason: "Fake photos", contentExcerpt: "Photos look like someone else", severity: "low", reportCount: 1, autoFlagged: false, status: "dismissed", resolutionNote: "Photos verified against the ID on file.", resolvedBy: "safety@trufrenz.net", resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 8), createdAt: new Date(Date.now() - 1000 * 60 * 60 * 20) },
+    { subjectType: "profile", subjectId: idFor("ravi"), subjectLabel: "Ravi Nair", reporterName: "Lena Okafor", reason: "Harassment", contentExcerpt: "Abusive language in a group chat", severity: "high", reportCount: 2, autoFlagged: false, status: "banned", resolutionNote: "Third confirmed harassment case.", resolvedBy: "safety@trufrenz.net", resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 40), createdAt: new Date(Date.now() - 1000 * 60 * 60 * 70) },
   ]);
 
   await db.insert(featureFlags).values([
@@ -1049,28 +1049,28 @@ export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
   ]);
 
   await db.insert(blockedKeywords).values([
-    { keyword: "wire me money", severity: "high", hits: 12, addedBy: "safety@trufrenz.app" },
-    { keyword: "crypto investment", severity: "high", hits: 8, addedBy: "safety@trufrenz.app" },
-    { keyword: "send nudes", severity: "high", hits: 21, addedBy: "safety@trufrenz.app" },
-    { keyword: "whatsapp me", severity: "medium", hits: 34, addedBy: "safety@trufrenz.app" },
-    { keyword: "pay for my ticket", severity: "medium", hits: 6, addedBy: "safety@trufrenz.app" },
-    { keyword: "my sugar", severity: "low", hits: 3, addedBy: "safety@trufrenz.app" },
+    { keyword: "wire me money", severity: "high", hits: 12, addedBy: "safety@trufrenz.net" },
+    { keyword: "crypto investment", severity: "high", hits: 8, addedBy: "safety@trufrenz.net" },
+    { keyword: "send nudes", severity: "high", hits: 21, addedBy: "safety@trufrenz.net" },
+    { keyword: "whatsapp me", severity: "medium", hits: 34, addedBy: "safety@trufrenz.net" },
+    { keyword: "pay for my ticket", severity: "medium", hits: 6, addedBy: "safety@trufrenz.net" },
+    { keyword: "my sugar", severity: "low", hits: 3, addedBy: "safety@trufrenz.net" },
   ]);
 
   await db.insert(broadcasts).values([
-    { title: "Meet in public places", body: "A gentle reminder: choose a public venue for first meetups and tell a friend where you are going.", segment: "all", recipientCount: memberRows.length, sentBy: "safety@trufrenz.app", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72) },
-    { title: "Get verified this week", body: "Verified members get 2x more accepted friend requests. Verification takes about a minute.", segment: "unverified", recipientCount: 6, sentBy: "safety@trufrenz.app", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 30) },
+    { title: "Meet in public places", body: "A gentle reminder: choose a public venue for first meetups and tell a friend where you are going.", segment: "all", recipientCount: memberRows.length, sentBy: "safety@trufrenz.net", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72) },
+    { title: "Get verified this week", body: "Verified members get 2x more accepted friend requests. Verification takes about a minute.", segment: "unverified", recipientCount: 6, sentBy: "safety@trufrenz.net", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 30) },
   ]);
 
   await db.insert(subscriptionEvents).values([
-    { memberId: idFor("maya"), memberName: "Maya Chen", kind: "grant", tier: "premium", amountCents: 0, reason: "Support goodwill credit after the duplicate charge.", actorEmail: "billing@trufrenz.app", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12) },
-    { memberId: idFor("devon"), memberName: "Devon Blake", kind: "revoke", tier: "free", amountCents: 0, reason: "Account suspended pending review.", actorEmail: "safety@trufrenz.app", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 40) },
-    { memberId: idFor("ivy"), memberName: "Ivy Nakamura", kind: "refund", tier: "free", amountCents: 1299, reason: "Cancelled within the cooling-off window.", actorEmail: "billing@trufrenz.app", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 60) },
+    { memberId: idFor("maya"), memberName: "Maya Chen", kind: "grant", tier: "premium", amountCents: 0, reason: "Support goodwill credit after the duplicate charge.", actorEmail: "billing@trufrenz.net", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12) },
+    { memberId: idFor("devon"), memberName: "Devon Blake", kind: "revoke", tier: "free", amountCents: 0, reason: "Account suspended pending review.", actorEmail: "safety@trufrenz.net", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 40) },
+    { memberId: idFor("ivy"), memberName: "Ivy Nakamura", kind: "refund", tier: "free", amountCents: 1299, reason: "Cancelled within the cooling-off window.", actorEmail: "billing@trufrenz.net", createdAt: new Date(Date.now() - 1000 * 60 * 60 * 60) },
   ]);
 
 
   await logAdminAction({
-    actorEmail: "system@trufrenz.app",
+    actorEmail: "system@trufrenz.net",
     actorRole: "owner",
     module: "system",
     action: "seed",

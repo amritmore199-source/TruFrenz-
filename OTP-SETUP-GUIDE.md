@@ -108,7 +108,20 @@ and it requires your business entity — GST or equivalent company registration.
 A domain is not part of it. Landing on a website is not part of it either; the
 registration is the blocker, and it takes a few business days.
 
-### Domain names, as checked on 27 Sep 2026
+### Settled: the domain is trufrenz.net
+
+`trufrenz.net` is registered, and the app, the admin dashboard, and these docs
+now use it: `hello@trufrenz.net` for sign-in codes, `support@trufrenz.net` and
+`safety@trufrenz.net` everywhere else. The address shown on the welcome screen
+was previously `support@trufrenz.app`, a domain nobody owned, so that line was
+fiction until now.
+
+`.net` was the right pick for three reasons: it is one of the original TLDs, so
+its reputation among mail providers is long-established — which matters because
+this domain carries the sign-in codes, the mail most likely to be filtered; it
+is unrestricted; and it costs about the same as `.com` per year.
+
+### The alternatives, as checked on 27 Sep 2026
 
 Availability was checked from live DNS nameserver records and the registry
 RDAP service. Confirm at a registrar before relying on any of it.
@@ -146,14 +159,38 @@ change email deliverability either way.
 does not make DLT registration any easier, since that is tied to the business
 entity rather than the domain.
 
-**Recommendation:** buy `trufrenz.net`. It is the same annual cost as a couple
-of coffees, it unblocks email sign-in immediately, and it makes the address
-already shown in the app honest. Launch on email; add SMS once the business
-registration for DLT is in place.
+### Which email provider, now that the domain exists
 
-Whichever you choose, tell me the name and I will update the addresses shown in
-the app and point the mailer at it. The mailer takes the sending address from
-`EMAIL_FROM`, so it is a configuration change rather than a code change.
+The domain was the only real obstacle. Once a sending domain is verified, the
+providers are interchangeable, so the mailer supports four and switching is a
+change to `EMAIL_PROVIDER` rather than a code change:
+
+| `EMAIL_PROVIDER` | What it is | Cost | Notes |
+| --- | --- | --- | --- |
+| `resend` (default) | HTTP API | Free to 3,000/month, 100/day | Simplest setup; three DNS records |
+| `smtp` | Any provider's SMTP | Depends on provider | One adapter covers Brevo, Zoho, Mailgun, Amazon SES, or your own host |
+| `zeptomail` | Zoho's HTTP API | First 10,000 emails free, then pay-as-you-go | Rupee billing with a GST invoice; the closest fit for an India-first launch |
+| `log` | Prints to the console | Free | Offline development only; never activates on its own |
+
+The setup effort is the same for all of them, because the work is the DNS
+records, not the API call. Resend and ZeptoMail both need three records (SPF,
+DKIM, and a return-path or DMARC); SMTP needs the same three wherever the domain
+lives. So the provider choice is about billing and comfort, not difficulty.
+
+The SMTP option also removes the lock-in worry entirely: if a provider ever
+disappoints, the credentials change and nothing else does.
+
+### Recommended path for India
+
+1. Verify `trufrenz.net` in whichever provider you prefer. Start with Resend's
+   free tier if you want the fastest possible first send.
+2. Add the three DNS records it gives you at your registrar. Propagation is
+   usually minutes, never more than a few hours.
+3. Set `EMAIL_PROVIDER_KEY`, `EMAIL_FROM=hello@trufrenz.net`, and
+   `EMAIL_PROVIDER` (only needed if not using Resend).
+4. Add SMS once the business registration for DLT is in place. Nothing about
+   email blocks SMS or the reverse; they are independent channels, and the app
+   lets a member pick either one.
 
 ## 3. Turning email on (the 15-minute path)
 
@@ -179,6 +216,19 @@ its own: with no key configured the provider is `none`, not `log`, so a
 misconfigured deployment can never silently pretend to send.
 
 ---
+
+### If you choose SMTP instead
+
+Four variables, and any provider that offers SMTP works:
+
+| Variable | Example | Notes |
+| --- | --- | --- |
+| `EMAIL_PROVIDER` | `smtp` | Selects the adapter |
+| `SMTP_HOST` | `smtp-relay.brevo.com` | Readiness reports this channel unconfigured if it is missing |
+| `SMTP_PORT` | `587` | Defaults to 587; port 465 switches on implicit TLS |
+| `SMTP_USER` | your login | Required |
+| `SMTP_PASS` | your password | Falls back to `EMAIL_PROVIDER_KEY` if unset |
+| `SMTP_SECURE` | `true` | Only needed to force TLS on a non-465 port |
 
 ## 4. Turning SMS on
 

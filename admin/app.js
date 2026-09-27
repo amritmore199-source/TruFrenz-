@@ -416,7 +416,7 @@
   }
 
   $("fill-demo-code").addEventListener("click", async () => {
-    $("login-email").value = "safety@trufrenz.app";
+    $("login-email").value = "safety@trufrenz.net";
     $("login-password").value = "Trufrenz#Safety2026";
     $("login-code").value = await totpNow(DEMO_SECRET);
     toast("Demo credentials filled. Sign in to continue.", "ok");

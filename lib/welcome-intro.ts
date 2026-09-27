@@ -58,7 +58,7 @@ export const COMPANY_DETAILS = {
   name: "Trufrenz",
   legalName: "Trufrenz Technologies",
   location: "San Francisco, California",
-  supportEmail: "support@trufrenz.app",
+  supportEmail: "support@trufrenz.net",
 } as const;
 
 /** Sign up and log in stay disabled until the visitor accepts the terms. */

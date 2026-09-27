@@ -2,10 +2,24 @@
  * Email delivery.
  *
  * One provider adapter behind one interface, so switching providers is a change
- * to this file and nothing else. Resend is the configured default because its
- * free tier covers early traffic (3,000/month, 100/day) and it needs no
- * business registration — unlike SMS, which is why email is the channel that
- * can ship today.
+ * to configuration and nothing else. Four are supported, and none of them is
+ * meaningfully harder than the others once the sending domain is verified:
+ *
+ *   resend  — HTTP API, the default. Free tier 3,000/month.
+ *   smtp    — any provider that offers SMTP: Brevo, Zoho/ZeptoMail, Mailgun,
+ *             Amazon SES, or your own host. One adapter covers all of them,
+ *             which is why it exists.
+ *   zeptomail — Zoho's transactional service by HTTP API. Pay-as-you-go in
+ *             rupees with a GST invoice, and the first credit (10,000 emails)
+ *             is free, which suits an India-first launch.
+ *   log     — prints instead of sending, for offline development.
+ *
+ * Every one of them requires a verified sending domain. That requirement is not
+ * a vendor preference: since 2024 Gmail, Microsoft, and Yahoo require SPF and
+ * DKIM authentication from bulk senders, and DNS records cannot be added to
+ * somebody else's domain. So the domain is bought once and the provider can be
+ * swapped freely afterwards — which is the reason this file keeps them behind
+ * one interface rather than committing to the first one that worked.
  *
  * Two rules this file exists to hold:
  *
@@ -38,15 +52,37 @@ export type EmailMessage = {
  * can honestly say "email is not set up yet" instead of failing silently.
  */
 export function emailConfigured(): boolean {
-  return Boolean(process.env.EMAIL_PROVIDER_KEY && process.env.EMAIL_FROM);
+  if (!process.env.EMAIL_PROVIDER_KEY || !process.env.EMAIL_FROM) return false;
+  /*
+   * SMTP needs a host as well. Without this check, choosing the SMTP adapter and
+   * setting only a key would report the channel ready and then refuse every
+   * send — the precise failure mode this whole pass exists to remove.
+   */
+  if ((process.env.EMAIL_PROVIDER ?? "").trim().toLowerCase() === "smtp") {
+    return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
+  }
+  return true;
 }
 
-/** Which adapter to use. Only one is real today; the rest are named for clarity. */
-export function emailProvider(): "resend" | "log" | "none" {
+/**
+ * Which adapter to use.
+ *
+ * An unrecognised name falls back to the default rather than failing, but a
+ * name that is recognised and misconfigured still reports "none": the value of
+ * this function is that it never claims a channel works when it does not.
+ */
+export function emailProvider(): EmailProvider {
   if (!emailConfigured()) return "none";
   const named = (process.env.EMAIL_PROVIDER ?? "resend").trim().toLowerCase();
-  return named === "log" ? "log" : "resend";
+  if (named === "log") return "log";
+  if (named === "smtp" || named === "zeptomail") return named;
+  return "resend";
 }
+
+export type EmailProvider = "resend" | "smtp" | "zeptomail" | "log" | "none";
+
+/** The default SMTP port when none is named, and the one providers document. */
+const DEFAULT_SMTP_PORT = 587;
 
 /**
  * Remove anything resembling a code from a string before logging it.
@@ -101,6 +137,107 @@ async function sendWithResend(message: EmailMessage): Promise<DeliveryOutcome> {
 }
 
 /**
+ * Send over SMTP, which any provider can offer.
+ *
+ * This is the escape hatch that keeps the provider decision cheap. Brevo, Zoho,
+ * Mailgun, Amazon SES, and a plain mail host all speak SMTP, so switching
+ * between them is four environment variables rather than a new integration.
+ *
+ * `nodemailer` is imported dynamically so the module is only loaded when this
+ * adapter is actually selected — the default HTTP path should not pay for a
+ * dependency it does not use.
+ */
+async function sendWithSmtp(message: EmailMessage): Promise<DeliveryOutcome> {
+  const from = process.env.EMAIL_FROM as string;
+  const user = process.env.SMTP_USER as string;
+  // Providers disagree on the name for this, so both are accepted.
+  const pass = (process.env.SMTP_PASS ?? process.env.EMAIL_PROVIDER_KEY) as string;
+  const port = Number(process.env.SMTP_PORT ?? DEFAULT_SMTP_PORT);
+  const secure = process.env.SMTP_SECURE === "true" || port === 465;
+
+  if (!process.env.SMTP_HOST || !user || !pass) {
+    return {
+      sent: false,
+      provider: "smtp",
+      reason: "SMTP_HOST, SMTP_USER and a password are all required",
+    };
+  }
+
+  try {
+    const { createTransport } = (await import("nodemailer")) as typeof import("nodemailer");
+    const transport = createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number.isFinite(port) ? port : DEFAULT_SMTP_PORT,
+      secure,
+      auth: { user, pass },
+    });
+
+    const info = await transport.sendMail({
+      from,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      ...(message.html ? { html: message.html } : {}),
+    });
+
+    return { sent: true, provider: "smtp", messageId: info.messageId };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "send failed";
+    console.error(`[mailer] smtp failed sending to ${maskEmail(message.to)} — ${redactCode(reason)}`);
+    return { sent: false, provider: "smtp", reason: redactCode(reason) };
+  }
+}
+
+/**
+ * Send through Zoho ZeptoMail's HTTP API.
+ *
+ * Kept as its own adapter rather than "just use SMTP" because it is the
+ * cheapest honest option for an India-first launch: rupee billing with a GST
+ * invoice, pay-as-you-go, and the first 10,000 emails free.
+ */
+async function sendWithZeptomail(message: EmailMessage): Promise<DeliveryOutcome> {
+  const key = process.env.EMAIL_PROVIDER_KEY as string;
+  const from = process.env.EMAIL_FROM as string;
+  // ZeptoMail's send-mail token already carries its own "Zoho-enczapikey "
+  // prefix in the dashboard, so it is only added when absent.
+  const authorization = key.toLowerCase().startsWith("zoho-enczapikey")
+    ? key
+    : `Zoho-enczapikey ${key}`;
+
+  try {
+    const response = await fetch("https://api.zeptomail.com/v1.1/email", {
+      method: "POST",
+      headers: { Authorization: authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: { address: from },
+        to: [{ email_address: { address: message.to } }],
+        subject: message.subject,
+        textbody: message.text,
+        ...(message.html ? { htmlbody: message.html } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const reason = describeFailure(response.status, body);
+      console.error(`[mailer] zeptomail refused a send to ${maskEmail(message.to)} — ${reason}`);
+      return { sent: false, provider: "zeptomail", reason };
+    }
+
+    const parsed = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+    // ZeptoMail returns its id nested under `data`; read it defensively because
+    // a provider changing this shape must not break a successful send.
+    const data = (parsed?.data ?? {}) as Record<string, unknown>;
+    const id = typeof data.message_id === "string" ? data.message_id : undefined;
+    return { sent: true, provider: "zeptomail", messageId: id };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "send failed";
+    console.error(`[mailer] zeptomail unreachable sending to ${maskEmail(message.to)} — ${redactCode(reason)}`);
+    return { sent: false, provider: "zeptomail", reason: redactCode(reason) };
+  }
+}
+
+/**
  * A local-only adapter that prints the message instead of sending it.
  *
  * Selected with `EMAIL_PROVIDER=log` so a developer can watch the real flow —
@@ -122,7 +259,10 @@ export async function sendEmail(message: EmailMessage): Promise<DeliveryOutcome>
   if (!normalizeEmail(message.to)) {
     return { sent: false, provider, reason: "missing destination" };
   }
-  return provider === "log" ? sendWithLog(message) : sendWithResend(message);
+  if (provider === "log") return sendWithLog(message);
+  if (provider === "smtp") return sendWithSmtp(message);
+  if (provider === "zeptomail") return sendWithZeptomail(message);
+  return sendWithResend(message);
 }
 
 /* ------------------------------------------------------------------ */
@@ -189,11 +329,17 @@ export function emailTransportSummary(): {
   configured: boolean;
   provider: string;
   sendDomain: string | null;
+  smtpHost: string | null;
 } {
   const provider = emailProvider();
   const from = process.env.EMAIL_FROM ?? "";
-  // Reduce "Trufrenz <hello@trufrenz.app>" to just the domain.
+  // Reduce "Trufrenz <hello@trufrenz.net>" to just the domain.
   const at = from.lastIndexOf("@");
   const sendDomain = at > -1 ? from.slice(at + 1).replace(/[>\s]+$/, "").trim() : null;
-  return { configured: provider !== "none", provider, sendDomain };
+  return {
+    configured: provider !== "none",
+    provider,
+    sendDomain,
+    smtpHost: provider === "smtp" ? (process.env.SMTP_HOST ?? null) : null,
+  };
 }

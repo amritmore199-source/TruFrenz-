@@ -1,4 +1,51 @@
 # Trufrenz — build tracker
+## Sign-in hardening and the trufrenz.net domain — DONE (verified)
+
+- **Domain settled: trufrenz.net.** Bought and wired through the app, the admin
+  dashboard, and these docs. Sign-in codes come from `hello@trufrenz.net`;
+  `support@` and `safety@` cover the rest. The welcome screen previously showed
+  `support@trufrenz.app`, a domain nobody owned, so that line was fiction until
+  this change. The storage key `trufrenz.appearance.v1` was deliberately left
+  alone — it is not a domain, and renaming it would silently reset every
+  member's saved appearance settings.
+- **Fixed: an unlimited "send me a code" button.** This is the SMS-pumping
+  attack: point it at numbers you control, trigger thousands of paid messages,
+  take a share of the carrier fees, and the app owner pays. Aimed at one
+  stranger, it makes the product the harasser and gets the sender ID blocked.
+  Both code endpoints are now limited per number (3/hour, 6/day) and per device
+  (10/hour, 30/day) with a 60-second cooldown, and 10 wrong codes lock that
+  device for 15 minutes. Counted per device, so one guesser cannot lock out
+  anyone else. A refused request sends nothing, so it costs nothing.
+- **Requests are counted only once they produced something** — a message the
+  provider accepted, or a code handed back in demo mode. A provider outage
+  therefore cannot burn a member's allowance and lock them out of a code that
+  never arrived. Demo mode is counted because the rule is about codes issued,
+  not messages billed; excluding it would make the limit untestable without a
+  provider and leave a public demo open to unbounded challenge churn.
+- **Real SMS delivery.** `server/sms.ts` speaks MSG91 and Twilio. It treats a
+  `200` response carrying `type: "error"` as the failed send it is — MSG91
+  answers 200 when it declines a message, and reading the status alone would
+  report a delivery that never happened. A domestic Indian route now requires an
+  approved DLT template id, so a half-configured channel reports itself
+  unconfigured instead of ready. Codes are masked in logs.
+- **Provider choice made cheap.** The mailer now supports Resend, ZeptoMail, and
+  any SMTP provider behind one interface, so switching is an environment
+  variable rather than a new integration. `nodemailer` is imported lazily so the
+  default HTTP path does not pay for it. Readiness reports the SMTP host, and
+  choosing SMTP without one reports the channel unconfigured rather than
+  refusing every send.
+- **Admin visibility.** The Subscriptions view reports both delivery channels
+  and the limits, so "a member cannot get a code" can be answered without
+  reading server logs. Presence only — no key or secret is rendered.
+- **Verified end to end against the running server:** three codes to one number
+  succeed and the fourth is refused with a 3,600-second wait. 556 tests pass
+  (22 new for the mailer adapters, 22 for the limit rules, 21 for the SMS
+  adapter), lint 0 errors, git diff clean.
+- **Still manual, and worth knowing:** the domain's DNS had not propagated at
+  the time of this work, and no provider is configured yet, so email remains in
+  prototype mode until a key and verified sender are set. SMS needs DLT
+  registration, which requires a registered business — not a domain.
+
 ## Three subscription suggestions — DONE (verified)
 
 ## OTP sign-in: bug fixes and email delivery
