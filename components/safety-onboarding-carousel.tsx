@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#83721f", fontSize: 8, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
   title: { color: "#474536", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
   body: { color: "#86847c", fontSize: 11, lineHeight: 17, marginTop: 7 },
-  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: "rgba(255, 255, 255, 0.81)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
+  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
   ruleIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#f3edd2", alignItems: "center", justifyContent: "center" },
   ruleCopy: { flex: 1, gap: 3 },
   ruleTitle: { color: "#57554f", fontSize: 10, fontWeight: "700" },

@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   },
   termsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   termsTitle: { color: "#4c4936", fontSize: 17, fontWeight: "800" },
-  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.82)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)" },
+  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)" },
   termsBodyTitle: { color: "#5c5946", fontSize: 10.5, fontWeight: "700", marginTop: 10 },
   termsBody: { color: "#838179", fontSize: 9.5, lineHeight: 15, marginTop: 3 },
   termsFootnote: { color: "#9f9c95", fontSize: 8, marginTop: 10, textAlign: "center" },

@@ -1,4 +1,24 @@
 export const APPEARANCE_STORAGE_KEY = "trufrenz.appearance.v1";
+/*
+ * The glass recipe lives in its own module so it can be reasoned about and
+ * tested on its own. It is re-exported here because every surface in the app
+ * already imports `glassSurfaceColor` from this file, which means the corrected
+ * glass reaches all of them without touching twenty call sites.
+ */
+export {
+  GLASS_SHADOW,
+  MAX_GLASS_ALPHA,
+  glassAlpha,
+  glassBlur,
+  glassEdge,
+  glassSurfaceColor,
+  glassTint,
+  glassVeil,
+  transparencyFromSetting,
+  type GlassSurface,
+  type GlassTint,
+} from "./glass";
+
 export const DEFAULT_GLASS_OPACITY = 80;
 export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
 
@@ -36,12 +56,4 @@ export function parseAppearancePreferences(serialized: string | null): Appearanc
   } catch {
     return DEFAULT_APPEARANCE_PREFERENCES;
   }
-}
-
-/** Keep each surface's own tint and apply the user's chosen opacity. */
-export function glassSurfaceColor(color: string, opacity: number): string {
-  const match = color.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*[\d.]+)?\s*\)$/i);
-  if (!match) return color;
-  const alpha = normalizeGlassOpacity(opacity) / 100;
-  return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`;
 }

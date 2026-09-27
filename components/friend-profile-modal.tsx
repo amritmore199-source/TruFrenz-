@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   sheetContent: { padding: 16, paddingTop: 4 },
   header: { height: 30, alignItems: "center", justifyContent: "center" },
   handle: { width: 34, height: 4, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.35)" },
-  close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center" },
+  close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: "rgba(241, 246, 252, 0.43)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center" },
   galleryFrame: { width: "100%", height: 208, borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(239, 234, 209, 0.9)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
   gallery: { width: "100%", height: "100%" },
   gallerySlide: { height: "100%" },

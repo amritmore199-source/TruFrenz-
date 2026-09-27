@@ -149,6 +149,7 @@ import {
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, glassSurfaceColor } from "@/lib/appearance-preferences";
+import { GLASS_SHADOW, glassBlur, glassEdge, glassTint, glassVeil } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
@@ -346,19 +347,40 @@ const Icon = ({ name, color = "#65614c", size = 20 }: { name: keyof typeof Mater
 
 function Frosted({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const { glassOpacity } = useAppAppearance();
-  // The blur layer is what makes this read as frosted glass. Without it the
-  // translucent fill alone lets the wallpaper's bright areas (white clothing and
-  // faces in the photo) show through as hard-edged white patches inside the card.
-  // Blurring first diffuses the backdrop, then the tint sits on top of it.
+  /*
+   * Four layers make the glass, in order:
+   *
+   *   1. a heavy blur, so the wallpaper diffuses instead of showing hard edges
+   *   2. a pale blue-white tint, thin enough that the wallpaper still reads
+   *   3. a sheen across the top half, which is what looks like lit glass
+   *   4. a bright rim, so the card has a physical edge
+   *
+   * The tint is deliberately thin. An opaque fill is what made the cards look
+   * like plain white panels before: no blur can show through a solid colour.
+   */
   const flattened = StyleSheet.flatten(style);
   const radius = flattened?.borderRadius ?? styles.frosted.borderRadius;
   return (
-    <View style={[styles.frosted, style, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.79)", glassOpacity) }]}>
+    <View
+      style={[
+        styles.frosted,
+        style,
+        {
+          backgroundColor: glassTint("card", glassOpacity),
+          borderColor: glassEdge("card"),
+          shadowColor: GLASS_SHADOW,
+        },
+      ]}
+    >
       <BlurView
-        intensity={38}
+        intensity={glassBlur("card")}
         tint="light"
         experimentalBlurMethod="dimezisBlurView"
         style={[StyleSheet.absoluteFillObject, styles.noninteractive, { borderRadius: radius }]}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.glassSheen, { borderRadius: radius, backgroundColor: glassVeil("card", glassOpacity) }]}
       />
       {children}
     </View>
@@ -2256,9 +2278,10 @@ export default function TrufrenzApp() {
           onContinueAsGuest={enterAsGuest}
         />
       ) : null}
-      {showWelcome ? null : <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 0.27 : 0 }]} resizeMode="cover" /></View>}
+      {showWelcome ? null : <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 0.62 : 0 }]} resizeMode="cover" /></View>}
       {showWelcome ? null : <>
       <View style={[styles.backgroundWash, styles.noninteractive]} />
+      <View style={[styles.headingScrim, styles.noninteractive]} />
       <View style={[styles.ambient, styles.noninteractive]}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /><View style={styles.ambientLilac} /></View> </>}
       <CallScreen
         session={callSession}
@@ -2359,7 +2382,7 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       )}
-      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassSurfaceColor("rgba(251, 249, 248, 0.76)", glassOpacity) }]}><BlurView intensity={24} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
+      {showWelcome || shouldHideTabBarForKeyboard({ keyboardHeight, hasOpenChat: Boolean(selectedChat) }) ? null : <View style={[styles.bottomBar, { backgroundColor: glassTint("tab", glassOpacity), borderTopColor: glassEdge("tab") }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
@@ -2491,9 +2514,10 @@ export default function TrufrenzApp() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FAF8F7", overflow: "hidden" },
   noninteractive: { pointerEvents: "none" },
-  backgroundImageWrap: { ...StyleSheet.absoluteFillObject },
-  backgroundImage: { width: "100%", height: "100%", opacity: 0.27 },
-  backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 248, 247, 0.24)" },
+  backgroundImageWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+  backgroundImage: { width: "100%", height: "100%", opacity: 0.62 },
+  backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 248, 247, 0.1)" },
+  headingScrim: { position: "absolute", left: 0, right: 0, top: 0, height: 132, backgroundColor: "rgba(252, 250, 246, 0.62)" },
   screenContent: { flex: 1 },
   ambient: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   ambientPink: { position: "absolute", top: 120, right: -140, height: 330, width: 330, borderRadius: 170, backgroundColor: "rgba(239, 229, 176, 0.18)" },
@@ -2513,10 +2537,10 @@ const styles = StyleSheet.create({
   threadTitle: { color: "#4e4a3b", fontSize: 14, fontWeight: "700" },
   threadStatus: { color: "#83721f", fontSize: 9, fontWeight: "600", marginTop: 2 },
   neighborStatus: { color: "#83721f", fontSize: 8.5, fontWeight: "600", marginTop: 3 },
-  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)", padding: 1, backgroundColor: "rgba(255, 255, 255, 0.8)" },
+  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)", padding: 1, backgroundColor: "rgba(241, 246, 252, 0.36)" },
   threadAvatar: { width: "100%", height: "100%", borderRadius: 12 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  roundAction: { position: "relative", height: 35, width: 35, borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.78)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
+  roundAction: { position: "relative", height: 35, width: 35, borderRadius: 14, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
   notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#E9D177", borderWidth: 1, borderColor: "#FFFFFF" },
   userAvatar: { height: 35, width: 35, borderRadius: 14, backgroundColor: "#eee9cc", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FFFFFF" },
   userInitial: { color: "#7c7349", fontSize: 15, fontWeight: "700" },
@@ -2524,7 +2548,8 @@ const styles = StyleSheet.create({
   chatHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 11, marginBottom: 15 },
   chatTitle: { color: "#3e3b2d", fontSize: 24, fontWeight: "700", letterSpacing: -0.75, marginTop: 3 },
   composeButton: { width: 39, height: 39, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", shadowColor: "#83721f", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  frosted: { backgroundColor: "rgba(255, 255, 255, 0.79)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", borderRadius: 19, shadowColor: "#89877e", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
+  frosted: { backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", borderRadius: 19, shadowColor: "#89877e", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
+  glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
   searchBar: { height: 42, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.73)" },
   searchInput: { flex: 1, color: "#4f4d47", fontSize: 11, paddingVertical: 0, outlineStyle: "none" as any },
   filterRow: { flexDirection: "row", gap: 7, marginTop: 10, marginBottom: 10 },
@@ -2594,7 +2619,7 @@ const styles = StyleSheet.create({
   senderLabel: { color: "#8c887f", fontSize: 8.5, fontWeight: "700", marginBottom: 2 },
   messageColumn: { maxWidth: "86%", gap: 4 },
   voiceRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 130 },
-  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.8)" },
+  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 246, 252, 0.36)" },
   voiceWave: { flexDirection: "row", alignItems: "center", gap: 2, flex: 1, height: 22 },
   voiceBar: { flex: 1, borderRadius: 2, backgroundColor: "rgba(131, 114, 31, 0.55)" },
   voiceTime: { color: "#83721f", fontSize: 9, fontWeight: "700" },
@@ -2604,11 +2629,11 @@ const styles = StyleSheet.create({
   photoBubble: { width: 190, height: 140, borderRadius: 13, backgroundColor: "rgba(232, 229, 209, 0.9)" },
   reactionRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: -2 },
   myReactionRow: { justifyContent: "flex-end" },
-  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(255, 255, 255, 0.82)", paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#75726a", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(241, 246, 252, 0.40)", paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#75726a", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   reactionChipMine: { borderColor: "rgba(233, 209, 119, 0.65)", backgroundColor: "rgba(247, 241, 214, 0.94)" },
   reactionEmoji: { fontSize: 11 },
   reactionCount: { color: "#83721f", fontSize: 9, fontWeight: "700" },
-  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(255, 255, 255, 0.9)", paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#75726a", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(241, 246, 252, 0.43)", paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#75726a", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   myReactionPicker: { alignSelf: "flex-end" },
   reactionChoice: { paddingHorizontal: 4, paddingVertical: 2 },
   reactionChoiceEmoji: { fontSize: 17 },
@@ -2625,7 +2650,7 @@ const styles = StyleSheet.create({
   composerRow: { minHeight: 51, flexDirection: "row", alignItems: "center", gap: 7, paddingTop: 5, paddingBottom: 4 },
   composerIcon: { width: 30, alignItems: "center" },
   quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(245, 240, 210, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", alignItems: "center", justifyContent: "center" },
-  composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "rgba(255, 255, 255, 0.83)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", color: "#53514c", fontSize: 11, outlineStyle: "none" as any },
+  composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", color: "#53514c", fontSize: 11, outlineStyle: "none" as any },
   sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#e7e5de", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
   sendButtonActive: { backgroundColor: "#F1DE55" },
   pageIntro: { marginTop: 17, marginBottom: 17 },
@@ -2672,12 +2697,12 @@ const styles = StyleSheet.create({
   discoveryPausedTitle: { color: "#696760", fontSize: 9, fontWeight: "700" },
   noMatches: { minHeight: 58, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
   noMatchesText: { color: "#8e8b85", fontSize: 9 },
-  suggestCard: { width: "48.5%", borderRadius: 17, overflow: "hidden", backgroundColor: "rgba(255, 255, 255, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#89877e", shadowOpacity: 0.065, shadowRadius: 12, elevation: 3 },
+  suggestCard: { width: "48.5%", borderRadius: 17, overflow: "hidden", backgroundColor: "rgba(241, 246, 252, 0.43)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#89877e", shadowOpacity: 0.065, shadowRadius: 12, elevation: 3 },
   suggestPhotoWrap: { height: 106, position: "relative", backgroundColor: "#efedde" },
   suggestPhoto: { width: "100%", height: "100%" },
-  localityTag: { position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(255, 255, 255, 0.88)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 },
+  localityTag: { position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(241, 246, 252, 0.43)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 },
   localityText: { color: "#727069", fontSize: 7 },
-  tierBadge: { position: "absolute", top: 6, right: 6, width: 23, height: 23, borderRadius: 9, backgroundColor: "rgba(255, 255, 255, 0.92)", alignItems: "center", justifyContent: "center" },
+  tierBadge: { position: "absolute", top: 6, right: 6, width: 23, height: 23, borderRadius: 9, backgroundColor: "rgba(241, 246, 252, 0.46)", alignItems: "center", justifyContent: "center" },
   suggestBody: { padding: 8 },
   suggestNameRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
   suggestName: { color: "#4a483a", fontSize: 10, fontWeight: "700", flexShrink: 1 },
@@ -2703,10 +2728,10 @@ const styles = StyleSheet.create({
   meetupIntroArt: { width: 44, height: 44, position: "relative", alignItems: "center", justifyContent: "center" },
   artBubblePink: { position: "absolute", top: 2, left: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: "#ece1a5" },
   artBubbleBlue: { position: "absolute", bottom: 1, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: "#DDECF5" },
-  artCenter: { width: 32, height: 32, borderRadius: 13, backgroundColor: "rgba(255, 255, 255, 0.78)", alignItems: "center", justifyContent: "center" },
+  artCenter: { width: 32, height: 32, borderRadius: 13, backgroundColor: "rgba(241, 246, 252, 0.36)", alignItems: "center", justifyContent: "center" },
   meetupIntroTitle: { color: "#56533f", fontSize: 10, fontWeight: "700" },
   meetupIntroCopy: { color: "#908d86", fontSize: 8, lineHeight: 12, marginTop: 3 },
-  locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(255, 255, 255, 0.76)", borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
+  locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(241, 246, 252, 0.36)", borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
   locationChipText: { color: "#7f7d76", fontSize: 7 },
   meetupScroll: { flex: 1, marginTop: 11 },
   meetupList: { gap: 9, paddingBottom: 20, marginTop: 11 },
@@ -2807,7 +2832,7 @@ const styles = StyleSheet.create({
   settingDivider: { height: 1, backgroundColor: "rgba(219, 216, 204, 0.50)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#f3ecc5", alignItems: "center", justifyContent: "center" },
   footerNote: { color: "#9e9c97", fontSize: 8, textAlign: "center", marginTop: 15 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "rgba(251, 249, 248, 0.76)", borderTopWidth: 1, borderTopColor: "rgba(219, 213, 188, 0.68)", flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.55)", flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   tabButton: { width: "25%", minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
   tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.92)", backgroundColor: "rgba(255, 255, 255, 0.28)" },
   tabIconActive: { backgroundColor: "rgba(239, 233, 199, 0.96)", borderColor: "rgba(226, 213, 153, 0.98)", shadowColor: "#83721f", shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
@@ -2856,7 +2881,7 @@ const styles = StyleSheet.create({
   authPromiseCopy: { color: "#95938c", fontSize: 8, marginTop: 3 },
   formField: { marginBottom: 15 },
   fieldLabel: { fontSize: 8, color: "#939089", letterSpacing: 0.8, fontWeight: "700", marginBottom: 6 },
-  fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(220, 214, 189, 0.72)", backgroundColor: "rgba(255, 255, 255, 0.78)", color: "#4b4a44", fontSize: 12 },
+  fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(220, 214, 189, 0.72)", backgroundColor: "rgba(241, 246, 252, 0.36)", color: "#4b4a44", fontSize: 12 },
   codeInput: { letterSpacing: 9, fontSize: 19, fontWeight: "700", textAlign: "center" },
   interestOptions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
   interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: "rgba(255, 255, 255, 0.67)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
@@ -2885,7 +2910,7 @@ const styles = StyleSheet.create({
   cancelGroupText: { color: "#908d86", fontSize: 9 },
   handoffOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 10, justifyContent: "center", alignItems: "center" },
   handoffBlur: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(250, 248, 248, 0.10)" },
-  handoffCard: { width: 235, padding: 14, borderRadius: 19, backgroundColor: "rgba(255, 255, 255, 0.76)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#66614c", shadowOpacity: 0.10, shadowRadius: 18, elevation: 5 },
+  handoffCard: { width: 235, padding: 14, borderRadius: 19, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#66614c", shadowOpacity: 0.10, shadowRadius: 18, elevation: 5 },
   handoffHeadline: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   handoffTitle: { color: "#686551", fontSize: 10, fontWeight: "700" },
   handoffSkeleton: { flexDirection: "row", gap: 9, alignItems: "center", padding: 10, marginTop: 10, backgroundColor: "rgba(243, 240, 223, 0.75)", borderRadius: 12 },
@@ -2915,7 +2940,7 @@ const styles = StyleSheet.create({
   navigationMenuHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 },
   navigationMenuTitle: { color: "#4e4c47", fontSize: 17, fontWeight: "700", marginTop: 4 },
   navigationMenuGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 7 },
-  navigationMenuItem: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 15, paddingHorizontal: 9, backgroundColor: "rgba(255, 255, 255, 0.78)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#747057", shadowOpacity: 0.055, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  navigationMenuItem: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 15, paddingHorizontal: 9, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#747057", shadowOpacity: 0.055, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   navigationMenuItemActive: { backgroundColor: "rgba(243, 234, 194, 0.96)", borderColor: "rgba(227, 214, 147, 1)" },
   navigationMenuIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(240, 235, 205, 0.86)" },
   navigationMenuIconActive: { backgroundColor: "#F1DE55" },

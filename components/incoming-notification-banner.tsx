@@ -158,6 +158,6 @@ const styles = StyleSheet.create({
   now: { color: "#a2a099", fontSize: 7, fontWeight: "600", letterSpacing: 0.6 },
   sender: { color: "#504d3e", fontSize: 11, lineHeight: 15, fontWeight: "700", marginTop: 2 },
   preview: { color: "#86847d", fontSize: 9, lineHeight: 13, marginTop: 1 },
-  close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.86)" },
+  close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 246, 252, 0.43)" },
   pressed: { opacity: 0.8 },
 });

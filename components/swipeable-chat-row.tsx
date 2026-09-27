@@ -14,6 +14,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 
 import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassBlur, glassTint } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { availabilityView, displayUnread, type ChatRowState } from "@/lib/chat-extras";
 import {
@@ -224,7 +225,7 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
           {/* Blur first, then the tint: the wallpaper's bright areas would
               otherwise read as hard white patches across the row. */}
           <BlurView
-            intensity={34}
+            intensity={glassBlur("row")}
             tint="light"
             experimentalBlurMethod="dimezisBlurView"
             style={[StyleSheet.absoluteFillObject, styles.rowBlur]}
@@ -235,7 +236,7 @@ export function SwipeableChatRow({ chat, state, statusLine, onOpen, onToggleMute
             style={[
               StyleSheet.absoluteFillObject,
               styles.rowTint,
-              { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.66)", glassOpacity) },
+              { backgroundColor: glassTint("row", glassOpacity) },
             ]}
           />
           <View style={styles.avatarWrap}>
