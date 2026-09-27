@@ -154,6 +154,13 @@ import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
 import { accountStateFrom, completeSignin, fetchNotices, fetchSession, markNoticesRead, reportEvents, requestEmailOtp, requestOtp, runGuardedAction, verifyCode, type MemberNotice, type RemoteAccount, type SigninChannel } from "@/lib/account-client";
+import {
+  cooldownSecondsFrom,
+  countdownIsActive,
+  describeResendFailure,
+  resendLabel,
+  resendStateAt,
+} from "@/lib/resend-countdown";
 import { isValidEmail } from "@/lib/email";
 import { blockedActionMessage, canAccount, describeRestriction, requiresAccountNotice } from "@/lib/account-access";
 import { addProfilePhoto, createInitialProfile, statusLabel, visibleStatus, type EditableProfile, type RequestAudience, type ViewerRelationship } from "@/lib/profile-details";
@@ -447,6 +454,18 @@ export default function TrufrenzApp() {
    * without the app ever holding the full address it should not display.
    */
   const [otpDestination, setOtpDestination] = useState("");
+  /** Which transport carried the code, so the copy can name it. */
+  const [sentTransport, setSentTransport] = useState<string | null>(null);
+  /**
+   * When the next code may be requested, as an absolute time.
+   *
+   * A deadline rather than a countdown value, because a decrementing counter
+   * drifts: timers pause when the app is backgrounded, and the member returns
+   * to a button claiming 30 seconds remain when the real wait is long over.
+   */
+  const [resendDeadline, setResendDeadline] = useState<number | null>(null);
+  /** Ticks once a second while a countdown is running, and then stops. */
+  const [resendTick, setResendTick] = useState(0);
   /** The signed-in account as the server reports it, including its status. */
   const [remoteAccount, setRemoteAccount] = useState<RemoteAccount | null>(null);
   /** Notices the safety team sent to this account (warnings, outcomes). */
@@ -1236,6 +1255,107 @@ export default function TrufrenzApp() {
     })();
   };
 
+  /**
+   * Request a sign-in code for the channel the member chose.
+   *
+   * Shared by the first request and the "send a new code" button, so the two
+   * cannot drift: a fix to one is a fix to both, and the rate-limit reply is
+   * turned into a countdown in exactly one place.
+   */
+  /**
+   * The countdown clock.
+   *
+   * Runs only while a wait is actually in progress, so an idle sign-in screen is
+   * not waking up once a second for nothing. The tick is a re-render trigger,
+   * not the source of truth: the display is derived from the deadline, so a
+   * paused or throttled timer can never make the number wrong.
+   */
+  useEffect(() => {
+    if (resendDeadline === null) return;
+    if (!countdownIsActive(resendStateAt(resendDeadline, Date.now()))) return;
+    const timer = setInterval(() => {
+      setResendTick((current) => current + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendDeadline, resendTick]);
+
+  /** Live countdown state, recomputed on every tick. */
+  const resendState = resendStateAt(resendDeadline, Date.now());
+
+  const requestNewCode = () => {
+    if (!resendState.canResend || authBusy) return;
+    tap();
+    void sendSigninCode({ isResend: true });
+  };
+
+  const sendSigninCode = async (options?: { isResend?: boolean }) => {
+    setAuthBusy(true);
+    // Each channel has its own route, because they have their own provider.
+    const result =
+      authChannel === "email"
+        ? await requestEmailOtp(email, authIntent)
+        : await requestOtp(phone, authIntent);
+    setAuthBusy(false);
+
+    if (!result.ok) {
+      /*
+       * A rate limit is not a failure, it is a wait — and the server already
+       * tells us exactly how long. Showing that as a refusal was the single
+       * most common dead end in the sign-in flow, so it becomes a countdown.
+       */
+      const described = describeResendFailure({
+        code: result.code,
+        error: result.error,
+        retryAfterSeconds: result.retryAfterSeconds,
+      });
+      if (described.cooldownSeconds > 0) {
+        setResendDeadline(Date.now() + described.cooldownSeconds * 1000);
+      }
+      feedback(
+        result.code === "account_not_found"
+          ? `No account uses that ${authChannel === "email" ? "email" : "number"} yet. Switch to Sign up to create one.`
+          : described.message,
+      );
+      return;
+    }
+
+    setOtpDestination(result.data.destination);
+    setSentTransport(result.data.transport ?? null);
+    setDemoCode(result.data.demoCode ?? null);
+    if (!options?.isResend) setAuthStep("code");
+
+    /*
+     * Arm the countdown from the server's own number. A client that invented its
+     * own window would drift from the rule it is trying to respect.
+     */
+    setResendDeadline(Date.now() + cooldownSecondsFrom(result.data.retryAfterSeconds) * 1000);
+
+    // Say exactly what happened. The old flow always claimed a code had been
+    // sent, even when no provider existed — which is how a member ended up
+    // typing a code that nothing would ever accept.
+    const channelWord = authChannel === "email" ? "email" : "SMS";
+    if (result.data.demoCode) {
+      feedback(`No ${channelWord} provider is connected yet, so here is your code: ${result.data.demoCode}`);
+    } else if (result.data.deliveryUnavailable) {
+      feedback(`Code delivery is not connected yet. Add a provider to receive codes by ${channelWord}.`);
+    } else if (options?.isResend) {
+      feedback(`Sent a new code. Only the newest one works.`);
+    } else {
+      /*
+       * Name the transport, because the member has to know where to look. A
+       * code sitting in WhatsApp while somebody refreshes their SMS inbox is
+       * indistinguishable from a code that never arrived.
+       */
+      const where =
+        authChannel === "email"
+          ? "emailed"
+          : result.data.transport === "whatsapp"
+            ? "sent on WhatsApp"
+            : "texted";
+      feedback(`We ${where} a code to ${result.data.destination}. It expires in 10 minutes.`);
+    }
+  };
+
   const continueAuth = () => {
     if (authStep === "phone") {
       // Validate whichever channel the member chose, and say so in the words of
@@ -1248,42 +1368,7 @@ export default function TrufrenzApp() {
         feedback("Enter a valid email address, like name@example.com");
         return;
       }
-      void (async () => {
-        setAuthBusy(true);
-        // Each channel has its own route, because they have their own provider.
-        const result =
-          authChannel === "email"
-            ? await requestEmailOtp(email, authIntent)
-            : await requestOtp(phone, authIntent);
-        setAuthBusy(false);
-        if (!result.ok) {
-          feedback(
-            result.code === "account_not_found"
-              ? `No account uses that ${authChannel === "email" ? "email" : "number"} yet. Switch to Sign up to create one.`
-              : result.error,
-          );
-          return;
-        }
-
-        setOtpDestination(result.data.destination);
-        setDemoCode(result.data.demoCode ?? null);
-        setAuthStep("code");
-
-        // Say exactly what happened. The old flow always claimed a code had been
-        // sent, even when no provider existed — which is how a member ended up
-        // typing a code that nothing would ever accept.
-        if (result.data.demoCode) {
-          feedback(`No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so here is your code: ${result.data.demoCode}`);
-        } else if (result.data.deliveryUnavailable) {
-          feedback(`Code delivery is not connected yet. Add a provider to receive codes by ${authChannel === "email" ? "email" : "SMS"}.`);
-        } else {
-          feedback(
-            authChannel === "email"
-              ? `We emailed a code to ${result.data.destination}. It expires in 10 minutes.`
-              : `We sent a code to ${result.data.destination}. It expires in 10 minutes.`,
-          );
-        }
-      })();
+      void sendSigninCode();
       return;
     }
     if (authStep === "code") {
@@ -2551,7 +2636,7 @@ export default function TrufrenzApp() {
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : `STEP 1 OF 4 · ${authChannel === "email" ? "EMAIL" : "PHONE"}`) : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
-              <Text style={styles.modalSubtitle}>{authStep === "phone" ? authChannel === "email" ? "Email verification is required. Your address is used for account recovery, never shown on your profile." : "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so your code is ${demoCode}. A live build sends this by ${authChannel === "email" ? "email" : "SMS"}.` : authChannel === "email" ? `We emailed a 6-digit code to ${otpDestination || email || "your address"}. It expires in 10 minutes.` : `We sent a 6-digit code to ${otpDestination || phone || "your phone"}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
+              <Text style={styles.modalSubtitle}>{authStep === "phone" ? authChannel === "email" ? "Email verification is required. Your address is used for account recovery, never shown on your profile." : "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so your code is ${demoCode}. A live build sends this by ${authChannel === "email" ? "email" : "SMS"}.`  : authChannel === "email" ? `We emailed a 6-digit code to ${otpDestination || email || "your address"}. It expires in 10 minutes.` : `We sent a 6-digit code to ${otpDestination || phone || "your phone"}${sentTransport === "whatsapp" ? " on WhatsApp" : ""}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
               {authStep === "phone" ? <><View style={styles.channelRow}>
                 <Pressable onPress={() => { setAuthChannel("phone"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "phone" && styles.channelButtonActive]}>
                   <Icon name="smartphone" size={15} color={authChannel === "phone" ? "#4A4210" : "#7A8FA0"} />
@@ -2563,7 +2648,26 @@ export default function TrufrenzApp() {
                 </Pressable>
               </View>
               {authChannel === "email" ? <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL ADDRESS · REQUIRED</Text><TextInput value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View>}<Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#7690A1" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
-              {authStep === "code" ? <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#a7a6a1" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View> : null}
+              {authStep === "code" ? <>
+                <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#a7a6a1" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View>
+                {/*
+                  The way out of a missing code.
+
+                  Without this the only recourse was to go back and re-enter the
+                  address, which spends the challenge and makes a member feel
+                  they have broken something. Twenty seconds is a normal wait on
+                  a slow SMS; a screen with no way forward is what causes people
+                  to give up.
+                */}
+                <View style={styles.resendRow}>
+                  <Text style={styles.resendPrompt}>{resendState.canResend ? "Didn't get it?" : "New code ready in"}</Text>
+                  <Pressable onPress={requestNewCode} disabled={!resendState.canResend || authBusy} accessibilityRole="button" accessibilityLabel={resendLabel(resendState)} accessibilityState={{ disabled: !resendState.canResend }} style={({ pressed }) => [styles.resendButton, !resendState.canResend && styles.resendButtonDisabled, pressed && resendState.canResend && styles.pressed]}>
+                    <Icon name={resendState.canResend ? "refresh" : "schedule"} size={13} color={resendState.canResend ? "#83721f" : "#8D9AA5"} />
+                    <Text style={[styles.resendButtonText, !resendState.canResend && styles.resendButtonTextDisabled]}>{resendLabel(resendState)}</Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.resendHint}>Only the newest code works. Codes expire 10 minutes after they are sent.</Text>
+              </> : null}
               {authStep === "profile" ? <>
                 <View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={(value) => { setFullName(value); setProfileErrors((current) => ({ ...current, name: undefined })); }} placeholder="What do people call you?" placeholderTextColor="#a7a6a1" style={styles.fieldInput} returnKeyType="done" /></View>
                 {profileErrors.name ? <Text style={styles.fieldError}>{profileErrors.name}</Text> : null}
@@ -3051,6 +3155,23 @@ const styles = StyleSheet.create({
   formField: { marginBottom: 15 },
   fieldLabel: { fontSize: 8, color: "#939089", letterSpacing: 0.8, fontWeight: "700", marginBottom: 6 },
   fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(220, 214, 189, 0.72)", backgroundColor: "rgba(241, 246, 252, 0.36)", color: "#4b4a44", fontSize: 12 },
+  resendRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 },
+  resendPrompt: { fontSize: 12.5, color: "#6F6B60" },
+  resendButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(131, 114, 31, 0.35)",
+    backgroundColor: "rgba(247, 240, 205, 0.55)",
+  },
+  resendButtonDisabled: { borderColor: "rgba(141, 154, 165, 0.28)", backgroundColor: "rgba(237, 240, 243, 0.55)" },
+  resendButtonText: { fontSize: 12.5, fontWeight: "700", color: "#83721f" },
+  resendButtonTextDisabled: { color: "#8D9AA5" },
+  resendHint: { fontSize: 11, lineHeight: 15, color: "#9b988f", marginTop: -2 },
   codeInput: { letterSpacing: 9, fontSize: 19, fontWeight: "700", textAlign: "center" },
   interestOptions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
   interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: "rgba(255, 255, 255, 0.67)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },

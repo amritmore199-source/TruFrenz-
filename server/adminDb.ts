@@ -5,7 +5,7 @@
  * dashboard renders an explanatory empty state instead of crashing.
  */
 
-import { and, asc, count, desc, eq, gte, like, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import {
   adminAccounts,
@@ -44,6 +44,19 @@ import { deliverBroadcast, revokeMemberSessions, sendMemberNotice } from "./acco
  * screen and flags them as needing replacement before any real deployment.
  */
 export const DEMO_ADMIN_EMAIL = "safety@trufrenz.net";
+
+/**
+ * Addresses the seeded demo account used before the domain was settled.
+ *
+ * The demo account is created once, on the first boot against an empty
+ * database. Changing `DEMO_ADMIN_EMAIL` afterwards therefore does nothing on an
+ * install that has already been seeded, and the login page went on advertising
+ * `safety@trufrenz.net` while the account could only be reached at the old
+ * address — the hinted credentials simply failed with "invalid email or
+ * password". Reconciling these exact addresses keeps the hint true without
+ * touching any account a human enrolled.
+ */
+const LEGACY_DEMO_ADMIN_EMAILS = ["safety@trufrenz.app"];
 export const DEMO_ADMIN_PASSWORD = "Trufrenz#Safety2026";
 export const DEMO_ADMIN_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 /** Fixed salt keeps the seeded hash stable across restarts. */
@@ -950,9 +963,51 @@ async function seedDemoEvents(memberIds: number[]) {
   if (rows.length > 0) await db.insert(analyticsEvents).values(rows);
 }
 
+/**
+ * Move the demo admin to the current address if it is still on a legacy one.
+ *
+ * Deliberately narrow. It matches only the addresses this repo has itself
+ * seeded, so an account that a person enrolled — or an address an attacker
+ * created — is never renamed. It also refuses to act when the current address
+ * is already taken, which would otherwise be a unique-constraint crash on boot.
+ */
+async function reconcileDemoAdminEmail(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<void> {
+  const legacy = await db
+    .select({ id: adminAccounts.id, email: adminAccounts.email })
+    .from(adminAccounts)
+    .where(inArray(adminAccounts.email, LEGACY_DEMO_ADMIN_EMAILS));
+
+  if (legacy.length === 0) return;
+
+  const alreadyCurrent = await db
+    .select({ id: adminAccounts.id })
+    .from(adminAccounts)
+    .where(eq(adminAccounts.email, DEMO_ADMIN_EMAIL))
+    .limit(1);
+
+  if (alreadyCurrent.length > 0) {
+    // Two rows claiming the same account is worse than a stale address, so
+    // leave it for a human rather than guessing which one to retire.
+    console.warn(
+      `[admin] both ${DEMO_ADMIN_EMAIL} and a legacy demo address exist; leaving them alone`,
+    );
+    return;
+  }
+
+  for (const row of legacy) {
+    await db
+      .update(adminAccounts)
+      .set({ email: DEMO_ADMIN_EMAIL })
+      .where(eq(adminAccounts.id, row.id));
+    console.log(`[admin] demo admin moved from ${row.email} to ${DEMO_ADMIN_EMAIL}`);
+  }
+}
+
 export async function seedAdminDemoData(): Promise<{ seeded: boolean }> {
   const db = await getDb();
   if (!db) return { seeded: false };
+
+  await reconcileDemoAdminEmail(db);
 
   const existing = await db.select({ value: count() }).from(members);
   if (Number(existing[0]?.value ?? 0) > 0) {

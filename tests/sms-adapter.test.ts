@@ -17,6 +17,10 @@ const KEYS = [
   "SMS_DLT_TEMPLATE_ID",
   "SMS_TWILIO_ACCOUNT_SID",
   "SMS_TWILIO_MESSAGING_SERVICE_SID",
+  "SMS_WHATSAPP_PHONE_NUMBER_ID",
+  "SMS_WHATSAPP_TEMPLATE_NAME",
+  "SMS_WHATSAPP_TEMPLATE_LANGUAGE",
+  "SMS_WHATSAPP_API_VERSION",
 ] as const;
 
 const saved: Record<string, string | undefined> = {};
@@ -244,5 +248,161 @@ describe("smsTransportSummary", () => {
   it("flags a missing DLT template", () => {
     setEnv({ SMS_PROVIDER_KEY: "key", SMS_SENDER_ID: "TRFRNZ" });
     expect(smsTransportSummary().dltTemplate).toBe(false);
+  });
+});
+
+describe("whatsapp as a transport", () => {
+  const WA = {
+    SMS_PROVIDER: "whatsapp",
+    SMS_PROVIDER_KEY: "token",
+    SMS_WHATSAPP_PHONE_NUMBER_ID: "105954558954427",
+    SMS_WHATSAPP_TEMPLATE_NAME: "trufrenz_code",
+  };
+
+  it("is selected by name", () => {
+    setEnv({ ...WA });
+    expect(smsProviderName()).toBe("whatsapp");
+  });
+
+  it("needs the template name, not just a token", () => {
+    /*
+     * WhatsApp refuses to deliver a template it has not approved, so a
+     * deployment with a token and a phone number id but no approved template
+     * would report the channel ready and then fail every single send. Treating
+     * the name as required is what keeps readiness honest.
+     */
+    setEnv({ ...WA, SMS_WHATSAPP_TEMPLATE_NAME: undefined as unknown as string });
+    delete process.env.SMS_WHATSAPP_TEMPLATE_NAME;
+    expect(smsConfigured()).toBe(false);
+
+    setEnv({ ...WA, SMS_WHATSAPP_PHONE_NUMBER_ID: undefined as unknown as string });
+    delete process.env.SMS_WHATSAPP_PHONE_NUMBER_ID;
+    expect(smsConfigured()).toBe(false);
+
+    setEnv({ ...WA });
+    expect(smsConfigured()).toBe(true);
+  });
+
+  it("sends the code in both places Meta requires", async () => {
+    setEnv({ ...WA });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messages: [{ id: "wamid.ABC" }] }), { status: 200 }),
+    );
+
+    const outcome = await sendSigninSms("+919812345678", "123456");
+    expect(outcome).toEqual({ sent: true, provider: "whatsapp", messageId: "wamid.ABC" });
+
+    const [url, init] = fetchSpy.mock.calls[0] ?? [];
+    expect(String(url)).toBe(
+      "https://graph.facebook.com/v22.0/105954558954427/messages",
+    );
+
+    const payload = JSON.parse(String(init?.body)) as {
+      to: string;
+      template: { name: string; components: Array<{ parameters?: Array<{ text: string }> }> };
+    };
+
+    // Digits only: Meta rejects a leading plus.
+    expect(payload.to).toBe("919812345678");
+    expect(payload.template.name).toBe("trufrenz_code");
+
+    // The code must appear in the body AND the button parameters. A message
+    // with only the body delivers a copy button that copies nothing.
+    expect(payload.template.components).toHaveLength(2);
+    expect(payload.template.components[0]?.parameters?.[0]?.text).toBe("123456");
+    expect(payload.template.components[1]?.parameters?.[0]?.text).toBe("123456");
+  });
+
+  it("uses the button sub-type Meta actually accepts", async () => {
+    // WhatsApp converts an OTP button to a URL button at template creation, so
+    // sending "button" here is rejected even though it reads more naturally.
+    setEnv({ ...WA });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messages: [{ id: "wamid.ABC" }] }), { status: 200 }),
+    );
+
+    await sendSigninSms("+919812345678", "123456");
+    const payload = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body)) as {
+      template: { components: Array<{ type: string; sub_type?: string; index?: string }> };
+    };
+    const button = payload.template.components[1];
+    expect(button?.type).toBe("button");
+    expect(button?.sub_type).toBe("url");
+    expect(button?.index).toBe("0");
+  });
+
+  it("honours a pinned API version so upgrades are deliberate", async () => {
+    setEnv({ ...WA, SMS_WHATSAPP_API_VERSION: "v26.0" });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messages: [] }), { status: 200 }),
+    );
+
+    await sendSigninSms("+919812345678", "123456");
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain("/v26.0/");
+  });
+
+  it("still reports success when the response has no id", async () => {
+    // Meta accepted the send; the id is only useful for tracking.
+    setEnv({ ...WA });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
+
+    const outcome = await sendSigninSms("+919812345678", "123456");
+    expect(outcome.sent).toBe(true);
+    if (!outcome.sent) return;
+    expect(outcome.messageId).toBeUndefined();
+  });
+
+  it("reports a refusal instead of claiming delivery", async () => {
+    setEnv({ ...WA });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response('{"error":{"message":"Template not found"}}', { status: 400 }),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const outcome = await sendSigninSms("+919812345678", "123456");
+    expect(outcome.sent).toBe(false);
+    if (outcome.sent) return;
+    expect(outcome.reason).toContain("400");
+  });
+
+  it("never writes the code to a log", async () => {
+    setEnv({ ...WA });
+    // The error body echoes the message that was refused, and the message holds
+    // the code. A code in a log is a code in a log permanently.
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response('{"error":{"message":"refused 123456"}}', { status: 400 }),
+    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await sendSigninSms("+919812345678", "123456");
+    const logged = errorSpy.mock.calls.flat().join(" ");
+    expect(logged).not.toContain("123456");
+  });
+
+  it("names the template in readiness so a missing one is visible", () => {
+    setEnv({ ...WA });
+    const summary = smsTransportSummary();
+    expect(summary.provider).toBe("whatsapp");
+    expect(summary.whatsappTemplate).toBe("trufrenz_code");
+    // Presence only; the token must never appear.
+    expect(JSON.stringify(summary)).not.toContain("token");
+  });
+
+  it("does not report a whatsapp template when another transport is in use", () => {
+    setEnv({ SMS_PROVIDER_KEY: "key", SMS_DLT_TEMPLATE_ID: "tpl", SMS_WHATSAPP_TEMPLATE_NAME: "x" });
+    expect(smsTransportSummary().whatsappTemplate).toBeNull();
+  });
+});
+
+describe("the transport's own fallback rule", () => {
+  it("still masks numbers in a whatsapp failure", () => {
+    expect(redactSmsCode("failed for 123456")).toBe("failed for ••••••");
+  });
+
+  it("keeps the same DLT-matching SMS body untouched", () => {
+    // The SMS body must stay in step with the DLT-approved template, so it is
+    // asserted here to stop an unrelated edit from silently breaking SMS.
+    expect(signinCodeSms("123456")).toContain("123456");
+    expect(signinCodeSms("123456")).toContain("TRFRNZ");
   });
 });

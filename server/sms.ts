@@ -8,12 +8,28 @@
  * single POST with a JSON or form body, so a dependency would add supply-chain
  * surface and an install step for no capability.
  *
+ * ## WhatsApp is a transport here, not a destination
+ *
+ * WhatsApp codes go to a phone number, the same number SMS would use. So it is
+ * a third adapter in this file rather than a third channel in the data model:
+ * no extra column, no second unique index, and the challenge machinery is
+ * untouched. Adding it as its own channel would have been more code and a
+ * migration for no extra capability.
+ *
  * ## India, and the part that is not code
  *
  * TRAI requires DLT registration before any transactional SMS on a domestic
  * route: entity, then a six-character sender ID (the name recipients see), then
  * the exact message template. Until the template is approved, a domestic send
  * is rejected by the carrier no matter how correct this file is.
+ *
+ * WhatsApp needs no DLT registration at all, which is why it is worth having
+ * configured as an option: Meta approves an authentication template instead,
+ * it reaches roughly every smartphone in India, and at the time of writing an
+ * authentication message to India costs a fraction of an SMS. It is not a drop
+ * in replacement for SMS, though — a member without WhatsApp, or without the
+ * number registered to WhatsApp, receives nothing. SMS remains the fallback for
+ * exactly those people.
  *
  * Two consequences worth knowing before choosing a provider:
  *
@@ -28,7 +44,7 @@
 import { maskPhone } from "./accountService";
 import type { DeliveryOutcome } from "./mailer";
 
-export type SmsProvider = "msg91" | "twilio" | "log" | "none";
+export type SmsProvider = "msg91" | "twilio" | "whatsapp" | "log" | "none";
 
 /**
  * Whether SMS is configured well enough to attempt a send.
@@ -49,6 +65,19 @@ export function smsConfigured(): boolean {
         (process.env.SMS_SENDER_ID || process.env.SMS_TWILIO_MESSAGING_SERVICE_SID),
     );
   }
+  if (provider === "whatsapp") {
+    /*
+     * Three values, and the template name is one of them on purpose: WhatsApp
+     * will not deliver an unapproved template, so a deployment that has a token
+     * and a phone number id but never got its template approved would otherwise
+     * report the channel ready and fail on every send.
+     */
+    return Boolean(
+      process.env.SMS_PROVIDER_KEY &&
+        process.env.SMS_WHATSAPP_PHONE_NUMBER_ID &&
+        process.env.SMS_WHATSAPP_TEMPLATE_NAME,
+    );
+  }
   return false;
 }
 
@@ -63,6 +92,7 @@ export function smsProviderName(): SmsProvider {
   const named = (process.env.SMS_PROVIDER ?? "msg91").trim().toLowerCase();
   if (named === "log") return process.env.SMS_PROVIDER_KEY ? "log" : "none";
   if (named === "twilio") return "twilio";
+  if (named === "whatsapp") return "whatsapp";
   return "msg91";
 }
 
@@ -165,6 +195,99 @@ async function sendWithTwilio(phoneE164: string, code: string): Promise<Delivery
 }
 
 /**
+ * Which Graph API version to call.
+ *
+ * Meta ships breaking changes between versions, so this is pinned rather than
+ * floated: an unannounced upgrade should never be the reason sign-in breaks.
+ *
+ * Read inside the call rather than at import, so it is part of the same
+ * configuration surface as the rest of this adapter instead of a value frozen
+ * the moment the module loaded.
+ */
+function whatsappApiVersion(): string {
+  return process.env.SMS_WHATSAPP_API_VERSION ?? "v22.0";
+}
+
+/**
+ * WhatsApp's Cloud API, sending an approved authentication template.
+ *
+ * Three details are load-bearing and each one caused a real failure for
+ * somebody:
+ *
+ *   1. **The code appears twice in the payload** — once in the body, once in
+ *      the button parameters. Meta documents this explicitly. Omitting the
+ *      button copy delivers a message with a copy button that copies nothing.
+ *   2. **A 200 does not mean delivered.** Meta accepts a send and reports the
+ *      problem asynchronously through webhooks. So success here means "Meta
+ *      accepted it", which is the same standard the email adapter holds, and
+ *      the admin readiness surface is where real delivery is checked.
+ *   3. **The number goes without a leading plus.** Meta expects digits only;
+ *      a "+" is rejected.
+ */
+async function sendWithWhatsApp(phoneE164: string, code: string): Promise<DeliveryOutcome> {
+  const token = process.env.SMS_PROVIDER_KEY as string;
+  const phoneNumberId = process.env.SMS_WHATSAPP_PHONE_NUMBER_ID as string;
+  const templateName = process.env.SMS_WHATSAPP_TEMPLATE_NAME as string;
+  const language = process.env.SMS_WHATSAPP_TEMPLATE_LANGUAGE ?? "en_US";
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/${whatsappApiVersion()}/${phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          // Digits only. Meta rejects a leading plus.
+          to: phoneE164.replace(/^\+/, ""),
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: language },
+            components: [
+              {
+                type: "body",
+                parameters: [{ type: "text", text: code }],
+              },
+              {
+                /*
+                 * Sub-type "url", not "button": WhatsApp converts an OTP button
+                 * to a URL button at template creation, which Meta's own docs
+                 * note is surprising but expected.
+                 */
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [{ type: "text", text: code }],
+              },
+            ],
+          },
+        }),
+      },
+    );
+
+    const body = await response.text().catch(() => "");
+    if (!response.ok) {
+      const reason = describeSmsFailure(response.status, body);
+      console.error(`[sms] whatsapp refused a send to ${maskPhone(phoneE164)} — ${reason}`);
+      return { sent: false, provider: "whatsapp", reason };
+    }
+
+    const parsed = safeJson(body);
+    const messages = Array.isArray(parsed?.messages) ? parsed.messages : [];
+    const first = messages[0] as Record<string, unknown> | undefined;
+    return { sent: true, provider: "whatsapp", messageId: asId(first?.id) };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "send failed";
+    console.error(
+      `[sms] whatsapp unreachable sending to ${maskPhone(phoneE164)} — ${redactSmsCode(reason)}`,
+    );
+    return { sent: false, provider: "whatsapp", reason: redactSmsCode(reason) };
+  }
+}
+
+/**
  * A local-only adapter that prints instead of sending.
  *
  * Selected with `SMS_PROVIDER=log`. It prints the number masked and the message
@@ -187,7 +310,9 @@ export async function sendSigninSms(phoneE164: string, code: string): Promise<De
     return { sent: false, provider, reason: "missing destination" };
   }
   if (provider === "log") return sendWithLog(phoneE164, code);
-  return provider === "twilio" ? sendWithTwilio(phoneE164, code) : sendWithMsg91(phoneE164, code);
+  if (provider === "twilio") return sendWithTwilio(phoneE164, code);
+  if (provider === "whatsapp") return sendWithWhatsApp(phoneE164, code);
+  return sendWithMsg91(phoneE164, code);
 }
 
 /* ------------------------------------------------------------------ */
@@ -236,15 +361,30 @@ export function describeSmsFailure(status: number, body: string): string {
  */
 export function smsTransportSummary(): {
   configured: boolean;
-  provider: SmsProvider;
+  /** Null when nothing is configured; never the send path's fallback default. */
+  provider: SmsProvider | null;
   senderId: string | null;
   /** Whether a DLT template id is present, which a domestic route requires. */
   dltTemplate: boolean;
+  /** The approved WhatsApp template name, or null when not on that transport. */
+  whatsappTemplate: string | null;
 } {
+  const configured = smsConfigured();
+  const provider = smsProviderName();
   return {
-    configured: smsConfigured(),
-    provider: smsProviderName(),
+    configured,
+    /**
+     * The provider that would carry a code, or null when none is set up.
+     *
+     * `smsProviderName` falls back to a default so the send path always has
+     * something to call. Reporting that default as the configured provider put
+     * "msg91" on an unconfigured dashboard card and on the code response, which
+     * reads as "SMS is working" to whoever is looking. Null is the truth.
+     */
+    provider: configured ? provider : null,
     senderId: process.env.SMS_SENDER_ID ? process.env.SMS_SENDER_ID.trim() : null,
     dltTemplate: Boolean(process.env.SMS_DLT_TEMPLATE_ID),
+    whatsappTemplate:
+      provider === "whatsapp" ? (process.env.SMS_WHATSAPP_TEMPLATE_NAME ?? null) : null,
   };
 }

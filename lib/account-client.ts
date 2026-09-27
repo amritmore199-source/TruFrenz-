@@ -127,6 +127,21 @@ export type CodeRequestResult = {
   delivery: SigninChannel | "demo" | "unavailable";
   /** Set when a configured channel could not deliver. */
   deliveryUnavailable?: boolean;
+  /**
+   * How long until another code may be requested.
+   *
+   * Sent on success so the app can count its "send a new code" button down for
+   * exactly the window the server will enforce.
+   */
+  retryAfterSeconds?: number;
+  /**
+   * Which transport carried the code: "email", "whatsapp", "msg91", "twilio".
+   *
+   * Destroyed down to a transport name rather than a provider name the member
+   * would not recognise — "WhatsApp" and "text message" are the words that mean
+   * something to them.
+   */
+  transport?: string;
 };
 
 export async function requestOtp(phone: string, purpose: "signup" | "login") {

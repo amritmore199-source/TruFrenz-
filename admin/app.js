@@ -1326,8 +1326,10 @@
         "SMS",
         sms.configured,
         sms.configured
-          ? `Provider: ${sms.provider}${sms.senderId ? ` · sender id ${sms.senderId}` : ""}${sms.dltTemplate ? " · DLT template set" : " · no DLT template id"}`
-          : "Set SMS_PROVIDER_KEY plus a sender and, for an Indian domestic route, an approved DLT template id. The international route works without DLT but arrives from a random short code.",
+          ? `Transport: ${sms.provider}${sms.senderId ? ` · sender id ${sms.senderId}` : ""}${
+              sms.whatsappTemplate ? ` · template ${sms.whatsappTemplate}` : ""
+            }${sms.provider !== "whatsapp" && !sms.dltTemplate ? " · no DLT template id" : ""}`
+          : "WhatsApp is the simplest live option: set SMS_PROVIDER=whatsapp with a Meta token, the business phone number id, and an approved authentication template name — no DLT registration needed. For Indian SMS, set SMS_PROVIDER_KEY plus a sender and an approved DLT template id; the international route works without DLT but arrives from a random short code.",
       ),
     );
 

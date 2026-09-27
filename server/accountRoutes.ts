@@ -21,7 +21,13 @@ import * as challenges from "./challengeStore";
 import { sendSigninCode, emailConfigured } from "./mailer";
 import { sendSigninSms, smsTransportSummary } from "./sms";
 import * as otpGuard from "./otpGuard";
-import { decideSend, decideVerify, describeWait, summariseSends } from "../lib/otp-limits";
+import {
+  RESEND_COOLDOWN_MS,
+  decideSend,
+  decideVerify,
+  describeWait,
+  summariseSends,
+} from "../lib/otp-limits";
 import { memberSessions, members, verificationSubmissions } from "../drizzle/schema";
 import { canAccount, type AccountCapability } from "../lib/account-access";
 import { isAnalyticsEventType } from "../lib/analytics-events";
@@ -345,6 +351,32 @@ export function registerAccountRoutes(app: Express) {
        * ever satisfy.
        */
       deliveryUnavailable: !deliverable && !revealCode,
+      /**
+       * How long until another code may be requested.
+       *
+       * Sent on success as well as on refusal, because the app disables its
+       * "send a new code" button for exactly this long. Without it the client
+       * would have to invent a window, and would either block a request the
+       * server would have accepted or invite one it would have refused.
+       */
+      retryAfterSeconds: Math.ceil(RESEND_COOLDOWN_MS / 1000),
+      /**
+       * Which transport actually carried the code, or null when none did.
+       *
+       * The app names it back to the member, because "we sent a code" when the
+       * message went to WhatsApp reads as a failure to somebody watching their
+       * SMS inbox.
+       *
+       * Null when nothing was sent. `smsProviderName` reports the *default*
+       * provider when nothing is configured, so returning it unconditionally
+       * would have the server claim a "msg91" delivery on a deployment whose
+       * only proof of sending is a code shown on screen.
+       */
+      transport: !deliverable
+        ? null
+        : input.channel === "email"
+          ? "email"
+          : smsTransportSummary().provider,
     });
   };
 

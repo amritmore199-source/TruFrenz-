@@ -230,7 +230,54 @@ Four variables, and any provider that offers SMTP works:
 | `SMTP_PASS` | your password | Falls back to `EMAIL_PROVIDER_KEY` if unset |
 | `SMTP_SECURE` | `true` | Only needed to force TLS on a non-465 port |
 
-## 4. Turning SMS on
+## 4. Turning on phone codes
+
+Three transports can carry a phone code. They are adapters in one file
+(`server/sms.ts`), because all three deliver to the same phone number that is
+already in the data model — no extra column, no migration.
+
+| Transport | `SMS_PROVIDER` | Registration needed | Notes |
+|---|---|---|---|
+| **WhatsApp** | `whatsapp` | Meta approves a template | No DLT. Cheapest. Recommended first |
+| MSG91 | `msg91` | DLT: entity, header, template | The familiar Indian SMS route |
+| Twilio | `twilio` | None for the international route | Arrives from a random short code |
+
+### 4a. WhatsApp (recommended — no DLT registration)
+
+This is the shortest path to real codes in India, and the cheapest. WhatsApp
+needs no DLT paperwork at all: Meta approves an authentication template instead.
+
+1. Create a Meta app at [developers.facebook.com](https://developers.facebook.com)
+   with the **WhatsApp** product, and note the **phone number id** from the API
+   setup panel.
+2. Create an **authentication** template. Two details matter:
+   - Category must be `authentication`. Any other category is rejected for OTPs.
+   - Add a **copy code** button. Meta converts it to a URL button internally —
+     that is expected, not a mistake.
+   The body text is fixed by Meta and cannot be customised.
+3. Wait for approval (usually minutes to a few hours).
+4. Set:
+
+   | Variable | Example |
+   |---|---|---|
+   | `SMS_PROVIDER` | `whatsapp` |
+   | `SMS_PROVIDER_KEY` | your permanent access token |
+   | `SMS_WHATSAPP_PHONE_NUMBER_ID` | `105954558954427` |
+   | `SMS_WHATSAPP_TEMPLATE_NAME` | `trufrenz_code` |
+   | `SMS_WHATSAPP_TEMPLATE_LANGUAGE` | `en_US` (optional) |
+
+> ### Two things that will bite you
+> **The template name is part of the readiness check on purpose.** Meta refuses
+> to deliver a template it has not approved, so a token and phone number id
+> without an approved template would report the channel ready and then fail
+> every single send. Configured means all three values are present.
+>
+> **A 200 response means Meta accepted the send, not that the message arrived.**
+> Real delivery is reported asynchronously through webhooks. The admin dashboard
+> reports configuration, never "working" — check Meta's own message logs for
+> delivery.
+
+### 4b. SMS (MSG91, or Twilio for testing)
 
 1. Choose a provider. For India: MSG91, Kaleyra, or Gupshup (all handle DLT).
    Twilio for the international route.
@@ -239,16 +286,36 @@ Four variables, and any provider that offers SMTP works:
 
    | Variable | Example |
    |---|---|---|
+   | `SMS_PROVIDER` | `msg91` / `twilio` |
    | `SMS_PROVIDER_KEY` | your provider key |
    | `SMS_SENDER_ID` | `TRFRNZ` |
-   | `SMS_PROVIDER` | `msg91` / `twilio` |
+   | `SMS_DLT_TEMPLATE_ID` | your approved template id (MSG91) |
 
-> ### Read this before setting `SMS_PROVIDER_KEY`
-> In the code you are running today that variable only decides whether
-> `demoCode` is returned. Setting it **without** adding sending code stops the
-> code being returned *and* sends nothing — the flow breaks completely instead
-> of staying incomplete. The SMS adapter is not yet written; email is. Set the
-> key only when that adapter lands.
+> **The SMS body must match your DLT template character for character** apart
+> from the code slot. The body is built in one place
+> (`signinCodeSms` in `server/sms.ts`) so the two cannot drift apart, but if you
+> change the wording there you must change the template too, or the carrier
+> rejects the message.
+
+### 4c. Why WhatsApp instead of SMS
+
+WhatsApp OTP is available in India and is not subject to DLT. Two practical
+consequences:
+
+- **Cost.** An authentication message to India is a fraction of an SMS at the
+  time of writing. Verify current rates before budgeting.
+- **Reach.** Roughly every smartphone in India has WhatsApp installed.
+
+It is not a drop-in replacement. A member without WhatsApp — or whose number is
+not registered to it — receives nothing. **Keep SMS configured as a fallback for
+exactly those people**; the transport is selected by `SMS_PROVIDER`, so switching
+is one environment variable.
+
+### 4d. Testing without a provider
+
+Leave the provider unset in development and the code is shown on screen, clearly
+labelled as a prototype. There is no way to accidentally see a code in
+production (`OTP_ALLOW_DEMO` defaults off outside development).
 
 ---
 
@@ -268,22 +335,45 @@ leaks a code by default.
 
 ---
 
+## 5a. A note on the admin console's demo account
+
+Signing into the internal dashboard with the credentials printed on its own
+login page used to fail. The demo account is created once, on the first boot
+against an empty database, so when the domain moved from `trufrenz.app` to
+`trufrenz.net` the login hint changed but the existing account did not. The page
+advertised an address that no row answered to, and the error was the deliberately
+generic "those credentials were not accepted" — so it read as a wrong password
+rather than a stale address.
+
+The seed now reconciles the demo account to the current address on every boot,
+matching only the addresses this repository has itself seeded. An account a
+person enrolled is never renamed, and if the current address is already taken the
+reconciler leaves both alone and logs a warning rather than crashing on the
+unique constraint. `tests/admin-demo-credentials.test.ts` keeps the login page
+and the seed from drifting apart again.
+
+---
+
 ## 6. Before you go live
 
 These are the remaining gaps, in the order I would close them.
 
-1. **Rate-limit `request-email-otp` and `request-otp`.** Currently unlimited.
-   Unlimited sends let an attacker run up your SMS bill (SMS pumping) or use you
-   to harass a third party. This is the most important remaining item.
-2. **Cap resends per destination** — e.g. 3 per hour, plus a cooldown. Add a
-   per-IP limit too.
-3. **Handle bounces and complaints.** The webhook sets `members.emailBouncedAt`
+1. **Connect a provider for at least one channel.** Until then, codes are shown
+   on screen rather than sent. WhatsApp is the shortest path (section 4a).
+2. **Handle bounces and complaints.** The webhook sets `members.emailBouncedAt`
    (column added, wiring pending) and stops mailing a dead address.
+3. **Add WhatsApp delivery webhooks** if you want delivery receipts rather than
+   only Meta's own logs. The Cloud API reports delivery asynchronously.
 4. **Consider Redis.** MySQL works and survives restarts, but Redis gives you
    native TTL expiry and cheaper writes under load. The store is one file
    (`server/challengeStore.ts`), so this is a contained change.
 5. **Add email as a second factor** once the address is verified — the column is
    already there.
+
+Sending limits are already in place: 3 codes per number per hour and 6 per day,
+10 per device per hour, a 60-second cooldown between requests, and a 15-minute
+lock after ten wrong codes. A refused request sends nothing and costs nothing, so
+a provider outage cannot burn a member's allowance.
 
 ---
 
@@ -293,9 +383,15 @@ These are the remaining gaps, in the order I would close them.
 |---|---|
 | `lib/email.ts` | Address normalising, validation, masking — shared by server and app |
 | `server/challengeStore.ts` | Issue, verify, consume, expire. Codes hashed, never stored raw |
-| `server/mailer.ts` | Provider adapter, message bodies, logging that never leaks a code |
+| `server/mailer.ts` | Email adapters (Resend, SendGrid, SMTP, ZeptoMail), logging that never leaks a code |
+| `server/sms.ts` | Phone transports: WhatsApp Cloud API, MSG91, Twilio, and the local log adapter |
+| `lib/otp-limits.ts` | The sending rules, kept pure so they are testable without a database |
+| `lib/resend-countdown.ts` | The "send a new code" countdown and how a rate limit is described |
 | `server/accountRoutes.ts` | The four routes: request by phone, request by email, verify, complete |
-| `tests/otp-signin.test.ts` | 23 tests over the rules above |
+| `tests/otp-signin.test.ts` | The challenge, email and verification rules |
+| `tests/otp-limits.test.ts` | The rate-limit rules at their boundaries |
+| `tests/resend-countdown.test.ts` | The countdown, its clock-skew handling, and the transport naming rule |
+| `tests/sms-adapter.test.ts` | Every phone transport, including the WhatsApp payload shape |
 
 ---
 
@@ -335,12 +431,18 @@ answered without reading server logs.
 
 Stated plainly so nothing here is overclaimed:
 
-- **No SMS adapter exists.** The email adapter is written and tested; SMS needs
-  the same treatment once you pick a provider.
+- **All three phone transports are written and tested, but none is configured.**
+  WhatsApp, MSG91 and Twilio each have an adapter with tests over their request
+  shapes; readiness reports all three as `not configured`.
 - **Nothing has been sent to a real inbox or handset.** No provider key is
-  configured, so every test above ran in demo mode against the real code path.
-- **DLT registration has not been started.** That is 2–4 business days of your
-  time plus the entity paperwork.
-- **Rate limiting is not implemented** (see §6).
+  configured, so every test ran in demo mode against the real code path. The
+  countdown, the rate limits and the resend flow were driven end to end in the
+  browser, but the message itself has never left the sandbox.
+- **WhatsApp needs a Meta-approved authentication template** before it will
+  deliver. Until the template name is set, the transport reports not configured
+  by design rather than failing on every send.
+- **DLT registration has not been started** for SMS. That is 2–4 business days of
+  your time plus the entity paperwork. WhatsApp avoids it entirely, which is why
+  it is the recommended first channel.
 - **Challenges live in MySQL, not Redis.** Correct and restart-safe, but not yet
   tuned for scale.

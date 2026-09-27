@@ -1,4 +1,66 @@
 # Trufrenz — build tracker
+## Admin console sign-in, and two honesty fixes — DONE (verified)
+- **The dashboard's own printed credentials did not work.** The demo admin is
+  created once, on the first boot against an empty database, so moving the domain
+  to `trufrenz.net` updated the login hint without touching the existing account.
+  The page advertised an address no row answered to, and because the failure
+  message is deliberately generic it read as a wrong password. The seed now
+  reconciles the demo account on every boot, matching only addresses this repo
+  seeded itself; a human-enrolled account is never renamed, and a taken address
+  is logged rather than crashing on the unique constraint. A static test now
+  pins the login page, the seed and the server's public hint together.
+- **The server stopped claiming a transport that did not deliver.** `provider`
+  falls back to a default name so the send path always has something to call, so
+  an unconfigured deployment reported `msg91` on the dashboard and in the code
+  response. It is null unless something actually went out.
+- Verified: the advertised credentials now sign in (HTTP 200, dashboard loads),
+  the Subscriptions view shows the store readiness and sign-in delivery panels
+  honestly reporting "not configured", 593 tests pass (1 pre-existing skip),
+  TypeScript clean, lint 0 errors, `git diff --check` clean.
+
+## OTP follow-ups: a resend countdown, and WhatsApp as a phone channel — DONE (verified)
+- **The resend button that was missing.** "Send me a code" was a one-shot button.
+  A member whose SMS was slow had no recourse but to go back and re-enter their
+  number, which spends the challenge and makes them feel they broke something.
+  The code step now carries a countdown button that re-arms on its own.
+- **The countdown is derived from a deadline, not a decrementing counter.** A
+  counter drifts: timers pause when the app is backgrounded, so a member returns
+  to a button claiming 30 seconds remain when the real wait is long over. The
+  deadline is compared against the clock instead, so a paused timer can never
+  make the number wrong. The interval also stops once the wait ends, so an idle
+  sign-in screen is not waking up once a second for nothing.
+- **A rate limit is now shown as a wait, not a refusal.** The server already
+  returned the exact 429 wait; it was being discarded. It now drives the
+  countdown, so "Too many codes requested" became "You can ask for another code
+  in 120s" with a button that counts it down.
+- **WhatsApp added as a phone transport, not a new channel.** WhatsApp codes go
+  to the phone number the data model already has, so it is a third adapter in
+  `server/sms.ts` rather than a third channel — no column, no migration, and the
+  challenge machinery untouched. It needs no DLT registration in India (Meta
+  approves an authentication template instead), which makes it the shortest path
+  to real codes here and the cheapest at the time of writing.
+- **The template name is part of the readiness check on purpose.** Meta refuses
+  to deliver an unapproved template, so a token and phone number id without an
+  approved template would report the channel ready and then fail every single
+  send. Configured means all three values are present.
+- **The server no longer claims a transport that did not deliver.** `provider`
+  falls back to a default name even when nothing is configured, so returning it
+  unconditionally made the server report an "msg91" delivery in demo mode — where
+  the only proof of sending was a code on screen. It is null unless something
+  actually went out, with a test over that rule.
+- **The app names the transport back to the member.** A code sitting in WhatsApp
+  while somebody refreshes their SMS inbox is indistinguishable from a code that
+  never arrived, so the confirmation says which one carried it.
+- **One bug found and fixed by a test, not by review**: the Graph API version was
+  read at module import, so the environment variable could not control it and the
+  value was frozen for the process lifetime. It is read inside the call now.
+- Verified: 588 tests pass (1 pre-existing skip), TypeScript clean, lint 0 errors,
+  `git diff --check` clean. The countdown was driven in the browser — it ticked
+  47s → 43s, re-armed to an active button, and a real resend issued a new code
+  (898125 → 942972) and re-armed the countdown. The API was checked directly:
+  the first request returns `retryAfterSeconds: 60`, the immediate second returns
+  429 with `rule: "cooldown"`, and demo mode returns `transport: null`.
+
 ## Sign-in hardening and the trufrenz.net domain — DONE (verified)
 
 - **Domain settled: trufrenz.net.** Bought and wired through the app, the admin
