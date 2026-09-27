@@ -15,6 +15,7 @@ import {
   type AccountState,
   type VerificationTier,
 } from "@/lib/account-access";
+import type { ConnectionRow } from "@/lib/connection-sync";
 
 /** The account payload the server returns. */
 export type RemoteAccount = {
@@ -223,6 +224,34 @@ export async function markNoticesRead(ids: number[]) {
     method: "POST",
     body: JSON.stringify({ ids }),
   });
+}
+
+/* --------------------------- the member's circle ------------------------ */
+
+/**
+ * The circle as the server has it.
+ *
+ * The app is the only writer, so this is read at launch and after a change, and
+ * a failure is silent: the device's own graph stays usable while offline, and
+ * the unsent changes are pushed on the next successful call.
+ */
+export async function fetchConnections() {
+  return request<{ connections: ConnectionRow[] }>("/api/account/connections");
+}
+
+/**
+ * Sends the changes this device still owes and returns the full circle back.
+ *
+ * State changes and removals travel together so one request leaves the row in
+ * exactly one place. A removal is what a block does: it ends the relationship
+ * rather than recording a decision about a request, so the server deletes the
+ * row instead of storing a fifth state.
+ */
+export async function pushConnections(rows: ConnectionRow[], removed: string[] = []) {
+  return request<{ ok: boolean; applied: number; removed: number; connections: ConnectionRow[] }>(
+    "/api/account/connections",
+    { method: "POST", body: JSON.stringify({ connections: rows, removed }) },
+  );
 }
 
 /* ------------------------------- actions ------------------------------- */

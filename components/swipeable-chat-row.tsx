@@ -13,7 +13,6 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
 import { glassBlur, glassTint } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { availabilityView, displayUnread, type ChatRowState } from "@/lib/chat-extras";
@@ -49,6 +48,16 @@ type Props = {
   onOpen: () => void;
   onToggleMute: () => void;
   onToggleArchive: () => void;
+  /**
+   * Long-press puts the conversation back to unread.
+   *
+   * The two swipe directions are already taken, and a third gesture axis on a
+   * list row would fight the scroll. A long press is the platform's own gesture
+   * for "something else about this row", and it leaves the swipes untouched.
+   */
+  onMarkUnread: () => void;
+  /** Whether the member has already put this conversation back to unread. */
+  markedUnread?: boolean;
 };
 
 /** How far the row can travel, so both corner buttons stay reachable. */
@@ -72,7 +81,17 @@ export function swipeArchiveWidth(): number {
  * The buttons are deliberately small and icon-only so the conversation preview
  * keeps the row's width; the accessible labels still spell out the action.
  */
-export function SwipeableChatRow({ chat, state, statusLine, unreadCount, onOpen, onToggleMute, onToggleArchive }: Props) {
+export function SwipeableChatRow({
+  chat,
+  state,
+  statusLine,
+  unreadCount,
+  onOpen,
+  onToggleMute,
+  onToggleArchive,
+  onMarkUnread,
+  markedUnread = false,
+}: Props) {
   const { glassOpacity } = useAppAppearance();
   const translateX = useRef(new Animated.Value(0)).current;
   const offsetRef = useRef(0);
@@ -225,8 +244,20 @@ export function SwipeableChatRow({ chat, state, statusLine, unreadCount, onOpen,
       <Animated.View style={{ transform: [{ translateX }] }} {...responder.panHandlers}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open conversation with ${chat.name}${unread > 0 ? `, ${unread} unread` : ""}${state.muted ? ", muted" : ""}${state.archived ? ", archived" : ""}`}
+          accessibilityLabel={`Open conversation with ${chat.name}${unread > 0 ? `, ${unread} unread` : ""}${markedUnread ? ", marked unread" : ""}${state.muted ? ", muted" : ""}${state.archived ? ", archived" : ""}`}
+          accessibilityHint="Long press to mark this conversation unread"
           onPress={handleOpen}
+          onLongPress={() => {
+            /*
+             * If it is already a reminder, long pressing again does nothing.
+             * Opening the thread is the natural clear action, and turning a
+             * long-press into a toggle would make the row's state ambiguous.
+             */
+            if (markedUnread) return;
+            settle(0);
+            onMarkUnread();
+          }}
+          delayLongPress={420}
           style={({ pressed }) => [
             styles.row,
             pressed && styles.rowPressed,

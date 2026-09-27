@@ -22,11 +22,21 @@ export type ThreadState = {
   reads: Record<string, string>;
   /** Conversations whose safety note has already been shown. */
   notesSeen: string[];
+  /**
+   * Conversations the member deliberately put back to unread.
+   *
+   * Read markers move forward, and nothing can move one backward without
+   * claiming the member un-read something they did read. Marking a thread
+   * unread is not a claim about history — it is a reminder the member set for
+   * themselves ("come back to this"), so it is stored as its own flag and the
+   * read marker is left alone.
+   */
+  unreadFlags: string[];
 };
 
 export const THREAD_STATE_STORAGE_KEY = "trufrenz.thread-state.v1";
 
-export const EMPTY_THREAD_STATE: ThreadState = { reads: {}, notesSeen: [] };
+export const EMPTY_THREAD_STATE: ThreadState = { reads: {}, notesSeen: [], unreadFlags: [] };
 
 /** The minimum a message needs for read tracking. */
 export type TrackableMessage = { id: string; from: "me" | "them" };
@@ -53,18 +63,22 @@ function readList(value: unknown): string[] {
  * unreadable half must not discard the other.
  */
 export function parseThreadState(serialized: string | null | undefined): ThreadState {
-  if (!serialized) return { reads: {}, notesSeen: [] };
+  if (!serialized) return { reads: {}, notesSeen: [], unreadFlags: [] };
   try {
     const parsed = JSON.parse(serialized) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed !== "object") return { reads: {}, notesSeen: [] };
-    return { reads: readRecord(parsed.reads), notesSeen: readList(parsed.notesSeen) };
+    if (!parsed || typeof parsed !== "object") return { reads: {}, notesSeen: [], unreadFlags: [] };
+    return {
+      reads: readRecord(parsed.reads),
+      notesSeen: readList(parsed.notesSeen),
+      unreadFlags: readList(parsed.unreadFlags),
+    };
   } catch {
-    return { reads: {}, notesSeen: [] };
+    return { reads: {}, notesSeen: [], unreadFlags: [] };
   }
 }
 
 export function serializeThreadState(state: ThreadState): string {
-  return JSON.stringify({ reads: state.reads, notesSeen: state.notesSeen });
+  return JSON.stringify({ reads: state.reads, notesSeen: state.notesSeen, unreadFlags: state.unreadFlags });
 }
 
 /** Records that the member has reached a given message. */
@@ -82,6 +96,39 @@ export function markSafetyNoteSeen(state: ThreadState, chatId: string): ThreadSt
 
 export function hasSeenSafetyNote(state: ThreadState, chatId: string): boolean {
   return state.notesSeen.includes(chatId);
+}
+
+/**
+ * The member put this conversation back to unread, on purpose.
+ *
+ * The read marker is untouched: the member did read those messages, and moving
+ * the marker back would also hide the divider that says where they stopped. So
+ * the reminder lives beside the history rather than editing it.
+ */
+export function markThreadUnread(state: ThreadState, chatId: string): ThreadState {
+  if (!chatId || state.unreadFlags.includes(chatId)) return state;
+  return { ...state, unreadFlags: [...state.unreadFlags, chatId] };
+}
+
+/**
+ * Clears the reminder, which opening the conversation does.
+ *
+ * A reminder the member cannot clear by reading the thread would leave the row
+ * permanently lit, which is exactly the bug the read marker was added to fix.
+ */
+export function clearThreadUnread(state: ThreadState, chatId: string): ThreadState {
+  if (!chatId || !state.unreadFlags.includes(chatId)) return state;
+  return { ...state, unreadFlags: state.unreadFlags.filter((id) => id !== chatId) };
+}
+
+/** Whether the conversation carries the member's own unread reminder. */
+export function isMarkedUnread(state: ThreadState, chatId: string): boolean {
+  return state.unreadFlags.includes(chatId);
+}
+
+/** How many conversations the member has put back to unread. */
+export function markedUnreadCount(state: ThreadState): number {
+  return state.unreadFlags.length;
 }
 
 /**
@@ -123,6 +170,11 @@ export function unreadForRow(input: {
   chatId: string;
 }): number {
   const { seedUnread, messages, state, chatId } = input;
+  /*
+   * A thread the member deliberately marked unread reads as unread whatever the
+   * history says, because the reminder is the member's own note to themselves.
+   */
+  if (isMarkedUnread(state, chatId)) return unreadFromThem(messages, state, chatId) || 1;
   if (state.reads[chatId] === undefined) return Math.max(0, seedUnread);
   return unreadFromThem(messages, state, chatId);
 }

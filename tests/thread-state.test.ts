@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   EMPTY_THREAD_STATE,
+  clearThreadUnread,
+  isMarkedUnread,
+  markThreadUnread,
+  markedUnreadCount,
   firstUnreadIndex,
   hasSeenSafetyNote,
   markSafetyNoteSeen,
@@ -275,5 +279,67 @@ describe("when the divider is worth drawing", () => {
 
     expect(firstUnreadIndex(thread, state, "maya")).toBe(1);
     expect(unreadFromThem(thread, state, "maya")).toBe(0);
+  });
+});
+
+
+describe("the member's own unread reminder", () => {
+  it("starts with nothing marked", () => {
+    expect(EMPTY_THREAD_STATE.unreadFlags).toEqual([]);
+    expect(isMarkedUnread(EMPTY_THREAD_STATE, "maya")).toBe(false);
+  });
+
+  it("marks a conversation unread without moving the read marker", () => {
+    /*
+     * The member did read those messages. Moving the marker back would also hide
+     * the divider that says where they stopped, so the reminder is stored beside
+     * the history rather than editing it.
+     */
+    const read = markThreadRead(EMPTY_THREAD_STATE, "maya", "m3");
+    const marked = markThreadUnread(read, "maya");
+    expect(marked.reads.maya).toBe("m3");
+    expect(isMarkedUnread(marked, "maya")).toBe(true);
+  });
+
+  it("counts as unread even when nothing new arrived", () => {
+    const read = markThreadRead(EMPTY_THREAD_STATE, "maya", "m3");
+    const marked = markThreadUnread(read, "maya");
+    const count = unreadForRow({
+      seedUnread: 0,
+      messages: [{ id: "m1", from: "them" }, { id: "m2", from: "them" }, { id: "m3", from: "me" }],
+      state: marked,
+      chatId: "maya",
+    });
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it("clears when the thread is opened", () => {
+    const marked = markThreadUnread(EMPTY_THREAD_STATE, "maya");
+    const cleared = clearThreadUnread(marked, "maya");
+    expect(isMarkedUnread(cleared, "maya")).toBe(false);
+    expect(markedUnreadCount(cleared)).toBe(0);
+  });
+
+  it("is idempotent and ignores an empty id", () => {
+    const once = markThreadUnread(EMPTY_THREAD_STATE, "maya");
+    expect(markThreadUnread(once, "maya").unreadFlags).toEqual(["maya"]);
+    expect(markThreadUnread(EMPTY_THREAD_STATE, "").unreadFlags).toEqual([]);
+  });
+
+  it("survives a round trip through storage", () => {
+    const marked = markThreadUnread(EMPTY_THREAD_STATE, "maya");
+    const restored = parseThreadState(serializeThreadState(marked));
+    expect(isMarkedUnread(restored, "maya")).toBe(true);
+  });
+
+  it("reads old stored records that predate the reminder", () => {
+    const restored = parseThreadState(JSON.stringify({ reads: { maya: "m1" }, notesSeen: ["maya"] }));
+    expect(restored.unreadFlags).toEqual([]);
+    expect(restored.reads.maya).toBe("m1");
+  });
+
+  it("drops unusable entries from a stored reminder list", () => {
+    const restored = parseThreadState(JSON.stringify({ unreadFlags: ["maya", 7, null, ""] }));
+    expect(restored.unreadFlags).toEqual(["maya"]);
   });
 });

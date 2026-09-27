@@ -1,4 +1,34 @@
 # Trufrenz — build tracker
+## Mute, mark-as-unread, and the circle on the server — DONE (verified)
+- **Mute did nothing after a reload, and it only existed on the row.** The flag
+  lived in the chat-row state that was never persisted, so a muted conversation
+  came back loud on the next launch, and the thread itself had no way to mute.
+  Mute now lives in `lib/chat-preferences.ts` (persisted at
+  `trufrenz.chat-preferences.v1`), the thread overflow menu toggles it, and the
+  in-app message banner checks it before announcing — a muted chat stays silent
+  while still collecting its unread count.
+- **A conversation could not be marked unread again.** The row now offers
+  long-press to mark unread (`markThreadUnread` in `lib/thread-state.ts`), which
+  sets a reminder flag that survives the visit. Without that flag, opening the
+  thread would immediately mark it read and the badge would vanish as the member
+  arrived.
+- **Connections were device-local only.** Acceptance, unfriending and declining
+  were persisted on the device, so a second device, a reinstall or a cleared
+  browser profile lost the entire circle. `member_connections` (migration
+  `0008_futuristic_tomas.sql`) plus `server/connectionService.ts` and
+  `lib/connection-sync.ts` now hold it server-side: the app reconciles on launch,
+  overlays anything still queued locally, pushes state changes and removals with
+  the account session, and acknowledges only what the server confirmed.
+- **The row gained its own quiet controls.** The long-press gesture, the mute
+  toggle and the accessibility labels all describe the current state ("marked
+  unread, muted"), so the row is readable to a screen reader as well as to the
+  eye.
+- **Verification.** `pnpm check` clean, `pnpm lint` 0 errors (27 warnings, none
+  new), `pnpm test` 679 passed / 1 skipped across 44 files, `git diff --check`
+  clean. Live API test drove sign-in, `GET`/`POST /api/account/connections` and
+  confirmed the upsert, the state change and the removal; the browser confirmed
+  the persisted mute icon and "marked unread" label survive a reload.
+
 ## Connections and conversation threads — DONE (verified)
 - **An incoming friend request asked the member to ask again.** The profile
   actions and the discovery row were gated on a *seeded* list, so a request that

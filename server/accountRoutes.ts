@@ -18,6 +18,7 @@ import * as account from "./accountService";
 import { getDb } from "./db";
 import * as billing from "./billingService";
 import * as challenges from "./challengeStore";
+import * as connections from "./connectionService";
 import { sendSigninCode, emailConfigured } from "./mailer";
 import { sendSigninSms, smsTransportSummary } from "./sms";
 import * as otpGuard from "./otpGuard";
@@ -746,6 +747,36 @@ export function registerAccountRoutes(app: Express) {
     const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Number.isFinite) : [];
     await account.markNoticesRead(req.member!.id, ids);
     res.json({ ok: true, marked: ids.length });
+  });
+
+  /* --------------------------- the member's circle ------------------------ */
+  /*
+   * The circle used to live only on the device, so a friendship made on one
+   * phone did not exist on the next device. These two routes move it onto the
+   * account: `GET` reads it, `POST` applies the changes a device still owes.
+   *
+   * The write is additive on purpose. The client sends only what it changed, and
+   * the server returns the whole circle afterwards, so a device that has been
+   * offline cannot overwrite connections it never knew about.
+   */
+  app.get("/api/account/connections", requireMember, async (req: MemberRequest, res) => {
+    const rows = await connections.listConnections(req.member!.id);
+    res.json({ connections: rows });
+  });
+
+  app.post("/api/account/connections", requireMember, async (req: MemberRequest, res) => {
+    const rows = connections.normalizeRows(req.body?.connections);
+    /*
+     * Removals travel with the same batch. A block is not one of the four
+     * connection states — it ends the relationship — so it is a delete rather
+     * than a state, and sending both together means one request leaves the row
+     * in exactly one place.
+     */
+    const removals = Array.isArray(req.body?.removed)
+      ? req.body.removed.filter((peerId: unknown): peerId is string => typeof peerId === "string")
+      : [];
+    const saved = await connections.applyConnections(req.member!.id, rows, removals);
+    res.json({ ok: true, applied: rows.length, removed: removals.length, connections: saved });
   });
 
   /* ------------------------- capability-guarded -------------------------- */

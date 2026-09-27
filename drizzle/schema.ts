@@ -173,6 +173,40 @@ export const memberNotices = mysqlTable("member_notices", {
 export type MemberNotice = typeof memberNotices.$inferSelect;
 
 /**
+ * The member's circle, one row per person they have a relationship with.
+ *
+ * Why this exists: the connection graph was device-local, so accepting a
+ * request on one device left the same request waiting on the next one. A circle
+ * that lives in one browser's storage is not a circle, it is a cache.
+ *
+ * One row per (member, peer) pair rather than a friendship row with two columns,
+ * because three of the four states are one-directional: a request this member
+ * sent is not the same fact as a request they received, and a decline is a
+ * decision the member made about someone else's request. Storing the direction
+ * per row keeps each of those facts where it belongs.
+ */
+export const memberConnections = mysqlTable(
+  "member_connections",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** The member whose circle this row belongs to. */
+    memberId: int("memberId").notNull(),
+    /**
+     * The person on the other side. These are directory ids rather than member
+     * ids, because the people a member can connect with are the seeded
+     * directory entries the app already renders.
+     */
+    peerId: varchar("peerId", { length: 64 }).notNull(),
+    state: mysqlEnum("connectionState", ["accepted", "requested", "incoming", "declined"]).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [uniqueIndex("member_connections_pair_idx").on(table.memberId, table.peerId)],
+);
+
+export type MemberConnection = typeof memberConnections.$inferSelect;
+
+/*
  * Append-only product event stream. The analytics dashboard derives its daily
  * metrics from these rows, so the trends reflect real usage rather than a
  * seeded series.

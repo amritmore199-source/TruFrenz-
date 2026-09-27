@@ -84,12 +84,39 @@ import {
   type FriendshipGraph,
 } from "@/lib/friendship-store";
 import {
+  CONNECTION_SYNC_STORAGE_KEY,
+  EMPTY_CONNECTION_SYNC,
+  acknowledge,
+  clearConnection,
+  connectionStateFor,
+  graphFromRows,
+  overlayPending,
+  parseConnectionSync,
+  pendingRows,
+  queueChange,
+  queueRemoval,
+  reconcileOnLaunch,
+  serializeConnectionSync,
+  setConnectionState,
+  type ConnectionState,
+  type ConnectionSync,
+} from "@/lib/connection-sync";
+import {
+  CHAT_PREFERENCES_STORAGE_KEY,
+  compactChatPreferences,
+  parseChatPreferences,
+  serializeChatPreferences,
+} from "@/lib/chat-preferences";
+import {
   EMPTY_THREAD_STATE,
   THREAD_STATE_STORAGE_KEY,
+  clearThreadUnread,
   firstUnreadIndex,
   hasSeenSafetyNote,
+  isMarkedUnread,
   markSafetyNoteSeen,
   markThreadRead,
+  markThreadUnread,
   parseThreadState,
   readMarkerLabel,
   serializeThreadState,
@@ -169,6 +196,8 @@ import {
 import {
   fetchBillingProducts,
   fetchEntitlement,
+  fetchConnections,
+  pushConnections,
   reportStoreCancellation,
   restorePurchases,
   subscriptionFromEntitlement,
@@ -598,6 +627,16 @@ export default function TrufrenzApp() {
   const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
   const [typingChat, setTypingChat] = useState<string | null>(null);
   const [chatRowStates, setChatRowStates] = useState<Record<string, ChatRowState>>({});
+  const [chatPreferencesLoaded, setChatPreferencesLoaded] = useState(false);
+  /**
+   * What this device still owes the server about the member's circle.
+   *
+   * Held in state rather than a ref so the persist effect below can see it
+   * change; the write itself is fire-and-forget, because a failed sync is not
+   * something the member can act on and the queue survives to the next launch.
+   */
+  const [connectionSync, setConnectionSync] = useState<ConnectionSync>(EMPTY_CONNECTION_SYNC);
+  const connectionSyncRef = useRef<ConnectionSync>(EMPTY_CONNECTION_SYNC);
   const [chatPrivacy, setChatPrivacy] = useState(DEFAULT_CHAT_PRIVACY);
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
   /** An attachment that has been picked but not yet sent. */
@@ -739,6 +778,118 @@ export default function TrufrenzApp() {
     AsyncStorage.setItem(FRIENDSHIP_STORAGE_KEY, serializeFriendships(friendships)).catch(() => undefined);
   }, [friendships, friendshipsLoaded]);
 
+  /*
+   * The circle also lives on the account, so it survives a new device.
+   *
+   * The queue is read first, then the server's version is laid under it: a tap
+   * made while offline is not thrown away by the next successful fetch, and an
+   * empty server is only trusted once this device has pushed something.
+   */
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(CONNECTION_SYNC_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        const stored = parseConnectionSync(serialized);
+        connectionSyncRef.current = stored;
+        setConnectionSync(stored);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem(CONNECTION_SYNC_STORAGE_KEY, serializeConnectionSync(connectionSync)).catch(() => undefined);
+    /*
+     * The ref mirrors the queue for the two places that need to read it without
+     * re-rendering: the launch merge and the push's reply. Updating it here, next
+     * to the write, keeps the two from drifting apart.
+     */
+    connectionSyncRef.current = connectionSync;
+  }, [connectionSync]);
+
+  /*
+   * Push whatever the circle still owes the server.
+   *
+   * Only the changed rows travel, so a device that has been offline cannot
+   * overwrite connections it never knew about. The queue is written down before
+   * the request leaves, so a change made and then lost to a crash is still sent
+   * on the next launch rather than silently forgotten.
+   */
+  useEffect(() => {
+    if (!session || session.mode !== "member") return;
+    const rows = pendingRows(connectionSync);
+    const removals = connectionSync.removed;
+    if (rows.length === 0 && removals.length === 0) return;
+    let active = true;
+    void (async () => {
+      const result = await pushConnections(rows, removals);
+      if (!active) return;
+      if (!result.ok) return;
+      /*
+       * The server's reply is the authoritative circle, and the acknowledgement
+       * only clears the rows whose state still matches what was sent — a change
+       * the member made while the request was in flight stays queued.
+       */
+      setConnectionSync((current) => acknowledge(current, rows, removals));
+      setFriendships((current) =>
+        overlayPending(graphFromRows(result.data.connections), connectionSyncRef.current.pending),
+      );
+    })();
+    return () => { active = false; };
+  }, [connectionSync, session]);
+
+  /*
+   * Mute, archive, and frozen threads are written down.
+   *
+   * The guard is the same as everywhere else here: without it the first render
+   * would write the defaults over the stored record before the read resolves,
+   * which would unmute every conversation the member had muted.
+   */
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(CHAT_PREFERENCES_STORAGE_KEY)
+      .then((serialized) => {
+        if (!active) return;
+        setChatRowStates(parseChatPreferences(serialized));
+        setChatPreferencesLoaded(true);
+      })
+      .catch(() => { if (active) setChatPreferencesLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!chatPreferencesLoaded) return;
+    AsyncStorage.setItem(CHAT_PREFERENCES_STORAGE_KEY, serializeChatPreferences(compactChatPreferences(chatRowStates))).catch(() => undefined);
+  }, [chatRowStates, chatPreferencesLoaded]);
+
+  /*
+   * One write path for the whole circle.
+   *
+   * Every change goes through here: the graph is updated locally so the screen
+   * answers the tap immediately, the change is queued, and the queue is pushed.
+   * The server's reply replaces the graph, minus anything still owed.
+   */
+  const applyConnectionChange = useCallback((peerId: string, state: ConnectionState) => {
+    setFriendships((current) => setConnectionState(current, peerId, state));
+    setConnectionSync((current) => queueChange(current, peerId, state));
+  }, []);
+
+  /**
+   * Removes a person from the circle entirely, which is what unfriending and
+   * blocking do.
+   *
+   * Deliberately not a decline. Turning a request down is a decision about an
+   * incoming request and is remembered as one, so the same person is never asked
+   * twice. Unfriending is the end of a relationship the member already had, and a
+   * later request from them is a fresh introduction rather than a decision
+   * already made. Filing it as a decline would silently change that behaviour.
+   */
+  const dropConnection = useCallback((peerId: string) => {
+    setFriendships((current) => clearConnection(current, peerId));
+    setConnectionSync((current) => queueRemoval(current, peerId));
+  }, []);
+
   useEffect(() => {
     let active = true;
     AsyncStorage.getItem(THREAD_STATE_STORAGE_KEY)
@@ -829,6 +980,25 @@ export default function TrufrenzApp() {
               }));
             }
             if (noticesResult.ok) setMemberNotices(noticesResult.data.notices);
+            /*
+             * The circle comes from the account, so a friendship made on another
+             * device is already here. The order matters: read first, then lay any
+             * unsent change on top, so a tap made offline is not undone by this
+             * fetch. An empty server is only trusted once this device has pushed.
+             */
+            const connectionsResult = await fetchConnections();
+            if (!active) return;
+            if (connectionsResult.ok) {
+              const queued = connectionSyncRef.current;
+              setFriendships((current) =>
+                reconcileOnLaunch({
+                  local: current,
+                  server: graphFromRows(connectionsResult.data.connections),
+                  pending: queued.pending,
+                  hasPushed: queued.pushed,
+                }),
+              );
+            }
           })();
         }
         setSessionLoaded(true);
@@ -1581,7 +1751,7 @@ export default function TrufrenzApp() {
       const filterMatch = chatFilter === "All" || (chatFilter === "Unread" ? unread > 0 : chat.kind === "group");
       return queryMatch && filterMatch;
     });
-  }, [search, chatFilter, acceptedFriends, chatMessages, suggestions, chatRowStates, showArchived]);
+  }, [search, chatFilter, acceptedFriends, chatMessages, suggestions, chatRowStates, threadState, showArchived]);
 
   /** Archived threads are counted separately so the inbox stays calm. */
   const archivedCount = useMemo(
@@ -1626,7 +1796,7 @@ export default function TrufrenzApp() {
      * that had arrived from the other side as "Ask for Friendship".
      */
     return discoverable && searchMatch && interestMatch && isNewIntroduction(friendships, person.id);
-  }), [search, interestFilter, acceptedFriends, incomingRequests, discoverable, suggestions]);
+  }), [search, interestFilter, acceptedFriends, incomingRequests, discoverable, suggestions, friendships]);
 
   const threadAvailabilityLabel = (() => {
     if (!selectedChat) return null;
@@ -1704,7 +1874,7 @@ export default function TrufrenzApp() {
     if (!person) return;
     if (action === "ask-friendship") { sendFriendRequest(person); return; }
     if (action === "accept-request") {
-      setFriendships((current) => acceptFriendship(current, person.id));
+      applyConnectionChange(person.id, "accepted");
       feedback(`You and ${person.name.split(" ")[0]} are now friends. Say hello.`);
       return;
     }
@@ -1720,7 +1890,7 @@ export default function TrufrenzApp() {
       return;
     }
     if (action === "report") { feedback("Report sent to the safety team. They follow up within a day."); return; }
-    setFriendships((current) => unfriend(current, person.id));
+    dropConnection(person.id);
     setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, person.id] } }));
     feedback(`${person.name.split(" ")[0]} is blocked. They can no longer reach you.`);
   };
@@ -1995,6 +2165,12 @@ export default function TrufrenzApp() {
    */
   useEffect(() => {
     if (!selectedChat) return;
+    /*
+     * Opening the thread also releases the member's own unread reminder. Reading
+     * it is the natural way to clear one, and leaving the flag behind would keep
+     * the row lit permanently, which is the very problem the read marker solved.
+     */
+    setThreadState((current) => clearThreadUnread(current, selectedChat));
     const messages = chatMessages[selectedChat];
     if (!messages || messages.length === 0) return;
     const last = messages[messages.length - 1];
@@ -2070,7 +2246,7 @@ export default function TrufrenzApp() {
     if (!selectedChat) return;
     const name = currentThread?.name ?? "them";
     setChatRowStates((current) => archiveOnUnfriend(current, selectedChat));
-    setFriendships((current) => unfriend(current, selectedChat));
+    dropConnection(selectedChat);
     feedback(`You unfriended ${name.split(" ")[0]}. The conversation is archived and read-only, and your messages stay on your device.`);
     tap();
   };
@@ -2079,7 +2255,7 @@ export default function TrufrenzApp() {
     if (!selectedChat) return;
     const name = currentThread?.name ?? "them";
     setChatRowStates((current) => archiveOnUnfriend(current, selectedChat));
-    setFriendships((current) => unfriend(current, selectedChat));
+    dropConnection(selectedChat);
     setMyProfile((current) => ({ ...current, privacy: { ...current.privacy, blockedIds: [...current.privacy.blockedIds, selectedChat] } }));
     feedback(`${name.split(" ")[0]} is blocked and can no longer reach you anywhere in Trufrenz.`);
   };
@@ -2100,7 +2276,18 @@ export default function TrufrenzApp() {
     setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: name, peerVerified: Boolean(currentThread?.verified), video, direction: "outgoing" }));
   };
 
+  /*
+   * Shows the banner, unless the conversation it came from is muted.
+   *
+   * Muting has to mean something. A muted chat that still throws a banner over
+   * whatever the member is doing is not muted, it just has a quieter label — and
+   * the setting would then be a lie the member has no way to correct. The message
+   * itself still arrives and the unread count still updates; only the interruption
+   * is suppressed.
+   */
   const showIncomingNotification = (next: IncomingNotification) => {
+    const source = "chatId" in next && typeof next.chatId === "string" ? next.chatId : null;
+    if (source && rowStateFor(chatRowStates, source).muted) return;
     if (notificationTimer.current) clearTimeout(notificationTimer.current);
     setIncomingNotification(next);
     notificationTimer.current = setTimeout(() => setIncomingNotification(null), 5200);
@@ -2188,7 +2375,7 @@ export default function TrufrenzApp() {
   };
 
   const acceptRequest = (id: string) => {
-    setFriendships((current) => acceptFriendship(current, id));
+    applyConnectionChange(id, "accepted");
     const person = suggestions.find((item) => item.id === id);
     if (person) {
       setChatMessages((current) => current[person.id] ? current : { ...current, [person.id]: [{ id: `hello-${Date.now()}`, from: "them", text: "Thanks for accepting my friend request. Nice to meet you!", time: "now" }] });
@@ -2214,7 +2401,7 @@ export default function TrufrenzApp() {
       return;
     }
     if (!allowAction("send-friend-requests")) return;
-    setFriendships((current) => requestFriendship(current, person.id));
+    applyConnectionChange(person.id, "requested");
     void runGuardedAction("friend-request", { targetName: person.name });
     feedback("Request sent quietly. Chat opens after they accept.");
     tap();
@@ -2548,6 +2735,16 @@ export default function TrufrenzApp() {
               statusLine={status ? statusLabel(status) : null}
               unreadCount={unreadForRow({ seedUnread: chat.unread, messages: chatMessages[chat.id] ?? [], state: threadState, chatId: chat.id })}
               onOpen={() => startThread(chat.id)}
+              markedUnread={isMarkedUnread(threadState, chat.id)}
+              onMarkUnread={() => {
+                /*
+                 * The member sets their own reminder. Opening the thread is what
+                 * clears it, so a row can never stay lit after being read.
+                 */
+                setThreadState((current) => markThreadUnread(current, chat.id));
+                feedback(`${chat.name.split(" ")[0]} marked unread. Open it when you are ready.`);
+                tap();
+              }}
               onToggleMute={() => { setChatRowStates((current) => toggleMuted(current, chat.id)); feedback(rowStateFor(chatRowStates, chat.id).muted ? "Unmuted." : "Muted. Messages still arrive, just without the badge."); }}
               onToggleArchive={() => { setChatRowStates((current) => toggleArchived(current, chat.id)); feedback(rowStateFor(chatRowStates, chat.id).archived ? "Moved back to your inbox." : "Archived. Find it again under Archived."); }}
             />
