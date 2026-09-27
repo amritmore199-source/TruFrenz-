@@ -208,3 +208,68 @@ The Admin → Subscriptions readiness panels were confirmed in the browser.
 **Still manual, and not claimed otherwise.** Creating the products, prices, tax,
 banking, and testers in Play Console and App Store Connect. No API exists for
 those, so the dashboard reports `not configured` until the credentials are added.
+
+## Follow-up pass: making the store configuration and the notices actually usable
+
+Four things were tightened after re-reading the three suggestions against the
+built code. Each was a real gap rather than polish.
+
+**Readiness now checks whether a credential works, not whether it exists.**
+`storeReadiness()` used to compare `presentEnv.length` against the list of
+required names, so a deployment with `APPLE_PRIVATE_KEY=nope` reported `ready`
+and then failed on the first real purchase — the worst possible moment to find
+out. `validateAppleCredentials()` and `validatePlayCredentials()` now check
+shape: the bundle id must look like a reverse-DNS id, the key id must be the ten
+characters Apple issues, the private key must be a complete PEM block with both
+markers, the issuer id must be a UUID, and the Play service account must be JSON
+containing `client_email` plus an untruncated `private_key` rather than a file
+path pasted by mistake. Failures surface as a `problems` list on each channel and
+are rendered in Admin → Subscriptions as its own "present but unusable" block.
+The `channels[].state` becomes `partial` in that case, so "credentials ready" is
+never claimed for a key that cannot sign. Problems never echo the value.
+One bug was caught by writing the test for it: the first version of the PEM check
+only looked for the opening marker, so a key cut off mid-paste passed. It now
+requires `-----END ... PRIVATE KEY-----` too.
+
+**The store links are now links.** The Manage Subscription sheet and the renewal
+notices both told the member to "turn auto-renew off in your store account" — the
+sheet even drew an open-in-new icon beside it — but neither was tappable, which
+is instruction without a way to act. `lib/store-links.ts` builds the destination
+per platform: the Play app's own page via `market://` for Android with the web
+form as a second candidate, and the system Settings page for iOS, because
+auto-renew is switched off in Settings rather than in the App Store listing. The
+section to look for ("Subscriptions") and a written route are shown beside the
+link, not only after it fails, since an already-open Settings app needs them too.
+On web the link is not offered at all. The notice button is deliberately narrow:
+`subscription_expired` always carries it, and `subscription_renewal` only when the
+body reads as a cancellation. A courtesy "renews in 3 days — nothing you need to
+do" notice must not carry a button to a cancel screen, and the wording test fails
+safe to "no button" for any unrecognised body.
+
+**The paywall could take a second payment.** The buy button's busy state came
+from a local `busy` flag that only spanned the awaited `onPurchase` call. When
+that resolves as soon as the store sheet closes but the server is still verifying
+the receipt, the spinner stopped and the button re-enabled before Premium was
+granted — inviting a second purchase on a plan already being processed. It now
+also reads `purchaseInFlight(purchase)`, the app-owned state that stays true
+through `pending`/`verifying`, so the disable window matches the real machine.
+
+**Verification.** `pnpm check` clean, `pnpm lint` 0 errors, `pnpm test`
+392 passed (1 pre-existing skip), `git diff --check` clean. New suites:
+`tests/store-links.test.ts` (11 cases) and credential validation plus readiness
+cases in `tests/billing-verification-mode.test.ts`. Browser QA on the public
+preview URL confirmed the cancelled-renewal notice renders its store action and
+the Manage Subscription sheet shows the underlined link with the written steps.
+The fixture used for that check (a receipt forced to a cancelled 3-day window)
+was then reverted and its reminder rows and notices deleted, returning the demo
+data to 1 premium / 13 free.
+
+**One local-preview quirk worth recording.** Browsing the app at
+`http://127.0.0.1:8081` makes sign-in codes always report as expired. The app
+derives its API origin from the hostname, and `127.0.0.1` does not match the
+`8081-…` → `3000-…` rewrite, so requests go through Metro's proxy, which does not
+forward `Set-Cookie`. The sign-in challenge cookie therefore never reaches the
+browser and `verify-otp` has no challenge to match. This is not a defect in the
+billing work — the same request succeeds against `127.0.0.1:3000` directly with a
+cookie jar, and the flow works normally on the sandbox URL. Use the sandbox URL
+when exercising anything that depends on the session cookie.

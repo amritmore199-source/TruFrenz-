@@ -144,6 +144,16 @@ describe("store readiness reporting", () => {
     expect(play.detail).toContain("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON");
 
     process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = '{"client_email":"a@b.c","private_key":"x"}';
+    // Still partial: the JSON parses but its private_key cannot sign anything,
+    // which is precisely the case a presence-only check would have called ready.
+    play = storeReadiness().channels.find((channel) => channel.channel === "play")!;
+    expect(play.state).toBe("partial");
+
+    // With a key in the shape Play actually issues, the channel is ready.
+    process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = JSON.stringify({
+      client_email: "billing@trufrenz.iam.gserviceaccount.com",
+      private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkq\n-----END PRIVATE KEY-----\n",
+    });
     play = storeReadiness().channels.find((channel) => channel.channel === "play")!;
     expect(play.state).toBe("ready");
     // The package name is reported because it is not a secret; the service
@@ -214,3 +224,104 @@ describe("insert id extraction", () => {
   });
 });
 import { insertIdOf } from "../server/db";
+import { validateAppleCredentials, validatePlayCredentials } from "../server/storeReadiness";
+
+/**
+ * Presence is not the same as working. Each case below is a value that would
+ * pass an "is the variable set?" check and then fail on the first real purchase,
+ * which is the worst possible time to find out.
+ */
+describe("credential value validation", () => {
+  const PEM = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkq\n-----END PRIVATE KEY-----";
+
+  it("reports nothing when the values are well formed", () => {
+    process.env.APPLE_BUNDLE_ID = "app.trufrenz";
+    process.env.APPLE_ISSUER_ID = "69a6de77-1234-4abc-9def-0123456789ab";
+    process.env.APPLE_KEY_ID = "ABCDE12345";
+    process.env.APPLE_PRIVATE_KEY = PEM;
+    expect(validateAppleCredentials()).toEqual([]);
+  });
+
+  it("catches a bundle id that is really a display name", () => {
+    process.env.APPLE_BUNDLE_ID = "Trufrenz";
+    expect(validateAppleCredentials().map((entry) => entry.variable)).toContain("APPLE_BUNDLE_ID");
+  });
+
+  it("catches a key id of the wrong length", () => {
+    process.env.APPLE_KEY_ID = "SHORT";
+    expect(validateAppleCredentials()).toContainEqual({
+      variable: "APPLE_KEY_ID",
+      problem: "should be 10 characters, but is 5.",
+    });
+  });
+
+  it("catches a private key that is not a PEM block", () => {
+    process.env.APPLE_PRIVATE_KEY = "not-a-key";
+    const problems = validateAppleCredentials();
+    expect(problems.map((entry) => entry.variable)).toContain("APPLE_PRIVATE_KEY");
+    // The check must never echo the value itself.
+    expect(JSON.stringify(problems)).not.toContain("not-a-key");
+  });
+
+  it("accepts a private key pasted with escaped newlines", () => {
+    // A common way to paste a .p8 into a single-line environment variable.
+    process.env.APPLE_PRIVATE_KEY = PEM.replace(/\n/g, "\\n");
+    expect(validateAppleCredentials().map((entry) => entry.variable)).not.toContain("APPLE_PRIVATE_KEY");
+  });
+
+  it("catches a service account path pasted instead of its contents", () => {
+    process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = "/home/ubuntu/keys/play.json";
+    expect(validatePlayCredentials()).toContainEqual({
+      variable: "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON",
+      problem: "looks like a file path — paste the JSON contents instead.",
+    });
+  });
+
+  it("catches malformed JSON", () => {
+    process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = '{"client_email":';
+    expect(validatePlayCredentials().map((entry) => entry.variable)).toContain("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON");
+  });
+
+  it("catches a service account missing the fields needed to mint a token", () => {
+    process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = '{"project_id":"trufrenz"}';
+    const problems = validatePlayCredentials().map((entry) => entry.problem).join(" ");
+    expect(problems).toContain('"client_email"');
+    expect(problems).toContain('"private_key"');
+  });
+
+  it("catches a truncated service account key", () => {
+    process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = JSON.stringify({
+      client_email: "billing@trufrenz.iam.gserviceaccount.com",
+      private_key: "-----BEGIN PRIVATE KEY-----truncated",
+    });
+    const problems = validatePlayCredentials();
+    expect(problems).toHaveLength(1);
+    expect(problems[0].problem).toContain("truncated");
+  });
+});
+
+describe("readiness reflects unusable values", () => {
+  it("does not call a channel ready when a value is present but broken", () => {
+    // Every variable is set, so a presence-only check would say "ready" — and
+    // the first real purchase would then fail on a key the dashboard called fine.
+    process.env.APPLE_BUNDLE_ID = "app.trufrenz";
+    process.env.APPLE_ISSUER_ID = "69a6de77-1234-4abc-9def-0123456789ab";
+    process.env.APPLE_KEY_ID = "SHORT";
+    process.env.APPLE_PRIVATE_KEY = "not-a-key";
+    process.env.GOOGLE_PLAY_PACKAGE_NAME = "app.trufrenz";
+    process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = "/path/to/key.json";
+
+    const readiness = storeReadiness();
+    const apple = readiness.channels.find((channel) => channel.channel === "app-store")!;
+    const play = readiness.channels.find((channel) => channel.channel === "play")!;
+
+    expect(apple.state).toBe("partial");
+    expect(play.state).toBe("partial");
+    expect(readiness.readyToSell).toBe(false);
+    expect(apple.presentEnv).toHaveLength(4);
+    expect(apple.problems.length).toBeGreaterThan(0);
+    expect(play.problems.length).toBeGreaterThan(0);
+    // The detail sentence must flag the problem rather than read as success.
+    expect(play.detail).toContain("unusable");
+  });
+});

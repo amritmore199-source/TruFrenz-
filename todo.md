@@ -1,4 +1,35 @@
 # Trufrenz — build tracker
+## Subscription launch follow-up — DONE (verified)
+- **Credential validation, not just presence**: `validateAppleCredentials()` /
+  `validatePlayCredentials()` check value *shape* (reverse-DNS bundle id, 10-char
+  key id, UUID issuer, complete PEM with both markers, real JSON service account
+  with an untruncated key, no file paths pasted by mistake). A malformed value
+  now makes a channel `partial` instead of `ready`, and the problems render as
+  their own "present but unusable" block in Admin → Subscriptions. Values are
+  never echoed back. Writing the test exposed a real bug: the first PEM check
+  ignored the closing marker, so a truncated key passed.
+- **Store deep links**: `lib/store-links.ts` opens the Play app's page
+  (`market://`, web form as fallback) on Android and the system Settings page on
+  iOS, since auto-renew is turned off in Settings rather than in the App Store
+  listing. The Manage Subscription sheet's store row — which showed an
+  open-in-new icon without being tappable — is now an underlined link, with the
+  written route shown beside it rather than only after a failure. Renewal
+  notices offer a store button only when the notice actually asks the member to
+  act: always on expiry, and on renewal only when the body reads as a
+  cancellation, so a "nothing you need to do" tip never becomes a cancel prompt.
+  11 cases in `tests/store-links.test.ts`.
+- **Paywall double-purchase fix**: the buy button's busy state now includes the
+  app-owned `purchaseInFlight(purchase)`, so it stays disabled through server
+  receipt verification instead of re-enabling the moment the store sheet closes.
+- **Docs**: `BILLING-NOTES.md` records the above and the local-preview cookie
+  quirk (browsing via `127.0.0.1:8081` breaks OTP sign-in because Metro's proxy
+  drops `Set-Cookie`; use the sandbox URL).
+- **Verification**: `pnpm check` clean, `pnpm lint` 0 errors, `pnpm test`
+  392 passed / 1 pre-existing skip, `git diff --check` clean. Browser QA on the
+  public preview confirmed the notice store action and the Manage Subscription
+  link with fallback steps; the QA fixture was then reverted and the demo data
+  returned to 1 premium / 13 free.
+
 ## Store launch readiness, production receipt verification, and renewal reminders — DONE (verified)
 - **Launch readiness** (`server/storeReadiness.ts` + `STORE-LAUNCH-CHECKLIST.md`):
   canonical console-ready catalogue (ids, INR prices, billing periods) plus a

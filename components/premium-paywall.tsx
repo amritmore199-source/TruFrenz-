@@ -104,6 +104,19 @@ export function PremiumPaywall({
     }
   };
 
+  /*
+   * The button's busy state has to cover the whole purchase, not just the tap.
+   *
+   * `busy` only spans the awaited `onPurchase` call. If that resolves as soon as
+   * the store sheet closes while the server is still verifying the receipt, the
+   * spinner stops and the button re-enables before Premium is granted — inviting
+   * a second purchase on a plan already being processed, which is how a member
+   * gets charged twice. `purchase.status` is owned by the app screen and stays
+   * `pending`/`verifying` for that whole window, so it is the honest source and
+   * the label already reads from it.
+   */
+  const inFlight = busy || purchaseInFlight(purchase);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -270,13 +283,13 @@ export function PremiumPaywall({
               <>
                 <Pressable
                   onPress={confirm}
-                  disabled={busy}
+                  disabled={inFlight}
                   accessibilityRole="button"
-                  accessibilityState={{ disabled: busy, busy }}
+                  accessibilityState={{ disabled: inFlight, busy: inFlight }}
                   accessibilityLabel={purchaseButtonLabel(purchase, selected, launchWindowOpen)}
-                  style={({ pressed }) => [styles.primaryButton, busy && styles.primaryButtonBusy, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.primaryButton, inFlight && styles.primaryButtonBusy, pressed && styles.pressed]}
                 >
-                  {busy ? (
+                  {inFlight ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <>

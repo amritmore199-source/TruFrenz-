@@ -1262,6 +1262,21 @@
       card.appendChild(el("p", "tiny muted", "Server configuration:"));
       card.appendChild(envList);
 
+      /*
+       * Values that are present but unusable. This is the difference between
+       * "set" and "works": a truncated .p8 or a pasted file path passes a
+       * presence check and fails the first real purchase, so it is called out
+       * here rather than being discovered by a member who has already paid.
+       */
+      if ((channel.problems || []).length > 0) {
+        card.appendChild(el("p", "tiny muted", "Present but unusable:"));
+        const problemList = el("ul", "feed");
+        for (const problem of channel.problems) {
+          problemList.appendChild(el("li", "tiny", `${problem.variable} ${problem.problem}`));
+        }
+        card.appendChild(problemList);
+      }
+
       card.appendChild(el("p", "tiny muted", "Manual console work still required:"));
       const steps = el("ol", "feed");
       for (const step of channel.manualSteps) steps.appendChild(el("li", "tiny", step));

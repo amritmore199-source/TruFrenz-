@@ -18,6 +18,7 @@
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -27,6 +28,7 @@ import {
   View,
 } from "react-native";
 import { BlurView } from "expo-blur";
+import Constants from "expo-constants";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 
@@ -49,6 +51,7 @@ import {
   type RestoreState,
   type StoreChannel,
 } from "@/lib/subscription-store";
+import { storeManageActionLabel, storeManageLink, storeManageStepsText } from "@/lib/store-links";
 
 export type ReceiptSummary = {
   id: number;
@@ -137,6 +140,28 @@ export function ManageSubscriptionModal({
     } finally {
       setReportingCancel(false);
       setConfirmingCancel(false);
+    }
+  };
+
+  /**
+   * Open the store's subscription screen, since that is where cancelling
+   * actually happens. Candidates are tried in order and a failure is silent:
+   * the written steps sit directly below the button, so the member is never
+   * left with a tap that did nothing and no other way forward.
+   */
+  const openStoreManagement = async () => {
+    const link = storeManageLink(Platform.OS, {
+      androidPackage: Constants.expoConfig?.android?.package ?? null,
+      iosBundleId: Constants.expoConfig?.ios?.bundleIdentifier ?? null,
+    });
+    for (const url of link.urls) {
+      try {
+        await Linking.openURL(url);
+        hapticTap();
+        return;
+      } catch {
+        // Try the next candidate.
+      }
     }
   };
 
@@ -346,10 +371,24 @@ export function ManageSubscriptionModal({
                 <Text style={styles.sectionLabel}>CANCELLING</Text>
                 <View style={styles.cancelCard}>
                   <Text style={styles.cancelBody}>{CANCEL_EXPLAINER}</Text>
-                  <View style={styles.storeHint}>
+                  {/*
+                    This used to be a sentence naming the store, with an
+                    open-in-new icon that suggested it was tappable. It was not.
+                    Now the tap opens the store's own subscriptions screen, and
+                    the written route sits underneath for a device where the
+                    installed-app scheme cannot open — so the instruction is
+                    followed by the way to act on it, either way.
+                  */}
+                  <Pressable
+                    onPress={() => void openStoreManagement()}
+                    accessibilityRole="link"
+                    accessibilityLabel={storeManageActionLabel(Platform.OS)}
+                    style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
+                  >
                     <MaterialIcons name="open-in-new" size={13} color="#8A8391" />
-                    <Text style={styles.storeHintText}>{storeManagementLine(channel)}</Text>
-                  </View>
+                    <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
+                  </Pressable>
+                  <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
 
                   {confirmingCancel ? (
                     <View style={styles.confirmBox}>
@@ -570,7 +609,18 @@ const styles = StyleSheet.create({
   },
   cancelBody: { fontSize: 11.5, color: "#5F5766", lineHeight: 16 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storeHintText: { fontSize: 11, color: "#8A8391", fontWeight: "600" },
+  /*
+   * The store row is a link, and it previously looked like one without being
+   * one — an open-in-new icon beside instruction text. The affordance now
+   * matches the behaviour, so the label is underlined and slightly darker.
+   */
+  storeHintTextLinked: { fontSize: 11, color: "#7C6A83", fontWeight: "700", textDecorationLine: "underline" },
+  storeStepsText: {
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: "#8A8391",
+    marginTop: 6,
+  },
   confirmBox: { gap: 9, backgroundColor: "rgba(255,255,255,0.6)", borderRadius: 12, padding: 10 },
   confirmText: { fontSize: 11, color: "#5F5766", lineHeight: 15.5 },
   confirmActions: { flexDirection: "row", gap: 8 },

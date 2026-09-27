@@ -7,6 +7,7 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -24,9 +25,16 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
+import Constants from "expo-constants";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { isValidCredential, isValidDemoCode } from "@/lib/onboarding";
+import {
+  noticeIsCancelledRenewal,
+  noticeOffersStoreLink,
+  storeManageActionLabel,
+  storeManageLink,
+} from "@/lib/store-links";
 import { canOpenChat, canRequestFriendship } from "@/lib/social-access";
 import { receiptIcon, receiptLabel } from "@/lib/chat-status";
 import { isInboxMeetupTransition } from "@/lib/ui-transitions";
@@ -653,6 +661,38 @@ export default function TrufrenzApp() {
     setTimeout(() => setToast(""), 2400);
   };
   const tap = () => { if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); };
+
+  /**
+   * Open the member's store subscription screen.
+   *
+   * A renewal notice that says "turn auto-renew back on in your store account"
+   * is only useful if they can get there, and two taps through Settings is where
+   * good intentions die. Candidate links are tried in order because an
+   * installed-app scheme can fail on a device that lacks the store app; if all
+   * of them fail the member still has the written steps beside the button, so the
+   * tap is never a dead end.
+   */
+  const openStoreManagement = async () => {
+    const link = storeManageLink(Platform.OS, {
+      androidPackage: Constants.expoConfig?.android?.package ?? null,
+      iosBundleId: Constants.expoConfig?.ios?.bundleIdentifier ?? null,
+    });
+    if (!link.supported) {
+      feedback("Manage this subscription from your store account on your phone.");
+      return;
+    }
+    for (const url of link.urls) {
+      try {
+        await Linking.openURL(url);
+        tap();
+        return;
+      } catch {
+        // Fall through to the next candidate. Reporting the failure here would
+        // be noise the member cannot act on; the steps below are the fallback.
+      }
+    }
+    feedback("Open your store account to change this subscription.");
+  };
 
   /* ------------------------------- billing -------------------------------- */
   /*
@@ -1962,6 +2002,24 @@ export default function TrufrenzApp() {
               <Text style={styles.noticeMeta}>
                 {new Date(notice.createdAt).toLocaleDateString()} · {notice.kind.replace(/_/g, " ")}
               </Text>
+              {/*
+                Only the notices with something to *do* in the store offer a
+                button. A courtesy "renews in 3 days — nothing you need to do"
+                notice must not carry one: sending a member to a cancel screen
+                they did not ask for is how a helpful tip becomes a cancellation.
+              */}
+              {noticeOffersStoreLink(notice.kind) &&
+              (notice.kind === "subscription_expired" || noticeIsCancelledRenewal(notice.body)) ? (
+                <Pressable
+                  onPress={() => void openStoreManagement()}
+                  accessibilityRole="button"
+                  accessibilityLabel={storeManageActionLabel(Platform.OS)}
+                  style={({ pressed }) => [styles.noticeStoreAction, pressed && styles.pressed]}
+                >
+                  <MaterialIcons name="open-in-new" size={13} color="#8E6F91" />
+                  <Text style={styles.noticeStoreActionText}>{storeManageActionLabel(Platform.OS)}</Text>
+                </Pressable>
+              ) : null}
             </View>
           </View>
         ))}
@@ -2772,5 +2830,25 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 13, lineHeight: 17, fontWeight: "700", color: "#4E4351" },
   noticeBody: { fontSize: 12, lineHeight: 17, color: "#6E6472" },
   noticeMeta: { fontSize: 10.5, lineHeight: 14, color: "#9C93A2", letterSpacing: 0.3 },
+
+  noticeStoreAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 5,
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+    shadowColor: "#6B5A72",
+    shadowOpacity: 0.07,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  noticeStoreActionText: { fontSize: 11.5, fontWeight: "700", color: "#8E6F91" },
 
 });
