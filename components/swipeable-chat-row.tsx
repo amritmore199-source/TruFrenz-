@@ -1,3 +1,4 @@
+import { glassNestedFill } from "@/lib/appearance-preferences";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.72)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
   },
   muteAction: { backgroundColor: "#8FA6B6" },
   archiveAction: { backgroundColor: "#F1DE55" },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 11,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.94)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
     borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 8,

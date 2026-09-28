@@ -34,6 +34,7 @@ import { memberSessions, members, verificationSubmissions } from "../drizzle/sch
 import { canAccount, type AccountCapability } from "../lib/account-access";
 import { isAnalyticsEventType } from "../lib/analytics-events";
 import { checkEmail, maskEmail, normalizeEmail } from "../lib/email";
+import { resolveChallengeId } from "../lib/signin-challenge";
 
 const SESSION_COOKIE = "trufrenz_member_session";
 const OTP_COOKIE = "trufrenz_signin_challenge";
@@ -108,6 +109,44 @@ function setChallengeCookie(res: Response, id: string) {
     secure: process.env.NODE_ENV === "production",
     maxAge: challenges.CHALLENGE_TTL_MS,
     path: "/",
+  });
+}
+
+/**
+ * The challenge id as it travels back to the client.
+ *
+ * The cookie above is the web path and stays: it is httpOnly, so a script on the
+ * page cannot read the token, and it survives nothing the member can see. But it
+ * cannot be the only path, which is what this fixes.
+ *
+ * On a phone there is no cookie jar at all — `fetch` in React Native does not
+ * persist cookies — so the challenge id simply vanished between "we sent you a
+ * code" and "check that code". Every code was therefore compared against no
+ * challenge and refused as expired, and the member was sent back to the number
+ * screen with no way forward. The same thing happened on web whenever the app and
+ * the API were on different hosts, because a Lax cookie is not sent cross-site at
+ * all.
+ *
+ * So the id is returned in the body as well and echoed back by the client on the
+ * two calls that need it. The cookie is still preferred when it is present,
+ * because a token in a response body can be read by any script on the page — and
+ * the client only ever stores it in memory for the length of one sign-in.
+ */
+function challengeTokenFor(challengeId: string): string {
+  return challengeId;
+}
+
+/**
+ * Which sign-in a call belongs to.
+ *
+ * The rule itself lives in `lib/signin-challenge.ts` so it can be tested on its
+ * own — it is the decision that a missing cookie silently made impossible to
+ * complete a sign-in, so it is worth a test rather than a comment.
+ */
+function readChallengeId(req: Request): string | null {
+  return resolveChallengeId({
+    cookie: readCookie(req, OTP_COOKIE),
+    body: typeof req.body?.challengeToken === "string" ? req.body.challengeToken : null,
   });
 }
 
@@ -344,6 +383,13 @@ export function registerAccountRoutes(app: Express) {
       channel: input.channel,
       destination: maskedDestination,
       isNewAccount: !existing,
+      /**
+       * The sign-in this code belongs to, for clients with no cookie jar.
+       *
+       * Returned alongside the cookie rather than instead of it: the cookie is
+       * still what a browser uses, and a client that has it does not need this.
+       */
+      challengeToken: challengeTokenFor(issued.challengeId),
       /** Only ever present when no delivery provider exists and demo mode is on. */
       demoCode: issued.demoCode,
       delivery: deliverable ? input.channel : revealCode ? "demo" : "unavailable",
@@ -420,7 +466,7 @@ export function registerAccountRoutes(app: Express) {
    */
   app.post("/api/account/verify-code", async (req: MemberRequest, res) => {
     await challenges.pruneChallenges();
-    const id = readCookie(req, OTP_COOKIE);
+    const id = readChallengeId(req);
     const submitted = String(req.body?.code ?? "").replace(/\D/g, "");
     const challenge = id ? await challenges.loadChallenge(id) : null;
 
@@ -499,7 +545,7 @@ export function registerAccountRoutes(app: Express) {
    */
   app.post("/api/account/complete-signin", async (req: MemberRequest, res) => {
     await challenges.pruneChallenges();
-    const id = readCookie(req, OTP_COOKIE);
+    const id = readChallengeId(req);
     const challenge = id ? await challenges.loadChallenge(id) : null;
 
     if (!challenge) {

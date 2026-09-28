@@ -8,7 +8,7 @@ import {
   type AppearancePreferences,
   type GlassTint,
 } from "@/lib/appearance-preferences";
-import { setActiveGlassTint } from "@/lib/glass";
+import { setActiveGlassOpacity, setActiveGlassTint } from "@/lib/glass";
 
 type AppAppearanceContextValue = AppearancePreferences & {
   appearanceLoaded: boolean;
@@ -31,6 +31,7 @@ export function AppAppearanceProvider({ children }: { children: ReactNode }) {
   // Sync the token module before any child renders, so surfaces that resolve
   // their own glass colour never paint one frame with the previous tint.
   setActiveGlassTint(preferences.glassTint);
+  setActiveGlassOpacity(preferences.glassOpacity);
   const [appearanceLoaded, setAppearanceLoaded] = useState(false);
   const userChangedPreferences = useRef(false);
 

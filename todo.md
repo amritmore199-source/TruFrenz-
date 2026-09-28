@@ -782,3 +782,25 @@ building and testing them.
 - The connection graph is still stored per member against seeded directory ids;
   it is not yet a two-sided graph where a request is genuinely sent between two
   accounts.
+
+## Follow-up: native OTP and remaining glass patches (2026-09-28)
+- **Native phone OTP login:** the server originally kept the sign-in challenge
+  only in an HttpOnly cookie. Native Expo clients do not share that cookie with
+  the app API, so a displayed demo code could verify on one request but the next
+  request lost its challenge and the member stayed on the OTP screen. The code
+  request now returns an opaque challenge token; verify and complete-signin
+  accept it when the cookie is absent, while browser clients continue to prefer
+  the cookie. A disposable no-cookie API test completed request → verify →
+  account/session and removed the temporary member and associated challenge,
+  session, attempt and audit rows.
+- **Chat spacing:** removed the friend-only safety strip above Today so it no
+  longer leaves a blank band at the top of the conversation.
+- **White patches:** remaining medium-opacity pale fills on 22 button, chip and
+  field surfaces now use the nested glass resolver. Profile actions resolve
+  their fill and border at render time using the member's current tint/weight,
+  rather than reintroducing a flat pale panel. The regression guard checks
+  medium-opacity pale controls too; the welcome page's intentional 0.42
+  full-screen veil is explicitly exempt.
+- **Verification:** `pnpm check` clean; full suite **772 passed | 1 skipped**
+  across 50 files; `pnpm lint` 0 errors (29 warnings); `git diff --check` clean.
+  The disposable OTP account was deleted after the end-to-end test.

@@ -1,3 +1,4 @@
+import { glassNestedFill } from "@/lib/appearance-preferences";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,8 +22,8 @@ const colors = {
   ink: "#43423d",
   muted: "#88857f",
   purple: "#83721f",
-  glass: "rgba(255, 255, 255, 0.82)",
-  stroke: "rgba(255, 255, 255, 0.97)",
+  glass: glassNestedFill("rgba(255, 255, 255, 0.82)"),
+  stroke: glassNestedFill("rgba(255, 255, 255, 0.97)"),
   green: "#70A889",
 };
 
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
   brandMark: { width: 30, height: 30, borderRadius: 11, backgroundColor: colors.purple, alignItems: "center", justifyContent: "center" },
   brandText: { color: colors.ink, fontSize: 14, fontWeight: "700" },
   headerSub: { color: colors.muted, fontSize: 8, marginTop: 2 },
-  closeButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
+  closeButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   body: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   centeredContent: { width: "100%", alignItems: "center", paddingVertical: 15 },
   heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(241, 232, 188, 0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
@@ -259,26 +260,28 @@ const styles = StyleSheet.create({
   captureContent: { flex: 1, justifyContent: "center", paddingVertical: 12 },
   cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#d6d5d2", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
   cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(38, 35, 16, 0.08)" },
-  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: "rgba(255, 255, 255, 0.88)", borderStyle: "dashed" },
+  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: glassNestedFill("rgba(255, 255, 255, 0.88)"), borderStyle: "dashed" },
   cameraHint: { position: "absolute", left: 10, right: 10, bottom: 10, minHeight: 31, borderRadius: 11, backgroundColor: "rgba(38, 35, 16, 0.45)", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
   cameraHintText: { color: "#FFFFFF", fontSize: 8 },
   captureCopy: { alignItems: "center", paddingTop: 13 },
   captureControls: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 13 },
-  cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
+  // Resolved at render for the same reason as every other surface here: a
+  // module-scope constant is fixed at import, so it could not follow the setting.
+  cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   cameraCloseSpacer: { width: 38, height: 38 },
-  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#F1DE55", backgroundColor: "rgba(255, 255, 255, 0.58)", alignItems: "center", justifyContent: "center" },
+  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#F1DE55", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"), alignItems: "center", justifyContent: "center" },
   shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   shutterPressed: { transform: [{ scale: 0.95 }] },
   deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#efebda", alignItems: "center", justifyContent: "center", marginBottom: 12 },
   permissionIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#E8F0F4", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", marginBottom: 19, backgroundColor: "#f1efe2" },
+  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), marginBottom: 19, backgroundColor: "#f1efe2" },
   scanPhoto: { width: "100%", height: "100%", resizeMode: "cover" },
   scanPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(207, 236, 223, 0.20)" },
   scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#9AD5B6", shadowColor: "#9AD5B6", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
   scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#72A98B", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
   scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#72A98B", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
-  scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(255, 255, 255, 0.78)" },
+  scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.78)") },
   scanningStatusText: { color: "#7d7a71", fontSize: 8 },
   successCheck: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: 9 },
   pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "#f1edd6", marginTop: 14 },

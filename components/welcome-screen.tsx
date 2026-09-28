@@ -18,7 +18,9 @@ import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 
 import { COMPANY_DETAILS, GUEST_MODE_NOTICE, WELCOME_SLIDES, clampSlideIndex } from "@/lib/welcome-intro";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 
 const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
@@ -201,7 +203,7 @@ export function WelcomeScreen({
           intensity={42}
           tint="light"
           experimentalBlurMethod="dimezisBlurView"
-          style={[styles.glass, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.72)", glassOpacity) }]}
+          style={[styles.glass, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.72)"), glassOpacity) }]}
         >
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
@@ -281,7 +283,7 @@ export function WelcomeScreen({
           intensity={30}
           tint="light"
           experimentalBlurMethod="dimezisBlurView"
-          style={[styles.companyGlass, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.66)", glassOpacity) }]}
+          style={[styles.companyGlass, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.66)"), glassOpacity) }]}
         >
           <View style={styles.companyInner}>
             <Pressable
@@ -317,7 +319,7 @@ export function WelcomeScreen({
 
       <Modal visible={termsOpen} transparent animationType="fade" onRequestClose={() => setTermsOpen(false)}>
         <View style={styles.termsShade}>
-          <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.termsSheet, { backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.93)", glassOpacity) }]}>
+          <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.termsSheet, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.93)"), glassOpacity) }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.termsHeader}>
                 <Text style={styles.termsTitle}>Terms &amp; Privacy</Text>
@@ -365,7 +367,7 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", opacity: 0.5 },
   backdropWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 247, 235, 0.42)" },
   bubbleField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.7)" },
+  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
   scroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 26, gap: 14 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   soundToggleWrap: { alignItems: "center", gap: 4 },
@@ -375,9 +377,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.96)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"),
     shadowColor: "#68634e",
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -392,16 +394,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 13,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.95)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
   },
   guestPillText: { color: "#6F7C88", fontSize: 8, fontWeight: "600" },
   glass: {
     borderRadius: 28,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.98)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"),
     shadowColor: "#57533d",
     shadowOpacity: 0.16,
     shadowRadius: 26,
@@ -418,7 +420,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F1DE55",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
     shadowColor: "#746d45",
     shadowOpacity: 0.22,
     shadowRadius: 12,
@@ -439,7 +441,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: "#F1DE55",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.55)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)"),
     shadowColor: "#756e46",
     shadowOpacity: 0.24,
     shadowRadius: 14,
@@ -454,7 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.5)"),
     borderWidth: 1,
     borderColor: "rgba(131, 114, 31, 0.5)",
   },
@@ -474,7 +476,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.95)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
     shadowColor: "#6a664e",
     shadowOpacity: 0.09,
     shadowRadius: 10,
@@ -491,7 +493,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.95)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
     shadowColor: "#5c5742",
     shadowOpacity: 0.1,
     shadowRadius: 14,
@@ -508,7 +510,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(131, 114, 31, 0.6)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.8)"),
   },
   checkboxOn: { backgroundColor: "#F1DE55", borderColor: "#F1DE55" },
   termsText: { flex: 1, color: "#7d7b72", fontSize: 8.5, lineHeight: 14 },
@@ -529,7 +531,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.99)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"),
     shadowColor: "#4f4b36",
     shadowOpacity: 0.2,
     shadowRadius: 24,
@@ -538,7 +540,7 @@ const styles = StyleSheet.create({
   },
   termsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   termsTitle: { color: "#4c4936", fontSize: 17, fontWeight: "800" },
-  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)" },
+  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
   termsBodyTitle: { color: "#5c5946", fontSize: 10.5, fontWeight: "700", marginTop: 10 },
   termsBody: { color: "#838179", fontSize: 9.5, lineHeight: 15, marginTop: 3 },
   termsFootnote: { color: "#9f9c95", fontSize: 8, marginTop: 10, textAlign: "center" },

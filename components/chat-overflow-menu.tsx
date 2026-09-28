@@ -4,7 +4,9 @@ import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { deleteThreadConfirmation, unfriendConfirmation, type ChatRowState } from "@/lib/chat-extras";
 
@@ -68,8 +70,8 @@ export function ChatOverflowMenu({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={closeAll}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={closeAll}>
         <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
-          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.9)", glassOpacity) }]}>
+        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.handle} />
               <Text style={styles.eyebrow}>CONVERSATION</Text>
@@ -172,7 +174,7 @@ export function ChatOverflowMenu({
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)", overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, overflow: "hidden" },
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
@@ -180,19 +182,19 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
   title: { color: "#4e4a3b", fontSize: 13, fontWeight: "700", marginTop: 3 },
   readOnlyNote: { color: "#83721f", fontSize: 9.5, fontWeight: "650" as any, marginTop: 4 },
-  confirmCard: { marginTop: 11, borderRadius: 15, borderWidth: 1, borderColor: "rgba(202, 178, 53, 0.5)", backgroundColor: "rgba(252, 244, 246, 0.92)", padding: 12, gap: 6 },
+  confirmCard: { marginTop: 11, borderRadius: 15, borderWidth: 1, borderColor: "rgba(202, 178, 53, 0.5)", backgroundColor: glassNestedFill("rgba(252, 244, 246, 0.92)"), padding: 12, gap: 6 },
   confirmTitle: { color: "#544f3b", fontSize: 11.5, fontWeight: "700" },
   confirmBody: { color: "#716f67", fontSize: 10, lineHeight: 15 },
   confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 4 },
-  confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(255, 255, 255, 0.72)" },
+  confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)") },
   confirmGhostText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
   confirmDanger: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: "#B4707F" },
   confirmDangerText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
   iconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)" },
-  iconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238, 244, 248, 0.92)" },
-  iconNeutral: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(244, 242, 236, 0.92)" },
-  iconDanger: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(252, 240, 242, 0.92)" },
+  iconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(238, 244, 248, 0.92)") },
+  iconNeutral: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(244, 242, 236, 0.92)") },
+  iconDanger: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(252, 240, 242, 0.92)") },
   copy: { flex: 1, minWidth: 0 },
   rowTitle: { color: "#53514c", fontSize: 11, fontWeight: "650" as any },
   dangerText: { color: "#A85F6E" },

@@ -123,6 +123,15 @@ export type CodeRequestResult = {
   /** Partly hidden: "•••• 0142" or "d•••@example.com". */
   destination: string;
   isNewAccount: boolean;
+  /**
+   * Which sign-in this code belongs to.
+   *
+   * The server also sets an httpOnly cookie, which is what a browser uses. This
+   * exists for the phone, where `fetch` keeps no cookie jar: without it the code
+   * was checked against nothing and every sign-in failed as "expired" no matter
+   * what the member typed. Held in memory for one sign-in and never persisted.
+   */
+  challengeToken?: string;
   /** Present only when no provider exists and demo mode is on. */
   demoCode?: string;
   delivery: SigninChannel | "demo" | "unavailable";
@@ -169,10 +178,10 @@ export async function requestEmailOtp(email: string, purpose: "signup" | "login"
  * the final call had nothing to work with and the account was never created on
  * the server at all.
  */
-export async function verifyCode(code: string) {
+export async function verifyCode(code: string, challengeToken?: string | null) {
   return request<{ ok: boolean; verified: boolean; channel: SigninChannel; destination: string }>(
     "/api/account/verify-code",
-    { method: "POST", body: JSON.stringify({ code }) },
+    { method: "POST", body: JSON.stringify({ code, challengeToken: challengeToken ?? undefined }) },
   );
 }
 
@@ -184,6 +193,14 @@ export async function completeSignin(input: {
   homeArea?: string;
   email?: string;
   phone?: string;
+  /**
+   * The sign-in this completion belongs to.
+   *
+   * Required on a phone for the same reason as in `verifyCode`: there is no
+   * cookie to tie the account creation back to the code that was just accepted,
+   * so without it the server answers "your sign-in session has ended".
+   */
+  challengeToken?: string | null;
 }) {
   return request<{ ok: boolean; token: string; account: RemoteAccount }>(
     "/api/account/complete-signin",

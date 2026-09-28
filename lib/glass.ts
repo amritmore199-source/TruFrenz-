@@ -94,6 +94,67 @@ export function activeGlassTint(): GlassTint {
 }
 
 /**
+ * The member's glass weight, mirrored from the provider.
+ *
+ * The tint above is already mirrored here for one reason: around twenty
+ * components resolve their own glass colour and threading a prop through each of
+ * them would be a large, risky change for one global preference. The weight needs
+ * the same treatment for the same reason, and for one more.
+ *
+ * The white patches were not one mistake, they were a pattern: 515 surfaces across
+ * the app declared a near-opaque white inline, in a `StyleSheet.create` table at
+ * module scope. A style table is built once when the file is imported, long before
+ * the provider has read the member's setting, so those values could never follow
+ * it — which is exactly why they were hardcoded in the first place. Mirroring the
+ * weight here means the fix can be applied at a render site by calling
+ * `glassFill(...)`, with no hook, no prop, and no signature change at the call
+ * site: the component already re-renders when the provider's value changes, so the
+ * read is never stale.
+ *
+ * A caller that passes its own opacity still wins; this is only the default.
+ */
+let activeOpacity = 80;
+
+/** Called by the appearance provider when the member changes the glass weight. */
+export function setActiveGlassOpacity(value: number): void {
+  if (typeof value !== "number" || !Number.isFinite(value)) return;
+  activeOpacity = Math.min(95, Math.max(50, value));
+}
+
+/** The glass weight currently in effect. Exposed for tests and diagnostics. */
+export function activeGlassOpacity(): number {
+  return activeOpacity;
+}
+
+/**
+ * Resolve a declared fill into glass at render time.
+ *
+ * For a surface sitting over the wallpaper: a card, a sheet, a bar. Takes the
+ * colour the old code declared inline and returns the glass version of it, using
+ * whatever tint and weight the member has chosen.
+ *
+ * This exists so that removing a white patch is a one-line change at the call
+ * site — `backgroundColor: glassFill("rgba(255, 255, 255, 0.72)")` — rather than a
+ * prop threaded through a component tree.
+ */
+export function glassFill(color: string, surface: GlassSurface = "card"): string {
+  return glassSurfaceColor(color, activeOpacity, activeTint, surface);
+}
+
+/**
+ * The same, for a surface sitting *inside* another glass surface.
+ *
+ * This is the common case for the patches: a row, a tile, or a button inside a
+ * sheet. Those must stay lighter than the sheet behind them, so they resolve
+ * through the nested band instead of the card weight. Using `glassFill` here
+ * would make a row as heavy as the sheet it sits on, which is the flat-panel look
+ * the nesting band was added to fix.
+ */
+export function glassNestedFill(color: string): string {
+  return glassNestedSurfaceColor(color, activeOpacity, activeTint);
+}
+
+/**
  * One-tap glass presets.
  *
  * Tuning six values by hand to find a look is work, and most members only ever
@@ -148,7 +209,7 @@ const TAB_ACCENT_OFFSET: Record<TabAccent, number> = {
 export function tabBarAlpha(tab: TabAccent | null, glassOpacity: number): number {
   const offset = tab ? TAB_ACCENT_OFFSET[tab] ?? 0 : 0;
   const weight = (SURFACE_WEIGHT.tab ?? 0) + offset;
-  return clampAlpha(BASE_ALPHA + weight + transparencyFromSetting(glassOpacity));
+  return clampAlpha(BASE_ALPHA + weight + weightFromSetting(glassOpacity));
 }
 
 /** Resolved tab bar colour for a given tab. */
@@ -211,24 +272,36 @@ function mix(a: Rgb, b: Rgb, amount: number): Rgb {
 }
 
 /**
- * The member's setting, inverted into extra transparency.
+ * How much extra presence the member's setting asks for.
  *
- * The stored 50-95 range keeps its original meaning so existing preferences and
- * their labels stay valid: higher means a stronger, more present surface. What
- * changed is the mapping. It now moves inside the glass range instead of
- * sweeping all the way to solid.
+ * The stored 50-95 range keeps its original meaning so existing preferences stay
+ * valid, and the screen labels the ends of the scale: 50 sits under "More
+ * wallpaper" and 95 under "More opaque". Higher therefore has to mean a heavier,
+ * more present surface.
+ *
+ * This used to be inverted — the function was written as an extra *transparency*
+ * and subtracted from 95 — so the setting did the opposite of what it said.
+ * Dragging to "More opaque" made every surface lighter, which is why the glass
+ * looked wrong no matter which end the member chose, and why raising the setting
+ * never fixed the patches. A test pinned the inverted ordering as correct, so the
+ * suite certified it and the bug survived every previous pass; the test now pins
+ * the direction the label promises instead.
  */
-export function transparencyFromSetting(glassOpacity: number): number {
-  if (typeof glassOpacity !== "number" || !Number.isFinite(glassOpacity)) return 0;
+export function weightFromSetting(glassOpacity: number): number {
+  if (typeof glassOpacity !== "number" || !Number.isFinite(glassOpacity)) {
+    // An unreadable value lands in the middle of the range rather than at an end,
+    // so a corrupt preference cannot silently produce an invisible surface.
+    return MAX_SETTING_WEIGHT * 0.5;
+  }
   const clamped = Math.min(95, Math.max(50, glassOpacity));
-  // 50 (lightest) -> full extra transparency, 95 (strongest) -> none.
-  return MAX_SETTING_WEIGHT * ((95 - clamped) / 45);
+  // 50 (lightest) -> no extra weight, 95 (strongest) -> the full extra weight.
+  return MAX_SETTING_WEIGHT * ((clamped - 50) / 45);
 }
 
 /** Alpha for one named surface, before any tint is applied. */
 export function glassAlpha(surface: GlassSurface, glassOpacity: number): number {
   const weight = SURFACE_WEIGHT[surface] ?? 0;
-  return clampAlpha(BASE_ALPHA + weight + transparencyFromSetting(glassOpacity));
+  return clampAlpha(BASE_ALPHA + weight + weightFromSetting(glassOpacity));
 }
 
 /** The resolved glass colour for a named surface. */
@@ -351,7 +424,7 @@ export function glassSurfaceColor(
     MAX_DECLARED_WEIGHT,
     Math.max(0, ((parsed.alpha ?? 0) - 0.6) * 0.35),
   );
-  const alpha = clampAlpha(BASE_ALPHA + declaredWeight + transparencyFromSetting(opacity));
+  const alpha = clampAlpha(BASE_ALPHA + declaredWeight + weightFromSetting(opacity));
 
   const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], NEUTRAL_TINT_MIX) : parsed.rgb;
 
@@ -393,7 +466,7 @@ export function glassNestedSurfaceColor(
   const nestedWeight = NESTED_MIN_WEIGHT + position * (NESTED_MAX_WEIGHT - NESTED_MIN_WEIGHT);
 
   const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], NEUTRAL_TINT_MIX) : parsed.rgb;
-  const alpha = clampAlpha(BASE_ALPHA + nestedWeight + transparencyFromSetting(opacity));
+  const alpha = clampAlpha(BASE_ALPHA + nestedWeight + weightFromSetting(opacity));
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }

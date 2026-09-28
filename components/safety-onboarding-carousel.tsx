@@ -1,3 +1,4 @@
+import { glassNestedFill } from "@/lib/appearance-preferences";
 import React, { useRef, useState } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
@@ -78,13 +79,13 @@ const styles = StyleSheet.create({
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(233, 209, 119, 0.24)" },
   progressTrackActive: { backgroundColor: "#F1DE55" },
   slideAnimated: { width: "100%" },
-  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", backgroundColor: "rgba(255, 255, 255, 0.72)" },
+  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)") },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
-  iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 233, 192, 0.9)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)" },
+  iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 233, 192, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)") },
   eyebrow: { color: "#83721f", fontSize: 8, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
   title: { color: "#474536", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
   body: { color: "#86847c", fontSize: 11, lineHeight: 17, marginTop: 7 },
-  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
+  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
   ruleIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#f3edd2", alignItems: "center", justifyContent: "center" },
   ruleCopy: { flex: 1, gap: 3 },
   ruleTitle: { color: "#57554f", fontSize: 10, fontWeight: "700" },

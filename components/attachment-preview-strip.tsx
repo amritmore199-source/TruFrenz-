@@ -3,7 +3,9 @@ import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "reac
 import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
   attachmentPreviewLabel,
@@ -62,7 +64,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
         style={[
           StyleSheet.absoluteFillObject,
           styles.tint,
-          { backgroundColor: glassSurfaceColor("rgba(252, 251, 243, 0.82)", glassOpacity) },
+          { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 251, 243, 0.82)"), glassOpacity) },
         ]}
       />
 
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.94)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
     paddingHorizontal: 9,
     paddingVertical: 8,
     overflow: "hidden",
@@ -120,9 +122,9 @@ const styles = StyleSheet.create({
   },
   blur: { borderRadius: 15, overflow: "hidden" },
   tint: { borderRadius: 15 },
-  thumbFrame: { width: 40, height: 40, borderRadius: 12, overflow: "hidden", backgroundColor: "rgba(238, 240, 245, 0.9)" },
+  thumbFrame: { width: 40, height: 40, borderRadius: 12, overflow: "hidden", backgroundColor: glassNestedFill("rgba(238, 240, 245, 0.9)") },
   thumb: { width: "100%", height: "100%" },
-  voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(236, 242, 247, 0.94)" },
+  voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(236, 242, 247, 0.94)") },
   copy: { flex: 1, minWidth: 0 },
   title: { color: "#4e4a3b", fontSize: 11, fontWeight: "650" as any },
   meta: { color: "#8c8980", fontSize: 9, marginTop: 2 },
@@ -133,8 +135,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.94)",
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
   },
   removePressed: { opacity: 0.75 },
 });

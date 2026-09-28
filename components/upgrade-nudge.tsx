@@ -24,7 +24,9 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 
 import { useAppAppearance } from "@/lib/appearance-context";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import type { UpgradeNudge as Nudge } from "@/lib/subscription-store";
 
 type Props = {
@@ -100,7 +102,7 @@ const styles = StyleSheet.create({
     gap: 9,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.78)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.78)"),
     shadowColor: "#454023",
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -115,11 +117,11 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(241, 246, 252, 0.36)",
+    backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"),
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.92)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"),
   },
-  badgeAtLimit: { backgroundColor: "rgba(252, 244, 232, 0.95)", borderColor: "rgba(226, 198, 158, 0.8)" },
+  badgeAtLimit: { backgroundColor: glassNestedFill("rgba(252, 244, 232, 0.95)"), borderColor: "rgba(226, 198, 158, 0.8)" },
   text: { flex: 1, gap: 2 },
   title: { fontSize: 12.5, fontWeight: "700", color: "#494532" },
   body: { fontSize: 11, color: "#78756d", lineHeight: 15.5 },
@@ -129,9 +131,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.66)",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"),
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
   },
   cta: {
     flexDirection: "row",
@@ -140,11 +142,11 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 34,
     borderRadius: 12,
-    backgroundColor: "rgba(241, 246, 252, 0.40)",
+    backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"),
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.94)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
   },
-  ctaAtLimit: { backgroundColor: "#E9D177", borderColor: "rgba(255, 255, 255, 0.55)" },
+  ctaAtLimit: { backgroundColor: "#E9D177", borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)") },
   ctaText: { fontSize: 12, fontWeight: "700", color: "#6f6741" },
   ctaTextAtLimit: { color: "#FFFFFF" },
   pressed: { opacity: 0.82 },

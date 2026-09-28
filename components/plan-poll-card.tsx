@@ -2,7 +2,9 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { canVote, pollResults, winningProposal, type PlanPoll } from "@/lib/plan-cards";
 
@@ -22,7 +24,7 @@ export function PlanPollCard({ poll, viewerId, onVote, onUseWinning }: Props) {
   const winner = winningProposal(poll);
 
   return (
-    <View accessibilityLabel={`Poll: ${poll.question}, ${totalVotes} votes`} style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.9)", glassOpacity) }]}>
+    <View accessibilityLabel={`Poll: ${poll.question}, ${totalVotes} votes`} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.9)"), glassOpacity) }]}>
       <View style={styles.headerRow}>
         <View style={styles.pill}>
           <MaterialIcons name="how-to-vote" size={13} color="#83721f" />
@@ -72,13 +74,13 @@ export function PlanPollCard({ poll, viewerId, onVote, onUseWinning }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", paddingHorizontal: 12, paddingVertical: 11, gap: 7, shadowColor: "#75726a", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { borderRadius: 18, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), paddingHorizontal: 12, paddingVertical: 11, gap: 7, shadowColor: "#75726a", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   pill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(246, 240, 209, 0.9)" },
   pillText: { color: "#83721f", fontSize: 9, fontWeight: "700", letterSpacing: 0.4 },
   voteCount: { color: "#97948e", fontSize: 9, fontWeight: "650" as any },
   question: { color: "#4e4a3b", fontSize: 12, fontWeight: "700" },
-  option: { borderRadius: 13, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(252, 251, 244, 0.78)", paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
+  option: { borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(252, 251, 244, 0.78)"), paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
   optionMine: { borderColor: "rgba(233, 209, 119, 0.6)", backgroundColor: "rgba(247, 241, 214, 0.9)" },
   optionLeading: { borderColor: "rgba(140, 190, 168, 0.55)" },
   optionTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
@@ -91,7 +93,7 @@ const styles = StyleSheet.create({
   leadNote: { color: "#5E947B", fontSize: 8.5, fontWeight: "700" },
   tieNote: { color: "#95938a", fontSize: 8.5, fontWeight: "600" },
   hint: { color: "#97948e", fontSize: 8.5 },
-  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   convertText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

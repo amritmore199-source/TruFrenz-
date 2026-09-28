@@ -2,7 +2,9 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
   PLAN_KIND_LABEL,
@@ -37,12 +39,12 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const first = friendName.split(" ")[0] || friendName;
 
   const accent = card.kind === "meetup" ? "#83721f" : "#7C94A5";
-  const accentSoft = card.kind === "meetup" ? "rgba(247, 241, 214, 0.9)" : "rgba(238, 244, 248, 0.9)";
+  const accentSoft = card.kind === "meetup" ? "rgba(247, 241, 214, 0.9)" : glassNestedFill("rgba(238, 244, 248, 0.9)");
 
   return (
     <View
       accessibilityLabel={`${label} card, ${timing.label}, ${card.proposal.time} at ${card.proposal.place}, ${card.status}`}
-      style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.9)", glassOpacity) }]}
+      style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.9)"), glassOpacity) }]}
     >
       <View style={styles.topRow}>
         <View style={[styles.kindPill, { backgroundColor: accentSoft }]}>
@@ -126,7 +128,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#75726a", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { borderRadius: 18, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#75726a", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   kindPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   kindText: { fontSize: 9, fontWeight: "700", letterSpacing: 0.4 },
@@ -139,11 +141,11 @@ const styles = StyleSheet.create({
   stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(246, 244, 229, 0.82)" },
   stateText: { flex: 1, color: "#6b6962", fontSize: 9.5, lineHeight: 14 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   primaryActionText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
-  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.66)" },
+  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)") },
   ghostActionText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
-  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
   linkText: { flex: 1, color: "#8c887f", fontSize: 8.5 },
   linkAction: { color: "#83721f", fontSize: 9, fontWeight: "700" },

@@ -4,7 +4,9 @@ import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { groupCapacityGate, type Tier } from "@/lib/subscription";
 import {
@@ -64,8 +66,8 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
         <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
-          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.9)", glassOpacity) }]}>
+        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.topLine}>
                 <View style={styles.groupPhoto}><MaterialIcons name="groups" size={22} color="#4A4210" /></View>
@@ -172,24 +174,24 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)", overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, overflow: "hidden" },
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
   topLine: { flexDirection: "row", alignItems: "center", gap: 10 },
-  groupPhoto: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#E9D177", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.7)" },
+  groupPhoto: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#E9D177", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
   headCopy: { flex: 1, minWidth: 0 },
   groupName: { color: "#4e4a3b", fontSize: 13, fontWeight: "700" },
-  nameInput: { borderRadius: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(241, 246, 252, 0.43)", paddingHorizontal: 9, paddingVertical: 6, color: "#53514c", fontSize: 12, outlineStyle: "none" as any },
+  nameInput: { borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)"), paddingHorizontal: 9, paddingVertical: 6, color: "#53514c", fontSize: 12, outlineStyle: "none" as any },
   groupMeta: { color: "#918f87", fontSize: 9, marginTop: 2 },
-  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.7)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   adminActions: { flexDirection: "row", gap: 7, marginTop: 11, flexWrap: "wrap" },
-  smallAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.68)" },
+  smallAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
   smallActionText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
   adminNote: { color: "#918f87", fontSize: 9.5, marginTop: 10 },
   sectionLabel: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9, marginTop: 14 },
   memberRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
-  memberAvatar: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(245, 242, 223, 0.94)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  memberAvatar: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(245, 242, 223, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   memberInitial: { color: "#83721f", fontSize: 13, fontWeight: "700" },
   memberCopy: { flex: 1, minWidth: 0 },
   memberName: { color: "#53514c", fontSize: 11, fontWeight: "650" as any },
@@ -197,13 +199,13 @@ const styles = StyleSheet.create({
   adminPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(246, 240, 209, 0.94)" },
   adminPillText: { color: "#83721f", fontSize: 7.5, fontWeight: "700", letterSpacing: 0.5 },
   memberActions: { flexDirection: "row", alignItems: "center", gap: 4 },
-  iconAction: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  iconAction: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   emptyNote: { color: "#918f87", fontSize: 9.5, lineHeight: 14, marginTop: 6 },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
   settingTitle: { color: "#53514c", fontSize: 11, fontWeight: "650" as any },
   callRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
-  callIcon: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238, 244, 248, 0.92)" },
-  leaveRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 12, borderRadius: 13, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(214, 178, 186, 0.6)", backgroundColor: "rgba(252, 244, 246, 0.86)" },
+  callIcon: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(238, 244, 248, 0.92)") },
+  leaveRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 12, borderRadius: 13, paddingVertical: 10, borderWidth: 1, borderColor: "rgba(214, 178, 186, 0.6)", backgroundColor: glassNestedFill("rgba(252, 244, 246, 0.86)") },
   leaveText: { color: "#A85F6E", fontSize: 10.5, fontWeight: "700" },
   pressed: { opacity: 0.86 },
 });

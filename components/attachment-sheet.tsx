@@ -4,7 +4,9 @@ import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { MAX_VOICE_SECONDS, clampVoiceSeconds, type AttachmentDraft } from "@/lib/chat-extras";
 
@@ -98,8 +100,8 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
         <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
-          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.9)", glassOpacity) }]}>
+        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
             <View style={styles.handle} />
 
             {mode === "menu" ? (
@@ -199,16 +201,16 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)", overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, padding: 14, paddingBottom: 16 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
   eyebrow: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
   title: { color: "#4e4a3b", fontSize: 13, fontWeight: "700", marginTop: 3 },
   grid: { flexDirection: "row", gap: 8, marginTop: 11 },
-  tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(255, 255, 255, 0.7)", paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#75726a", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#75726a", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   tileIconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)" },
-  tileIconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238, 244, 248, 0.92)" },
-  tileIconGreen: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(238, 246, 241, 0.92)" },
+  tileIconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(238, 244, 248, 0.92)") },
+  tileIconGreen: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(238, 246, 241, 0.92)") },
   tileTitle: { color: "#53514c", fontSize: 10.5, fontWeight: "650" as any, marginTop: 3 },
   tileSub: { color: "#918f87", fontSize: 8.5 },
   divider: { height: 1, backgroundColor: "rgba(224, 221, 203, 0.7)", marginVertical: 11 },
@@ -224,9 +226,9 @@ const styles = StyleSheet.create({
   waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
   waveBarLive: { backgroundColor: "#E9D177" },
   actions: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13, flexWrap: "wrap" },
-  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   primaryText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
-  ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.68)" },
+  ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
   ghostText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
   note: { color: "#918f87", fontSize: 9, lineHeight: 14, marginTop: 9 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 3 },

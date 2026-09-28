@@ -112,9 +112,7 @@ import {
   THREAD_STATE_STORAGE_KEY,
   clearThreadUnread,
   firstUnreadIndex,
-  hasSeenSafetyNote,
   isMarkedUnread,
-  markSafetyNoteSeen,
   markThreadRead,
   markThreadUnread,
   parseThreadState,
@@ -208,7 +206,9 @@ import {
 } from "@/lib/account-client";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
-import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor } from "@/lib/appearance-preferences";
+import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, matchGlassPreset, tabBarTint, type GlassSurface, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
@@ -525,6 +525,16 @@ export default function TrufrenzApp() {
   const [authBusy, setAuthBusy] = useState(false);
   /** One-time code echoed by the server when no provider can deliver it. */
   const [demoCode, setDemoCode] = useState<string | null>(null);
+  /**
+   * Which sign-in the code belongs to.
+   *
+   * Held in memory only, for the length of one sign-in, and never persisted: it
+   * is a bearer value for a challenge that expires in ten minutes, so keeping it
+   * on disk would leave a stale key behind for no benefit. The server also sets
+   * an httpOnly cookie, which is what a browser uses; this is the path that works
+   * on a phone, where fetch keeps no cookie jar at all.
+   */
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
   /** Which channel the member chose: a phone number or an email address. */
   const [authChannel, setAuthChannel] = useState<SigninChannel>("phone");
   /**
@@ -1565,7 +1575,7 @@ export default function TrufrenzApp() {
     setSelectedChat(null);
     setTab("You");
   };
-  const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setDemoCode(null); setPasscode(""); setShowSignup(true); tap(); };
+  const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setDemoCode(null); setChallengeToken(null); setPasscode(""); setShowSignup(true); tap(); };
   const closeSignup = () => setShowSignup(false);
   const persistSession = (next: StoredSession) => {
     setSession(next);
@@ -1761,6 +1771,7 @@ export default function TrufrenzApp() {
     setOtpDestination(result.data.destination);
     setSentTransport(result.data.transport ?? null);
     setDemoCode(result.data.demoCode ?? null);
+    setChallengeToken(result.data.challengeToken ?? null);
     if (!options?.isResend) setAuthStep("code");
 
     /*
@@ -1816,7 +1827,7 @@ export default function TrufrenzApp() {
         setAuthBusy(true);
         // Step one: prove the code. This no longer spends the sign-in, so a
         // member who still has a name and photo to give keeps their progress.
-        const verified = await verifyCode(passcode);
+        const verified = await verifyCode(passcode, challengeToken);
         if (!verified.ok) {
           setAuthBusy(false);
           feedback(verified.error);
@@ -1835,7 +1846,7 @@ export default function TrufrenzApp() {
           return;
         }
 
-        const result = await completeSignin({});
+        const result = await completeSignin({ challengeToken });
         setAuthBusy(false);
 
         if (!result.ok) {
@@ -2743,7 +2754,6 @@ export default function TrufrenzApp() {
       const unreadCount = unreadStart !== null && unreadStart >= 0
         ? conversationMessages.slice(unreadStart).filter((message) => message.from === "them").length
         : unreadForRow({ seedUnread: currentThread.unread ?? 0, messages: conversationMessages, state: threadState, chatId: selectedChat });
-      const showSafetyNote = !hasSeenSafetyNote(threadState, selectedChat);
       threadGestureRef.current.keyboardOpen = keyboardOpen;
       threadGestureRef.current.viewportHeight = windowHeight;
 
@@ -2753,11 +2763,15 @@ export default function TrufrenzApp() {
       >
         {topBar(true)}
         {/*
-          Shown once per conversation, then folded away. This was the last element
-          on the screen that cost a row of height, and repeating a reassurance to
-          someone who has already read it spends space without adding trust.
+          The one-line safety reminder that used to sit here has been removed.
+          It cost a row of height at the top of every conversation, directly
+          above the date, and the member read the same sentence every time they
+          opened a chat. The promise it made — that only friends can see the
+          messages and no exact location is shared — is still stated where it
+          matters: on the profile sheet before a meetup, in the safety centre,
+          and in the welcome carousel. Repeating it above the messages added
+          height without adding trust.
         */}
-        {keyboardOpen || !showSafetyNote ? null : <Pressable accessibilityRole="button" accessibilityLabel="Dismiss the safety note" onPress={() => setThreadState((current) => markSafetyNoteSeen(current, selectedChat))} style={styles.threadSafety}><Icon name="lock-outline" size={13} color="#7D8AA0" /><Text style={styles.threadSafetyText}>Only friends can see these messages. Your exact location is never shared.</Text></Pressable>}
         <ScrollView
           ref={threadScrollRef}
           style={styles.threadBody}
@@ -2811,7 +2825,7 @@ export default function TrufrenzApp() {
                       accessibilityLabel={`${mine ? "You" : currentThread.name.split(" ")[0]} said ${message.text}. Long press to react.`}
                       onLongPress={() => setReactionTarget(message.id)}
                       delayLongPress={280}
-                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(mine ? "rgba(233, 227, 193, 0.94)" : "rgba(255, 255, 255, 0.91)", glassOpacity, glassTintChoice, "row") }]}
+                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(mine ? "rgba(233, 227, 193, 0.94)" : glassNestedFill("rgba(255, 255, 255, 0.91)"), glassOpacity, glassTintChoice, "row") }]}
                     >
                       {message.kind === "voice" ? (
                         <View style={styles.voiceRow}>
@@ -2862,7 +2876,7 @@ export default function TrufrenzApp() {
               </React.Fragment>
             );
           })}
-          {typingChat === selectedChat ? <View style={styles.typingRow}><View style={[styles.typingBubble, { backgroundColor: glassSurfaceColor("rgba(255, 255, 255, 0.86)", glassOpacity, glassTintChoice, "chip") }]}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
+          {typingChat === selectedChat ? <View style={styles.typingRow}><View style={[styles.typingBubble, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.86)"), glassOpacity, glassTintChoice, "chip") }]}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
         </ScrollView>
         <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#83721f" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={styles.inviteLink}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={styles.inviteLink}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={styles.inviteLink}>Poll</Text></Pressable> : null}</View>
         {activeRowState.readOnly ? <View style={styles.readOnlyBar}><Icon name="lock-outline" size={14} color="#83721f" /><Text style={styles.readOnlyBarText}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
@@ -3295,8 +3309,8 @@ export default function TrufrenzApp() {
       {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
-          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}>
-            <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.87)", glassOpacity) }]}>
+          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+            <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.87)"), glassOpacity) }]}>
               <ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}>
               <View style={styles.actionMenuHandle} />
               <View style={styles.navigationMenuHeader}><View><Text style={styles.actionMenuEyebrow}>MOVE AROUND</Text><Text style={styles.navigationMenuTitle}>Where would you like to go?</Text></View><Pressable onPress={() => setNavigationMenuOpen(false)} accessibilityLabel="Close navigation options" style={styles.roundAction}><Icon name="close" size={18} color="#726e59" /></Pressable></View>
@@ -3397,7 +3411,7 @@ export default function TrufrenzApp() {
         <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.verificationModalIcon}><Icon name="verified-user" size={19} color="#65947E" /></View><Pressable onPress={() => setVerificationPrompt(false)} style={styles.roundAction}><Icon name="close" size={18} color="#726e59" /></Pressable></View><Text style={styles.groupModalTitle}>A little extra trust, first.</Text><Text style={styles.groupModalCopy}>Your phone is verified. To send friend requests, add a live-selfie match or ID check for the stronger badge. You can keep browsing until then.</Text><View style={styles.verificationStep}><Icon name="phone-iphone" size={16} color="#7C94A5" /><Text style={styles.verificationStepText}>Phone verification · complete</Text><Icon name="check-circle" size={15} color="#72A58B" /></View><View style={styles.verificationStep}><Icon name="face" size={16} color="#83721f" /><Text style={styles.verificationStepText}>Selfie match or ID check · optional</Text><Icon name="lock-outline" size={14} color="#a5a39e" /></View><ActionButton onPress={() => { setVerificationPrompt(false); setSelfieModalVisible(true); }} style={styles.groupCreateButton}><Text style={styles.actionText}>Start selfie check</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setVerificationPrompt(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Maybe later</Text></Pressable></Frosted></View>
       </Modal>
       <Modal visible={actionMenuOpen} transparent animationType="fade" onRequestClose={() => setActionMenuOpen(false)}>
-        <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.92)", glassOpacity) }]}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor("rgba(251, 249, 238, 0.88)", glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#a5a49e" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#83721f" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#a5a49e" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></BlurView></Pressable>
+        <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.88)"), glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#7393A8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#a5a49e" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#83721f" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#a5a49e" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#8092A0" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></BlurView></Pressable>
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
@@ -3456,7 +3470,7 @@ const styles = StyleSheet.create({
   backgroundImageWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   backgroundImage: { width: "100%", height: "100%", opacity: 0.62 },
   backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 248, 247, 0.1)" },
-  headingScrim: { position: "absolute", left: 0, right: 0, top: 0, height: 132, backgroundColor: "rgba(252, 250, 246, 0.62)" },
+  headingScrim: { position: "absolute", left: 0, right: 0, top: 0, height: 132, backgroundColor: glassNestedFill("rgba(252, 250, 246, 0.62)") },
   screenContent: { flex: 1 },
   ambient: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   ambientPink: { position: "absolute", top: 120, right: -140, height: 330, width: 330, borderRadius: 170, backgroundColor: "rgba(239, 229, 176, 0.18)" },
@@ -3475,7 +3489,7 @@ const styles = StyleSheet.create({
   brandIcon: { width: 31, height: 31, borderRadius: 12, backgroundColor: "#F1DE55", alignItems: "center", justifyContent: "center" },
   brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#4e4a3b" },
   topBarSub: { marginTop: 2, color: "#8d8b86", fontSize: 9 },
-  backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   backButtonText: { color: "#6b664c", fontSize: 9, fontWeight: "700" },
   threadHeading: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 7 },
   threadHeadingCopy: { flex: 1, minWidth: 0 },
@@ -3483,25 +3497,25 @@ const styles = StyleSheet.create({
   threadStatusRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   threadStatus: { flexShrink: 1, color: "#83721f", fontSize: 9, fontWeight: "600" },
   neighborStatus: { color: "#83721f", fontSize: 8.5, fontWeight: "600", marginTop: 3 },
-  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)", padding: 1, backgroundColor: "rgba(241, 246, 252, 0.36)" },
+  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"), padding: 1, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)") },
   threadAvatar: { width: "100%", height: "100%", borderRadius: 12 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
   /* Three controls in a conversation header: tighter gaps so none is pushed off. */
   topActionsThread: { gap: 6 },
-  roundAction: { position: "relative", height: 32, width: 32, borderRadius: 13, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
+  roundAction: { position: "relative", height: 32, width: 32, borderRadius: 13, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), alignItems: "center", justifyContent: "center", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
   notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#E9D177", borderWidth: 1, borderColor: "#FFFFFF" },
   userAvatar: { height: 35, width: 35, borderRadius: 14, backgroundColor: "#eee9cc", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FFFFFF" },
   userInitial: { color: "#7c7349", fontSize: 15, fontWeight: "700" },
   greeting: { color: "#94928a", fontSize: 11, fontWeight: "500", letterSpacing: 0.2 },
   chatHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 11, marginBottom: 15 },
   chatTitle: { color: "#3e3b2d", fontSize: 24, fontWeight: "700", letterSpacing: -0.75, marginTop: 3 },
-  composeButton: { width: 39, height: 39, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", shadowColor: "#83721f", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  frosted: { backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", borderRadius: 19, shadowColor: "#89877e", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
+  composeButton: { width: 39, height: 39, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), shadowColor: "#83721f", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  frosted: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 19, shadowColor: "#89877e", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
-  searchBar: { height: 42, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.73)" },
+  searchBar: { height: 42, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.73)") },
   searchInput: { flex: 1, color: "#4f4d47", fontSize: 11, paddingVertical: 0, outlineStyle: "none" as any },
   filterRow: { flexDirection: "row", gap: 7, marginTop: 10, marginBottom: 10 },
-  filterChip: { minHeight: 27, borderRadius: 11, paddingHorizontal: 12, justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
+  filterChip: { minHeight: 27, borderRadius: 11, paddingHorizontal: 12, justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
   filterChipActive: { backgroundColor: "#f0e8c1", borderColor: "#e4d89d" },
   filterChipText: { fontSize: 10, color: "#8f8d86", fontWeight: "500" },
   filterChipTextActive: { color: "#797353", fontWeight: "700" },
@@ -3523,7 +3537,7 @@ const styles = StyleSheet.create({
   listHeading: { height: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, borderBottomWidth: 1, borderBottomColor: "rgba(209, 206, 195, 0.42)" },
   chatListScroll: { flex: 1 },
   chatList: { paddingBottom: 13 },
-  chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", borderRadius: 16, backgroundColor: "rgba(255, 255, 255, 0.66)", paddingHorizontal: 8, paddingVertical: 8, marginBottom: 6, shadowColor: "#7e7b73", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.055, shadowRadius: 9, elevation: 1 },
+  chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), borderRadius: 16, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), paddingHorizontal: 8, paddingVertical: 8, marginBottom: 6, shadowColor: "#7e7b73", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.055, shadowRadius: 9, elevation: 1 },
   rowPressed: { opacity: 0.78, transform: [{ scale: 0.995 }] },
   chatAvatarWrap: { position: "relative", width: 48, height: 48 },
   chatAvatar: { width: 48, height: 48, borderRadius: 18, backgroundColor: "#eeead5" },
@@ -3545,7 +3559,7 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 53, height: 53, borderRadius: 20, backgroundColor: "#efe9cd", alignItems: "center", justifyContent: "center" },
   emptyTitle: { color: "#514e3e", fontSize: 15, fontWeight: "700", marginTop: 10 },
   emptyCopy: { color: "#8e8b85", fontSize: 10, lineHeight: 16, textAlign: "center", marginTop: 5 },
-  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.54)", paddingHorizontal: 14, shadowColor: "#6b643d", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9, elevation: 2 },
+  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.54)"), paddingHorizontal: 14, shadowColor: "#6b643d", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9, elevation: 2 },
   actionButtonSecondary: { backgroundColor: "#efe9cd" },
   actionText: { color: "#4A4210", fontSize: 11, fontWeight: "700" },
   emptyAction: { marginTop: 13 },
@@ -3556,8 +3570,6 @@ const styles = StyleSheet.create({
    * empty space between the composer and the bottom of the screen.
    */
   threadScreen: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 0 },
-  threadSafety: { minHeight: 31, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 5, marginBottom: 2 },
-  threadSafetyText: { color: "#93918c", fontSize: 8 },
   threadBody: { flex: 1 },
   threadContent: { paddingTop: 8, gap: 9 },
   /*
@@ -3587,12 +3599,12 @@ const styles = StyleSheet.create({
   sharedInterestText: { color: "#83721f", fontSize: 8 },
   messageRow: { flexDirection: "row", justifyContent: "flex-start" },
   myMessageRow: { justifyContent: "flex-end" },
-  readOnlyBar: { flexDirection: "row", alignItems: "center", gap: 7, marginHorizontal: 12, marginBottom: 4, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(247, 241, 214, 0.88)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)" },
+  readOnlyBar: { flexDirection: "row", alignItems: "center", gap: 7, marginHorizontal: 12, marginBottom: 4, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(247, 241, 214, 0.88)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
   readOnlyBarText: { flex: 1, color: "#716f67", fontSize: 9, fontWeight: "600" },
   senderLabel: { color: "#8c887f", fontSize: 8.5, fontWeight: "700", marginBottom: 2 },
   messageColumn: { maxWidth: "86%", gap: 4 },
   voiceRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 130 },
-  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(241, 246, 252, 0.36)" },
+  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)") },
   voiceWave: { flexDirection: "row", alignItems: "center", gap: 2, flex: 1, height: 22 },
   voiceBar: { flex: 1, borderRadius: 2, backgroundColor: "rgba(131, 114, 31, 0.55)" },
   voiceTime: { color: "#83721f", fontSize: 9, fontWeight: "700" },
@@ -3602,17 +3614,17 @@ const styles = StyleSheet.create({
   photoBubble: { width: 190, height: 140, borderRadius: 13, backgroundColor: "rgba(232, 229, 209, 0.9)" },
   reactionRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: -2 },
   myReactionRow: { justifyContent: "flex-end" },
-  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(241, 246, 252, 0.40)", paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#75726a", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#75726a", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   reactionChipMine: { borderColor: "rgba(233, 209, 119, 0.65)", backgroundColor: "rgba(247, 241, 214, 0.94)" },
   reactionEmoji: { fontSize: 11 },
   reactionCount: { color: "#83721f", fontSize: 9, fontWeight: "700" },
-  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", backgroundColor: "rgba(241, 246, 252, 0.43)", paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#75726a", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)"), paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#75726a", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   myReactionPicker: { alignSelf: "flex-end" },
   reactionChoice: { paddingHorizontal: 4, paddingVertical: 2 },
   reactionChoiceEmoji: { fontSize: 17 },
   messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16 },
-  theirBubble: { backgroundColor: "rgba(255, 255, 255, 0.91)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", borderBottomLeftRadius: 6, shadowColor: "#737168", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  myBubble: { backgroundColor: "rgba(233, 227, 193, 0.94)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)", borderBottomRightRadius: 6, shadowColor: "#737168", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  theirBubble: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.91)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), borderBottomLeftRadius: 6, shadowColor: "#737168", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  myBubble: { backgroundColor: "rgba(233, 227, 193, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), borderBottomRightRadius: 6, shadowColor: "#737168", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   messageText: { color: "#4f4d48", fontSize: 12, lineHeight: 18 },
   myMessageText: { color: "#5e5835" },
   messageTime: { textAlign: "right", color: "#a6a59f", fontSize: 7, marginTop: 4 },
@@ -3627,9 +3639,9 @@ const styles = StyleSheet.create({
    */
   composerRowRaised: { borderTopWidth: 1, borderTopColor: "rgba(221, 216, 193, 0.55)", paddingTop: 7, marginTop: 2 },
   composerIcon: { width: 30, alignItems: "center" },
-  quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(245, 240, 210, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", alignItems: "center", justifyContent: "center" },
-  composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: "rgba(241, 246, 252, 0.40)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", color: "#53514c", fontSize: 11, outlineStyle: "none" as any },
-  sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#e7e5de", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
+  quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(245, 240, 210, 0.86)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), alignItems: "center", justifyContent: "center" },
+  composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), color: "#53514c", fontSize: 11, outlineStyle: "none" as any },
+  sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#e7e5de", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
   sendButtonActive: { backgroundColor: "#F1DE55" },
   pageIntro: { marginTop: 17, marginBottom: 17 },
   pageEyebrow: { color: "#83721f", fontSize: 8, fontWeight: "700", letterSpacing: 1.1, marginBottom: 7 },
@@ -3639,7 +3651,7 @@ const styles = StyleSheet.create({
   interestFilterRow: { gap: 6, paddingVertical: 1 },
   friendsScroll: { marginTop: 14 },
   friendsContent: { paddingBottom: 20 },
-  requestPanel: { padding: 12, borderRadius: 18, backgroundColor: "rgba(255, 255, 255, 0.66)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", marginBottom: 17 },
+  requestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), marginBottom: 17 },
   requestHeading: { color: "#504d3f", fontSize: 14, fontWeight: "700", marginTop: 4 },
   requestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "#f2e9be", alignItems: "center", justifyContent: "center" },
   requestCountText: { color: "#83721f", fontSize: 9, fontWeight: "700" },
@@ -3648,12 +3660,12 @@ const styles = StyleSheet.create({
    * asks the member to decide something now; the other is a state they are only
    * watching, and the two should not read as the same kind of demand.
    */
-  outgoingRequestPanel: { padding: 12, borderRadius: 18, backgroundColor: "rgba(233, 241, 250, 0.5)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)", marginBottom: 17 },
+  outgoingRequestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(233, 241, 250, 0.5)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), marginBottom: 17 },
   outgoingRequestHeading: { color: "#4e4c47", fontSize: 14, fontWeight: "800", marginTop: 4 },
   outgoingRequestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "rgba(205, 225, 240, 0.92)", alignItems: "center", justifyContent: "center" },
   outgoingRequestCountText: { color: "#4e6575", fontSize: 9, fontWeight: "800" },
   outgoingRequestCopy: { color: "#6c777c", fontSize: 11, lineHeight: 15, marginTop: 4 },
-  withdrawRequestButton: { minHeight: 29, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.45)", backgroundColor: "rgba(255, 255, 255, 0.56)", alignItems: "center", justifyContent: "center" },
+  withdrawRequestButton: { minHeight: 29, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.45)", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"), alignItems: "center", justifyContent: "center" },
   withdrawRequestText: { color: "#527084", fontSize: 10.5, fontWeight: "800" },
   requestRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 12 },
   requestAvatar: { width: 42, height: 42, borderRadius: 15 },
@@ -3662,7 +3674,7 @@ const styles = StyleSheet.create({
   requestMutual: { color: "#94938d", fontSize: 8 },
   requestButtons: { flexDirection: "row", gap: 5 },
   acceptButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: "#8FB5A2", alignItems: "center", justifyContent: "center" },
-  declineButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: "#f1f0ec", alignItems: "center", justifyContent: "center" },
+  declineButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: glassNestedFill("#f1f0ec"), alignItems: "center", justifyContent: "center" },
   suggestHeading: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 10 },
   sectionTitle: { color: "#4a4842", fontSize: 17, fontWeight: "700", letterSpacing: -0.3, marginTop: 4 },
   sortChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5, backgroundColor: "#f3edd2" },
@@ -3678,35 +3690,35 @@ const styles = StyleSheet.create({
   neighborMeta: { flexDirection: "row", alignItems: "center", gap: 3 },
   neighborMetaText: { color: "#92918b", fontSize: 7 },
   commonInterestTags: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 1 },
-  commonInterestTag: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, backgroundColor: "rgba(249, 244, 224, 0.82)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)" },
+  commonInterestTag: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, backgroundColor: "rgba(249, 244, 224, 0.82)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
   commonInterestTagText: { color: "#83721f", fontSize: 7, fontWeight: "600" },
-  phoneOnlyLabel: { color: "#8f8e89", fontSize: 7, backgroundColor: "#f1f0eb", paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4, overflow: "hidden", marginLeft: 2 },
+  phoneOnlyLabel: { color: "#8f8e89", fontSize: 7, backgroundColor: glassNestedFill("#f1f0eb"), paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4, overflow: "hidden", marginLeft: 2 },
   compactRequestButton: { minWidth: 60, height: 30, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10, borderWidth: 1, borderColor: "#e3dab1", backgroundColor: "rgba(247, 242, 215, 0.78)", paddingHorizontal: 6 },
   compactRequestText: { color: "#83721f", fontSize: 8, fontWeight: "700" },
   discoveryPaused: { flexDirection: "row", alignItems: "center", gap: 8, padding: 11, marginBottom: 9, borderRadius: 14 },
   discoveryPausedTitle: { color: "#696760", fontSize: 9, fontWeight: "700" },
   noMatches: { minHeight: 58, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
   noMatchesText: { color: "#8e8b85", fontSize: 9 },
-  suggestCard: { width: "48.5%", borderRadius: 17, overflow: "hidden", backgroundColor: "rgba(241, 246, 252, 0.43)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#89877e", shadowOpacity: 0.065, shadowRadius: 12, elevation: 3 },
+  suggestCard: { width: "48.5%", borderRadius: 17, overflow: "hidden", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#89877e", shadowOpacity: 0.065, shadowRadius: 12, elevation: 3 },
   suggestPhotoWrap: { height: 106, position: "relative", backgroundColor: "#efedde" },
   suggestPhoto: { width: "100%", height: "100%" },
-  localityTag: { position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(241, 246, 252, 0.43)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 },
+  localityTag: { position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)"), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 },
   localityText: { color: "#727069", fontSize: 7 },
-  tierBadge: { position: "absolute", top: 6, right: 6, width: 23, height: 23, borderRadius: 9, backgroundColor: "rgba(241, 246, 252, 0.46)", alignItems: "center", justifyContent: "center" },
+  tierBadge: { position: "absolute", top: 6, right: 6, width: 23, height: 23, borderRadius: 9, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.46)"), alignItems: "center", justifyContent: "center" },
   suggestBody: { padding: 8 },
   suggestNameRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
   suggestName: { color: "#4a483a", fontSize: 10, fontWeight: "700", flexShrink: 1 },
   suggestAge: { color: "#97948e", fontSize: 8 },
   verificationPill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3 },
   verifiedPill: { backgroundColor: "#EAF4EF" },
-  phonePill: { backgroundColor: "#f1f0ec" },
+  phonePill: { backgroundColor: glassNestedFill("#f1f0ec") },
   compactBadge: { marginTop: 4 },
   verificationText: { color: "#568C77", fontSize: 7, fontWeight: "600" },
   phoneVerifiedText: { color: "#898783" },
   suggestAbout: { color: "#8b8984", fontSize: 8, lineHeight: 12, minHeight: 24, marginTop: 5 },
   suggestTags: { flexDirection: "row", gap: 4, marginTop: 5, marginBottom: 7 },
   suggestTag: { borderRadius: 6, backgroundColor: "#f5f1dc", paddingHorizontal: 5, paddingVertical: 3, color: "#83721f", fontSize: 7 },
-  requestFriendButton: { minHeight: 30, borderRadius: 9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.66)", paddingHorizontal: 4, shadowColor: "#6b643d", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
+  requestFriendButton: { minHeight: 30, borderRadius: 9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), paddingHorizontal: 4, shadowColor: "#6b643d", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   requestFriendText: { color: "#4A4210", fontSize: 7, fontWeight: "700" },
   requestSentButton: { backgroundColor: "#EAF2ED", borderWidth: 1, borderColor: "#DFECE3" },
   requestSentText: { color: "#608771" },
@@ -3718,10 +3730,10 @@ const styles = StyleSheet.create({
   meetupIntroArt: { width: 44, height: 44, position: "relative", alignItems: "center", justifyContent: "center" },
   artBubblePink: { position: "absolute", top: 2, left: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: "#ece1a5" },
   artBubbleBlue: { position: "absolute", bottom: 1, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: "#DDECF5" },
-  artCenter: { width: 32, height: 32, borderRadius: 13, backgroundColor: "rgba(241, 246, 252, 0.36)", alignItems: "center", justifyContent: "center" },
+  artCenter: { width: 32, height: 32, borderRadius: 13, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), alignItems: "center", justifyContent: "center" },
   meetupIntroTitle: { color: "#56533f", fontSize: 10, fontWeight: "700" },
   meetupIntroCopy: { color: "#908d86", fontSize: 8, lineHeight: 12, marginTop: 3 },
-  locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(241, 246, 252, 0.36)", borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
+  locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
   locationChipText: { color: "#7f7d76", fontSize: 7 },
   meetupScroll: { flex: 1, marginTop: 11 },
   meetupList: { gap: 9, paddingBottom: 20, marginTop: 11 },
@@ -3734,10 +3746,10 @@ const styles = StyleSheet.create({
   planFollowTimingToday: { color: "#806f1c" },
   planFollowTitle: { color: "#4e4a3b", fontSize: 11.5, fontWeight: "700" },
   planFollowActions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  planFollowButton: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  planFollowButton: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   planFollowButtonText: { color: "#4A4210", fontSize: 9.5, fontWeight: "700" },
-  planFollowGhost: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", backgroundColor: "rgba(255, 255, 255, 0.68)" },
-  planFollowCheckIn: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.6)" },
+  planFollowGhost: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
+  planFollowCheckIn: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   planFollowCheckInText: { color: "#4A4210", fontSize: 9.5, fontWeight: "700" },
   planFollowWho: { color: "#918f87", fontSize: 8.5, marginTop: 2 },
   meetupCard: { minHeight: 99, padding: 9, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16 },
@@ -3751,7 +3763,7 @@ const styles = StyleSheet.create({
   meetupMetaText: { color: "#8a8780", fontSize: 7 },
   metaDivider: { height: 8, width: 1, backgroundColor: "#d7d5c9" },
   meetupTag: { color: "#789080", fontSize: 7 },
-  rsvpButton: { alignSelf: "flex-end", borderRadius: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", paddingHorizontal: 9, paddingVertical: 6, marginBottom: 1, shadowColor: "#6b643d", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  rsvpButton: { alignSelf: "flex-end", borderRadius: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), paddingHorizontal: 9, paddingVertical: 6, marginBottom: 1, shadowColor: "#6b643d", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   rsvpText: { color: "#4A4210", fontSize: 8, fontWeight: "700" },
   rsvpJoined: { backgroundColor: "#E7F0EA" },
   rsvpTextJoined: { color: "#5B8A73" },
@@ -3763,18 +3775,18 @@ const styles = StyleSheet.create({
   profileVerifiedDot: { position: "absolute", right: -3, bottom: -3, width: 22, height: 22, borderRadius: 9, borderWidth: 2, borderColor: "#fcfaf2", backgroundColor: "#E9D177", alignItems: "center", justifyContent: "center" },
   profileBio: { color: "#6b6962", fontSize: 10.5, lineHeight: 16, textAlign: "center", marginTop: 8, paddingHorizontal: 6 },
   profileMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 11 },
-  profileMetaPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "rgba(255, 255, 255, 0.66)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  profileMetaPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   profileMetaText: { color: "#85827c", fontSize: 8, fontWeight: "600" },
-  getVerifiedButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, borderRadius: 13, paddingHorizontal: 16, marginTop: 12, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.64)", shadowColor: "#5c5634", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  getVerifiedButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, borderRadius: 13, paddingHorizontal: 16, marginTop: 12, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.64)"), shadowColor: "#5c5634", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   getVerifiedText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
   profileAvatar: { position: "relative", width: 59, height: 59, borderRadius: 21, backgroundColor: "#efe4af", alignItems: "center", justifyContent: "center" },
   profileInitial: { color: "#83721f", fontSize: 25, fontWeight: "700" },
   profileCheck: { position: "absolute", right: -2, bottom: -2, width: 19, height: 19, borderRadius: 8, backgroundColor: "#72A58B", borderColor: "#FFFFFF", borderWidth: 2, alignItems: "center", justifyContent: "center" },
   profileName: { color: "#504d3e", fontSize: 15, fontWeight: "700", marginTop: 7 },
-  profileStatusChip: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 7, maxWidth: 230, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(247, 242, 218, 0.76)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#68613d", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  profileStatusChip: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 7, maxWidth: 230, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(247, 242, 218, 0.76)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#68613d", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   profileStatusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#E9D177" },
   profileStatusText: { flexShrink: 1, color: "#6d6955", fontSize: 9.5, fontWeight: "650" as any },
-  profilePhoneBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 7, backgroundColor: "#EDF1F4", paddingHorizontal: 7, paddingVertical: 4, marginTop: 6 },
+  profilePhoneBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 7, backgroundColor: glassNestedFill("#EDF1F4"), paddingHorizontal: 7, paddingVertical: 4, marginTop: 6 },
   profilePhoneText: { color: "#798A97", fontSize: 8 },
   profileLocality: { flexDirection: "row", alignItems: "center", color: "#8f8d86", fontSize: 8, marginTop: 8 },
   profileInterests: { flexDirection: "row", gap: 5, marginTop: 11 },
@@ -3787,7 +3799,7 @@ const styles = StyleSheet.create({
   signupTitle: { color: "#545141", fontSize: 15, fontWeight: "700", marginTop: 10 },
   signupCopy: { color: "#8d8b84", fontSize: 9, lineHeight: 15, textAlign: "center", marginTop: 5 },
   signupCta: { alignSelf: "stretch", marginTop: 12 },
-  guestLoginButton: { alignSelf: "stretch", marginTop: 9, minHeight: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.34)", backgroundColor: "rgba(255, 255, 255, 0.56)" },
+  guestLoginButton: { alignSelf: "stretch", marginTop: 9, minHeight: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.34)", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)") },
   guestLoginText: { color: "#83721f", fontSize: 12, fontWeight: "700" },
   phoneRequired: { flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", marginTop: 10 },
   phoneRequiredText: { color: "#8493A0", fontSize: 7 },
@@ -3797,7 +3809,7 @@ const styles = StyleSheet.create({
   appearanceHeadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 9 },
   opacityReadout: { minWidth: 39, textAlign: "right", color: "#83721f", fontSize: 10, fontWeight: "700" },
   opacityOptions: { flexDirection: "row", gap: 4, marginTop: 7 },
-  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: "rgba(255, 255, 255, 0.52)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.92)" },
+  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.52)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)") },
   opacityOptionActive: { backgroundColor: "rgba(232, 216, 140, 0.95)", borderColor: "rgba(233, 209, 119, 0.86)", shadowColor: "#83721f", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   opacityOptionText: { color: "#8f8c85", fontSize: 8, fontWeight: "600" },
   opacityOptionTextActive: { color: "#6e6538", fontWeight: "700" },
@@ -3807,7 +3819,7 @@ const styles = StyleSheet.create({
   tintOptionActive: { borderColor: "#83721f", backgroundColor: "rgba(241, 222, 85, 0.28)" },
   tintSwatch: { width: 24, height: 24, borderRadius: 9, borderWidth: 1.5 },
   presetRow: { flexDirection: "row", gap: 8, marginTop: 10 },
-  presetButton: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.18)", backgroundColor: "rgba(255, 255, 255, 0.35)" },
+  presetButton: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.18)", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.35)") },
   presetButtonActive: { backgroundColor: "rgba(232, 214, 120, 0.55)", borderColor: "rgba(131, 114, 31, 0.45)" },
   presetLabel: { fontSize: 12, fontWeight: "600", color: "#6f6a58" },
   presetLabelActive: { color: "#4a4210" },
@@ -3816,30 +3828,30 @@ const styles = StyleSheet.create({
   opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
   opacityScaleText: { color: "#989791", fontSize: 7 },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
-  adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.85)", shadowColor: "#544f3a", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"), shadowColor: "#544f3a", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   adBannerText: { flex: 1, fontSize: 10.5, lineHeight: 14.5, color: "#6d6b63" },
   adBannerCta: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "#F1DE55" },
   adBannerCtaText: { fontSize: 10.5, fontWeight: "700", color: "#4A4210" },
   adBannerClose: { padding: 2 },
-  tierPill: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: "rgba(255, 255, 255, 0.7)", borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.3)" },
-  tierPillActive: { backgroundColor: "#F1DE55", borderColor: "rgba(255, 255, 255, 0.6)" },
+  tierPill: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.3)" },
+  tierPillActive: { backgroundColor: "#F1DE55", borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   tierPillText: { fontSize: 10.5, fontWeight: "700", color: "#78756d" },
   tierPillTextActive: { color: "#4A4210" },
   settingIconPink: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#f4eecb", alignItems: "center", justifyContent: "center" },
   settingIconBlue: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#E9F1F5", alignItems: "center", justifyContent: "center" },
   settingContent: { flex: 1 },
-  toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.62)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", shadowColor: "#726f68", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.62)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#726f68", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
   settingTitle: { color: "#58564f", fontSize: 9, fontWeight: "700" },
   settingSub: { color: "#94928d", fontSize: 7, marginTop: 3 },
   quietHoursControls: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 7 },
-  quietHourButton: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.42)", backgroundColor: "rgba(255, 255, 255, 0.6)", alignItems: "center", justifyContent: "center" },
+  quietHourButton: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.42)", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), alignItems: "center", justifyContent: "center" },
   quietHourValue: { color: "#5d7382", fontSize: 11, fontWeight: "700", marginRight: 3 },
   settingDivider: { height: 1, backgroundColor: "rgba(219, 216, 204, 0.50)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#f3ecc5", alignItems: "center", justifyContent: "center" },
   footerNote: { color: "#9e9c97", fontSize: 8, textAlign: "center", marginTop: 15 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.55)", flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: glassNestedFill("rgba(255, 255, 255, 0.55)"), flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   tabButton: { width: "25%", minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
-  tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.92)", backgroundColor: "rgba(255, 255, 255, 0.28)" },
+  tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"), backgroundColor: "rgba(255, 255, 255, 0.28)" },
   tabIconActive: { backgroundColor: "rgba(239, 233, 199, 0.96)", borderColor: "rgba(226, 213, 153, 0.98)", shadowColor: "#83721f", shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   tabLabel: { color: "#969590", fontSize: 8, fontWeight: "500" },
   tabLabelActive: { color: "#83721f", fontWeight: "700" },
@@ -3847,31 +3859,31 @@ const styles = StyleSheet.create({
   fieldError: { color: "#83721f", fontSize: 8.5, lineHeight: 13, marginTop: -6, marginBottom: 10 },
   fieldHint: { color: "#8E96A2", fontSize: 8, lineHeight: 13, marginTop: -6, marginBottom: 10 },
   suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: -4, marginBottom: 12 },
-  suggestionChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.66)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#75736a", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
+  suggestionChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#75736a", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
   suggestionChipActive: { backgroundColor: "rgba(239, 232, 193, 0.96)", borderColor: "rgba(224, 211, 147, 1)" },
   suggestionChipText: { color: "#838179", fontSize: 8.5, fontWeight: "600" },
   suggestionChipTextActive: { color: "#6f6740", fontWeight: "700" },
-  photoPicker: { alignItems: "center", gap: 9, paddingVertical: 18, borderRadius: 20, backgroundColor: "rgba(255, 255, 255, 0.6)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#75736a", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
-  photoPlaceholder: { width: 84, height: 84, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(242, 236, 202, 0.9)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
-  photoPreview: { width: 84, height: 84, borderRadius: 30, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
+  photoPicker: { alignItems: "center", gap: 9, paddingVertical: 18, borderRadius: 20, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#75736a", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
+  photoPlaceholder: { width: 84, height: 84, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(242, 236, 202, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
+  photoPreview: { width: 84, height: 84, borderRadius: 30, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
   photoPickerText: { color: "#6a6760", fontSize: 10.5, fontWeight: "700" },
   photoPickerHint: { color: "#98958f", fontSize: 8, textAlign: "center", paddingHorizontal: 18 },
-  photoSafety: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: "rgba(255, 255, 255, 0.56)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)" },
+  photoSafety: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
   photoSafetyText: { flex: 1, color: "#818A93", fontSize: 8, lineHeight: 13 },
   summaryCard: { padding: 13, borderRadius: 18 },
   summaryHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  summaryAvatar: { width: 46, height: 46, borderRadius: 17, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
-  summaryAvatarFallback: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#f1e7b9", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
+  summaryAvatar: { width: 46, height: 46, borderRadius: 17, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
+  summaryAvatarFallback: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#f1e7b9", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
   summaryAvatarText: { color: "#83721f", fontSize: 17, fontWeight: "800" },
   summaryName: { color: "#524f3e", fontSize: 12, fontWeight: "700" },
   summaryMeta: { color: "#918f86", fontSize: 8, marginTop: 3 },
   summaryTags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 11 },
-  summaryTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 11, backgroundColor: "rgba(242, 236, 202, 0.9)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  summaryTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 11, backgroundColor: "rgba(242, 236, 202, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   summaryTagText: { color: "#83721f", fontSize: 8, fontWeight: "600" },
-  summaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: "rgba(255, 255, 255, 0.56)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)" },
+  summaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
   summaryRowText: { flex: 1, color: "#818A93", fontSize: 8, lineHeight: 13 },
   toastText: { color: "#4A4210", fontSize: 9, fontWeight: "500", flex: 1 },
-  refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: "rgba(255, 255, 255, 0.67)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", alignItems: "center", justifyContent: "center", shadowColor: "#7d7b72", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
+  refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.67)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), alignItems: "center", justifyContent: "center", shadowColor: "#7d7b72", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
   refreshGlassContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   refreshGlassText: { color: "#7d7b72", fontSize: 9, fontWeight: "600" },
   modalSafe: { flex: 1, backgroundColor: "#FAF8F7" },
@@ -3886,7 +3898,7 @@ const styles = StyleSheet.create({
   authPromiseCopy: { color: "#95938c", fontSize: 8, marginTop: 3 },
   formField: { marginBottom: 15 },
   fieldLabel: { fontSize: 8, color: "#939089", letterSpacing: 0.8, fontWeight: "700", marginBottom: 6 },
-  fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(220, 214, 189, 0.72)", backgroundColor: "rgba(241, 246, 252, 0.36)", color: "#4b4a44", fontSize: 12 },
+  fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(220, 214, 189, 0.72)", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), color: "#4b4a44", fontSize: 12 },
   resendRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 },
   resendPrompt: { fontSize: 12.5, color: "#6F6B60" },
   resendButton: {
@@ -3900,13 +3912,13 @@ const styles = StyleSheet.create({
     borderColor: "rgba(131, 114, 31, 0.35)",
     backgroundColor: "rgba(247, 240, 205, 0.55)",
   },
-  resendButtonDisabled: { borderColor: "rgba(141, 154, 165, 0.28)", backgroundColor: "rgba(237, 240, 243, 0.55)" },
+  resendButtonDisabled: { borderColor: "rgba(141, 154, 165, 0.28)", backgroundColor: glassNestedFill("rgba(237, 240, 243, 0.55)") },
   resendButtonText: { fontSize: 12.5, fontWeight: "700", color: "#83721f" },
   resendButtonTextDisabled: { color: "#8D9AA5" },
   resendHint: { fontSize: 11, lineHeight: 15, color: "#9b988f", marginTop: -2 },
   codeInput: { letterSpacing: 9, fontSize: 19, fontWeight: "700", textAlign: "center" },
   interestOptions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
-  interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: "rgba(255, 255, 255, 0.67)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.67)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   interestOptionActive: { backgroundColor: "#f0e9c3", borderColor: "#e6da9c" },
   interestOptionText: { fontSize: 8, color: "#8c8983" },
   interestOptionTextActive: { color: "#7a7245", fontWeight: "700" },
@@ -3923,7 +3935,7 @@ const styles = StyleSheet.create({
   modalTopLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   groupModalIcon: { width: 37, height: 37, borderRadius: 13, backgroundColor: "#f1e9c2", alignItems: "center", justifyContent: "center" },
   verificationModalIcon: { width: 37, height: 37, borderRadius: 13, backgroundColor: "#EAF3EE", alignItems: "center", justifyContent: "center" },
-  verificationStep: { minHeight: 38, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 11, backgroundColor: "rgba(255, 255, 255, 0.65)", marginTop: 6 },
+  verificationStep: { minHeight: 38, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 11, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.65)"), marginTop: 6 },
   verificationStepText: { flex: 1, color: "#7e7c74", fontSize: 8 },
   groupModalTitle: { color: "#504d3e", fontSize: 16, fontWeight: "700", marginTop: 11 },
   groupModalCopy: { color: "#8f8d86", fontSize: 9, lineHeight: 15, marginTop: 4, marginBottom: 11 },
@@ -3932,7 +3944,7 @@ const styles = StyleSheet.create({
   cancelGroupText: { color: "#908d86", fontSize: 9 },
   handoffOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 10, justifyContent: "center", alignItems: "center" },
   handoffBlur: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(250, 248, 248, 0.10)" },
-  handoffCard: { width: 235, padding: 14, borderRadius: 19, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)", shadowColor: "#66614c", shadowOpacity: 0.10, shadowRadius: 18, elevation: 5 },
+  handoffCard: { width: 235, padding: 14, borderRadius: 19, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#66614c", shadowOpacity: 0.10, shadowRadius: 18, elevation: 5 },
   handoffHeadline: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   handoffTitle: { color: "#686551", fontSize: 10, fontWeight: "700" },
   handoffSkeleton: { flexDirection: "row", gap: 9, alignItems: "center", padding: 10, marginTop: 10, backgroundColor: "rgba(243, 240, 223, 0.75)", borderRadius: 12 },
@@ -3946,23 +3958,23 @@ const styles = StyleSheet.create({
   receiptText: { color: "#83721f", fontSize: 6 },
   receiptReadText: { color: "#64A09A" },
   typingRow: { flexDirection: "row", justifyContent: "flex-start" },
-  typingBubble: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 12, borderBottomLeftRadius: 5, backgroundColor: "rgba(255, 255, 255, 0.86)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", paddingHorizontal: 10 },
+  typingBubble: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 12, borderBottomLeftRadius: 5, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.86)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), paddingHorizontal: 10 },
   typingDots: { flexDirection: "row", alignItems: "center", gap: 3 },
   typingDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "#E9D177" },
   typingDotMiddle: { opacity: 0.72 },
   typingDotLast: { opacity: 0.46 },
   typingText: { color: "#8f8d85", fontSize: 8 },
-  selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.92)" },
+  selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)") },
   selfieEntryIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#f0ebcd", alignItems: "center", justifyContent: "center" },
   navigationMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(53, 50, 31, 0.24)" },
-  navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(250, 248, 239, 0)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#4f4b36", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
+  navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(250, 248, 239, 0)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#4f4b36", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
   navigationMenuCard: { flexShrink: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(251, 249, 238, 0)" },
   navigationMenuScroll: { flexGrow: 0, flexShrink: 1 },
   navigationMenuContent: { flexGrow: 1 },
   navigationMenuHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 },
   navigationMenuTitle: { color: "#4e4c47", fontSize: 17, fontWeight: "700", marginTop: 4 },
   navigationMenuGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 7 },
-  navigationMenuItem: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 15, paddingHorizontal: 9, backgroundColor: "rgba(241, 246, 252, 0.36)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#747057", shadowOpacity: 0.055, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  navigationMenuItem: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 15, paddingHorizontal: 9, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#747057", shadowOpacity: 0.055, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   navigationMenuItemActive: { backgroundColor: "rgba(243, 234, 194, 0.96)", borderColor: "rgba(227, 214, 147, 1)" },
   navigationMenuIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(240, 235, 205, 0.86)" },
   navigationMenuIconActive: { backgroundColor: "#F1DE55" },
@@ -3970,7 +3982,7 @@ const styles = StyleSheet.create({
   navigationMenuItemTextActive: { color: "#70673f" },
   navigationMenuHint: { color: "#8c8983", fontSize: 8, lineHeight: 13, textAlign: "center", marginTop: 10, paddingHorizontal: 7 },
   actionMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(63, 58, 37, 0.2)" },
-  actionMenuBlur: { width: "100%", borderRadius: 25, overflow: "hidden", backgroundColor: "rgba(251, 249, 238, 0)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#4f4b36", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 22 },
+  actionMenuBlur: { width: "100%", borderRadius: 25, overflow: "hidden", backgroundColor: "rgba(251, 249, 238, 0)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#4f4b36", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 22 },
   actionMenuCard: { flexShrink: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(251, 249, 238, 0)" },
   actionMenuHandle: { width: 32, height: 3, borderRadius: 2, backgroundColor: "rgba(133, 120, 139, 0.36)", alignSelf: "center", marginBottom: 13 },
   actionMenuEyebrow: { color: "#83721f", fontSize: 7, fontWeight: "700", letterSpacing: 1.1 },
@@ -3983,7 +3995,7 @@ const styles = StyleSheet.create({
   actionMenuItemTitle: { color: "#58564f", fontSize: 9, fontWeight: "700" },
   actionMenuItemSub: { color: "#908d87", fontSize: 7.5 },
   actionMenuDivider: { height: 1, marginLeft: 43, backgroundColor: "rgba(214, 208, 183, 0.55)" },
-  actionMenuPrivacy: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 10, backgroundColor: "rgba(255, 255, 255, 0.56)", marginTop: 6 },
+  actionMenuPrivacy: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 10, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"), marginTop: 6 },
   actionMenuPrivacyText: { color: "#86939D", fontSize: 7 },
   /**
    * Account status notice.
@@ -3999,8 +4011,8 @@ const styles = StyleSheet.create({
     bottom: 96,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.7)",
-    backgroundColor: "rgba(252, 250, 240, 0.95)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
+    backgroundColor: glassNestedFill("rgba(252, 250, 240, 0.95)"),
     paddingHorizontal: 16,
     paddingVertical: 14,
     shadowColor: "#55513a",
@@ -4019,7 +4031,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(235, 226, 183, 0.9)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.8)"),
   },
   accountNoticeTitle: { flex: 1, fontSize: 14.5, lineHeight: 19, fontWeight: "700", color: "#4a4737" },
   accountNoticeBody: { fontSize: 12.5, lineHeight: 18, color: "#6a6760" },
@@ -4034,7 +4046,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
     backgroundColor: "rgba(241, 235, 208, 0.92)",
   },
   accountNoticeActionText: { fontSize: 12.5, fontWeight: "700", color: "#83721f" },
@@ -4047,7 +4059,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
     backgroundColor: "rgba(241, 235, 208, 0.92)",
   },
   noticeMarkText: { fontSize: 11.5, fontWeight: "700", color: "#83721f" },
@@ -4056,7 +4068,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.7)",
+    borderTopColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
   },
   noticeDot: {
     width: 7,
@@ -4079,8 +4091,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    backgroundColor: "rgba(255, 255, 255, 0.34)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.5)"),
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.34)"),
   },
   channelButtonActive: { backgroundColor: "rgba(247, 240, 205, 0.85)", borderColor: "rgba(196, 168, 74, 0.5)" },
   channelButtonText: { fontSize: 13, fontWeight: "600", color: "#7A8FA0" },
@@ -4096,9 +4108,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"),
     shadowColor: "#666146",
     shadowOpacity: 0.07,
     shadowRadius: 5,

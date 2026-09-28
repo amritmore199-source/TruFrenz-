@@ -4,7 +4,9 @@ import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
-import { glassSurfaceColor } from "@/lib/appearance-preferences";
+import { glassNestedSurfaceColor, glassSurfaceColor,
+  glassNestedFill,
+} from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
   actionLabel,
@@ -77,7 +79,7 @@ const ACTION_ICONS: Record<ViewerAction, keyof typeof MaterialIcons.glyphMap> = 
 
 export function FriendProfileModal({ visible, profile, relationship, viewerTier, viewerCanRequestFriendship, myInterests, actions, onClose }: Props) {
   const modalLayout = useResponsiveModalLayout();
-  const { glassOpacity } = useAppAppearance();
+  const { glassOpacity, glassTint } = useAppAppearance();
   const { width } = useWindowDimensions();
   const [galleryWidth, setGalleryWidth] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -121,7 +123,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
         <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <BlurView intensity={58} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close profile" onPress={onClose} />
-        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor("rgba(252, 250, 242, 0.92)", glassOpacity) }]}>
+        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.92)"), glassOpacity) }]}>
           <BlurView intensity={64} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
           <View style={styles.header}>
             <View style={styles.handle} />
@@ -238,7 +240,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
 
             <View style={styles.actionGrid}>
               {viewerActions.map((action) => (
-                <Pressable key={action} onPress={() => handleAction(action)} accessibilityLabel={actionLabel(action)} style={({ pressed }) => [styles.actionButton, isDestructive(action) && styles.actionDanger, isPrimary(action) && styles.actionPrimary, pressed && styles.pressed]}>
+                <Pressable key={action} onPress={() => handleAction(action)} accessibilityLabel={actionLabel(action)} style={({ pressed }) => [styles.actionButton, { backgroundColor: glassNestedSurfaceColor(isDestructive(action) ? "rgba(249, 244, 224, 0.9)" : "rgba(255, 255, 255, 0.72)", glassOpacity, glassTint), borderColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.98)", glassOpacity, glassTint) }, isPrimary(action) && styles.actionPrimary, pressed && styles.pressed]}>
                   <MaterialIcons name={ACTION_ICONS[action]} size={16} color={isPrimary(action) ? "#FFFFFF" : isDestructive(action) ? "#83721f" : "#777259"} />
                   <Text style={[styles.actionText, isPrimary(action) && styles.actionTextPrimary, isDestructive(action) && styles.actionTextDanger]}>{actionLabel(action)}</Text>
                 </Pressable>
@@ -281,57 +283,61 @@ function isDestructive(action: ViewerAction): boolean {
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(77, 71, 43, 0.20)" },
-  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", shadowColor: "#534c2e", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
+  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#534c2e", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
   sheetScroll: { flexGrow: 0, flexShrink: 1 },
   sheetContent: { padding: 16, paddingTop: 4 },
   header: { height: 30, alignItems: "center", justifyContent: "center" },
   handle: { width: 34, height: 4, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.35)" },
-  close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: "rgba(241, 246, 252, 0.43)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.99)", alignItems: "center", justifyContent: "center" },
-  galleryFrame: { width: "100%", height: 208, borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(239, 234, 209, 0.9)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)" },
+  close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), alignItems: "center", justifyContent: "center" },
+  galleryFrame: { width: "100%", height: 208, borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(239, 234, 209, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
   gallery: { width: "100%", height: "100%" },
   gallerySlide: { height: "100%" },
   galleryImage: { width: "100%", height: "100%" },
-  trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: "rgba(252, 250, 242, 0.96)", backgroundColor: "#E9D177", alignItems: "center", justifyContent: "center", shadowColor: "#776b33", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: glassNestedFill("rgba(252, 250, 242, 0.96)"), backgroundColor: "#E9D177", alignItems: "center", justifyContent: "center", shadowColor: "#776b33", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   counter: { position: "absolute", left: 9, top: 9, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(77, 71, 43, 0.42)" },
   counterText: { color: "#FFFFFF", fontSize: 8.5, fontWeight: "700" },
   dots: { flexDirection: "row", justifyContent: "center", gap: 5, marginTop: 8 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(131, 114, 31, 0.38)" },
   dotActive: { backgroundColor: "#F1DE55", width: 14 },
   identity: { alignItems: "center", paddingTop: 11, paddingBottom: 12 },
-  statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(247, 242, 218, 0.78)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(247, 242, 218, 0.78)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#E9D177" },
   statusChipText: { flexShrink: 1, color: "#6d6955", fontSize: 10, fontWeight: "650" as any },
   name: { color: "#4a483a", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 },
   badge: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "#EAF4EF", marginTop: 7 },
-  phoneBadge: { backgroundColor: "#EDF1F4" },
+  phoneBadge: { backgroundColor: glassNestedFill("#EDF1F4") },
   badgeText: { color: "#568C77", fontSize: 10, fontWeight: "600" },
   phoneText: { color: "#788B9A" },
   locality: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 7 },
   localityText: { color: "#8c8983", fontSize: 10 },
-  distanceRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: "rgba(242, 236, 202, 0.88)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  distanceRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: "rgba(242, 236, 202, 0.88)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   distanceText: { color: "#83721f", fontSize: 9.5, fontWeight: "700" },
-  mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(244, 236, 200, 0.9)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.96)" },
+  mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(244, 236, 200, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   mutualText: { flex: 1, color: "#767158", fontSize: 10, fontWeight: "700" },
   divider: { height: 1, backgroundColor: "rgba(219, 215, 192, 0.65)", marginTop: 14, marginBottom: 12 },
   sectionLabel: { color: "#929087", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
   about: { color: "#63615c", fontSize: 12, lineHeight: 18, marginTop: 6, marginBottom: 9 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
-  tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(244, 236, 200, 0.91)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.93)", paddingHorizontal: 9, paddingVertical: 6 },
-  tagShared: { backgroundColor: "rgba(243, 234, 194, 0.95)", borderColor: "rgba(255, 255, 255, 0.98)" },
+  tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(244, 236, 200, 0.91)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.93)"), paddingHorizontal: 9, paddingVertical: 6 },
+  tagShared: { backgroundColor: "rgba(243, 234, 194, 0.95)", borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
   tagText: { color: "#83721f", fontSize: 9, fontWeight: "500" },
   tagTextShared: { color: "#776c33", fontWeight: "700" },
-  lookingTag: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(232, 241, 246, 0.85)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)" },
+  lookingTag: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(232, 241, 246, 0.85)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
   lookingText: { color: "#6E8493", fontSize: 9, fontWeight: "600" },
-  languageTag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "rgba(236, 240, 243, 0.88)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.95)" },
+  languageTag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(236, 240, 243, 0.88)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
   languageText: { color: "#77838C", fontSize: 9, fontWeight: "600" },
   actionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 },
-  actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.98)", shadowColor: "#75736a", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  actionPrimary: { backgroundColor: "#F1DE55", borderColor: "rgba(255, 255, 255, 0.64)", shadowColor: "#5c5634", shadowOpacity: 0.14 },
-  actionDanger: { backgroundColor: "rgba(249, 244, 224, 0.9)", borderColor: "rgba(242, 234, 191, 0.98)" },
+  // No backgroundColor on purpose: the fill is resolved at the render site through
+  // glassNestedSurfaceColor. A hardcoded near-opaque white is exactly the patch the
+  // member saw — it sits on a translucent sheet and hides the wallpaper instead of
+  // tinting it, and it ignored their glass setting. The declared alpha is kept there
+  // as an ordering below the sheet, so a button is always lighter than its panel.
+  actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#75736a", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  actionPrimary: { backgroundColor: "#F1DE55", borderColor: glassNestedFill("rgba(255, 255, 255, 0.64)"), shadowColor: "#5c5634", shadowOpacity: 0.14 },
   actionText: { color: "#6a6760", fontSize: 10, fontWeight: "700" },
   actionTextPrimary: { color: "#FFFFFF" },
   actionTextDanger: { color: "#83721f" },
-  safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: "rgba(232, 241, 246, 0.73)" },
+  safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: glassNestedFill("rgba(232, 241, 246, 0.73)") },
   safetyText: { flex: 1, color: "#7E8D98", fontSize: 9, lineHeight: 14 },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
 });

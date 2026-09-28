@@ -69,7 +69,15 @@ describe("appearance preferences", () => {
   it("makes a lighter setting more transparent than a heavier one", () => {
     // The stored 50-95 scale keeps its direction, so the control still means
     // what its labels say.
-    expect(glassAlpha("card", 50)).toBeGreaterThan(glassAlpha("card", 95));
+    /*
+     * The direction the screen promises.
+     *
+     * This assertion used to read the other way round, which is what let the
+     * setting be inverted for so long: the suite agreed with the bug. The scale
+     * is labelled "More wallpaper" at 50 and "More opaque" at 95, so 95 must be
+     * the heavier surface.
+     */
+    expect(glassAlpha("card", 95)).toBeGreaterThan(glassAlpha("card", 50));
     expect(glassTint("card", 50)).not.toBe(glassTint("card", 95));
   });
 
