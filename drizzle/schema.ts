@@ -100,6 +100,8 @@ export const members = mysqlTable("members", {
   emailBouncedAt: timestamp("emailBouncedAt"),
   /** Whether this member wants renewal and safety notices by email too. */
   emailNotices: boolean("emailNotices").default(true).notNull(),
+  /** Whether other members may find this account by matching a phone contact. */
+  contactDiscoveryEnabled: boolean("contactDiscoveryEnabled").default(false).notNull(),
   age: int("age"),
   dateOfBirth: varchar("dateOfBirth", { length: 10 }),
   homeArea: varchar("homeArea", { length: 120 }),
@@ -509,9 +511,10 @@ export const otpSendAttempts = mysqlTable(
     /**
      * What happened. Sends and failed verifications share this table because
      * they share a shape and are always pruned together; one column keeps them
-     * apart without a second table and a second cleanup job.
+     * apart without a second table and a second cleanup job. Contact-match
+     * lookups use it too, so their rate-limit history is pruned alongside OTP.
      */
-    kind: mysqlEnum("kind", ["send", "failure"]).default("send").notNull(),
+    kind: mysqlEnum("kind", ["send", "failure", "contact_lookup"]).default("send").notNull(),
     /** Which channel the code travelled over. */
     channel: mysqlEnum("channel", ["phone", "email"]).notNull(),
     /** The E.164 number or normalised address the code was sent to. */

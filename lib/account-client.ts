@@ -8,6 +8,10 @@
  */
 
 import { getApiBaseUrl } from "@/constants/oauth";
+import { Platform } from "react-native";
+import { getSessionToken, removeSessionToken, setSessionToken } from "@/lib/_core/auth";
+import { memberAuthorizationHeader } from "@/lib/account-auth";
+import type { ContactMatch } from "@/lib/contact-discovery";
 import {
   normalizeAccountStatus,
   normalizeVerificationTier,
@@ -30,6 +34,7 @@ export type RemoteAccount = {
   verificationTier: VerificationTier;
   subscriptionTier: "free" | "premium";
   available: boolean;
+  contactDiscoveryEnabled: boolean;
   accountStatus: AccountStatus;
   statusReason: string | null;
   statusChangedAt: string | null;
@@ -74,10 +79,16 @@ async function request<T>(
     }
 > {
   try {
+    const nativeToken = Platform.OS === "web" ? null : await getSessionToken();
+    const authorization = memberAuthorizationHeader(nativeToken);
     const response = await fetch(`${getApiBaseUrl()}${path}`, {
       ...init,
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authorization ? { Authorization: authorization } : {}),
+        ...(init.headers ?? {}),
+      },
     });
     const text = await response.text();
     let parsed: unknown = null;
@@ -202,10 +213,12 @@ export async function completeSignin(input: {
    */
   challengeToken?: string | null;
 }) {
-  return request<{ ok: boolean; token: string; account: RemoteAccount }>(
+  const result = await request<{ ok: boolean; token: string; account: RemoteAccount }>(
     "/api/account/complete-signin",
     { method: "POST", body: JSON.stringify(input) },
   );
+  if (result.ok && Platform.OS !== "web") await setSessionToken(result.data.token);
+  return result;
 }
 
 export async function verifyOtp(input: {
@@ -216,10 +229,12 @@ export async function verifyOtp(input: {
   homeArea?: string;
   email?: string;
 }) {
-  return request<{ ok: boolean; token: string; account: RemoteAccount }>(
+  const result = await request<{ ok: boolean; token: string; account: RemoteAccount }>(
     "/api/account/verify-otp",
     { method: "POST", body: JSON.stringify(input) },
   );
+  if (result.ok && Platform.OS !== "web") await setSessionToken(result.data.token);
+  return result;
 }
 
 export async function fetchSession() {
@@ -227,7 +242,25 @@ export async function fetchSession() {
 }
 
 export async function signOutRemote() {
-  return request<{ ok: boolean }>("/api/account/sign-out", { method: "POST" });
+  const result = await request<{ ok: boolean }>("/api/account/sign-out", { method: "POST" });
+  if (Platform.OS !== "web") await removeSessionToken();
+  return result;
+}
+
+/** Match locally hashed numbers to members who opted into phone discovery. */
+export async function fetchContactMatches(phoneHashes: string[]) {
+  return request<{ matches: ContactMatch[] }>("/api/account/contacts/matches", {
+    method: "POST",
+    body: JSON.stringify({ phoneHashes }),
+  });
+}
+
+/** Persist whether other members may find this member by phone contacts. */
+export async function setContactDiscoveryEnabled(enabled: boolean) {
+  return request<{ ok: boolean; enabled: boolean }>("/api/account/contacts/discoverability", {
+    method: "POST",
+    body: JSON.stringify({ enabled }),
+  });
 }
 
 /* ------------------------------ notices -------------------------------- */

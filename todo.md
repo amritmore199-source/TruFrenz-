@@ -804,3 +804,37 @@ building and testing them.
 - **Verification:** `pnpm check` clean; full suite **772 passed | 1 skipped**
   across 50 files; `pnpm lint` 0 errors (29 warnings); `git diff --check` clean.
   The disposable OTP account was deleted after the end-to-end test.
+
+## Contact discovery and individual invite drafts — DONE (verified)
+- **Friends tab can check the device address book.** The Expo Contacts prompt
+  is requested only after the member taps **Check my contacts**. Phone numbers
+  are normalized and SHA-256 hashed on-device; only bounded batches of hashes
+  are sent to the signed-in API. Contact names and raw numbers stay on the
+  device, and are not logged or persisted by the app/server. The lookup route
+  returns only members who explicitly opted in to be found by phone and is
+  rate-limited to 10 checks per member per hour.
+- **Privacy defaults are off.** Migration `0010_light_susan_delgado.sql` added
+  the server-backed opt-in; migration `0011_jittery_lifeguard.sql` defaults
+  existing and new members to not discoverable until they actively enable
+  **Let people find me by phone** under You → Privacy & Little Extras. They can
+  still check their own contacts when opted out.
+- **Invites are individual and user-controlled.** The member can select
+  contacts (including existing members, per their preference), then open one
+  pre-addressed SMS draft at a time. Trufrenz never sends the SMS itself, and
+  names/numbers of selected contacts are not sent to other recipients. The
+  invite URL is configurable through `EXPO_PUBLIC_INVITE_URL`; the default
+  `https://trufrenz.net` did not resolve in the sandbox check, so configure a
+  deployed landing/store link before sending production invites.
+- **Native auth and sign-out:** Expo native API calls use the stored Bearer
+  session, the server resolves it alongside browser cookies, token-prefix
+  logging was removed, and member sign-out revokes the remote session and clears
+  transient contact state. The Android config requests read access only and
+  blocks `WRITE_CONTACTS`; native permission copy explains the address book
+  stays private.
+- **Verification:** the live API test created two disposable OTP accounts,
+  confirmed a contact hash matched only after the target opted in, confirmed
+  opt-out excluded them, and removed both members plus test-owned DB rows.
+  `pnpm check` clean; **783 tests passed / 1 skipped** across 52 files;
+  `pnpm lint` 0 errors (27 warnings); `git diff --check` clean. The mobile
+  preview shows the opt-in discovery card; device permission/SMS composer require
+  a rebuilt native app, not the web preview.

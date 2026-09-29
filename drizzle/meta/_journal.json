@@ -71,6 +71,20 @@
       "when": 1790527627110,
       "tag": "0009_known_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1790612685221,
+      "tag": "0010_light_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1790642571919,
+      "tag": "0011_jittery_lifeguard",
+      "breakpoints": true
     }
   ]
 }

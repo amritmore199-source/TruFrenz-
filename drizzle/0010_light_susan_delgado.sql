@@ -1,0 +1,2 @@
+ALTER TABLE `otp_send_attempts` MODIFY COLUMN `kind` enum('send','failure','contact_lookup') NOT NULL DEFAULT 'send';--> statement-breakpoint
+ALTER TABLE `members` ADD `contactDiscoveryEnabled` boolean DEFAULT true NOT NULL;

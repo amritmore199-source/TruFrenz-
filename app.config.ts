@@ -66,6 +66,7 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
     permissions: ["POST_NOTIFICATIONS"],
+    blockedPermissions: ["android.permission.WRITE_CONTACTS"],
     intentFilters: [
       {
         action: "VIEW",
@@ -87,6 +88,14 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    [
+      "expo-contacts",
+      {
+        contactsPermission:
+          "Trufrenz compares phone numbers hashed on this device to members who opted in. Contact names and raw numbers stay on this device.",
+      },
+    ],
+    "expo-localization",
     // react-native-iap is autolinked by Expo and ships no config plugin, so it is
     // deliberately not listed here — adding it fails the build.
 

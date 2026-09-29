@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   Animated,
   BackHandler,
@@ -27,9 +28,13 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
+import * as Contacts from "expo-contacts";
+import * as Crypto from "expo-crypto";
 import Constants from "expo-constants";
+import { getLocales } from "expo-localization";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as SMS from "expo-sms";
 import { isValidCredential, isValidDemoCode } from "@/lib/onboarding";
 import {
   noticeIsCancelledRenewal,
@@ -198,12 +203,29 @@ import {
   pushMessages,
   fetchConnections,
   pushConnections,
+  fetchContactMatches,
+  setContactDiscoveryEnabled as saveContactDiscoveryEnabled,
+  accountStateFrom,
+  completeSignin,
+  fetchNotices,
+  fetchSession,
+  markNoticesRead,
+  reportEvents,
+  requestEmailOtp,
+  requestOtp,
+  runGuardedAction,
+  signOutRemote,
+  verifyCode,
   reportStoreCancellation,
   restorePurchases,
   subscriptionFromEntitlement,
   verifyPurchase,
+  type MemberNotice,
+  type RemoteAccount,
+  type SigninChannel,
   type StoreReceiptPayload,
 } from "@/lib/account-client";
+import { contactInviteMessage, normalizeDeviceContacts, type ContactMatch, type NormalizedDeviceContact } from "@/lib/contact-discovery";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
@@ -213,7 +235,6 @@ import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSw
 import { useAppAppearance } from "@/lib/appearance-context";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
-import { accountStateFrom, completeSignin, fetchNotices, fetchSession, markNoticesRead, reportEvents, requestEmailOtp, requestOtp, runGuardedAction, verifyCode, type MemberNotice, type RemoteAccount, type SigninChannel } from "@/lib/account-client";
 import {
   cooldownSecondsFrom,
   countdownIsActive,
@@ -611,6 +632,11 @@ export default function TrufrenzApp() {
   const incomingRequests = friendships.incoming;
   const requestSent = friendships.requested;
   const acceptedFriends = friendships.accepted;
+  const remoteAccountId = remoteAccount?.id;
+  const remoteContactDiscoveryEnabled = remoteAccount?.contactDiscoveryEnabled ?? false;
+  useEffect(() => {
+    if (remoteAccountId != null) setContactDiscoveryEnabled(remoteContactDiscoveryEnabled);
+  }, [remoteAccountId, remoteContactDiscoveryEnabled]);
   /** The people behind `requestSent`, so the waiting list can name them. */
   const outgoingRequests = suggestions.filter((person) => requestSent.includes(person.id));
   const [interestFilter, setInterestFilter] = useState<string[]>([]);
@@ -656,6 +682,17 @@ export default function TrufrenzApp() {
   const [quickRepliesLoaded, setQuickRepliesLoaded] = useState(false);
   const [available, setAvailable] = useState(true);
   const [discoverable, setDiscoverable] = useState(true);
+  const [contactDiscoveryEnabled, setContactDiscoveryEnabled] = useState(false);
+  const [deviceContacts, setDeviceContacts] = useState<NormalizedDeviceContact[]>([]);
+  const [contactMatches, setContactMatches] = useState<Record<string, ContactMatch>>({});
+  const [selectedContactPhones, setSelectedContactPhones] = useState<string[]>([]);
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactInviteLoading, setContactInviteLoading] = useState(false);
+  const [contactPreferenceBusy, setContactPreferenceBusy] = useState(false);
+  const [inviteCursor, setInviteCursor] = useState(0);
+  const [contactScanWasLimited, setContactScanWasLimited] = useState(false);
+  const selectedDeviceContacts = deviceContacts.filter((contact) => selectedContactPhones.includes(contact.phoneE164));
   const [blurDistance, setBlurDistance] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
@@ -1576,6 +1613,169 @@ export default function TrufrenzApp() {
     setTab("You");
   };
   const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setDemoCode(null); setChallengeToken(null); setPasscode(""); setShowSignup(true); tap(); };
+
+  const discoverDeviceContacts = async () => {
+    if (Platform.OS === "web") {
+      feedback("Device contacts are available in the Trufrenz mobile app.");
+      return;
+    }
+    if (!joined || !remoteAccount) {
+      feedback("Log in first to find contacts already on Trufrenz.");
+      setTab("You");
+      setAuthIntent("login");
+      setAuthStep("phone");
+      setShowSignup(true);
+      return;
+    }
+    setContactsLoading(true);
+    try {
+      if (!(await Contacts.isAvailableAsync())) {
+        feedback("Contact access is not available on this device.");
+        return;
+      }
+      const currentPermission = await Contacts.getPermissionsAsync();
+      const permission = currentPermission.granted ? currentPermission : await Contacts.requestPermissionsAsync();
+      if (!permission.granted) {
+        if (!permission.canAskAgain) {
+          Alert.alert(
+            "Contacts permission is off",
+            "You can still use Trufrenz without it. To check contacts, allow access in your device settings.",
+            [
+              { text: "Not now", style: "cancel" },
+              { text: "Open settings", onPress: () => { void Linking.openSettings().catch(() => undefined); } },
+            ],
+          );
+        } else {
+          feedback("Contact permission was not granted. You can still use Trufrenz without it.");
+        }
+        return;
+      }
+
+      const localEntries: { name: string; number: string; countryCode?: string | null }[] = [];
+      let pageOffset = 0;
+      let hasMore = true;
+      while (hasMore && pageOffset < 1000) {
+        const page = await Contacts.getContactsAsync({
+          fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+          pageSize: 500,
+          pageOffset,
+          sort: Contacts.SortTypes.FirstName,
+        });
+        for (const contact of page.data) {
+          for (const phoneEntry of contact.phoneNumbers ?? []) {
+            if (!phoneEntry.number) continue;
+            localEntries.push({
+              name: contact.name || [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Contact",
+              number: phoneEntry.number,
+              countryCode: phoneEntry.countryCode,
+            });
+          }
+        }
+        pageOffset += page.data.length;
+        hasMore = page.hasNextPage && page.data.length > 0;
+      }
+      const region = getLocales()[0]?.regionCode ?? null;
+      const normalized = normalizeDeviceContacts(localEntries, region, 500);
+      setDeviceContacts(normalized);
+      setSelectedContactPhones([]);
+      setInviteCursor(0);
+      setContactScanWasLimited(hasMore || normalized.length >= 500);
+      if (normalized.length === 0) {
+        setContactMatches({});
+        feedback("No usable phone numbers found. You can still invite friends another way.");
+        return;
+      }
+
+      // Hash locally. Neither phone numbers nor contact names go in the request.
+      const hashes = await Promise.all(
+        normalized.map((contact) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, contact.phoneE164)),
+      );
+      const result = await fetchContactMatches(hashes);
+      if (!result.ok) {
+        setDeviceContacts([]);
+        feedback(result.error || "Contact matching is temporarily unavailable.");
+        return;
+      }
+      const matchesByHash = Object.fromEntries(result.data.matches.map((match) => [match.phoneHash, match]));
+      const matchedContacts: Record<string, ContactMatch> = {};
+      normalized.forEach((contact, index) => {
+        const match = matchesByHash[hashes[index]!];
+        if (match) matchedContacts[contact.phoneE164] = match;
+      });
+      setContactMatches(matchedContacts);
+      const count = Object.keys(matchedContacts).length;
+      feedback(count ? `${count} opted-in Trufrenz ${count === 1 ? "member" : "members"} found.` : "No opted-in Trufrenz members found in these contacts.");
+      tap();
+    } catch {
+      // Do not log device contact contents, normalized numbers, or hashes.
+      feedback("We couldn't check contacts just now. Please try again.");
+    } finally {
+      setContactsLoading(false);
+    }
+  };
+
+  const inviteNextSelectedContact = async () => {
+    const selected = deviceContacts.filter((contact) => selectedContactPhones.includes(contact.phoneE164));
+    if (!selected.length) {
+      feedback("Select at least one contact first.");
+      return;
+    }
+    if (!(await SMS.isAvailableAsync())) {
+      feedback("Text messaging isn't available on this device.");
+      return;
+    }
+    if (inviteCursor >= selected.length) {
+      feedback("You have opened an invite draft for each selected contact.");
+      return;
+    }
+    const nextIndex = inviteCursor;
+    const contact = selected[nextIndex]!;
+    const baseUrl = process.env.EXPO_PUBLIC_INVITE_URL?.trim() || "https://trufrenz.net";
+    const inviteText = contactInviteMessage(baseUrl, myProfile.name || fullName || undefined);
+    setContactInviteLoading(true);
+    try {
+      const result = await SMS.sendSMSAsync(contact.phoneE164, inviteText);
+      if (result.result === "cancelled") {
+        feedback("Invite draft cancelled. No message was sent.");
+        return;
+      }
+      setInviteCursor((current) => current + 1);
+      feedback(Platform.OS === "android"
+        ? "SMS composer closed. Android can't confirm sending; open the next invite only if you want."
+        : "SMS composer closed. You choose whether to send; no message is sent by Trufrenz.");
+    } catch {
+      feedback("Couldn't open the text composer. You can still copy the invite link.");
+    } finally {
+      setContactInviteLoading(false);
+    }
+  };
+
+  const toggleContactSelection = (phoneE164: string) => {
+    setSelectedContactPhones((current) => current.includes(phoneE164)
+      ? current.filter((value) => value !== phoneE164)
+      : [...current, phoneE164]);
+    setInviteCursor(0);
+  };
+  const updateContactDiscoveryPreference = async (enabled: boolean) => {
+    if (!remoteAccount || !joined) {
+      feedback("Log in first to change your contact-discovery setting.");
+      return;
+    }
+    const previousValue = contactDiscoveryEnabled;
+    setContactDiscoveryEnabled(enabled);
+    setContactPreferenceBusy(true);
+    const result = await saveContactDiscoveryEnabled(enabled);
+    setContactPreferenceBusy(false);
+    if (!result.ok) {
+      setContactDiscoveryEnabled(previousValue);
+      feedback(result.error || "Your privacy setting could not be saved.");
+      return;
+    }
+    setRemoteAccount((current) => current ? { ...current, contactDiscoveryEnabled: enabled } : current);
+    if (!enabled) feedback("People can no longer find you through their contact matches.");
+    else feedback("You can now appear to members who choose to check their contacts.");
+    tap();
+  };
   const closeSignup = () => setShowSignup(false);
   const persistSession = (next: StoredSession) => {
     setSession(next);
@@ -1586,8 +1786,16 @@ export default function TrufrenzApp() {
     setPendingPhotoBytes(undefined);
   }, []);
   const signOut = () => {
+    if (joined) void signOutRemote();
     setSession(null);
     setJoined(false);
+    setRemoteAccount(null);
+    setContactDiscoveryEnabled(false);
+    setDeviceContacts([]);
+    setContactMatches({});
+    setSelectedContactPhones([]);
+    setContactSearch("");
+    setInviteCursor(0);
     clearPendingAttachment();
     setSelectedChat(null);
     setTab("Chats");
@@ -2988,6 +3196,54 @@ export default function TrufrenzApp() {
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>A SMALLER INTERNET, A CLOSER CIRCLE</Text><Text style={styles.pageTitle}>Friends, not profiles.</Text><Text style={styles.pageSub}>Meet kind people nearby, then connect only when you both say yes.</Text></View>
     <View style={styles.friendsTools}><View style={styles.searchBar}><Icon name="search" size={17} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name or interest" placeholderTextColor="#a4a39f" style={styles.searchInput} /><Icon name="tune" size={17} color="#83721f" /></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestFilterRow}>{["Nearby", "Verified", "Coffee", "Books", "Hiking"].map((tag) => <Pressable key={tag} onPress={() => toggleInterest(tag)} style={[styles.filterChip, interestFilter.includes(tag) && styles.filterChipActive]}><Text style={[styles.filterChipText, interestFilter.includes(tag) && styles.filterChipTextActive]}>{tag}</Text></Pressable>)}</ScrollView></View>
       <View style={[styles.friendsScroll, styles.friendsContent]}>
+      <View style={styles.contactPanel}>
+        <View style={styles.contactHeader}>
+          <View style={styles.contactIcon}><Icon name="contacts" size={18} color="#7393A9" /></View>
+          <View style={styles.contactHeaderCopy}>
+            <Text style={styles.contactTitle}>People you know</Text>
+            <Text style={styles.contactSub}>Check locally hashed numbers against members who opted in. Names and raw numbers stay on this device.</Text>
+          </View>
+        </View>
+        <Pressable accessibilityRole="button" onPress={() => void discoverDeviceContacts()} disabled={contactsLoading} style={({ pressed }) => [styles.contactScanButton, pressed && styles.pressed, contactsLoading && styles.contactBusy]}>
+          {contactsLoading ? <ActivityIndicator size="small" color="#527084" /> : <Icon name="manage-search" size={16} color="#527084" />}
+          <Text style={styles.contactScanText}>{contactsLoading ? "Checking contacts…" : deviceContacts.length ? "Refresh contact matches" : "Check my contacts"}</Text>
+          {!contactsLoading ? <Icon name="arrow-forward" size={14} color="#527084" /> : null}
+        </Pressable>
+        {deviceContacts.length > 0 ? <>
+          <View style={styles.contactListHeading}>
+            <View style={styles.contactHeaderCopy}>
+              <Text style={styles.contactListTitle}>{Object.keys(contactMatches).length} opted-in Trufrenz {Object.keys(contactMatches).length === 1 ? "member" : "members"} found</Text>
+              <Text style={styles.contactListSub}>{selectedDeviceContacts.length} selected for individual invite drafts</Text>
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => { setSelectedContactPhones(selectedContactPhones.length === deviceContacts.length ? [] : deviceContacts.map((contact) => contact.phoneE164)); setInviteCursor(0); }} style={styles.contactSelectAll}>
+              <Text style={styles.contactSelectAllText}>{selectedContactPhones.length === deviceContacts.length ? "Clear" : "Select all"}</Text>
+            </Pressable>
+          </View>
+          <View style={styles.contactSearch}>
+            <Icon name="search" size={15} color="#8b9396" />
+            <TextInput value={contactSearch} onChangeText={setContactSearch} placeholder="Find a contact on this device" placeholderTextColor="#979da0" style={styles.contactSearchInput} />
+          </View>
+          {contactScanWasLimited ? <Text style={styles.contactLimitNote}>Showing the first 500 usable numbers. Refresh later to check after editing your contacts.</Text> : null}
+          {deviceContacts.filter((contact) => contact.name.toLowerCase().includes(contactSearch.trim().toLowerCase())).slice(0, 30).map((contact) => {
+            const match = contactMatches[contact.phoneE164];
+            const selected = selectedContactPhones.includes(contact.phoneE164);
+            return <Pressable key={contact.phoneE164} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`${contact.name}${match ? ` is on Trufrenz as ${match.name}` : ""}`} onPress={() => toggleContactSelection(contact.phoneE164)} style={({ pressed }) => [styles.contactRow, selected && styles.contactRowSelected, pressed && styles.pressed]}>
+              <View style={[styles.contactSelectMark, selected && styles.contactSelectMarkOn]}><Icon name={selected ? "check" : "person-outline"} size={14} color={selected ? "#4A4210" : "#7890A0"} /></View>
+              <View style={styles.contactHeaderCopy}>
+                <Text style={styles.contactName} numberOfLines={1}>{contact.name}</Text>
+                <Text style={styles.contactMatchLabel} numberOfLines={1}>{match ? `On Trufrenz as ${match.name} · ${match.verificationTier === "id_selfie" ? "ID + selfie verified" : match.verificationTier === "phone" ? "Phone verified" : "Account found"}` : "Not found among members who opted in"}</Text>
+              </View>
+              {match ? <Icon name="verified-user" size={15} color="#62A087" /> : null}
+            </Pressable>;
+          })}
+          <Pressable accessibilityRole="button" onPress={() => void inviteNextSelectedContact()} disabled={!selectedDeviceContacts.length || contactInviteLoading || inviteCursor >= selectedDeviceContacts.length} style={({ pressed }) => [styles.contactInviteButton, pressed && styles.pressed, (!selectedDeviceContacts.length || contactInviteLoading || inviteCursor >= selectedDeviceContacts.length) && styles.contactInviteDisabled]}>
+            {contactInviteLoading ? <ActivityIndicator size="small" color="#4A4210" /> : <Icon name="sms" size={16} color="#4A4210" />}
+            <Text style={styles.contactInviteText}>{contactInviteLoading ? "Opening text…" : inviteCursor >= selectedDeviceContacts.length && selectedDeviceContacts.length ? "Invite drafts opened for selection" : `Prepare next text invite${selectedDeviceContacts.length ? ` · ${Math.min(inviteCursor + 1, selectedDeviceContacts.length)} of ${selectedDeviceContacts.length}` : ""}`}</Text>
+            {!contactInviteLoading ? <Icon name="arrow-forward" size={14} color="#4A4210" /> : null}
+          </Pressable>
+          <Text style={styles.contactInviteNote}>Each draft is addressed to one person to protect everyone&apos;s number. Trufrenz never sends texts automatically; review and send in your messaging app. Invite link: {process.env.EXPO_PUBLIC_INVITE_URL?.trim() || "https://trufrenz.net"}</Text>
+        </> : null}
+      </View>
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
       {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#7393A9" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>Request sent · waiting quietly</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
       <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#83721f" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
@@ -3027,6 +3283,8 @@ export default function TrufrenzApp() {
     <Text style={styles.settingsLabel}>PRIVACY & LITTLE EXTRAS</Text>
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#a4a19b" /></Pressable>
+      <View style={styles.settingDivider} />
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="contacts" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Let people find me by phone</Text><Text style={styles.settingSub}>{joined ? "Only members who choose to check contacts can find you. Off until you opt in." : "Log in to choose whether contacts can find you."}</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Allow other Trufrenz members to find me by phone contact" value={joined ? contactDiscoveryEnabled : false} disabled={!joined || contactPreferenceBusy} onValueChange={(value) => void updateContactDiscoveryPreference(value)} trackColor={{ false: "#dddace", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       {/*
         Quiet hours, above the subscription row because it applies to everyone
@@ -3651,6 +3909,33 @@ const styles = StyleSheet.create({
   interestFilterRow: { gap: 6, paddingVertical: 1 },
   friendsScroll: { marginTop: 14 },
   friendsContent: { paddingBottom: 20 },
+  contactPanel: { padding: 11, borderRadius: 17, backgroundColor: glassNestedFill("rgba(233, 241, 250, 0.46)"), borderWidth: 1, borderColor: glassNestedFill("rgba(213, 228, 240, 0.8)"), marginBottom: 14, gap: 9 },
+  contactHeader: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
+  contactIcon: { width: 31, height: 31, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(220, 235, 246, 0.62)") },
+  contactHeaderCopy: { flex: 1, minWidth: 0 },
+  contactTitle: { color: "#4e4c47", fontSize: 12, fontWeight: "800" },
+  contactSub: { color: "#737d82", fontSize: 9, lineHeight: 13, marginTop: 3 },
+  contactScanButton: { minHeight: 37, borderRadius: 12, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: glassNestedFill("rgba(225, 237, 246, 0.58)"), borderWidth: 1, borderColor: glassNestedFill("rgba(210, 227, 239, 0.76)") },
+  contactScanText: { color: "#527084", fontSize: 10, fontWeight: "800" },
+  contactBusy: { opacity: 0.72 },
+  contactListHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
+  contactListTitle: { color: "#526d7d", fontSize: 10, fontWeight: "800" },
+  contactListSub: { color: "#838b8d", fontSize: 8, marginTop: 2 },
+  contactSelectAll: { minHeight: 28, paddingHorizontal: 8, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(224, 236, 246, 0.46)"), borderWidth: 1, borderColor: glassNestedFill("rgba(211, 226, 239, 0.75)") },
+  contactSelectAllText: { color: "#587487", fontSize: 9, fontWeight: "700" },
+  contactSearch: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 9, borderRadius: 11, backgroundColor: glassNestedFill("rgba(235, 243, 249, 0.48)"), borderWidth: 1, borderColor: glassNestedFill("rgba(214, 229, 239, 0.7)") },
+  contactSearchInput: { flex: 1, minWidth: 0, height: 32, color: "#4f4d48", fontSize: 10, outlineStyle: "none" as any },
+  contactLimitNote: { color: "#827351", fontSize: 8, lineHeight: 12 },
+  contactRow: { minHeight: 46, paddingHorizontal: 7, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(210, 227, 239, 0.54)"), backgroundColor: glassNestedFill("rgba(231, 240, 247, 0.43)") },
+  contactRowSelected: { borderColor: "rgba(209, 190, 77, 0.46)", backgroundColor: glassNestedFill("rgba(246, 238, 201, 0.55)") },
+  contactSelectMark: { width: 25, height: 25, borderRadius: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(190, 212, 227, 0.85)"), alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(222, 235, 244, 0.48)") },
+  contactSelectMarkOn: { backgroundColor: "#F1DE55", borderColor: "rgba(184, 160, 33, 0.55)" },
+  contactName: { color: "#4f4d48", fontSize: 10.5, fontWeight: "700" },
+  contactMatchLabel: { color: "#7d898e", fontSize: 8, marginTop: 2 },
+  contactInviteButton: { minHeight: 37, borderRadius: 12, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: "rgba(183, 161, 43, 0.48)" },
+  contactInviteText: { color: "#4A4210", fontSize: 9.5, fontWeight: "800", textAlign: "center", flexShrink: 1 },
+  contactInviteDisabled: { opacity: 0.55 },
+  contactInviteNote: { color: "#7b8282", fontSize: 7.5, lineHeight: 11 },
   requestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), marginBottom: 17 },
   requestHeading: { color: "#504d3f", fontSize: 14, fontWeight: "700", marginTop: 4 },
   requestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "#f2e9be", alignItems: "center", justifyContent: "center" },

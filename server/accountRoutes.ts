@@ -12,7 +12,8 @@
  */
 
 import type { Express, Request, Response } from "express";
-import { eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import * as account from "./accountService";
 import { getDb } from "./db";
@@ -30,11 +31,13 @@ import {
   describeWait,
   summariseSends,
 } from "../lib/otp-limits";
-import { memberSessions, members, verificationSubmissions } from "../drizzle/schema";
+import { memberSessions, members, otpSendAttempts, verificationSubmissions } from "../drizzle/schema";
 import { canAccount, type AccountCapability } from "../lib/account-access";
 import { isAnalyticsEventType } from "../lib/analytics-events";
 import { checkEmail, maskEmail, normalizeEmail } from "../lib/email";
 import { resolveChallengeId } from "../lib/signin-challenge";
+import { memberTokenFromAuthorization } from "../lib/account-auth";
+import { normalizePhoneHashes } from "../lib/contact-discovery";
 
 const SESSION_COOKIE = "trufrenz_member_session";
 const OTP_COOKIE = "trufrenz_signin_challenge";
@@ -158,7 +161,7 @@ type MemberRequest = Request & { member?: account.MemberRecord };
  * explaining what happened to them.
  */
 async function requireMember(req: MemberRequest, res: Response, next: () => void) {
-  const token = readCookie(req, SESSION_COOKIE);
+  const token = readCookie(req, SESSION_COOKIE) ?? memberTokenFromAuthorization(req.headers.authorization);
   if (!token) {
     res.status(401).json({ error: "Not signed in." });
     return;
@@ -230,6 +233,7 @@ function accountPayload(member: account.MemberRecord) {
     verificationTier: member.verificationTier,
     subscriptionTier: member.subscriptionTier,
     available: member.available,
+    contactDiscoveryEnabled: member.contactDiscoveryEnabled,
     accountStatus: state.status,
     statusReason: member.statusReason,
     statusChangedAt: member.statusChangedAt,
@@ -737,7 +741,7 @@ export function registerAccountRoutes(app: Express) {
   });
 
   app.post("/api/account/sign-out", async (req: MemberRequest, res) => {
-    const token = readCookie(req, SESSION_COOKIE);
+    const token = readCookie(req, SESSION_COOKIE) ?? memberTokenFromAuthorization(req.headers.authorization);
     if (token) {
       const db = await getDb();
       if (db) {
@@ -748,6 +752,99 @@ export function registerAccountRoutes(app: Express) {
     }
     clearSessionCookie(res);
     res.json({ ok: true });
+  });
+
+  /* ----------------------- contact discovery ----------------------- */
+
+  /**
+   * Contact matching accepts SHA-256 hashes only. Phone numbers and address-book
+   * names never leave the handset, match results disclose no phone/email and
+   * are not cached. The member can opt out at any time in Privacy settings.
+   */
+  app.post("/api/account/contacts/matches", requireMember, async (req: MemberRequest, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const hashes = normalizePhoneHashes(req.body?.phoneHashes);
+    if (!Array.isArray(req.body?.phoneHashes) || req.body.phoneHashes.length > 500) {
+      res.status(400).json({ error: "Check the selected contacts and try again." });
+      return;
+    }
+    // A member's opt-in controls whether others can discover them; it does not
+    // disable their ability to scan their own contacts for opted-in accounts.
+    if (hashes.length === 0) {
+      res.json({ matches: [] });
+      return;
+    }
+
+    const db = await getDb();
+    if (!db) {
+      res.status(503).json({ error: "Contact matching is temporarily unavailable." });
+      return;
+    }
+
+    const limiterSalt = process.env.CONTACT_LOOKUP_SALT ?? process.env.OTP_CALLER_SALT ?? "trufrenz-contact-match";
+    const callerKey = createHash("sha256").update(`${limiterSalt}:${req.member!.id}`).digest("hex");
+    const windowStart = new Date(Date.now() - 60 * 60 * 1000);
+    const recent = await db
+      .select({ id: otpSendAttempts.id })
+      .from(otpSendAttempts)
+      .where(
+        and(
+          eq(otpSendAttempts.kind, "contact_lookup"),
+          eq(otpSendAttempts.callerKey, callerKey),
+          gte(otpSendAttempts.createdAt, windowStart),
+        ),
+      )
+      .limit(10);
+    if (recent.length >= 10) {
+      res.status(429).json({ error: "Please wait before checking contacts again.", code: "contact_lookup_limited" });
+      return;
+    }
+    await db.insert(otpSendAttempts).values({
+      kind: "contact_lookup",
+      channel: "phone",
+      destination: "contact-match",
+      callerKey,
+    });
+
+    const matches = await db
+      .select({ phoneE164: members.phoneE164, name: members.name, verificationTier: members.verificationTier })
+      .from(members)
+      .where(
+        and(
+          inArray(members.accountStatus, ["active", "warned"]),
+          eq(members.contactDiscoveryEnabled, true),
+          sql`${members.id} <> ${req.member!.id}`,
+          inArray(sql`LOWER(SHA2(${members.phoneE164}, 256))`, hashes),
+        ),
+      )
+      .limit(500);
+
+    res.json({
+      matches: matches
+        .filter((match): match is typeof match & { phoneE164: string } => Boolean(match.phoneE164))
+        .map((match) => ({
+          phoneHash: createHash("sha256").update(match.phoneE164).digest("hex"),
+          name: match.name,
+          verificationTier: match.verificationTier,
+        })),
+    });
+  });
+
+  app.post("/api/account/contacts/discoverability", requireMember, async (req: MemberRequest, res) => {
+    if (typeof req.body?.enabled !== "boolean") {
+      res.status(400).json({ error: "Choose whether people may find you by phone contact." });
+      return;
+    }
+    const db = await getDb();
+    if (!db) {
+      res.status(503).json({ error: "Privacy settings are temporarily unavailable." });
+      return;
+    }
+    await db
+      .update(members)
+      .set({ contactDiscoveryEnabled: req.body.enabled })
+      .where(eq(members.id, req.member!.id));
+    res.json({ ok: true, enabled: req.body.enabled });
   });
 
   /* ------------------------------ profile ------------------------------- */
