@@ -233,6 +233,7 @@ import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
 } from "@/lib/appearance-preferences";
 import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, matchGlassPreset, tabBarTint, type GlassSurface, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
+import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
 import {
@@ -2912,17 +2913,17 @@ export default function TrufrenzApp() {
   }, [actionMenuOpen, authStep, closeThread, composerOpen, incomingNotification, inviteModalVisible, navigationMenuOpen, profilePerson, quickRepliesOpen, selectedChat, selfieModalVisible, showSignup, tab, verificationPrompt]);
 
   const topBar = (thread = false) => (
-    <View style={styles.topBar}>
+    <View style={[styles.topBar, thread && styles.threadTopBarNight]}>
       <View style={styles.brandMark}>
         {thread ? (
-          <Pressable onPress={closeThread} accessibilityRole="button" accessibilityLabel="Back to conversations" style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-            <Icon name="arrow-back" size={18} color="#6b664c" />
-            <Text style={styles.backButtonText}>Back</Text>
+          <Pressable onPress={closeThread} accessibilityRole="button" accessibilityLabel="Back to conversations" style={({ pressed }) => [styles.backButton, styles.backButtonNight, pressed && styles.pressed]}>
+            <Icon name="arrow-back" size={18} color={CHAT_NIGHT.primaryText} />
+            <Text style={[styles.backButtonText, styles.threadPrimaryText]}>Back</Text>
           </Pressable>
         ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#4A4210" /></View>}
-        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={styles.threadTitle} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={styles.topBarSub} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color="#588B79" /> : null}<Text style={styles.threadStatus} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={[styles.threadTitle, styles.threadPrimaryText]} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={[styles.topBarSub, styles.threadSecondaryText]} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color={CHAT_NIGHT.accentText} /> : null}<Text style={[styles.threadStatus, styles.threadSecondaryText]} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
       </View>
-      {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="call" size={18} color="#757056" /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={styles.roundAction}><Icon name="videocam" size={19} color="#757056" /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={styles.roundAction}><Icon name="more-vert" size={21} color="#757056" /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#757056" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#77725a" />}</Pressable></View>}
+      {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="call" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="videocam" size={19} color={CHAT_NIGHT.primaryText} /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="more-vert" size={21} color={CHAT_NIGHT.primaryText} /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#757056" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#77725a" />}</Pressable></View>}
     </View>
   );
 
@@ -2966,7 +2967,7 @@ export default function TrufrenzApp() {
       threadGestureRef.current.viewportHeight = windowHeight;
 
       return <View
-        style={[styles.threadScreen, { paddingBottom: composerLift, marginBottom: keyboardOpen ? -insets.bottom : 0 }, threadDrag.offset ? { transform: [{ translateY: threadDrag.offset }] } : null]}
+        style={[styles.threadScreen, { backgroundColor: CHAT_NIGHT.backdrop, paddingBottom: composerLift, marginBottom: keyboardOpen ? -insets.bottom : 0 }, threadDrag.offset ? { transform: [{ translateY: threadDrag.offset }] } : null]}
         {...threadDragResponder.panHandlers}
       >
         {topBar(true)}
@@ -2990,8 +2991,8 @@ export default function TrufrenzApp() {
           onScroll={(event) => { threadScrollOffsetRef.current = event.nativeEvent.contentOffset.y; }}
           scrollEventThrottle={16}
         >
-          <View style={styles.dayDivider}><View style={styles.dividerLine} /><Text style={styles.dayLabel}>TODAY</Text><View style={styles.dividerLine} /></View>
-          <View style={styles.sharedInterest}><Icon name="auto-awesome" size={15} color="#83721f" /><Text style={styles.sharedInterestText}>You both like slow weekend mornings</Text></View>
+          <View style={[styles.dayDivider, styles.threadDayDividerNight]}><View style={[styles.dividerLine, styles.threadDividerLineNight]} /><Text style={[styles.dayLabel, styles.threadPrimaryText]}>TODAY</Text><View style={[styles.dividerLine, styles.threadDividerLineNight]} /></View>
+          <View style={[styles.sharedInterest, styles.sharedInterestNight]}><Icon name="auto-awesome" size={15} color={CHAT_NIGHT.accentText} /><Text style={[styles.sharedInterestText, styles.threadPrimaryText]}>You both like slow weekend mornings</Text></View>
           {conversationMessages.map((message, messageIndex) => {
             const receipt = outgoingReceipt(message.receipt ?? (message.from === "me" ? "sent" : undefined), chatPrivacy.shareReadReceipts);
             const showReceipt = shouldShowReceipt({ from: message.from, receipt: message.receipt ?? (message.from === "me" ? "sent" : undefined) }, chatPrivacy.shareReadReceipts) && receipt;
@@ -3007,12 +3008,13 @@ export default function TrufrenzApp() {
             const marksBoundary = unreadStart !== null && unreadCount > 0 && messageIndex === unreadStart;
             return (
               <React.Fragment key={message.id}>
-              {marksBoundary ? <View style={styles.readMarker}><View style={styles.readMarkerLine} /><Text style={styles.readMarkerLabel}>{readMarkerLabel(unreadCount)}</Text><View style={styles.readMarkerLine} /></View> : null}
+              {marksBoundary ? <View style={[styles.readMarker, styles.readMarkerNight]}><View style={[styles.readMarkerLine, styles.readMarkerLineNight]} /><Text style={[styles.readMarkerLabel, styles.threadPrimaryText]}>{readMarkerLabel(unreadCount)}</Text><View style={[styles.readMarkerLine, styles.readMarkerLineNight]} /></View> : null}
               <View style={[styles.messageRow, mine && styles.myMessageRow]}>
                 <View style={styles.messageColumn}>
-                  {currentThread.kind === "group" && !mine && message.kind !== "plan" ? <Text style={styles.senderLabel}>{currentThread.name.split(" ")[0]} · {message.from === "them" ? "Member" : "You"}</Text> : null}
+                  {currentThread.kind === "group" && !mine && message.kind !== "plan" ? <Text style={[styles.senderLabel, styles.threadSecondaryText]}>{currentThread.name.split(" ")[0]} · {message.from === "them" ? "Member" : "You"}</Text> : null}
                   {message.plan ? (
                     <PlanCardView
+                      nightMode
                       card={message.plan}
                       viewer={mine ? "them" : "me"}
                       friendName={currentThread.name}
@@ -3022,6 +3024,7 @@ export default function TrufrenzApp() {
                     />
                   ) : message.poll ? (
                     <PlanPollCard
+                      nightMode
                       poll={message.poll}
                       viewerId="me"
                       onVote={(optionId) => voteInPoll(message.id, optionId)}
@@ -3033,39 +3036,39 @@ export default function TrufrenzApp() {
                       accessibilityLabel={`${mine ? "You" : currentThread.name.split(" ")[0]} said ${message.text}. Long press to react.`}
                       onLongPress={() => setReactionTarget(message.id)}
                       delayLongPress={280}
-                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, { backgroundColor: glassSurfaceColor(mine ? "rgba(233, 227, 193, 0.94)" : glassNestedFill("rgba(255, 255, 255, 0.91)"), glassOpacity, glassTintChoice, "row") }]}
+                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, styles.threadBubbleBorder, { backgroundColor: mine ? CHAT_NIGHT.outgoingBubble : CHAT_NIGHT.incomingBubble }]}
                     >
                       {message.kind === "voice" ? (
                         <View style={styles.voiceRow}>
-                          <View style={styles.voicePlay}><Icon name="play-arrow" size={16} color="#83721f" /></View>
-                          <View style={styles.voiceWave}>{[7, 13, 18, 10, 16, 21, 12, 9, 15, 19, 11, 14].map((height, index) => <View key={index} style={[styles.voiceBar, { height }]} />)}</View>
-                          <Text style={styles.voiceTime}>{clampVoiceSeconds(message.durationSeconds ?? 1)}s</Text>
+                          <View style={[styles.voicePlay, styles.voicePlayNight]}><Icon name="play-arrow" size={16} color={CHAT_NIGHT.primaryText} /></View>
+                          <View style={styles.voiceWave}>{[7, 13, 18, 10, 16, 21, 12, 9, 15, 19, 11, 14].map((height, index) => <View key={index} style={[styles.voiceBar, styles.voiceBarNight, { height }]} />)}</View>
+                          <Text style={[styles.voiceTime, styles.threadPrimaryText]}>{clampVoiceSeconds(message.durationSeconds ?? 1)}s</Text>
                         </View>
                       ) : message.kind === "location" ? (
                         <View style={styles.locationRow}>
-                          <Icon name="place" size={15} color="#6E9C86" />
+                          <Icon name="place" size={15} color={CHAT_NIGHT.accentText} />
                           <View style={styles.locationCopy}>
-                            <Text style={[styles.messageText, mine && styles.myMessageText]} numberOfLines={2}>{message.place ?? message.text}</Text>
-                            <Text style={styles.locationNote}>Manual share · never live</Text>
+                            <Text style={[styles.messageText, styles.threadPrimaryText, mine && styles.myMessageText]} numberOfLines={2}>{message.place ?? message.text}</Text>
+                            <Text style={[styles.locationNote, styles.threadSecondaryText]}>Manual share · never live</Text>
                           </View>
                         </View>
                       ) : message.kind === "photo" && message.mediaUri ? (
                         <Image source={{ uri: message.mediaUri }} style={styles.photoBubble} />
                       ) : (
-                        <Text style={[styles.messageText, mine && styles.myMessageText]}>{message.text}</Text>
+                        <Text style={[styles.messageText, styles.threadPrimaryText, mine && styles.myMessageText]}>{message.text}</Text>
                       )}
                       <View style={styles.messageMeta}>
-                        <Text style={[styles.messageTime, mine && styles.myMessageTime]}>{message.time}</Text>
-                        {showReceipt && receipt ? <View accessibilityLabel={receiptLabel(receipt)} style={styles.receiptWrap}><Icon name={receiptIcon(receipt)} size={12} color={receipt === "read" ? "#62A4A0" : "#83721f"} /><Text style={[styles.receiptText, receipt === "read" && styles.receiptReadText]}>{receiptLabel(receipt)}</Text></View> : null}
+                        <Text style={[styles.messageTime, styles.threadSecondaryText, mine && styles.myMessageTime]}>{message.time}</Text>
+                        {showReceipt && receipt ? <View accessibilityLabel={receiptLabel(receipt)} style={styles.receiptWrap}><Icon name={receiptIcon(receipt)} size={12} color={receipt === "read" ? CHAT_NIGHT.accentText : CHAT_NIGHT.secondaryText} /><Text style={[styles.receiptText, styles.threadSecondaryText, receipt === "read" && styles.threadReceiptReadText]}>{receiptLabel(receipt)}</Text></View> : null}
                       </View>
                     </Pressable>
                   )}
                   {visibleReactions.length ? (
                     <View style={[styles.reactionRow, mine && styles.myReactionRow]}>
                       {visibleReactions.map((reaction) => (
-                        <Pressable key={reaction.emoji} accessibilityRole="button" accessibilityLabel={`${reaction.emoji} ${reaction.count}, ${reaction.mine ? "yours" : "tap to react"}`} onPress={() => reactToMessage(message.id, reaction.emoji)} style={[styles.reactionChip, reaction.mine && styles.reactionChipMine]}>
+                        <Pressable key={reaction.emoji} accessibilityRole="button" accessibilityLabel={`${reaction.emoji} ${reaction.count}, ${reaction.mine ? "yours" : "tap to react"}`} onPress={() => reactToMessage(message.id, reaction.emoji)} style={[styles.reactionChip, reaction.mine && styles.reactionChipMine, styles.reactionChipNight]}>
                           <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                          <Text style={styles.reactionCount}>{reaction.count}</Text>
+                          <Text style={[styles.reactionCount, styles.threadSecondaryText]}>{reaction.count}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -3084,12 +3087,12 @@ export default function TrufrenzApp() {
               </React.Fragment>
             );
           })}
-          {typingChat === selectedChat ? <View style={styles.typingRow}><View style={[styles.typingBubble, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.86)"), glassOpacity, glassTintChoice, "chip") }]}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={styles.typingText}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
+          {typingChat === selectedChat ? <View style={styles.typingRow}><View style={styles.typingBubble}><View style={styles.typingDots}><View style={styles.typingDot} /><View style={[styles.typingDot, styles.typingDotMiddle]} /><View style={[styles.typingDot, styles.typingDotLast]} /></View><Text style={[styles.typingText, styles.threadPrimaryText]}>{currentThread.name.split(" ")[0]} is typing</Text></View></View> : null}
         </ScrollView>
-        <View style={styles.hangoutStrip}><Icon name="event-available" size={16} color="#83721f" /><Text style={styles.hangoutStripText}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={styles.inviteLink}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={styles.inviteLink}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={styles.inviteLink}>Poll</Text></Pressable> : null}</View>
-        {activeRowState.readOnly ? <View style={styles.readOnlyBar}><Icon name="lock-outline" size={14} color="#83721f" /><Text style={styles.readOnlyBarText}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
+        <View style={[styles.hangoutStrip, styles.hangoutStripNight]}><Icon name="event-available" size={16} color={CHAT_NIGHT.accentText} /><Text style={[styles.hangoutStripText, styles.threadSecondaryText]}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={[styles.inviteLink, styles.threadAccentText]}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={[styles.inviteLink, styles.threadAccentText]}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={[styles.inviteLink, styles.threadAccentText]}>Poll</Text></Pressable> : null}</View>
+        {activeRowState.readOnly ? <View style={[styles.readOnlyBar, styles.readOnlyBarNight]}><Icon name="lock-outline" size={14} color={CHAT_NIGHT.accentText} /><Text style={[styles.readOnlyBarText, styles.threadSecondaryText]}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
         {pendingAttachment ? <AttachmentPreviewStrip pending={pendingAttachment} sizeBytes={pendingPhotoBytes} onRemove={clearPendingAttachment} /> : null}
-        <View style={[styles.composerRow, keyboardOpen && styles.composerRowRaised]}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={styles.composerIcon}><Icon name="add-circle-outline" size={24} color="#8a877e" /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={styles.quickReplyButton}><Icon name="quickreply" size={18} color="#83721f" /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor="#9a9891" style={styles.composerInput} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#FFFFFF" : "#95938c"} /></Pressable></View>
+        <View style={[styles.composerRow, keyboardOpen && styles.composerRowRaised, styles.composerRowNight]}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={[styles.composerIcon, styles.composerIconNight]}><Icon name="add-circle-outline" size={24} color={CHAT_NIGHT.secondaryText} /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={[styles.quickReplyButton, styles.quickReplyButtonNight]}><Icon name="quickreply" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor={CHAT_NIGHT.subtleText} style={styles.composerInputNight} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, styles.sendButtonNight, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#4A4210" : CHAT_NIGHT.primaryText} /></Pressable></View>
         <AttachmentSheet visible={attachmentSheetOpen} onClose={() => setAttachmentSheetOpen(false)} onPickPhoto={sendPhoto} onSend={sendAttachment} onReviewVoice={reviewVoiceNote} onSuggestPlan={(kind) => setPlanComposerKind(kind)} />
         <ChatOverflowMenu
           visible={chatMenuOpen}
@@ -3828,6 +3831,13 @@ const styles = StyleSheet.create({
    * empty space between the composer and the bottom of the screen.
    */
   threadScreen: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 0 },
+  threadTopBarNight: { paddingHorizontal: 8, paddingVertical: 5, marginHorizontal: -7, marginBottom: 8, borderRadius: 16, backgroundColor: "rgba(8, 22, 39, 0.68)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.28)" },
+  threadRoundActionNight: { backgroundColor: "rgba(8, 22, 39, 0.78)", borderColor: "rgba(255, 255, 255, 0.42)" },
+  backButtonNight: { backgroundColor: "rgba(8, 22, 39, 0.78)", borderColor: "rgba(255, 255, 255, 0.42)" },
+  threadPrimaryText: { color: "#FFFFFF" },
+  threadSecondaryText: { color: "rgba(255, 255, 255, 0.82)" },
+  threadAccentText: { color: "#FFF0A6" },
+  threadReceiptReadText: { color: "#B7F5E8" },
   threadBody: { flex: 1 },
   threadContent: { paddingTop: 8, gap: 9 },
   /*
@@ -3844,27 +3854,35 @@ const styles = StyleSheet.create({
    */
   threadContentKeyboard: { paddingBottom: 10, flexGrow: 1, justifyContent: "flex-end" },
   dayDivider: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 6 },
+  threadDayDividerNight: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: "rgba(8, 22, 39, 0.72)" },
   dividerLine: { flex: 1, height: 1, backgroundColor: "rgba(212, 206, 179, 0.58)" },
+  threadDividerLineNight: { backgroundColor: "rgba(255, 255, 255, 0.42)" },
   dayLabel: { color: "#979590", fontSize: 8, letterSpacing: 1 },
   /*
    * The read marker. Deliberately quiet: a hairline and a small label, so it
    * reads as a bookmark between messages rather than as a message of its own.
    */
   readMarker: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 7, paddingHorizontal: 4 },
+  readMarkerNight: { paddingVertical: 5, borderRadius: 12, backgroundColor: "rgba(8, 22, 39, 0.72)" },
   readMarkerLine: { flex: 1, height: 1, backgroundColor: "rgba(131, 114, 31, 0.30)" },
+  readMarkerLineNight: { backgroundColor: "rgba(255, 255, 255, 0.42)" },
   readMarkerLabel: { color: "#83721f", fontSize: 8.5, letterSpacing: 0.6, fontWeight: "600" },
   sharedInterest: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 11, backgroundColor: "rgba(246, 239, 209, 0.80)", paddingHorizontal: 10, paddingVertical: 6, marginBottom: 5 },
+  sharedInterestNight: { backgroundColor: "rgba(8, 22, 39, 0.76)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.32)" },
   sharedInterestText: { color: "#83721f", fontSize: 8 },
   messageRow: { flexDirection: "row", justifyContent: "flex-start" },
   myMessageRow: { justifyContent: "flex-end" },
   readOnlyBar: { flexDirection: "row", alignItems: "center", gap: 7, marginHorizontal: 12, marginBottom: 4, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(247, 241, 214, 0.88)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
+  readOnlyBarNight: { backgroundColor: "rgba(8, 22, 39, 0.76)", borderColor: "rgba(255, 255, 255, 0.32)" },
   readOnlyBarText: { flex: 1, color: "#716f67", fontSize: 9, fontWeight: "600" },
   senderLabel: { color: "#8c887f", fontSize: 8.5, fontWeight: "700", marginBottom: 2 },
   messageColumn: { maxWidth: "86%", gap: 4 },
   voiceRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 130 },
   voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)") },
+  voicePlayNight: { backgroundColor: CHAT_NIGHT.controlSurface, borderWidth: 1, borderColor: CHAT_NIGHT.border },
   voiceWave: { flexDirection: "row", alignItems: "center", gap: 2, flex: 1, height: 22 },
   voiceBar: { flex: 1, borderRadius: 2, backgroundColor: "rgba(131, 114, 31, 0.55)" },
+  voiceBarNight: { backgroundColor: CHAT_NIGHT.secondaryText },
   voiceTime: { color: "#83721f", fontSize: 9, fontWeight: "700" },
   locationRow: { flexDirection: "row", alignItems: "flex-start", gap: 7, minWidth: 150 },
   locationCopy: { flex: 1, minWidth: 0 },
@@ -3873,6 +3891,7 @@ const styles = StyleSheet.create({
   reactionRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: -2 },
   myReactionRow: { justifyContent: "flex-end" },
   reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#75726a", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  reactionChipNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },
   reactionChipMine: { borderColor: "rgba(233, 209, 119, 0.65)", backgroundColor: "rgba(247, 241, 214, 0.94)" },
   reactionEmoji: { fontSize: 11 },
   reactionCount: { color: "#83721f", fontSize: 9, fontWeight: "700" },
@@ -3883,11 +3902,13 @@ const styles = StyleSheet.create({
   messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16 },
   theirBubble: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.91)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), borderBottomLeftRadius: 6, shadowColor: "#737168", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   myBubble: { backgroundColor: "rgba(233, 227, 193, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), borderBottomRightRadius: 6, shadowColor: "#737168", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  threadBubbleBorder: { borderColor: "rgba(255, 255, 255, 0.42)" },
   messageText: { color: "#4f4d48", fontSize: 12, lineHeight: 18 },
-  myMessageText: { color: "#5e5835" },
+  myMessageText: { color: "#FFFFFF" },
   messageTime: { textAlign: "right", color: "#a6a59f", fontSize: 7, marginTop: 4 },
-  myMessageTime: { color: "#83721f" },
+  myMessageTime: { color: "#FFF0A6" },
   hangoutStrip: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 9, borderTopWidth: 1, borderTopColor: "rgba(221, 216, 193, 0.47)" },
+  hangoutStripNight: { borderTopColor: "rgba(255, 255, 255, 0.30)" },
   hangoutStripText: { flex: 1, color: "#8e8c85", fontSize: 8 },
   inviteLink: { color: "#83721f", fontSize: 9, fontWeight: "700" },
   composerRow: { minHeight: 51, flexDirection: "row", alignItems: "center", gap: 7, paddingTop: 5, paddingBottom: 4 },
@@ -3896,10 +3917,15 @@ const styles = StyleSheet.create({
    * seam — otherwise the last message appears to run into the input field.
    */
   composerRowRaised: { borderTopWidth: 1, borderTopColor: "rgba(221, 216, 193, 0.55)", paddingTop: 7, marginTop: 2 },
+  composerRowNight: { borderTopColor: "rgba(255, 255, 255, 0.30)" },
   composerIcon: { width: 30, alignItems: "center" },
+  composerIconNight: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: CHAT_NIGHT.controlSurface, borderWidth: 1, borderColor: CHAT_NIGHT.border },
   quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(245, 240, 210, 0.86)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), alignItems: "center", justifyContent: "center" },
+  quickReplyButtonNight: { backgroundColor: "rgba(8, 22, 39, 0.76)", borderColor: "rgba(255, 255, 255, 0.40)" },
   composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), color: "#53514c", fontSize: 11, outlineStyle: "none" as any },
+  composerInputNight: { backgroundColor: "rgba(6, 19, 34, 0.82)", borderColor: "rgba(255, 255, 255, 0.44)", color: "#FFFFFF" },
   sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#e7e5de", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
+  sendButtonNight: { backgroundColor: "rgba(8, 22, 39, 0.76)", borderColor: "rgba(255, 255, 255, 0.40)" },
   sendButtonActive: { backgroundColor: "#F1DE55" },
   pageIntro: { marginTop: 17, marginBottom: 17 },
   pageEyebrow: { color: "#83721f", fontSize: 8, fontWeight: "700", letterSpacing: 1.1, marginBottom: 7 },
@@ -4243,7 +4269,7 @@ const styles = StyleSheet.create({
   receiptText: { color: "#83721f", fontSize: 6 },
   receiptReadText: { color: "#64A09A" },
   typingRow: { flexDirection: "row", justifyContent: "flex-start" },
-  typingBubble: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 12, borderBottomLeftRadius: 5, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.86)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), paddingHorizontal: 10 },
+  typingBubble: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 12, borderBottomLeftRadius: 5, backgroundColor: "rgba(8, 22, 39, 0.84)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.38)", paddingHorizontal: 10 },
   typingDots: { flexDirection: "row", alignItems: "center", gap: 3 },
   typingDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "#E9D177" },
   typingDotMiddle: { opacity: 0.72 },
