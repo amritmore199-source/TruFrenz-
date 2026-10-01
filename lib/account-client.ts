@@ -20,6 +20,7 @@ import {
   type VerificationTier,
 } from "@/lib/account-access";
 import type { ConnectionRow } from "@/lib/connection-sync";
+import type { GroupSyncRow } from "@/lib/group-sync";
 
 /** The account payload the server returns. */
 export type RemoteAccount = {
@@ -328,6 +329,33 @@ export async function pushMessages(rows: SyncableMessage[]) {
   return request<{ ok: boolean; applied: number; messages: SyncableMessage[] }>(
     "/api/account/messages",
     { method: "POST", body: JSON.stringify({ messages: rows }) },
+  );
+}
+
+/* ---------------------- circles the member created ---------------------- */
+
+/**
+ * The circles the member made, as the server has them.
+ *
+ * A created circle used to be a name in the device's storage, so it did not
+ * survive a reinstall and was absent on a second device. Read at launch and
+ * after a change; a failure is silent, like the circle of friends, because the
+ * device's own copy stays usable while offline.
+ */
+export async function fetchGroups() {
+  return request<{ groups: GroupSyncRow[] }>("/api/account/groups");
+}
+
+/**
+ * Sends the circles this device still owes and returns the full set back.
+ *
+ * Deletions travel in the same request so one call leaves a circle in exactly
+ * one place.
+ */
+export async function pushGroups(rows: GroupSyncRow[], removed: string[] = []) {
+  return request<{ ok: boolean; applied: number; removed: number; groups: GroupSyncRow[] }>(
+    "/api/account/groups",
+    { method: "POST", body: JSON.stringify({ groups: rows, removed }) },
   );
 }
 

@@ -131,12 +131,12 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a hangout card" onPress={() => { onClose(); onSuggestPlan("hangout"); }} style={styles.row}>
                   <View style={styles.tileIconPink}><MaterialIcons name="local-cafe" size={17} color="#83721f" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Hangout</Text><Text style={styles.rowSub}>A card with time and place, accept or decline</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
                 </Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a meetup card" onPress={() => { onClose(); onSuggestPlan("meetup"); }} style={styles.row}>
                   <View style={styles.tileIconBlue}><MaterialIcons name="event-available" size={17} color="#7393A8" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Meetup</Text><Text style={styles.rowSub}>Adds an arrival check-in for the day</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
                 </Pressable>
               </>
             ) : null}
@@ -180,7 +180,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                   <Pressable key={place} accessibilityRole="button" accessibilityLabel={`Share ${place}`} onPress={() => { onSend({ kind: "location", place }); onClose(); }} style={styles.row}>
                     <View style={styles.tileIconGreen}><MaterialIcons name="place" size={16} color="#6E9C86" /></View>
                     <View style={styles.copy}><Text style={styles.rowTitle} numberOfLines={1}>{place.split(" · ")[0]}</Text><Text style={styles.rowSub}>{place.split(" · ")[1]}</Text></View>
-                    <MaterialIcons name="send" size={15} color="#a5a49e" />
+                    <MaterialIcons name="send" size={15} color="#BFC8CF" />
                   </Pressable>
                 ))}
                 <Pressable accessibilityRole="button" accessibilityLabel="Back to attachments" onPress={() => setMode("menu")} style={styles.cancel}>
@@ -204,24 +204,24 @@ const styles = StyleSheet.create({
   sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, padding: 14, paddingBottom: 16 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
-  eyebrow: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
-  title: { color: "#4e4a3b", fontSize: 13, fontWeight: "700", marginTop: 3 },
+  eyebrow: { color: "#BFC8CF", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
+  title: { color: "#F2F4F6", fontSize: 13, fontWeight: "700", marginTop: 3 },
   grid: { flexDirection: "row", gap: 8, marginTop: 11 },
   tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#75726a", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   tileIconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)" },
   tileIconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(238, 244, 248, 0.92)") },
   tileIconGreen: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(238, 246, 241, 0.92)") },
-  tileTitle: { color: "#53514c", fontSize: 10.5, fontWeight: "650" as any, marginTop: 3 },
-  tileSub: { color: "#918f87", fontSize: 8.5 },
+  tileTitle: { color: "#E8ECEF", fontSize: 10.5, fontWeight: "650" as any, marginTop: 3 },
+  tileSub: { color: "#DFE6EB", fontSize: 8.5 },
   divider: { height: 1, backgroundColor: "rgba(224, 221, 203, 0.7)", marginVertical: 11 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   copy: { flex: 1, minWidth: 0 },
-  rowTitle: { color: "#53514c", fontSize: 11, fontWeight: "650" as any },
-  rowSub: { color: "#918f87", fontSize: 9, marginTop: 2 },
+  rowTitle: { color: "#E8ECEF", fontSize: 11, fontWeight: "650" as any },
+  rowSub: { color: "#DFE6EB", fontSize: 9, marginTop: 2 },
   recordRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 10 },
   recordDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#d5ceb0" },
   recordDotLive: { backgroundColor: "#D07E8E" },
-  recordTime: { color: "#6b6962", fontSize: 11, fontWeight: "700" },
+  recordTime: { color: "#C8D3DA", fontSize: 11, fontWeight: "700" },
   waveRow: { flexDirection: "row", alignItems: "flex-end", gap: 3, height: 28, marginTop: 8 },
   waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
   waveBarLive: { backgroundColor: "#E9D177" },
@@ -230,8 +230,8 @@ const styles = StyleSheet.create({
   primaryText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
   ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
   ghostText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
-  note: { color: "#918f87", fontSize: 9, lineHeight: 14, marginTop: 9 },
+  note: { color: "#DFE6EB", fontSize: 9, lineHeight: 14, marginTop: 9 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 3 },
-  cancelText: { color: "#89877e", fontSize: 10, fontWeight: "600" },
+  cancelText: { color: "#DFE6EB", fontSize: 10, fontWeight: "600" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

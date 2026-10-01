@@ -6,8 +6,12 @@ export const APPEARANCE_STORAGE_KEY = "trufrenz.appearance.v1";
  * glass reaches all of them without touching twenty call sites.
  */
 export {
+  DUSK_VEIL_ALPHA,
   GLASS_SHADOW,
   MAX_GLASS_ALPHA,
+  TEXT_ON_GLASS,
+  backdropVeilAlpha,
+  duskVeilColor,
   glassAlpha,
   glassBlur,
   glassEdge,
@@ -26,8 +30,15 @@ import type { GlassTint } from "./glass";
 export const DEFAULT_GLASS_OPACITY = 80;
 export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
 
-/** The two glass casts a member can choose between. */
-export const GLASS_TINT_OPTIONS = ["sky", "lemon"] as const;
+/**
+ * The glass casts a member can choose between.
+ *
+ * Dusk is the night-glass look: the same frosted surfaces, cast in a deeper
+ * slate so the app carries bright white text rather than dark. It is an option
+ * rather than a replacement, so a member who liked the pale daytime glass keeps
+ * it and nothing about the default changes for them.
+ */
+export const GLASS_TINT_OPTIONS = ["sky", "lemon", "dusk"] as const;
 
 export const DEFAULT_GLASS_TINT: GlassTint = "sky";
 
@@ -43,9 +54,16 @@ export const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
   wallpaperVisible: true,
 };
 
+/** What each cast is called where the member chooses one. */
+export const GLASS_TINT_LABEL: Record<GlassTint, string> = {
+  sky: "Sky",
+  lemon: "Lemon",
+  dusk: "Dusk",
+};
+
 /** Falls back to the cool default for anything unrecognised. */
 export function normalizeGlassTint(value: unknown): GlassTint {
-  return value === "lemon" ? "lemon" : "sky";
+  return value === "lemon" ? "lemon" : value === "dusk" ? "dusk" : "sky";
 }
 
 export function normalizeGlassOpacity(value: unknown): number {

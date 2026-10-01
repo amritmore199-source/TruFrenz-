@@ -78,6 +78,34 @@ export function groupLifecycleNote(lifecycle: GroupLifecycle): string {
     : "Paused. Messages are kept, and anyone in the group can reopen it.";
 }
 
+/**
+ * Why a circle was closed, in the member's own words.
+ *
+ * A closed circle with no reason reads like something that broke. One line of
+ * the member's own text turns the closed list from a graveyard into a record:
+ * "finished the course", "on a break until spring", "moved away". It is
+ * deliberately optional — a circle that ends without explanation is a normal
+ * thing and should not be blocked by a form.
+ */
+export const MAX_CLOSED_REASON_LENGTH = 120;
+
+/** A member's reason, trimmed to what will be stored and shown. */
+export function normalizeClosedReason(value: string): string | null {
+  const clean = value.trim().replace(/\s+/g, " ").slice(0, MAX_CLOSED_REASON_LENGTH);
+  return clean.length ? clean : null;
+}
+
+/**
+ * What the row says beneath a closed circle.
+ *
+ * The reason when there is one, and the plain consequence when there is not, so
+ * the row never says less than it did before this existed.
+ */
+export function closedGroupNote(reason: string | null | undefined): string {
+  const clean = typeof reason === "string" ? normalizeClosedReason(reason) : null;
+  return clean ? `Closed · ${clean}` : groupLifecycleNote("closed");
+}
+
 /** Whether the group's conversation may take a new message. */
 export function groupAcceptsMessages(lifecycle: GroupLifecycle): boolean {
   return lifecycle === "active";

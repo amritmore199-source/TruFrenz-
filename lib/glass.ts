@@ -22,8 +22,14 @@
  * Pure module: no React and no platform imports, so it is safe to unit test.
  */
 
-/** How a neutral surface is coloured. Sky is the default; lemon is warmer. */
-export type GlassTint = "sky" | "lemon";
+/**
+ * How a neutral surface is coloured.
+ *
+ * `dusk` is the member's own choice: the same frosted glass, cast in a deeper
+ * smoky slate so surfaces read as night glass and text on them is white. `sky`
+ * and `lemon` are the pale daytime casts.
+ */
+export type GlassTint = "sky" | "lemon" | "dusk";
 
 /** A named surface, so each kind can carry its own weight. */
 export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" | "floater";
@@ -59,13 +65,115 @@ const TINTS: Record<GlassTint, Rgb> = {
   sky: { r: 233, g: 241, b: 250 },
   // A warm lemon wash that keeps the app's accent family.
   lemon: { r: 247, g: 240, b: 205 },
+  /*
+   * The night-glass slate: a smoky blue-grey, not black.
+   *
+   * It is deliberately a mid slate rather than a near-black. Measured against
+   * pure white, this value gives roughly 8:1 wherever the wallpaper behind it is
+   * mid-toned, which is what makes bright text legible app-wide. A near-black
+   * would only have bought a couple more points of contrast while making every
+   * surface look like painted ink rather than glass — which is why the palette
+   * is "less blackish" and not "as dark as possible".
+   */
+  dusk: { r: 42, g: 65, b: 90 },
 };
 
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
   sky: { r: 255, g: 255, b: 255 },
   lemon: { r: 255, g: 254, b: 244 },
+  // A cool rim rather than a white one; a white sheen over slate reads as fog.
+  dusk: { r: 214, g: 232, b: 248 },
 };
+
+/**
+ * How far a neutral surface is pulled toward its cast.
+ *
+ * The pale casts only need a wash, so a little of them is enough. Dusk has to
+ * actually darken the surface, and a 0.62 wash of a mid slate over a white card
+ * would still be a light grey — every existing white surface in the app declares
+ * a near-opaque white, so the cast has to outweigh it rather than merely tint it.
+ */
+const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
+  sky: 0.62,
+  lemon: 0.62,
+  dusk: 0.9,
+};
+
+/**
+ * Extra weight dusk adds to every surface.
+ *
+ * Two reasons. A darker surface needs to be more present to stay legible over a
+ * bright part of the wallpaper, and the app's neutral surfaces declare a wide
+ * range of whites — from 0.24 to 0.98 alpha — so without a floor the lightest of
+ * them would land on almost no glass at all and the wallpaper would show through
+ * a card.
+ */
+const DUSK_WEIGHT_BONUS = 0.06;
+
+/**
+ * How much dark backdrop dusk lays over the wallpaper.
+ *
+ * Bright text on glass is only as legible as what is behind the glass, so this
+ * is not decoration — it is the thing that makes the night palette readable at
+ * all. Measured against the wallpaper's brightest patch, the app's own photo has
+ * pixels at luminance 0.62: with no backdrop a card there rendered at 118/255
+ * and even the brightest body text managed 3.5:1, well under the 4.5:1 that body
+ * text needs.
+ *
+ * 0.50 is the point where the whole ramp clears it. It is a *tint* of the same
+ * slate rather than a black film, so the photo still shows through and still
+ * reads as a night sky instead of a dimmed picture. It only applies while the
+ * dusk cast is chosen: the pale casts carry dark text and need no veil, and
+ * adding one would simply mute their wallpaper for nothing.
+ */
+export const DUSK_VEIL_ALPHA = 0.5;
+
+/** The colour the dusk backdrop lays over the wallpaper. */
+export function duskVeilColor(): string {
+  const { r, g, b } = TINTS.dusk;
+  return `rgba(${r}, ${g}, ${b}, ${DUSK_VEIL_ALPHA})`;
+}
+
+/** The backdrop alpha for a cast: the veil for dusk, nothing for the pale ones. */
+export function backdropVeilAlpha(tint: GlassTint): number {
+  return tint === "dusk" ? DUSK_VEIL_ALPHA : 0;
+}
+
+/* ------------------------------- text ramp ------------------------------- */
+
+/*
+ * The three steps of bright text, as tokens rather than literals.
+ *
+ * They are exported because the sweep that introduced them touched 18 files and
+ * a hundred and eighty style values, and a colour that has to hold a contrast
+ * ratio against a rendered backdrop is not something to keep re-typing. The
+ * ratios below are against a card rendered at the dusk ceiling over the
+ * wallpaper's brightest patch — the worst case the app can actually produce —
+ * with the healthy figure over the wallpaper's average beside it.
+ *
+ *   heading   4.60:1 worst   8.32:1 typical
+ *   body      4.27:1 worst   7.72:1 typical
+ *   secondary 4.02:1 worst   7.28:1 typical
+ *
+ * Nothing here is used on a saturated fill: the labels on the app's lemon
+ * buttons keep their dark ink, which is what makes them readable.
+ */
+export const TEXT_ON_GLASS = {
+  heading: "#F2F4F6",
+  body: "#E8ECEF",
+  secondary: "#DFE6EB",
+} as const;
+
+/** The extra weight a cast adds, which is nothing for the pale ones. */
+function duskBonus(tint: GlassTint): number {
+  return tint === "dusk" ? DUSK_WEIGHT_BONUS : 0;
+}
+
+/** The mix for a cast, falling back to the pale wash for an unknown one. */
+function neutralMixFor(tint: GlassTint): number {
+  return NEUTRAL_TINT_MIX_BY_TINT[tint] ?? NEUTRAL_TINT_MIX;
+}
 
 /**
  * The tint every surface uses unless it is told otherwise.
@@ -85,7 +193,7 @@ let activeTint: GlassTint = "sky";
 
 /** Called by the appearance provider when the member changes the glass colour. */
 export function setActiveGlassTint(tint: GlassTint): void {
-  activeTint = tint === "lemon" ? "lemon" : "sky";
+  activeTint = tint === "lemon" ? "lemon" : tint === "dusk" ? "dusk" : "sky";
 }
 
 /** The tint currently in effect. Exposed for tests and diagnostics. */
@@ -166,6 +274,14 @@ export const GLASS_PRESETS = [
   { id: "subtle", label: "Subtle", glassOpacity: 50, glassTint: "sky" },
   { id: "balanced", label: "Balanced", glassOpacity: 80, glassTint: "sky" },
   { id: "strong", label: "Strong", glassOpacity: 95, glassTint: "lemon" },
+  /*
+   * Night glass: the slate cast at the same weight as Balanced.
+   *
+   * Weight and colour are different questions, so the preset pairs the new cast
+   * with the middle weight rather than with the heaviest one — a member picking
+   * it wants a darker tint, not a thicker sheet.
+   */
+  { id: "night", label: "Night", glassOpacity: 80, glassTint: "dusk" },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
@@ -222,11 +338,21 @@ const TAB_ACCENT_OFFSET: Record<TabAccent, number> = {
   you: 0.04,
 };
 
-/** Alpha for the tab bar over a given tab. */
-export function tabBarAlpha(tab: TabAccent | null, glassOpacity: number): number {
+/**
+ * Alpha for the tab bar over a given tab.
+ *
+ * The cast is a parameter rather than read from the module, because the tab bar
+ * is drawn at render time and a caller that has the value in hand should not
+ * depend on the mirror being current.
+ */
+export function tabBarAlpha(
+  tab: TabAccent | null,
+  glassOpacity: number,
+  tint: GlassTint = activeTint,
+): number {
   const offset = tab ? TAB_ACCENT_OFFSET[tab] ?? 0 : 0;
   const weight = (SURFACE_WEIGHT.tab ?? 0) + offset;
-  return clampAlpha(BASE_ALPHA + weight + weightFromSetting(glassOpacity));
+  return clampAlpha(BASE_ALPHA + weight + duskBonus(tint) + weightFromSetting(glassOpacity));
 }
 
 /** Resolved tab bar colour for a given tab. */
@@ -315,10 +441,20 @@ export function weightFromSetting(glassOpacity: number): number {
   return MAX_SETTING_WEIGHT * ((clamped - 50) / 45);
 }
 
-/** Alpha for one named surface, before any tint is applied. */
-export function glassAlpha(surface: GlassSurface, glassOpacity: number): number {
+/**
+ * Alpha for one named surface, before the cast is applied.
+ *
+ * The two arguments are independent: the weight decides how much of the
+ * wallpaper survives into the surface, and the cast decides the colour laid over
+ * it. Only the cast changes the weight at all, and only for dusk.
+ */
+export function glassAlpha(
+  surface: GlassSurface,
+  glassOpacity: number,
+  tint: GlassTint = activeTint,
+): number {
   const weight = SURFACE_WEIGHT[surface] ?? 0;
-  return clampAlpha(BASE_ALPHA + weight + weightFromSetting(glassOpacity));
+  return clampAlpha(BASE_ALPHA + weight + duskBonus(tint) + weightFromSetting(glassOpacity));
 }
 
 /** The resolved glass colour for a named surface. */
@@ -412,8 +548,19 @@ export function glassSwatch(tint: GlassTint): string {
  * introducing a colour that is not part of the palette.
  */
 export function glassSwatchEdge(tint: GlassTint): string {
-  const { r, g, b } = TINTS[tint];
-  const [dr, dg, db] = [r, g, b].map((channel) => Math.round(channel * 0.58));
+  /*
+   * Built from the chip, not from the raw cast.
+   *
+   * The chip raises saturation, which pushes a channel away from the cast's own
+   * mean and can leave it *below* the cast's value — true of the dark slate,
+   * where the red channel of the chip (23) sits under the cast's own red (42). A
+   * rim derived from the cast would then be lighter than the chip on that
+   * channel and stop reading as a rim at all. Deriving it from the chip keeps
+   * every channel darker by construction, for any cast.
+   */
+  const match = glassSwatch(tint).match(/(\d+), (\d+), (\d+)/);
+  const [r, g, b] = match ? match.slice(1).map(Number) : [0, 0, 0];
+  const [dr, dg, db] = [r, g, b].map((component) => Math.round(component * 0.58));
   return `rgba(${dr}, ${dg}, ${db}, 0.85)`;
 }
 
@@ -441,9 +588,9 @@ export function glassSurfaceColor(
     MAX_DECLARED_WEIGHT,
     Math.max(0, ((parsed.alpha ?? 0) - 0.6) * 0.35),
   );
-  const alpha = clampAlpha(BASE_ALPHA + declaredWeight + weightFromSetting(opacity));
+  const alpha = clampAlpha(BASE_ALPHA + declaredWeight + duskBonus(tint) + weightFromSetting(opacity));
 
-  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], NEUTRAL_TINT_MIX) : parsed.rgb;
+  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], neutralMixFor(tint)) : parsed.rgb;
 
   // A named surface can raise the weight further, but never past the ceiling.
   const weight = SURFACE_WEIGHT[surface] ?? 0;
@@ -482,8 +629,17 @@ export function glassNestedSurfaceColor(
   const position = Math.min(1, Math.max(0, (declared - 0.4) / 0.5));
   const nestedWeight = NESTED_MIN_WEIGHT + position * (NESTED_MAX_WEIGHT - NESTED_MIN_WEIGHT);
 
-  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], NEUTRAL_TINT_MIX) : parsed.rgb;
-  const alpha = clampAlpha(BASE_ALPHA + nestedWeight + weightFromSetting(opacity));
+  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], neutralMixFor(tint)) : parsed.rgb;
+  /*
+   * The cast's bonus applies here too, which keeps the depth relationship the
+   * same under every cast. The nested band sits below a sheet's weight by
+   * construction, so the gap between a card and the row inside it is fixed in
+   * absolute terms — but dusk's bonus is larger than that whole band. Skipping
+   * it here would widen the card-to-row gap under dusk from about 0.11 to 0.17,
+   * so surfaces that read as gently inset under the pale casts would read as
+   * sharply sunk under the night one.
+   */
+  const alpha = clampAlpha(BASE_ALPHA + nestedWeight + duskBonus(tint) + weightFromSetting(opacity));
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_CLOSED_REASON_LENGTH,
+  closedGroupNote,
   createdGroupId,
+  normalizeClosedReason,
   groupAcceptsMessages,
   groupLifecycleFor,
   groupLifecycleLabel,
@@ -101,5 +104,41 @@ describe("naming a circle the member created", () => {
   it("does not trust a negative or fractional position", () => {
     expect(createdGroupId("Walk", -3)).toBe("created-group-0-walk");
     expect(createdGroupId("Walk", 2.7)).toBe("created-group-2-walk");
+  });
+});
+
+describe("why a circle closed", () => {
+  /*
+   * A closed circle with no note reads like something that broke. The reason is
+   * the member's own words, so it is stored as typed apart from whitespace.
+   */
+  it("keeps the member's own words", () => {
+    expect(normalizeClosedReason("finished the course")).toBe("finished the course");
+  });
+
+  it("collapses whitespace so a stray newline cannot break the row", () => {
+    expect(normalizeClosedReason("  finished\n the   course  ")).toBe("finished the course");
+  });
+
+  it("treats an empty box as no reason at all", () => {
+    expect(normalizeClosedReason("")).toBeNull();
+    expect(normalizeClosedReason("   \n ")).toBeNull();
+  });
+
+  it("trims an overlong reason to what will be stored and shown", () => {
+    const long = "a".repeat(MAX_CLOSED_REASON_LENGTH + 50);
+    expect(normalizeClosedReason(long)).toHaveLength(MAX_CLOSED_REASON_LENGTH);
+  });
+
+  it("shows the reason when there is one", () => {
+    expect(closedGroupNote("on a break until spring")).toBe("Closed · on a break until spring");
+  });
+
+  /* The row must never say less than it did before reasons existed. */
+  it("falls back to the plain consequence when there is no reason", () => {
+    const fallback = "Paused. Messages are kept, and anyone in the group can reopen it.";
+    expect(closedGroupNote(null)).toBe(fallback);
+    expect(closedGroupNote(undefined)).toBe(fallback);
+    expect(closedGroupNote("   ")).toBe(fallback);
   });
 });

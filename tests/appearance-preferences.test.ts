@@ -105,8 +105,13 @@ describe("appearance preferences", () => {
 describe("glass colour choice", () => {
   afterEach(() => setActiveGlassTint("sky"));
 
-  it("offers exactly the two supported casts and defaults to the cool one", () => {
-    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon"]);
+  it("offers the three supported casts and defaults to the cool one", () => {
+    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon", "dusk"]);
+    /*
+     * The default stays the pale cool cast on purpose. The night look is the
+     * member's choice, so an existing member keeps the app they already had and
+     * nobody has their text colour changed underneath them.
+     */
     expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("sky");
   });
 
@@ -204,7 +209,9 @@ describe("glass presets", () => {
       // one can never store a value the manual picker could not produce.
       expect(preset.glassOpacity).toBeGreaterThanOrEqual(50);
       expect(preset.glassOpacity).toBeLessThanOrEqual(95);
-      expect(["sky", "lemon"]).toContain(preset.glassTint);
+      // The cast must be one the picker offers, or a preset would store a
+      // colour the manual control could not produce.
+      expect(GLASS_TINT_OPTIONS as readonly string[]).toContain(preset.glassTint);
       expect(matchGlassPreset(preset.glassOpacity, preset.glassTint)).toBe(preset.id);
     }
   });

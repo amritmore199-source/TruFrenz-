@@ -107,7 +107,7 @@ export function ChatOverflowMenu({
                 <Pressable accessibilityRole="button" accessibilityLabel={`View ${first}'s profile`} onPress={() => { onClose(); onViewProfile(); }} style={styles.row}>
                   <View style={styles.iconPink}><MaterialIcons name="person-outline" size={17} color="#83721f" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>View profile</Text><Text style={styles.rowSub}>Photos, interests, and verification</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
                 </Pressable>
               ) : null}
 
@@ -120,7 +120,7 @@ export function ChatOverflowMenu({
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.archived }} accessibilityLabel={state.archived ? "Unarchive conversation" : "Archive conversation"} onPress={onToggleArchive} style={styles.row}>
-                <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#87857c" /></View>
+                <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#DFE6EB" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.archived ? "Move back to inbox" : "Archive this chat"}</Text><Text style={styles.rowSub}>{state.archived ? "Returns to your main list" : "Hidden until a new message arrives"}</Text></View>
                 <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
@@ -134,30 +134,30 @@ export function ChatOverflowMenu({
               <View style={styles.divider} />
 
               <Pressable accessibilityRole="button" accessibilityLabel="Report this conversation" onPress={() => { onReport(); closeAll(); }} style={styles.row}>
-                <View style={styles.iconNeutral}><MaterialIcons name="flag" size={17} color="#87857c" /></View>
+                <View style={styles.iconNeutral}><MaterialIcons name="flag" size={17} color="#DFE6EB" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>Report</Text><Text style={styles.rowSub}>Send this conversation to the safety team</Text></View>
-                <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
               </Pressable>
 
               {!isGroup ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Block ${first}`} onPress={() => setPending("block")} style={styles.row}>
-                  <View style={styles.iconNeutral}><MaterialIcons name="block" size={17} color="#87857c" /></View>
+                  <View style={styles.iconNeutral}><MaterialIcons name="block" size={17} color="#DFE6EB" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Block</Text><Text style={styles.rowSub}>They can&apos;t reach you anywhere in Trufrenz</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
                 </Pressable>
               ) : null}
 
               <Pressable accessibilityRole="button" accessibilityLabel={isGroup ? "Leave this group" : `Unfriend ${first}`} onPress={() => setPending(isGroup ? "delete" : "unfriend")} style={styles.row}>
                 <View style={styles.iconDanger}><MaterialIcons name={isGroup ? "logout" : "person-remove-alt-1"} size={17} color="#B4707F" /></View>
                 <View style={styles.copy}><Text style={[styles.rowTitle, styles.dangerText]}>{isGroup ? "Leave group" : `Unfriend ${first}`}</Text><Text style={styles.rowSub}>{isGroup ? "You keep your copy of the history" : "Chat becomes archived and read-only"}</Text></View>
-                <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
               </Pressable>
 
               {state.archived ? (
                 <Pressable accessibilityRole="button" accessibilityLabel="Delete this conversation" onPress={() => setPending("delete")} style={styles.row}>
                   <View style={styles.iconDanger}><MaterialIcons name="delete-outline" size={17} color="#B4707F" /></View>
                   <View style={styles.copy}><Text style={[styles.rowTitle, styles.dangerText]}>Delete messages</Text><Text style={styles.rowSub}>Removes this conversation from your device</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#a5a49e" />
+                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
                 </Pressable>
               ) : null}
 
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
-  eyebrow: { color: "#a4a29b", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
-  title: { color: "#4e4a3b", fontSize: 13, fontWeight: "700", marginTop: 3 },
+  eyebrow: { color: "#BFC8CF", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.9 },
+  title: { color: "#F2F4F6", fontSize: 13, fontWeight: "700", marginTop: 3 },
   readOnlyNote: { color: "#83721f", fontSize: 9.5, fontWeight: "650" as any, marginTop: 4 },
   confirmCard: { marginTop: 11, borderRadius: 15, borderWidth: 1, borderColor: "rgba(202, 178, 53, 0.5)", backgroundColor: glassNestedFill("rgba(252, 244, 246, 0.92)"), padding: 12, gap: 6 },
   confirmTitle: { color: "#544f3b", fontSize: 11.5, fontWeight: "700" },
@@ -196,11 +196,11 @@ const styles = StyleSheet.create({
   iconNeutral: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(244, 242, 236, 0.92)") },
   iconDanger: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(252, 240, 242, 0.92)") },
   copy: { flex: 1, minWidth: 0 },
-  rowTitle: { color: "#53514c", fontSize: 11, fontWeight: "650" as any },
+  rowTitle: { color: "#E8ECEF", fontSize: 11, fontWeight: "650" as any },
   dangerText: { color: "#A85F6E" },
-  rowSub: { color: "#918f87", fontSize: 9, marginTop: 2 },
+  rowSub: { color: "#DFE6EB", fontSize: 9, marginTop: 2 },
   divider: { height: 1, backgroundColor: "rgba(224, 221, 203, 0.7)", marginVertical: 6 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 4 },
-  cancelText: { color: "#89877e", fontSize: 10, fontWeight: "600" },
+  cancelText: { color: "#DFE6EB", fontSize: 10, fontWeight: "600" },
   pressed: { opacity: 0.86 },
 });

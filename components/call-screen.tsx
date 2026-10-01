@@ -79,7 +79,7 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
           )}
 
           <View style={styles.noteRow}>
-            <MaterialIcons name="lock-outline" size={13} color="#87857c" />
+            <MaterialIcons name="lock-outline" size={13} color="#DFE6EB" />
             <Text style={styles.note}>Calls are end-to-end encrypted and only reachable by accepted friends. Declining never sends a pushy notification.</Text>
           </View>
         </View>
@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
   avatarVideo: { backgroundColor: "#8FA6B6" },
   ringHalo: { position: "absolute", width: 96, height: 96, borderRadius: 36, borderWidth: 2, borderColor: "rgba(233, 209, 119, 0.5)" },
   verifiedBadge: { position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#61A088", borderWidth: 2, borderColor: "#fbfaf4" },
-  title: { color: "#4e4a3b", fontSize: 17, fontWeight: "700", marginTop: 15 },
-  subtitle: { color: "#87857c", fontSize: 11, marginTop: 4 },
+  title: { color: "#F2F4F6", fontSize: 17, fontWeight: "700", marginTop: 15 },
+  subtitle: { color: "#DFE6EB", fontSize: 11, marginTop: 4 },
   state: { color: "#83721f", fontSize: 10, fontWeight: "650" as any, marginTop: 6 },
   warn: { color: "#83721f", fontSize: 9.5, lineHeight: 14, textAlign: "center", marginTop: 9 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 20 },
@@ -106,6 +106,6 @@ const styles = StyleSheet.create({
   accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   actionText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
   noteRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 20, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "rgba(246, 244, 229, 0.86)" },
-  note: { flex: 1, color: "#87857c", fontSize: 9, lineHeight: 14 },
+  note: { flex: 1, color: "#DFE6EB", fontSize: 9, lineHeight: 14 },
   pressed: { opacity: 0.88, transform: [{ scale: 0.97 }] },
 });

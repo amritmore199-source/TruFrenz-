@@ -141,7 +141,7 @@ function DetailRow({
   value: string;
   tone?: "default" | "positive" | "warning";
 }) {
-  const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#5c5a53";
+  const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#E8ECEF";
   return (
     <View style={styles.detailRow}>
       <MaterialIcons name={icon} size={15} color="#83721f" />
@@ -460,7 +460,7 @@ export function ManageSubscriptionModal({
                   {isComp ? (
                     <>
                       <View style={styles.storeHint}>
-                        <MaterialIcons name="card-giftcard" size={13} color="#88867d" />
+                        <MaterialIcons name="card-giftcard" size={13} color="#DFE6EB" />
                         <Text style={styles.storeHintText}>{storeManagementLine("comp")}</Text>
                       </View>
                       <Text style={styles.storeStepsText}>
@@ -476,7 +476,7 @@ export function ManageSubscriptionModal({
                         accessibilityLabel={storeManageActionLabel(Platform.OS)}
                         style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
                       >
-                        <MaterialIcons name="open-in-new" size={13} color="#88867d" />
+                        <MaterialIcons name="open-in-new" size={13} color="#DFE6EB" />
                         <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
                       </Pressable>
                       <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
@@ -534,7 +534,7 @@ export function ManageSubscriptionModal({
                   )}
 
                   <View style={styles.refundRow}>
-                    <MaterialIcons name="help-outline" size={13} color="#88867d" />
+                    <MaterialIcons name="help-outline" size={13} color="#DFE6EB" />
                     <Text style={styles.refundText}>{REFUND_LINE}</Text>
                   </View>
                 </View>
@@ -555,7 +555,7 @@ export function ManageSubscriptionModal({
             )}
 
             <View style={styles.footerNote}>
-              <MaterialIcons name="lock-outline" size={13} color="#88867d" />
+              <MaterialIcons name="lock-outline" size={13} color="#DFE6EB" />
               <Text style={styles.footerNoteText}>
                 {verification === "store"
                   ? "Every purchase is confirmed with your store before Premium turns on."
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1 },
   title: { fontSize: 16, fontWeight: "700", color: "#3f3920" },
-  subtitle: { fontSize: 11.5, color: "#78756d", marginTop: 2, lineHeight: 16 },
+  subtitle: { fontSize: 11.5, color: "#DFE6EB", marginTop: 2, lineHeight: 16 },
   close: {
     width: 30,
     height: 30,
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   planCardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   planCardText: { flex: 1 },
   planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#3f3920" },
-  planCardSub: { fontSize: 11.5, color: "#78756d", marginTop: 2 },
+  planCardSub: { fontSize: 11.5, color: "#DFE6EB", marginTop: 2 },
   tierPill: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 3 },
   tierPillPremium: { backgroundColor: "rgba(212, 187, 59, 0.9)" },
   tierPillFree: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)") },
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   tierPillTextFree: { color: "#68655e" },
   detailList: { gap: 7 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  detailLabel: { fontSize: 11.5, color: "#88867d", width: 78 },
+  detailLabel: { fontSize: 11.5, color: "#DFE6EB", width: 78 },
   detailValue: { flex: 1, fontSize: 11.5, fontWeight: "600" },
   noticeCard: {
     flexDirection: "row",
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
   },
   noticeText: { flex: 1, fontSize: 11, color: "#6E5636", lineHeight: 16 },
-  sectionLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 0.7, color: "#88867d", marginTop: 5, marginLeft: 2 },
+  sectionLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 0.7, color: "#DFE6EB", marginTop: 5, marginLeft: 2 },
   receiptCard: {
     backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"),
     borderRadius: 16,
@@ -657,12 +657,12 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
     gap: 9,
   },
-  emptyReceipts: { fontSize: 11.5, color: "#78756d", lineHeight: 16 },
+  emptyReceipts: { fontSize: 11.5, color: "#DFE6EB", lineHeight: 16 },
   receiptRow: { flexDirection: "row", alignItems: "center", gap: 9 },
   receiptDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)", paddingTop: 9 },
   receiptText: { flex: 1 },
   receiptTitle: { fontSize: 12, fontWeight: "600", color: "#494532" },
-  receiptSub: { fontSize: 10.5, color: "#88867d", marginTop: 1 },
+  receiptSub: { fontSize: 10.5, color: "#DFE6EB", marginTop: 1 },
   statusPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
   statusActive: { backgroundColor: "rgba(214, 238, 224, 0.9)" },
   statusStopped: { backgroundColor: "rgba(250, 240, 224, 0.95)" },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"),
   },
   secondaryButtonText: { fontSize: 12.5, fontWeight: "700", color: "#6f6741" },
-  restoreNote: { fontSize: 11, color: "#78756d", lineHeight: 15 },
+  restoreNote: { fontSize: 11, color: "#DFE6EB", lineHeight: 15 },
   restoreNoteOk: { color: "#4E8567", fontWeight: "600" },
   restoreNoteBad: { color: "#A5603F" },
   changeRow: { flexDirection: "row", gap: 8 },
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   changeName: { fontSize: 12.5, fontWeight: "700", color: "#494532" },
-  changePrice: { fontSize: 11, color: "#88867d" },
+  changePrice: { fontSize: 11, color: "#DFE6EB" },
   cancelCard: {
     backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"),
     borderRadius: 16,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
     gap: 9,
   },
-  cancelBody: { fontSize: 11.5, color: "#5c5a53", lineHeight: 16 },
+  cancelBody: { fontSize: 11.5, color: "#E8ECEF", lineHeight: 16 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
   storeHintText: { fontSize: 11, color: "#767055", fontWeight: "700" },
   /*
@@ -717,11 +717,11 @@ const styles = StyleSheet.create({
   storeStepsText: {
     fontSize: 10.5,
     lineHeight: 15,
-    color: "#88867d",
+    color: "#DFE6EB",
     marginTop: 6,
   },
   confirmBox: { gap: 9, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), borderRadius: 12, padding: 10 },
-  confirmText: { fontSize: 11, color: "#5c5a53", lineHeight: 15.5 },
+  confirmText: { fontSize: 11, color: "#E8ECEF", lineHeight: 15.5 },
   confirmActions: { flexDirection: "row", gap: 8 },
   ghostButton: {
     flex: 1,
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   },
   dangerButtonText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
   refundRow: { flexDirection: "row", gap: 6, alignItems: "flex-start" },
-  refundText: { flex: 1, fontSize: 10.5, color: "#88867d", lineHeight: 15 },
+  refundText: { flex: 1, fontSize: 10.5, color: "#DFE6EB", lineHeight: 15 },
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -761,6 +761,6 @@ const styles = StyleSheet.create({
   primaryButtonText: { fontSize: 13.5, fontWeight: "700", color: "#4A4210" },
   buttonBusy: { opacity: 0.7 },
   footerNote: { flexDirection: "row", gap: 6, alignItems: "flex-start", marginTop: 4 },
-  footerNoteText: { flex: 1, fontSize: 10.5, color: "#88867d", lineHeight: 15 },
+  footerNoteText: { flex: 1, fontSize: 10.5, color: "#DFE6EB", lineHeight: 15 },
   pressed: { opacity: 0.82 },
 });

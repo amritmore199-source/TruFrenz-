@@ -581,3 +581,68 @@ export const memberMessages = mysqlTable(
 );
 
 export type MemberMessage = typeof memberMessages.$inferSelect;
+
+/*
+ * Groups a member has created, stored server-side.
+ *
+ * A circle used to exist only as a name on the device that made it, so it
+ * vanished on a reinstall and never appeared on a second device — the same
+ * problem the connection graph had before it moved here.
+ *
+ * The id is the app's own id rather than a surrogate, because the circle is
+ * referred to by that id in the chat list, in messages, and in the app's
+ * links; generating a second one here would leave two names for one thing.
+ */
+export const memberGroups = mysqlTable(
+  "member_groups",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** The member who created the circle. */
+    memberId: int("memberId").notNull(),
+    /** The app's group id, unique per member so a re-send is a no-op. */
+    groupId: varchar("groupId", { length: 96 }).notNull(),
+    name: varchar("name", { length: 60 }).notNull(),
+    /** Active or closed. Closing keeps the circle; it never deletes it. */
+    lifecycle: mysqlEnum("groupLifecycle", ["active", "closed"]).default("active").notNull(),
+    /** Why it was closed, in the member's own words. Optional by design. */
+    closedReason: varchar("closedReason", { length: 120 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("member_groups_group_idx").on(table.memberId, table.groupId),
+    index("member_groups_member_idx").on(table.memberId),
+  ],
+);
+export type MemberGroup = typeof memberGroups.$inferSelect;
+
+/*
+ * Who is in a circle.
+ *
+ * Kept in its own table rather than as a JSON column so the server can answer
+ * "which circles is this person in" without reading every group, and so a
+ * duplicate membership is impossible rather than merely unlikely.
+ *
+ * `memberRef` is the app's directory id for the person, matching the peer ids
+ * the connection graph already uses. A name is stored alongside it so a circle
+ * reads correctly for the member even before that person has an account here.
+ */
+export const memberGroupMembers = mysqlTable(
+  "member_group_members",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** Denormalised owner, so every query can be scoped to one member. */
+    memberId: int("memberId").notNull(),
+    groupId: varchar("groupId", { length: 96 }).notNull(),
+    /** The person in the circle: the member themselves, or a directory id. */
+    memberRef: varchar("memberRef", { length: 64 }).notNull(),
+    name: varchar("name", { length: 80 }).notNull(),
+    role: mysqlEnum("groupRole", ["admin", "member"]).default("member").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("member_group_members_unique_idx").on(table.memberId, table.groupId, table.memberRef),
+    index("member_group_members_group_idx").on(table.memberId, table.groupId),
+  ],
+);
+export type MemberGroupMember = typeof memberGroupMembers.$inferSelect;

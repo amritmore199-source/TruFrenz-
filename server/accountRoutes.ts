@@ -20,6 +20,7 @@ import { getDb } from "./db";
 import * as billing from "./billingService";
 import * as challenges from "./challengeStore";
 import * as connections from "./connectionService";
+import * as groups from "./groupService";
 import * as messages from "./messageService";
 import { sendSigninCode, emailConfigured } from "./mailer";
 import { sendSigninSms, smsTransportSummary } from "./sms";
@@ -940,6 +941,31 @@ export function registerAccountRoutes(app: Express) {
     const rows = messages.normalizeMessages(req.body?.messages);
     const saved = await messages.applyMessages(req.member!.id, rows);
     res.json({ ok: true, applied: rows.length, messages: saved });
+  });
+
+  /* ----------------------- circles the member created -------------------- */
+  /*
+   * A circle used to exist only as a name on the device that made it: it was
+   * absent on a second device and lost on a reinstall. These two routes put it
+   * on the account, following the same shape as the circle of friends above.
+   *
+   * The write replaces a whole circle rather than merging into it, because the
+   * client sends whole circles — a merge would leave somebody in a circle the
+   * member had removed them from. It is still additive across circles, so a
+   * device that has been offline cannot erase circles it never knew about.
+   */
+  app.get("/api/account/groups", requireMember, async (req: MemberRequest, res) => {
+    const rows = await groups.listGroups(req.member!.id);
+    res.json({ groups: rows });
+  });
+  app.post("/api/account/groups", requireMember, async (req: MemberRequest, res) => {
+    const rows = groups.normalizeGroups(req.body?.groups);
+    const removals = Array.isArray(req.body?.removed)
+      ? req.body.removed.filter((groupId: unknown): groupId is string => typeof groupId === "string")
+      : [];
+    if (removals.length > 0) await groups.forgetGroups(req.member!.id, removals);
+    const saved = await groups.applyGroups(req.member!.id, rows);
+    res.json({ ok: true, applied: rows.length, removed: removals.length, groups: saved });
   });
 
   /* ------------------------- capability-guarded -------------------------- */

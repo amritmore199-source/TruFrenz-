@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(244, 236, 200, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   mutualText: { flex: 1, color: "#767158", fontSize: 10, fontWeight: "700" },
   divider: { height: 1, backgroundColor: "rgba(219, 215, 192, 0.65)", marginTop: 14, marginBottom: 12 },
-  sectionLabel: { color: "#929087", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
+  sectionLabel: { color: "#DFE6EB", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
   about: { color: "#63615c", fontSize: 12, lineHeight: 18, marginTop: 6, marginBottom: 9 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
   tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(244, 236, 200, 0.91)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.93)"), paddingHorizontal: 9, paddingVertical: 6 },
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   // as an ordering below the sheet, so a button is always lighter than its panel.
   actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#75736a", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
   actionPrimary: { backgroundColor: "#F1DE55", borderColor: glassNestedFill("rgba(255, 255, 255, 0.64)"), shadowColor: "#5c5634", shadowOpacity: 0.14 },
-  actionText: { color: "#6a6760", fontSize: 10, fontWeight: "700" },
+  actionText: { color: "#C8D3DA", fontSize: 10, fontWeight: "700" },
   actionTextPrimary: { color: "#FFFFFF" },
   actionTextDanger: { color: "#83721f" },
   safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: glassNestedFill("rgba(232, 241, 246, 0.73)") },
