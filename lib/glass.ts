@@ -196,11 +196,28 @@ export function matchGlassPreset(
  * emptier one, so each tab nudges the weight a little. The offsets stay small
  * enough that the bar never reads as a different component.
  */
-export type TabAccent = "chats" | "friends" | "meetups" | "you";
+/**
+ * The sections the bar can be sitting over, plus the two destinations that are
+ * reached from elsewhere. "meetups" and "you" are kept because those screens
+ * still exist behind the avatar and the chat header, and the bar keeps its
+ * weight while they are showing.
+ */
+export type TabAccent =
+  | "chats"
+  | "groups"
+  | "friends"
+  | "bizz"
+  | "meetups"
+  | "you";
 
 const TAB_ACCENT_OFFSET: Record<TabAccent, number> = {
   chats: -0.03,
+  // Groups is a dense list of rows, like the chat inbox but shorter, so it sits
+  // between the two extremes rather than repeating the inbox's lightest weight.
+  groups: -0.01,
   friends: 0,
+  // Bizz starts as a mostly empty screen, so its bar leans heavier.
+  bizz: 0.03,
   meetups: 0.02,
   you: 0.04,
 };

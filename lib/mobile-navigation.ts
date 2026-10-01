@@ -1,3 +1,5 @@
+import type { AppSection, MenuDestination } from "@/lib/sections";
+
 export type MobileBackAction =
   | "close-navigation-menu"
   | "close-action-menu"
@@ -7,12 +9,21 @@ export type MobileBackAction =
   | "close-selfie-verification"
   | "close-verification-prompt"
   | "close-composer"
+  | "close-contact-search"
   | "step-back-signup"
   | "close-signup"
   | "dismiss-notification"
   | "close-thread"
   | "go-to-chats"
   | "exit-app";
+
+/**
+ * Where the member currently is.
+ *
+ * The bar carries four sections, and Meetups and the profile are destinations
+ * reached from the header, so the active screen is any of the six.
+ */
+export type ActiveDestination = MenuDestination;
 
 export type MobileBackState = {
   navigationMenuOpen: boolean;
@@ -23,11 +34,16 @@ export type MobileBackState = {
   selfieVerificationOpen: boolean;
   verificationPromptOpen: boolean;
   composerOpen: boolean;
+  /**
+   * The contact lookup inside the chat search box. It is an overlay on the
+   * search box, so it closes before anything beneath it.
+   */
+  contactSearchOpen: boolean;
   signupOpen: boolean;
   signupCanGoBack: boolean;
   notificationOpen: boolean;
   threadOpen: boolean;
-  activeTab: "Chats" | "Friends" | "Meetups" | "You";
+  activeTab: ActiveDestination;
 };
 
 export function resolveMobileBackAction(state: MobileBackState): MobileBackAction {
@@ -39,6 +55,7 @@ export function resolveMobileBackAction(state: MobileBackState): MobileBackActio
   if (state.selfieVerificationOpen) return "close-selfie-verification";
   if (state.verificationPromptOpen) return "close-verification-prompt";
   if (state.composerOpen) return "close-composer";
+  if (state.contactSearchOpen) return "close-contact-search";
   if (state.signupOpen && state.signupCanGoBack) return "step-back-signup";
   if (state.signupOpen) return "close-signup";
   if (state.notificationOpen) return "dismiss-notification";
@@ -46,3 +63,6 @@ export function resolveMobileBackAction(state: MobileBackState): MobileBackActio
   if (state.activeTab !== "Chats") return "go-to-chats";
   return "exit-app";
 }
+
+/** The section a back press lands on: always the message list. */
+export const BACK_HOME_SECTION: AppSection = "Chats";

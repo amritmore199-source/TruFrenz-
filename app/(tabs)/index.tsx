@@ -57,7 +57,7 @@ import {
   priceMismatch,
   type StorePriceCatalogue,
 } from "@/lib/store-prices";
-import { isInboxMeetupTransition } from "@/lib/ui-transitions";
+import { shouldShowHandoff } from "@/lib/ui-transitions";
 import { SelfieVerificationModal } from "@/components/selfie-verification-modal";
 import { SafetyOnboardingCarousel } from "@/components/safety-onboarding-carousel";
 import { CreateMeetupInviteModal } from "@/components/create-meetup-invite-modal";
@@ -228,6 +228,34 @@ import {
 import { contactInviteMessage, normalizeDeviceContacts, type ContactMatch, type NormalizedDeviceContact } from "@/lib/contact-discovery";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
+import {
+  BOTTOM_SECTIONS,
+  MENU_DESTINATIONS,
+  sectionDefinition,
+  sectionForDestination,
+  shouldCloseThreadForSection,
+  type AppSection,
+  type MenuDestination,
+} from "@/lib/sections";
+import {
+  groupAcceptsMessages,
+  groupLifecycleFor,
+  groupLifecycleLabel,
+  groupLifecycleNote,
+  groupMemberSummary,
+  groupSectionSummary,
+  partitionGroups,
+  toggleGroupLifecycle,
+  type GroupEntry,
+  type GroupLifecycle,
+} from "@/lib/group-status";
+import {
+  contactRowNote,
+  contactSearchEmptyCopy,
+  filterContacts,
+  groupContactResults,
+  type ContactSearchRow,
+} from "@/lib/contact-search";
 import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
@@ -345,7 +373,14 @@ const REQUEST_AUDIENCE_LABEL: Record<RequestAudience, string> = {
   "verified-only": "Verified only",
 };
 
-type Tab = "Chats" | "Friends" | "Meetups" | "You";
+/**
+ * Every screen this root can show.
+ *
+ * Four of them — Chat, Groups, Friends and Bizz — are sections of the bottom
+ * bar. Meetups and You are destinations reached from the header instead, which
+ * is why this is wider than the bar.
+ */
+type Tab = MenuDestination;
 type AuthStep = "welcome" | "phone" | "code" | "profile" | "photo" | "about";
 type AuthIntent = "signup" | "login";
 /*
@@ -597,6 +632,33 @@ export default function TrufrenzApp() {
   const [inviteTargetChat, setInviteTargetChat] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [chatFilter, setChatFilter] = useState<"All" | "Unread" | "Groups">("All");
+  /**
+   * The contact lookup that opens from the search box's sliders button.
+   *
+   * The chat search box can only reach people Trufrenz already knows. The
+   * person a member is looking for is often one they have in their phone but
+   * have never spoken to here, so the button beside the field opens the
+   * device's own contacts, split into who is already a member and who to
+   * invite. It is an overlay rather than a section, so it closes on back.
+   */
+  const [contactLookupOpen, setContactLookupOpen] = useState(false);
+  const [contactLookupQuery, setContactLookupQuery] = useState("");
+  /**
+   * Which pool the Friends section is showing: Trufrenz's own suggestions, or
+   * the people in the member's phone. Defaults to suggestions so nothing
+   * touches the address book until the member chooses that side.
+   */
+  const [peopleSource, setPeopleSource] = useState<"suggested" | "contacts">("suggested");
+  /** Which of the found contacts the member has ticked, keyed by number. */
+  const [contactLookupSelection, setContactLookupSelection] = useState<string[]>([]);
+  /**
+   * Active or closed, per group.
+   *
+   * Closing is a state rather than a deletion, so the history and the member
+   * list survive it; the Groups section shows both lists so a circle never
+   * appears to have vanished.
+   */
+  const [groupLifecycles, setGroupLifecycles] = useState<Record<string, GroupLifecycle>>({});
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
   const [chatMessages, setChatMessages] = useState(initialMessages);
@@ -687,7 +749,6 @@ export default function TrufrenzApp() {
   const [deviceContacts, setDeviceContacts] = useState<NormalizedDeviceContact[]>([]);
   const [contactMatches, setContactMatches] = useState<Record<string, ContactMatch>>({});
   const [selectedContactPhones, setSelectedContactPhones] = useState<string[]>([]);
-  const [contactSearch, setContactSearch] = useState("");
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactInviteLoading, setContactInviteLoading] = useState(false);
   const [contactPreferenceBusy, setContactPreferenceBusy] = useState(false);
@@ -797,7 +858,14 @@ export default function TrufrenzApp() {
     const from = previousTab.current;
     previousTab.current = tab;
     if (handoffTimer.current) clearTimeout(handoffTimer.current);
-    const isHandoff = isInboxMeetupTransition(from, tab);
+    /*
+     * The handoff now covers every move between the bar's sections, not only
+     * the inbox and meetups. Each of those moves swaps lists of very different
+     * length, and the moment of glass is what stops the change reading as a
+     * flicker. Re-tapping the section already showing is not a move at all and
+     * stays instant.
+     */
+    const isHandoff = shouldShowHandoff(from, tab);
     setTransitionBusy(isHandoff);
     contentOpacity.setValue(isHandoff ? 0.82 : 0.93);
     contentTranslateY.setValue(isHandoff ? (tab === "Meetups" ? 8 : -8) : 3);
@@ -1751,12 +1819,6 @@ export default function TrufrenzApp() {
     }
   };
 
-  const toggleContactSelection = (phoneE164: string) => {
-    setSelectedContactPhones((current) => current.includes(phoneE164)
-      ? current.filter((value) => value !== phoneE164)
-      : [...current, phoneE164]);
-    setInviteCursor(0);
-  };
   const updateContactDiscoveryPreference = async (enabled: boolean) => {
     if (!remoteAccount || !joined) {
       feedback("Log in first to change your contact-discovery setting.");
@@ -1795,7 +1857,10 @@ export default function TrufrenzApp() {
     setDeviceContacts([]);
     setContactMatches({});
     setSelectedContactPhones([]);
-    setContactSearch("");
+    setContactLookupQuery("");
+    setContactLookupSelection([]);
+    setContactLookupOpen(false);
+    setPeopleSource("suggested");
     setInviteCursor(0);
     clearPendingAttachment();
     setSelectedChat(null);
@@ -2149,6 +2214,79 @@ export default function TrufrenzApp() {
   const archivedCount = useMemo(
     () => Object.values(chatRowStates).filter((state) => state.archived).length,
     [chatRowStates],
+  );
+
+  /**
+   * Every group the member belongs to, active and closed.
+   *
+   * Two sources feed it: the seeded circles that already had a conversation,
+   * and the ones the member has created in this session but not yet invited
+   * anyone into. Both are listed because "which groups am I in" is the whole
+   * question the section answers, and a group that is waiting for its first
+   * invitation is exactly the one a member is most likely to have lost track
+   * of.
+   */
+  const groupDirectory = useMemo<GroupEntry[]>(() => {
+    const fromConversations = seedConversations
+      .filter((chat) => chat.kind === "group")
+      .map((chat): GroupEntry => ({
+        id: chat.id,
+        name: chat.name,
+        origin: "conversation",
+        lifecycle: groupLifecycleFor(groupLifecycles, chat.id),
+        memberCount: chat.id === group.id ? group.members.length : null,
+        lastActivity: chatMessages[chat.id]?.at(-1)?.text ?? chat.lastMessage,
+      }));
+    const created = createdGroups.map((name, index): GroupEntry => {
+      const id = `created-group-${index}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+      return {
+        id,
+        name,
+        origin: "created",
+        lifecycle: groupLifecycleFor(groupLifecycles, id),
+        // A circle the member just made has only themselves in it so far.
+        memberCount: 1,
+        lastActivity: "Invite accepted friends to begin",
+      };
+    });
+    return [...fromConversations, ...created];
+  }, [chatMessages, createdGroups, group.id, group.members.length, groupLifecycles]);
+
+  const groupLists = useMemo(() => partitionGroups(groupDirectory), [groupDirectory]);
+  const groupSummary = useMemo(() => groupSectionSummary(groupDirectory), [groupDirectory]);
+
+  /**
+   * The device's contacts, shaped for the search box's lookup.
+   *
+   * The scan already resolved which of them are members; this only re-labels
+   * what it found. Names and numbers stay on the device.
+   */
+  const contactLookupRows = useMemo<ContactSearchRow[]>(
+    () => deviceContacts.map((contact) => {
+      const match = contactMatches[contact.phoneE164];
+      return {
+        phoneE164: contact.phoneE164,
+        name: contact.name,
+        matchName: match?.name ?? null,
+        matchTier: match ? match.verificationTier : null,
+      };
+    }),
+    [contactMatches, deviceContacts],
+  );
+
+  const contactLookupResults = useMemo(
+    () => filterContacts(contactLookupRows, contactLookupQuery),
+    [contactLookupQuery, contactLookupRows],
+  );
+  const contactLookupGroups = useMemo(() => groupContactResults(contactLookupResults), [contactLookupResults]);
+  const contactLookupCopy = useMemo(
+    () => contactSearchEmptyCopy({
+      scanning: contactsLoading,
+      scanned: deviceContacts.length > 0,
+      query: contactLookupQuery,
+      contactsScanned: deviceContacts.length,
+    }),
+    [contactLookupQuery, contactsLoading, deviceContacts.length],
   );
 
   const chatEmptyCopy = useMemo(
@@ -2866,11 +3004,92 @@ export default function TrufrenzApp() {
     feedback("Private group created. Invite accepted friends from the group chat.");
   };
 
+  /**
+   * Close or reopen a group.
+   *
+   * Closing keeps everything — the members, the history, the plans — and only
+   * pauses the conversation, which is why the copy promises the messages are
+   * still there rather than saying the group has gone.
+   */
+  const toggleGroupOpenness = (entry: GroupEntry) => {
+    const next = groupLifecycleFor(groupLifecycles, entry.id) === "active" ? "closed" : "active";
+    setGroupLifecycles((current) => toggleGroupLifecycle(current, entry.id));
+    feedback(
+      next === "closed"
+        ? `${entry.name} closed. Messages are kept, and you can reopen it any time.`
+        : `${entry.name} is active again. Messages will arrive as usual.`,
+    );
+    tap();
+  };
+
+  const toggleContactLookupSelection = (phoneE164: string) => {
+    setContactLookupSelection((current) =>
+      current.includes(phoneE164) ? current.filter((item) => item !== phoneE164) : [...current, phoneE164],
+    );
+    tap();
+  };
+
+  /**
+   * What the invitation button says.
+   *
+   * Extracted so the label shown and the label announced to a screen reader are
+   * the same string; the two drifted apart while the button was written inline,
+   * which is how a member ends up hearing something different from what they
+   * see.
+   */
+  const inviteButtonLabel = (
+    contacts: NormalizedDeviceContact[],
+    loading: boolean,
+    cursor: number,
+  ): string => {
+    if (loading) return "Opening text…";
+    if (!contacts.length) return "Select contacts to invite";
+    if (cursor >= contacts.length) return "Invite the rest in the app";
+    const next = contacts[cursor]?.name;
+    return next ? `Send invite to ${next}` : `Send invite (${cursor + 1} of ${contacts.length})`;
+  };
+
+  /**
+   * Open the contact lookup from the search box.
+   *
+   * The scan is triggered here rather than on mount: reading a member's
+   * address book is something they should ask for, not something the app does
+   * quietly when a screen opens.
+   */
+  const openContactLookup = () => {
+    setContactLookupOpen(true);
+    setContactLookupQuery(search);
+    if (deviceContacts.length === 0 && !contactsLoading) void discoverDeviceContacts();
+  };
+
   const navigateFromMenu = (destination: Tab) => {
     setNavigationMenuOpen(false);
+    setContactLookupOpen(false);
+    setContactLookupQuery("");
     clearPendingAttachment();
-    setSelectedChat(null);
+    // A section that is not Chat is a fresh context, so any open conversation
+    // closes. Returning to Chat keeps the thread the member was reading.
+    if (destination !== "Chats") setSelectedChat(null);
     setTab(destination);
+    tap();
+  };
+
+  /**
+   * Switch sections from the bar.
+   *
+   * Same rule as the menu, and the same reason: the bar is where a member
+   * flicks between sections, and losing the thread they were mid-way through
+   * because they glanced at their friends would be a small betrayal of the
+   * place they were reading.
+   */
+  const selectSection = (section: AppSection) => {
+    if (section === "Bizz" && tab !== "Bizz") {
+      feedback("Bizz is opening soon. Everything else works as usual.");
+    }
+    if (shouldCloseThreadForSection(section)) setSelectedChat(null);
+    setContactLookupOpen(false);
+    setContactLookupQuery("");
+    setTab(section);
     tap();
   };
 
@@ -2886,6 +3105,7 @@ export default function TrufrenzApp() {
         selfieVerificationOpen: selfieModalVisible,
         verificationPromptOpen: verificationPrompt,
         composerOpen,
+        contactSearchOpen: contactLookupOpen,
         signupOpen: showSignup,
         signupCanGoBack: authStep !== "welcome",
         notificationOpen: !!incomingNotification,
@@ -2901,6 +3121,7 @@ export default function TrufrenzApp() {
       else if (action === "close-selfie-verification") setSelfieModalVisible(false);
       else if (action === "close-verification-prompt") setVerificationPrompt(false);
       else if (action === "close-composer") setComposerOpen(false);
+      else if (action === "close-contact-search") { setContactLookupOpen(false); setContactLookupQuery(""); }
       else if (action === "step-back-signup") setAuthStep((current) => current === "profile" ? "code" : current === "code" ? "phone" : "welcome");
       else if (action === "close-signup") setShowSignup(false);
       else if (action === "dismiss-notification") setIncomingNotification(null);
@@ -2910,7 +3131,7 @@ export default function TrufrenzApp() {
       return true;
     });
     return () => subscription.remove();
-  }, [actionMenuOpen, authStep, closeThread, composerOpen, incomingNotification, inviteModalVisible, navigationMenuOpen, profilePerson, quickRepliesOpen, selectedChat, selfieModalVisible, showSignup, tab, verificationPrompt]);
+  }, [actionMenuOpen, authStep, closeThread, composerOpen, contactLookupOpen, incomingNotification, inviteModalVisible, navigationMenuOpen, profilePerson, quickRepliesOpen, selectedChat, selfieModalVisible, showSignup, tab, verificationPrompt]);
 
   const topBar = (thread = false) => (
     <View style={[styles.topBar, thread && styles.threadTopBarNight]}>
@@ -2921,7 +3142,7 @@ export default function TrufrenzApp() {
             <Text style={[styles.backButtonText, styles.threadPrimaryText]}>Back</Text>
           </Pressable>
         ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#4A4210" /></View>}
-        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={[styles.threadTitle, styles.threadPrimaryText]} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={[styles.topBarSub, styles.threadSecondaryText]} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color={CHAT_NIGHT.accentText} /> : null}<Text style={[styles.threadStatus, styles.threadSecondaryText]} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <Text style={styles.brandWord}>Trufrenz</Text>}
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={[styles.threadTitle, styles.threadPrimaryText]} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={[styles.topBarSub, styles.threadSecondaryText]} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color={CHAT_NIGHT.accentText} /> : null}<Text style={[styles.threadStatus, styles.threadSecondaryText]} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <View style={styles.brandNameRow}><Text style={styles.brandWord}>Trufrenz</Text><Text style={styles.brandGreeting} numberOfLines={1}>{joined ? `· Hello, ${fullName.split(" ")[0] || "friend"}` : "· A little closer."}</Text></View>}
       </View>
       {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="call" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="videocam" size={19} color={CHAT_NIGHT.primaryText} /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="more-vert" size={21} color={CHAT_NIGHT.primaryText} /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#757056" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#77725a" />}</Pressable></View>}
     </View>
@@ -3151,8 +3372,18 @@ export default function TrufrenzApp() {
     const friendCircles = seedConversations.filter((chat) => chat.kind === "friend" && acceptedFriends.includes(chat.id));
     return <>
       {topBar()}
-      <View style={styles.chatHeading}><View><Text style={styles.greeting}>{joined ? `Hello, ${fullName.split(" ")[0] || "friend"}` : "A little closer."}</Text><Text style={styles.chatTitle}>Your conversations</Text></View><Pressable onPress={() => setComposerOpen(true)} style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={19} color="#4A4210" /></Pressable></View>
-      <View style={styles.searchBar}><Icon name="search" size={18} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search conversations & friends" placeholderTextColor="#a4a39f" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={() => feedback("Search chats, people, and groups from here.")}><Icon name="tune" size={17} color="#83721f" /></Pressable></View>
+      {/*
+        The heading sits directly under the top bar.
+
+        It used to carry its own line of greeting above it, which put two rows
+        of text between the app's name and the list of conversations — the
+        member's own name, then "Your conversations". The greeting now shares
+        the top bar's line with the word Trufrenz, so the section title is the
+        first thing under the header and the list starts a full row higher.
+      */}
+      <View style={styles.chatHeading}><Text style={styles.chatTitle}>Your conversations</Text><Pressable onPress={() => setComposerOpen(true)} accessibilityRole="button" accessibilityLabel="Start a new group" style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={18} color="#4A4210" /></Pressable></View>
+      <View style={styles.searchBar}><Icon name="search" size={18} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search conversations & friends" placeholderTextColor="#a4a39f" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#83721f" /></Pressable></View>
+      {renderContactLookup()}
       <View style={styles.filterRow}>{filters.map((filter) => <Pressable key={filter} onPress={() => setChatFilter(filter)} style={[styles.filterChip, chatFilter === filter && styles.filterChipActive]}><Text style={[styles.filterChipText, chatFilter === filter && styles.filterChipTextActive]}>{filter}{filter === "Unread" ? "  2" : ""}</Text></Pressable>)}</View>
       {chatFilter === "All" && !search ? <View style={styles.circlesSection}><View style={styles.sectionHeaderLine}><Text style={styles.sectionEyebrow}>YOUR PEOPLE</Text><Pressable onPress={() => setTab("Friends")}><Text style={styles.sectionLink}>See all <Icon name="chevron-right" size={12} color="#83721f" /></Text></Pressable></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circlesRow}>
         {joined ? <Pressable onPress={() => setTab("You")} style={styles.circleItem}><View style={styles.myCircle}><Text style={styles.myCircleInitial}>{fullName.charAt(0).toUpperCase()}</Text><View style={styles.addSmall}><Icon name="add" size={11} color="#4A4210" /></View></View><Text style={styles.circleName}>Your note</Text></Pressable> : <Pressable onPress={openSignup} style={styles.circleItem}><View style={styles.addCircle}><Icon name="add" size={22} color="#83721f" /></View><Text style={styles.circleName}>Set up</Text></Pressable>}
@@ -3187,9 +3418,47 @@ export default function TrufrenzApp() {
             />
           );
         })}
-        {createdGroups.map((name) => <Pressable key={name} onPress={() => feedback("Invite an accepted friend to start the group conversation.")} style={styles.chatRow}><View style={[styles.chatAvatarWrap, styles.addCircle]}><Icon name="groups" size={22} color="#83721f" /></View><View style={styles.chatInfo}><Text style={styles.chatName}>{name}</Text><Text style={styles.chatPreview}>Private group · Invite friends to begin</Text></View><Icon name="chevron-right" size={18} color="#a6a49f" /></Pressable>)}
+        {/*
+          A freshly created circle is not listed here.
+
+          The inbox is a list of conversations, and a group with nobody in it
+          yet has no conversation to show. Groups shows every circle the member
+          belongs to — active and closed, with or without messages — so listing
+          the new one in both places only made the inbox say "Private group ·
+          Invite friends to begin" for a row that is not a chat.
+        */}
         {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={styles.emptyIcon}><Icon name="forum" size={22} color="#83721f" /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : acceptedFriends.length === 0 ? <ActionButton onPress={() => setTab("Friends")} style={styles.emptyAction}><Text style={styles.actionText}>Meet neighbors</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
         <View style={styles.safeNote}><Icon name="lock-outline" size={13} color="#8e8c84" /><Text style={styles.safeNoteText}>Messages open after you both accept a friend request.</Text></View>
+        {/*
+          A closing card rather than a strip of dead space.
+
+          A short inbox used to end with a band of empty wallpaper several rows
+          tall between the last conversation and the bar. This uses that space
+          for the one thing a member with a quiet inbox can act on: the people
+          they already know. It disappears once it has an answer, and it is the
+          only conversation-shaped card in the list that is not a conversation.
+        */}
+        {joined && !archivedCount ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Check which of your phone's contacts are already on Trufrenz"
+            onPress={() => { openContactLookup(); feedback("Numbers are hashed on this device before anything is compared."); }}
+            style={({ pressed }) => [styles.quietInboxCard, pressed && styles.pressed]}
+          >
+            <View style={styles.quietInboxIcon}><Icon name="contacts" size={17} color="#7393A9" /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quietInboxTitle}>
+                {deviceContacts.length ? "A few of your contacts are already here" : "Check who is already here"}
+              </Text>
+              <Text style={styles.quietInboxText}>
+                {deviceContacts.length
+                  ? `${Object.keys(contactMatches).length} opted-in ${Object.keys(contactMatches).length === 1 ? "member" : "members"} matched the numbers on this phone.`
+                  : "Compare your contacts privately, then invite whoever is missing."}
+              </Text>
+            </View>
+            <Icon name="arrow-forward" size={15} color="#7393A9" />
+          </Pressable>
+        ) : null}
       </ScrollView>
     </>;
   };
@@ -3197,56 +3466,57 @@ export default function TrufrenzApp() {
   const renderFriends = () => <>
     {topBar()}
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>A SMALLER INTERNET, A CLOSER CIRCLE</Text><Text style={styles.pageTitle}>Friends, not profiles.</Text><Text style={styles.pageSub}>Meet kind people nearby, then connect only when you both say yes.</Text></View>
+    {/*
+      Choosing whose people are shown.
+
+      The section could only show Trufrenz's own suggestions. A member's real
+      circle is also in their phone, so the picker at the top switches between
+      the two instead of making them believe the app is empty of anyone they
+      know. The device scan still only ever runs when they ask for it.
+    */}
+    <View style={styles.peopleSourceRow}>
+      {([
+        { id: "suggested" as const, label: "Suggested", icon: "auto-awesome" },
+        { id: "contacts" as const, label: "My contacts", icon: "contacts" },
+      ]).map((source) => {
+        const active = peopleSource === source.id;
+        return (
+          <Pressable
+            key={source.id}
+            onPress={() => { setPeopleSource(source.id); if (source.id === "contacts") openContactLookup(); else setContactLookupOpen(false); tap(); }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={source.id === "contacts" ? "Select your people from your phone's contacts" : "Show suggested people nearby"}
+            style={({ pressed }) => [styles.peopleSourceChip, active && styles.peopleSourceChipActive, pressed && styles.pressed]}
+          >
+            <Icon name={source.icon as keyof typeof MaterialIcons.glyphMap} size={14} color={active ? "#4A4210" : "#83721f"} />
+            <Text style={[styles.peopleSourceText, active && styles.peopleSourceTextActive]}>{source.label}</Text>
+          </Pressable>
+        );
+      })}
+      <Text style={styles.peopleSourceNote}>{peopleSource === "contacts" ? "Only numbers you tick are used." : "Members near your home area."}</Text>
+    </View>
+    {peopleSource === "contacts" ? renderContactLookup() : null}
     <View style={styles.friendsTools}><View style={styles.searchBar}><Icon name="search" size={17} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name or interest" placeholderTextColor="#a4a39f" style={styles.searchInput} /><Icon name="tune" size={17} color="#83721f" /></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestFilterRow}>{["Nearby", "Verified", "Coffee", "Books", "Hiking"].map((tag) => <Pressable key={tag} onPress={() => toggleInterest(tag)} style={[styles.filterChip, interestFilter.includes(tag) && styles.filterChipActive]}><Text style={[styles.filterChipText, interestFilter.includes(tag) && styles.filterChipTextActive]}>{tag}</Text></Pressable>)}</ScrollView></View>
       <View style={[styles.friendsScroll, styles.friendsContent]}>
-      <View style={styles.contactPanel}>
-        <View style={styles.contactHeader}>
-          <View style={styles.contactIcon}><Icon name="contacts" size={18} color="#7393A9" /></View>
-          <View style={styles.contactHeaderCopy}>
-            <Text style={styles.contactTitle}>People you know</Text>
-            <Text style={styles.contactSub}>Check locally hashed numbers against members who opted in. Names and raw numbers stay on this device.</Text>
-          </View>
-        </View>
-        <Pressable accessibilityRole="button" onPress={() => void discoverDeviceContacts()} disabled={contactsLoading} style={({ pressed }) => [styles.contactScanButton, pressed && styles.pressed, contactsLoading && styles.contactBusy]}>
-          {contactsLoading ? <ActivityIndicator size="small" color="#527084" /> : <Icon name="manage-search" size={16} color="#527084" />}
-          <Text style={styles.contactScanText}>{contactsLoading ? "Checking contacts…" : deviceContacts.length ? "Refresh contact matches" : "Check my contacts"}</Text>
-          {!contactsLoading ? <Icon name="arrow-forward" size={14} color="#527084" /> : null}
-        </Pressable>
-        {deviceContacts.length > 0 ? <>
-          <View style={styles.contactListHeading}>
-            <View style={styles.contactHeaderCopy}>
-              <Text style={styles.contactListTitle}>{Object.keys(contactMatches).length} opted-in Trufrenz {Object.keys(contactMatches).length === 1 ? "member" : "members"} found</Text>
-              <Text style={styles.contactListSub}>{selectedDeviceContacts.length} selected for individual invite drafts</Text>
-            </View>
-            <Pressable accessibilityRole="button" onPress={() => { setSelectedContactPhones(selectedContactPhones.length === deviceContacts.length ? [] : deviceContacts.map((contact) => contact.phoneE164)); setInviteCursor(0); }} style={styles.contactSelectAll}>
-              <Text style={styles.contactSelectAllText}>{selectedContactPhones.length === deviceContacts.length ? "Clear" : "Select all"}</Text>
-            </Pressable>
-          </View>
-          <View style={styles.contactSearch}>
-            <Icon name="search" size={15} color="#8b9396" />
-            <TextInput value={contactSearch} onChangeText={setContactSearch} placeholder="Find a contact on this device" placeholderTextColor="#979da0" style={styles.contactSearchInput} />
-          </View>
-          {contactScanWasLimited ? <Text style={styles.contactLimitNote}>Showing the first 500 usable numbers. Refresh later to check after editing your contacts.</Text> : null}
-          {deviceContacts.filter((contact) => contact.name.toLowerCase().includes(contactSearch.trim().toLowerCase())).slice(0, 30).map((contact) => {
-            const match = contactMatches[contact.phoneE164];
-            const selected = selectedContactPhones.includes(contact.phoneE164);
-            return <Pressable key={contact.phoneE164} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`${contact.name}${match ? ` is on Trufrenz as ${match.name}` : ""}`} onPress={() => toggleContactSelection(contact.phoneE164)} style={({ pressed }) => [styles.contactRow, selected && styles.contactRowSelected, pressed && styles.pressed]}>
-              <View style={[styles.contactSelectMark, selected && styles.contactSelectMarkOn]}><Icon name={selected ? "check" : "person-outline"} size={14} color={selected ? "#4A4210" : "#7890A0"} /></View>
-              <View style={styles.contactHeaderCopy}>
-                <Text style={styles.contactName} numberOfLines={1}>{contact.name}</Text>
-                <Text style={styles.contactMatchLabel} numberOfLines={1}>{match ? `On Trufrenz as ${match.name} · ${match.verificationTier === "id_selfie" ? "ID + selfie verified" : match.verificationTier === "phone" ? "Phone verified" : "Account found"}` : "Not found among members who opted in"}</Text>
-              </View>
-              {match ? <Icon name="verified-user" size={15} color="#62A087" /> : null}
-            </Pressable>;
-          })}
-          <Pressable accessibilityRole="button" onPress={() => void inviteNextSelectedContact()} disabled={!selectedDeviceContacts.length || contactInviteLoading || inviteCursor >= selectedDeviceContacts.length} style={({ pressed }) => [styles.contactInviteButton, pressed && styles.pressed, (!selectedDeviceContacts.length || contactInviteLoading || inviteCursor >= selectedDeviceContacts.length) && styles.contactInviteDisabled]}>
+      {/*
+        The invitation sender.
+
+        It appears once at least one contact has been chosen, from either the
+        picker above or the chat search box, and it stays the single place that
+        composes an invitation: one draft at a time, addressed to one person, so
+        no member's number is ever shared with another.
+      */}
+      {selectedDeviceContacts.length ? (
+        <View style={styles.contactInviteBar}>
+          <Pressable accessibilityRole="button" accessibilityLabel={inviteButtonLabel(selectedDeviceContacts, contactInviteLoading, inviteCursor)} onPress={() => void inviteNextSelectedContact()} disabled={contactInviteLoading || inviteCursor >= selectedDeviceContacts.length} style={({ pressed }) => [styles.contactInviteButton, pressed && styles.pressed, (contactInviteLoading || inviteCursor >= selectedDeviceContacts.length) && styles.contactInviteDisabled]}>
             {contactInviteLoading ? <ActivityIndicator size="small" color="#4A4210" /> : <Icon name="sms" size={16} color="#4A4210" />}
-            <Text style={styles.contactInviteText}>{contactInviteLoading ? "Opening text…" : inviteCursor >= selectedDeviceContacts.length && selectedDeviceContacts.length ? "Invite drafts opened for selection" : `Prepare next text invite${selectedDeviceContacts.length ? ` · ${Math.min(inviteCursor + 1, selectedDeviceContacts.length)} of ${selectedDeviceContacts.length}` : ""}`}</Text>
+            <Text style={styles.contactInviteText}>{inviteButtonLabel(selectedDeviceContacts, contactInviteLoading, inviteCursor)}</Text>
             {!contactInviteLoading ? <Icon name="arrow-forward" size={14} color="#4A4210" /> : null}
           </Pressable>
           <Text style={styles.contactInviteNote}>Each draft is addressed to one person to protect everyone&apos;s number. Trufrenz never sends texts automatically; review and send in your messaging app. Invite link: {process.env.EXPO_PUBLIC_INVITE_URL?.trim() || "https://trufrenz.net"}</Text>
-        </> : null}
-      </View>
+        </View>
+      ) : null}
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
       {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#7393A9" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>Request sent · waiting quietly</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
       <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#83721f" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
@@ -3424,22 +3694,300 @@ export default function TrufrenzApp() {
     <Text style={styles.footerNote}>Your space. Your pace. Always friends first.</Text>
   </>;
 
-  /* The tab bar's weight follows whichever tab is showing. */
+  /**
+   * One group row.
+   *
+   * The row carries its state, its size and what it will do when tapped, so a
+   * member can tell an active circle from a closed one without opening it. The
+   * state control sits on the row rather than behind the conversation's
+   * overflow menu because closing a group is a decision about the group, not
+   * about the last message in it.
+   */
+  const groupRow = (entry: GroupEntry) => {
+    const lifecycle = groupLifecycleFor(groupLifecycles, entry.id);
+    const acceptsMessages = groupAcceptsMessages(lifecycle);
+    return (
+      <Frosted key={entry.id} style={styles.groupRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${entry.name} group chat`}
+          onPress={() => startThread(entry.id)}
+          style={({ pressed }) => [styles.groupRowMain, pressed && styles.pressed]}
+        >
+          <View style={[styles.groupAvatar, lifecycle === "closed" && styles.groupAvatarClosed]}>
+            <Icon name="groups" size={20} color={acceptsMessages ? "#83721f" : "#8d9aa4"} />
+          </View>
+          <View style={styles.groupRowCopy}>
+            <View style={styles.groupNameRow}>
+              <Text style={styles.groupName} numberOfLines={1}>{entry.name}</Text>
+              <Text style={[styles.groupStateChip, !acceptsMessages && styles.groupStateChipClosed]}>
+                {groupLifecycleLabel(lifecycle)}
+              </Text>
+            </View>
+            <Text style={styles.groupMeta} numberOfLines={1}>{groupMemberSummary(entry.memberCount)}</Text>
+            <Text style={styles.groupActivity} numberOfLines={1}>{entry.lastActivity}</Text>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={acceptsMessages ? `Close ${entry.name}` : `Reopen ${entry.name}`}
+          onPress={() => toggleGroupOpenness(entry)}
+          style={({ pressed }) => [styles.groupStateButton, pressed && styles.pressed]}
+        >
+          <Icon name={acceptsMessages ? "pause-circle-outline" : "play-circle-outline"} size={17} color="#6b6962" />
+        </Pressable>
+      </Frosted>
+    );
+  };
+
+  const renderGroups = () => (
+    <>
+      {topBar()}
+      <View style={styles.pageIntro}>
+        <Text style={styles.pageEyebrow}>CIRCLES YOU BELONG TO</Text>
+        <Text style={styles.pageTitle}>Your groups.</Text>
+        <Text style={styles.pageSub}>{groupSummary}</Text>
+      </View>
+
+      <View style={styles.groupToolRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create a private group"
+          onPress={() => setComposerOpen(true)}
+          style={({ pressed }) => [styles.groupCreateCta, pressed && styles.pressed]}
+        >
+          <Icon name="group-add" size={16} color="#4A4210" />
+          <Text style={styles.groupCreateCtaText}>New group</Text>
+        </Pressable>
+        <Text style={styles.groupCreateNote}>Invite-only, from friends you have already accepted.</Text>
+      </View>
+
+      <View style={styles.sectionHeaderLine}>
+        <View>
+          <Text style={styles.sectionEyebrow}>ACTIVE</Text>
+          <Text style={styles.sectionTitle}>
+            {groupLists.active.length === 1 ? "1 group is live" : `${groupLists.active.length} groups are live`}
+          </Text>
+        </View>
+        <Icon name="bolt" size={19} color="#83721f" />
+      </View>
+      <View style={styles.groupList}>
+        {groupLists.active.map(groupRow)}
+        {groupLists.active.length === 0 ? (
+          <Frosted style={styles.groupEmptyCard}>
+            <View style={styles.emptyIcon}><Icon name="groups" size={21} color="#83721f" /></View>
+            <Text style={styles.emptyTitle}>No active groups</Text>
+            <Text style={styles.emptyCopy}>Start a circle with accepted friends, then plan together in one place.</Text>
+          </Frosted>
+        ) : null}
+      </View>
+
+      {groupLists.closed.length ? (
+        <>
+          <View style={styles.sectionHeaderLine}>
+            <View>
+              <Text style={styles.sectionEyebrow}>CLOSED</Text>
+              <Text style={styles.sectionTitle}>
+                {groupLists.closed.length === 1 ? "1 paused group" : `${groupLists.closed.length} paused groups`}
+              </Text>
+            </View>
+            <Icon name="history" size={19} color="#8d9aa4" />
+          </View>
+          <Text style={styles.groupClosedNote}>{groupLifecycleNote("closed")}</Text>
+          <View style={styles.groupList}>{groupLists.closed.map(groupRow)}</View>
+        </>
+      ) : null}
+    </>
+  );
+
+  /**
+   * Bizz — the business section, opened as a shell.
+   *
+   * It is on the bar now so the shape of the app is settled and the section can
+   * be built into it without moving navigation again. Until then it says what
+   * it is going to be rather than showing a screen of empty boxes: a member
+   * should never be invited to tap something that does nothing.
+   */
+  const renderBizz = () => (
+    <>
+      {topBar()}
+      <View style={styles.pageIntro}>
+        <Text style={styles.pageEyebrow}>TRUFRENZ BIZZ</Text>
+        <Text style={styles.pageTitle}>Friends first. Business next.</Text>
+        <Text style={styles.pageSub}>The section is built and waiting. Its tools arrive in a later update.</Text>
+      </View>
+      <Frosted style={styles.bizzHero}>
+        <View style={styles.bizzHeroArt}>
+          <View style={styles.artBubblePink} />
+          <View style={styles.artBubbleBlue} />
+          <View style={styles.artCenter}><Icon name="storefront" size={22} color="#83721f" /></View>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.bizzHeroTitle}>A calm place for the things you make or do.</Text>
+          <Text style={styles.bizzHeroCopy}>
+            Placed beside your friends rather than in front of them, so a member&apos;s circle never turns into a shop.
+          </Text>
+        </View>
+      </Frosted>
+      <Text style={styles.settingsLabel}>WHAT IS COMING</Text>
+      <Frosted style={styles.bizzList}>
+        {[
+          { icon: "storefront", title: "A listing for your work", sub: "Small shops, studios, and services run by the people already in your circle." },
+          { icon: "event-available", title: "Plans you can host", sub: "Classes, open houses and workshops, offered to nearby members who opt in." },
+          { icon: "handshake", title: "Working together", sub: "Find a collaborator the same way you find a friend: slowly, and with a yes." },
+        ].map((item, index) => (
+          <View key={item.title}>
+            {index > 0 ? <View style={styles.settingDivider} /> : null}
+            <View style={styles.bizzRow}>
+              <View style={styles.settingIconPink}><Icon name={item.icon as keyof typeof MaterialIcons.glyphMap} size={17} color="#83721f" /></View>
+              <View style={styles.settingContent}>
+                <Text style={styles.bizzRowTitle}>{item.title}</Text>
+                <Text style={styles.bizzRowSub}>{item.sub}</Text>
+              </View>
+              <View style={styles.bizzSoon}><Text style={styles.bizzSoonText}>Soon</Text></View>
+            </View>
+          </View>
+        ))}
+      </Frosted>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Tell us what you would use Bizz for"
+        onPress={() => { tap(); feedback("Noted. Tell us what you would use Bizz for and it will shape what we build first."); }}
+        style={({ pressed }) => [styles.bizzAskRow, pressed && styles.pressed]}
+      >
+        <Icon name="forum" size={16} color="#83721f" />
+        <Text style={styles.bizzAskText}>Tell us what you would use it for</Text>
+        <Icon name="arrow-forward" size={15} color="#83721f" />
+      </Pressable>
+      <View style={styles.safeNote}>
+        <Icon name="lock-outline" size={13} color="#8e8c84" />
+        <Text style={styles.safeNoteText}>Nothing here changes your friendships, your privacy, or who can reach you.</Text>
+      </View>
+    </>
+  );
+
+  /*
+   * The bar's weight follows whichever section is showing.
+   *
+   * It is read from the section model rather than a chain of conditionals, so
+   * the bar and the accent can never disagree about what the sections are.
+   */
   const tabAccent: TabAccent | null =
-    selectedChat !== null
-      ? null
-      : tab === "Chats"
-        ? "chats"
-        : tab === "Friends"
-          ? "friends"
-          : tab === "Meetups"
-            ? "meetups"
-            : "you";
+    selectedChat !== null ? null : sectionDefinition(tab as AppSection).accent;
+
+  /**
+   * The contact lookup, rendered wherever the member opened it.
+   *
+   * One renderer for both places it appears — under the chat search box and at
+   * the top of the Friends section — so the two cannot drift apart, and so
+   * there is only one invitation path to keep correct. Selections are handed to
+   * the Friends section's own sender rather than a second one being written
+   * here.
+   */
+  const renderContactLookup = () =>
+    !contactLookupOpen ? null : (
+      <View style={styles.contactLookupPanel}>
+        <View style={styles.contactLookupHeader}>
+          <View style={styles.contactIcon}><Icon name="contacts" size={17} color="#7393A9" /></View>
+          <View style={styles.contactHeaderCopy}>
+            <Text style={styles.contactLookupTitle}>Your phone&apos;s contacts</Text>
+            <Text style={styles.contactLookupSub}>Check locally hashed numbers, then invite the ones who are not here yet.</Text>
+          </View>
+          <Pressable onPress={() => { setContactLookupOpen(false); setContactLookupQuery(""); }} accessibilityRole="button" accessibilityLabel="Close contact search" style={styles.roundAction}><Icon name="close" size={17} color="#6b6962" /></Pressable>
+        </View>
+        <View style={styles.contactLookupInput}>
+          <Icon name="search" size={15} color="#8b9396" />
+          <TextInput value={contactLookupQuery} onChangeText={setContactLookupQuery} placeholder="Find a contact by name" placeholderTextColor="#979da0" style={styles.contactLookupField} returnKeyType="search" />
+          {contactLookupQuery ? <Pressable onPress={() => setContactLookupQuery("")} accessibilityRole="button" accessibilityLabel="Clear the contact search"><Icon name="close" size={14} color="#8b9396" /></Pressable> : null}
+        </View>
+        {contactLookupResults.length === 0 ? (
+          <View style={styles.contactLookupEmpty}>
+            <Text style={styles.contactLookupEmptyTitle}>{contactLookupCopy.title}</Text>
+            <Text style={styles.contactLookupEmptyBody}>{contactLookupCopy.body}</Text>
+            {!deviceContacts.length && !contactsLoading ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Check my contacts" onPress={() => void discoverDeviceContacts()} style={({ pressed }) => [styles.contactScanButton, pressed && styles.pressed]}>
+                <Icon name="manage-search" size={15} color="#527084" />
+                <Text style={styles.contactScanText}>Check my contacts</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+        {contactLookupGroups.map((groupBlock) => (
+          <View key={groupBlock.id}>
+            <Text style={styles.contactGroupTitle}>{groupBlock.title.toUpperCase()}</Text>
+            <Text style={styles.contactGroupNote}>{groupBlock.note}</Text>
+            {groupBlock.rows.map((contact) => {
+              const selected = contactLookupSelection.includes(contact.phoneE164);
+              return (
+                <Pressable
+                  key={contact.phoneE164}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={`${contact.name}. ${contactRowNote(contact)}`}
+                  onPress={() => toggleContactLookupSelection(contact.phoneE164)}
+                  style={({ pressed }) => [styles.contactRow, selected && styles.contactRowSelected, pressed && styles.pressed]}
+                >
+                  <View style={[styles.contactSelectMark, selected && styles.contactSelectMarkOn]}>
+                    <Icon name={selected ? "check" : "person-outline"} size={14} color={selected ? "#4A4210" : "#7890A0"} />
+                  </View>
+                  <View style={styles.contactHeaderCopy}>
+                    <Text style={styles.contactName} numberOfLines={1}>{contact.name}</Text>
+                    <Text style={styles.contactMatchLabel} numberOfLines={1}>{contactRowNote(contact)}</Text>
+                  </View>
+                  {contact.matchName ? <Icon name="verified-user" size={15} color="#62A087" /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+        {contactLookupGroups.length ? (
+          <>
+            {/*
+              The invite button hands the selection to the Friends section
+              rather than sending from here, so the one place that composes and
+              addresses an invitation stays the one place.
+            */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={contactLookupSelection.length ? `Invite ${contactLookupSelection.length} selected contacts` : "Select contacts to invite"}
+              onPress={() => {
+                setSelectedContactPhones(contactLookupSelection);
+                setInviteCursor(0);
+                setContactLookupOpen(false);
+                setContactLookupQuery("");
+                setTab("Friends");
+                tap();
+                feedback(contactLookupSelection.length ? `${contactLookupSelection.length} selected. Prepare their invites below.` : "Select at least one contact to invite.");
+              }}
+              disabled={!contactLookupSelection.length}
+              style={({ pressed }) => [styles.contactInviteButton, pressed && styles.pressed, !contactLookupSelection.length && styles.contactInviteDisabled]}
+            >
+              <Icon name={contactLookupSelection.length ? "sms" : "person-add-alt-1"} size={16} color="#4A4210" />
+              <Text style={styles.contactInviteText}>{contactLookupSelection.length ? `Invite ${contactLookupSelection.length} selected` : "Select contacts to invite"}</Text>
+              {contactLookupSelection.length ? <Icon name="arrow-forward" size={14} color="#4A4210" /> : null}
+            </Pressable>
+            <Text style={styles.contactInviteNote}>Numbers are hashed on this device before anything is compared. Names and raw numbers are never uploaded, stored, or logged.</Text>
+            {/*
+              The scan reads the first 500 usable numbers, which is a real limit
+              rather than a detail: a member with a larger address book would
+              otherwise conclude that a contact simply is not here.
+            */}
+            {contactScanWasLimited ? (
+              <Text style={styles.contactInviteNote}>
+                Showing the first 500 usable numbers. Refresh after editing your contacts to check the rest.
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+      </View>
+    );
 
   const renderContent = () => {
     if (tab === "Chats") return renderChats();
+    if (tab === "Groups") return renderGroups();
     if (tab === "Friends") return renderFriends();
     if (tab === "Meetups") return renderMeetups();
+    if (tab === "Bizz") return renderBizz();
     return renderYou();
   };
 
@@ -3565,9 +4113,15 @@ export default function TrufrenzApp() {
           </Pressable>
         </View>
       )}
-      {/* The bar carries a slightly different weight per tab, because the content
-          behind it ranges from dense chat rows to open wallpaper. */}
-      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const active = tab === item && !selectedChat; const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; return <Pressable key={item} onPress={() => { setTab(item); if (item !== "Chats") setSelectedChat(null); tap(); }} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={iconName[item]} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{item}</Text></Pressable>; })}</View>}
+      {/*
+        The bar.
+
+        Four sections, rendered from BOTTOM_SECTIONS so the labels, icons and
+        the accent the glass weight uses all come from one list. The weight
+        differs a little per section, because the content behind the bar ranges
+        from dense chat rows to an almost empty screen.
+      */}
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat; return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? "#83721f" : "#999892"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{section.label}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
@@ -3575,7 +4129,12 @@ export default function TrufrenzApp() {
               <ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}>
               <View style={styles.actionMenuHandle} />
               <View style={styles.navigationMenuHeader}><View><Text style={styles.actionMenuEyebrow}>MOVE AROUND</Text><Text style={styles.navigationMenuTitle}>Where would you like to go?</Text></View><Pressable onPress={() => setNavigationMenuOpen(false)} accessibilityLabel="Close navigation options" style={styles.roundAction}><Icon name="close" size={18} color="#726e59" /></Pressable></View>
-              <View style={styles.navigationMenuGrid}>{(["Chats", "Friends", "Meetups", "You"] as Tab[]).map((item) => { const iconName: Record<Tab, keyof typeof MaterialIcons.glyphMap> = { Chats: "forum", Friends: "diversity-3", Meetups: "event-available", You: "person-outline" }; const active = tab === item && !selectedChat; return <Pressable key={item} onPress={() => navigateFromMenu(item)} accessibilityRole="button" accessibilityLabel={`Go to ${item}`} style={({ pressed }) => [styles.navigationMenuItem, { width: modalLayout.compact ? "100%" : "48%", minHeight: modalLayout.compact ? 50 : 58 }, active && styles.navigationMenuItemActive, pressed && styles.pressed]}><View style={[styles.navigationMenuIcon, active && styles.navigationMenuIconActive]}><Icon name={iconName[item]} size={20} color={active ? "#FFFFFF" : "#83721f"} /></View><Text style={[styles.navigationMenuItemText, active && styles.navigationMenuItemTextActive]}>{item === "Chats" ? "Conversations" : item === "You" ? "Profile" : item}</Text></Pressable>; })}</View>
+              {/*
+                Everything reachable, including the two that left the bar.
+                Meetups and the profile still have to be somewhere, and this is
+                the one place that lists the whole app.
+              */}
+              <View style={styles.navigationMenuGrid}>{MENU_DESTINATIONS.map((destination) => { const active = tab === destination.id && !selectedChat; return <Pressable key={destination.id} onPress={() => navigateFromMenu(destination.id)} accessibilityRole="button" accessibilityLabel={`Go to ${destination.label}`} style={({ pressed }) => [styles.navigationMenuItem, { width: modalLayout.compact ? "100%" : "48%", minHeight: modalLayout.compact ? 50 : 58 }, active && styles.navigationMenuItemActive, pressed && styles.pressed]}><View style={[styles.navigationMenuIcon, active && styles.navigationMenuIconActive]}><Icon name={destination.icon as keyof typeof MaterialIcons.glyphMap} size={20} color={active ? "#FFFFFF" : "#83721f"} /></View><Text style={[styles.navigationMenuItemText, active && styles.navigationMenuItemTextActive]}>{destination.label}</Text></Pressable>; })}</View>
               <Text style={styles.navigationMenuHint}>Your phone’s Back button also closes sheets, returns from a chat, and takes you back to Conversations.</Text>
               </ScrollView>
             </Pressable>
@@ -3738,7 +4297,13 @@ const styles = StyleSheet.create({
   ambientBlue: { position: "absolute", top: 390, left: -180, height: 320, width: 320, borderRadius: 170, backgroundColor: "rgba(208, 231, 246, 0.17)" },
   ambientLilac: { position: "absolute", top: 640, right: -180, height: 270, width: 270, borderRadius: 140, backgroundColor: "rgba(237, 225, 168, 0.12)" },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 19, paddingTop: 8, paddingBottom: 18, flexGrow: 1 },
+  /*
+   * One place owns the page's padding, and the nested list that the chat
+   * section uses no longer adds a bottom inset of its own. Both used to, so a
+   * short inbox ended with roughly thirty points of empty wallpaper above the
+   * bar — the band a member asked to have used for something.
+   */
+  content: { paddingHorizontal: 19, paddingTop: 6, paddingBottom: 14, flexGrow: 1 },
   topBar: { minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
   /*
    * `flex: 1, minWidth: 0` is load-bearing. Without it the block claims its
@@ -3749,6 +4314,15 @@ const styles = StyleSheet.create({
   brandMark: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 9 },
   brandIcon: { width: 31, height: 31, borderRadius: 12, backgroundColor: "#F1DE55", alignItems: "center", justifyContent: "center" },
   brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#4e4a3b" },
+  /*
+   * The greeting shares the app name's line.
+   *
+   * It is deliberately quieter than the name and truncates rather than wraps,
+   * so a long first name never pushes the notification and profile controls off
+   * the right edge — the same overflow that once hid the call buttons.
+   */
+  brandNameRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 5 },
+  brandGreeting: { flexShrink: 1, color: "#8d8b86", fontSize: 11, fontWeight: "500", letterSpacing: 0.1 },
   topBarSub: { marginTop: 2, color: "#8d8b86", fontSize: 9 },
   backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   backButtonText: { color: "#6b664c", fontSize: 9, fontWeight: "700" },
@@ -3767,10 +4341,18 @@ const styles = StyleSheet.create({
   notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#E9D177", borderWidth: 1, borderColor: "#FFFFFF" },
   userAvatar: { height: 35, width: 35, borderRadius: 14, backgroundColor: "#eee9cc", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FFFFFF" },
   userInitial: { color: "#7c7349", fontSize: 15, fontWeight: "700" },
-  greeting: { color: "#94928a", fontSize: 11, fontWeight: "500", letterSpacing: 0.2 },
-  chatHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 11, marginBottom: 15 },
-  chatTitle: { color: "#3e3b2d", fontSize: 24, fontWeight: "700", letterSpacing: -0.75, marginTop: 3 },
-  composeButton: { width: 39, height: 39, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), shadowColor: "#83721f", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  /*
+   * The section heading sits under the app name with only the gap the top bar's
+   * own margin leaves, so the list begins as high as it can without touching
+   * the header. It is a step smaller than the page titles inside the other
+   * sections because it is a section label, not a headline.
+   */
+  chatHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4, marginBottom: 9 },
+  chatTitle: { color: "#3e3b2d", fontSize: 19, fontWeight: "700", letterSpacing: -0.5 },
+  composeButton: { width: 36, height: 36, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), shadowColor: "#83721f", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  /** The control beside the search field that opens the device's contacts. */
+  searchFilterButton: { width: 30, height: 30, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
+  searchFilterButtonActive: { backgroundColor: glassNestedFill("rgba(241, 234, 197, 0.72)"), borderColor: glassNestedFill("rgba(226, 213, 153, 0.9)") },
   frosted: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 19, shadowColor: "#89877e", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
   searchBar: { height: 42, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.73)") },
@@ -3797,7 +4379,12 @@ const styles = StyleSheet.create({
   addSmall: { position: "absolute", bottom: -1, right: -1, backgroundColor: "#F1DE55", width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: "#FAF8F7", alignItems: "center", justifyContent: "center" },
   listHeading: { height: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, borderBottomWidth: 1, borderBottomColor: "rgba(209, 206, 195, 0.42)" },
   chatListScroll: { flex: 1 },
-  chatList: { paddingBottom: 13 },
+  chatList: { paddingBottom: 0 },
+  /** The closing card that uses the space under a short inbox. */
+  quietInboxCard: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 12, backgroundColor: glassNestedFill("rgba(233, 241, 250, 0.46)"), borderWidth: 1, borderColor: glassNestedFill("rgba(213, 228, 240, 0.8)") },
+  quietInboxIcon: { width: 33, height: 33, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(220, 235, 246, 0.62)") },
+  quietInboxTitle: { color: "#4e6878", fontSize: 11.5, fontWeight: "700" },
+  quietInboxText: { color: "#838b8d", fontSize: 9, lineHeight: 13, marginTop: 2 },
   chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), borderRadius: 16, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), paddingHorizontal: 8, paddingVertical: 8, marginBottom: 6, shadowColor: "#7e7b73", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.055, shadowRadius: 9, elevation: 1 },
   rowPressed: { opacity: 0.78, transform: [{ scale: 0.995 }] },
   chatAvatarWrap: { position: "relative", width: 48, height: 48 },
@@ -3927,7 +4514,13 @@ const styles = StyleSheet.create({
   sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#e7e5de", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
   sendButtonNight: { backgroundColor: "rgba(8, 22, 39, 0.76)", borderColor: "rgba(255, 255, 255, 0.40)" },
   sendButtonActive: { backgroundColor: "#F1DE55" },
-  pageIntro: { marginTop: 17, marginBottom: 17 },
+  /*
+   * The section intro is a header, not a poster. Its spacing was set when it was
+   * the first thing on an otherwise empty screen; now that each section carries
+   * real content underneath, the margins were the difference between a page
+   * that reads as full and one with a gap under its own title.
+   */
+  pageIntro: { marginTop: 12, marginBottom: 12 },
   pageEyebrow: { color: "#83721f", fontSize: 8, fontWeight: "700", letterSpacing: 1.1, marginBottom: 7 },
   pageTitle: { color: "#43423d", fontSize: 23, lineHeight: 28, fontWeight: "700", letterSpacing: -0.65 },
   pageSub: { color: "#88857f", fontSize: 10, lineHeight: 16, marginTop: 5 },
@@ -3935,23 +4528,10 @@ const styles = StyleSheet.create({
   interestFilterRow: { gap: 6, paddingVertical: 1 },
   friendsScroll: { marginTop: 14 },
   friendsContent: { paddingBottom: 20 },
-  contactPanel: { padding: 11, borderRadius: 17, backgroundColor: glassNestedFill("rgba(233, 241, 250, 0.46)"), borderWidth: 1, borderColor: glassNestedFill("rgba(213, 228, 240, 0.8)"), marginBottom: 14, gap: 9 },
-  contactHeader: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
   contactIcon: { width: 31, height: 31, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(220, 235, 246, 0.62)") },
   contactHeaderCopy: { flex: 1, minWidth: 0 },
-  contactTitle: { color: "#4e4c47", fontSize: 12, fontWeight: "800" },
-  contactSub: { color: "#737d82", fontSize: 9, lineHeight: 13, marginTop: 3 },
   contactScanButton: { minHeight: 37, borderRadius: 12, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: glassNestedFill("rgba(225, 237, 246, 0.58)"), borderWidth: 1, borderColor: glassNestedFill("rgba(210, 227, 239, 0.76)") },
   contactScanText: { color: "#527084", fontSize: 10, fontWeight: "800" },
-  contactBusy: { opacity: 0.72 },
-  contactListHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
-  contactListTitle: { color: "#526d7d", fontSize: 10, fontWeight: "800" },
-  contactListSub: { color: "#838b8d", fontSize: 8, marginTop: 2 },
-  contactSelectAll: { minHeight: 28, paddingHorizontal: 8, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(224, 236, 246, 0.46)"), borderWidth: 1, borderColor: glassNestedFill("rgba(211, 226, 239, 0.75)") },
-  contactSelectAllText: { color: "#587487", fontSize: 9, fontWeight: "700" },
-  contactSearch: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 9, borderRadius: 11, backgroundColor: glassNestedFill("rgba(235, 243, 249, 0.48)"), borderWidth: 1, borderColor: glassNestedFill("rgba(214, 229, 239, 0.7)") },
-  contactSearchInput: { flex: 1, minWidth: 0, height: 32, color: "#4f4d48", fontSize: 10, outlineStyle: "none" as any },
-  contactLimitNote: { color: "#827351", fontSize: 8, lineHeight: 12 },
   contactRow: { minHeight: 46, paddingHorizontal: 7, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(210, 227, 239, 0.54)"), backgroundColor: glassNestedFill("rgba(231, 240, 247, 0.43)") },
   contactRowSelected: { borderColor: "rgba(209, 190, 77, 0.46)", backgroundColor: glassNestedFill("rgba(246, 238, 201, 0.55)") },
   contactSelectMark: { width: 25, height: 25, borderRadius: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(190, 212, 227, 0.85)"), alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(222, 235, 244, 0.48)") },
@@ -4160,6 +4740,83 @@ const styles = StyleSheet.create({
   settingDivider: { height: 1, backgroundColor: "rgba(219, 216, 204, 0.50)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#f3ecc5", alignItems: "center", justifyContent: "center" },
   footerNote: { color: "#9e9c97", fontSize: 8, textAlign: "center", marginTop: 15 },
+  /*
+   * Groups.
+   *
+   * The section shows both lists, so a closed circle stays findable and the
+   * difference between the two is carried by the row itself: a dimmed monogram
+   * and a state chip, rather than two differently shaped rows.
+   */
+  groupToolRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
+  groupCreateCta: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.62)") },
+  groupCreateCtaText: { color: "#4A4210", fontSize: 11.5, fontWeight: "700" },
+  groupCreateNote: { flex: 1, color: "#8e8b85", fontSize: 8.5, lineHeight: 12 },
+  groupList: { gap: 9 },
+  groupRow: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 17, paddingHorizontal: 10, paddingVertical: 10 },
+  groupRowMain: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10 },
+  groupAvatar: { width: 42, height: 42, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(246, 240, 209, 0.62)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
+  groupAvatarClosed: { backgroundColor: glassNestedFill("rgba(228, 233, 238, 0.5)") },
+  groupRowCopy: { flex: 1, minWidth: 0 },
+  groupNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  groupName: { flexShrink: 1, color: "#464336", fontSize: 12.5, fontWeight: "650" as any },
+  groupStateChip: { color: "#5c7f6c", fontSize: 7.5, fontWeight: "700", letterSpacing: 0.4, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: glassNestedFill("rgba(222, 240, 230, 0.72)"), overflow: "hidden" },
+  groupStateChipClosed: { color: "#77828b", backgroundColor: glassNestedFill("rgba(228, 233, 238, 0.72)") },
+  groupMeta: { color: "#7c7972", fontSize: 9.5, marginTop: 2 },
+  groupActivity: { color: "#95928c", fontSize: 8.5, marginTop: 2 },
+  groupStateButton: { width: 32, height: 32, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.4)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
+  groupClosedNote: { color: "#8e8b85", fontSize: 9, lineHeight: 14, marginBottom: 9 },
+  groupEmptyCard: { alignItems: "center", paddingVertical: 24, paddingHorizontal: 20, borderRadius: 17 },
+  /*
+   * Bizz.
+   *
+   * A shell that says what the section is for. The rows are deliberately marked
+   * "Soon" rather than being tappable, so nobody is invited to press something
+   * that cannot yet do anything.
+   */
+  bizzHero: { flexDirection: "row", alignItems: "center", gap: 11, padding: 11, borderRadius: 17, marginBottom: 16 },
+  bizzHeroArt: { width: 58, height: 48, borderRadius: 15, backgroundColor: glassNestedFill("rgba(233, 241, 250, 0.42)"), alignItems: "center", justifyContent: "center" },
+  bizzHeroTitle: { color: "#46433c", fontSize: 12.5, fontWeight: "700", lineHeight: 17 },
+  bizzHeroCopy: { color: "#8b887f", fontSize: 9.5, lineHeight: 14, marginTop: 3 },
+  bizzList: { paddingHorizontal: 11, borderRadius: 17 },
+  bizzRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 11 },
+  bizzRowTitle: { color: "#4d4a43", fontSize: 11.5, fontWeight: "650" as any },
+  bizzRowSub: { color: "#918e87", fontSize: 9, lineHeight: 13, marginTop: 2 },
+  bizzSoon: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: glassNestedFill("rgba(240, 234, 205, 0.66)") },
+  bizzSoonText: { color: "#7c7349", fontSize: 8, fontWeight: "700", letterSpacing: 0.3 },
+  bizzAskRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14, marginHorizontal: 2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.4)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
+  bizzAskText: { flex: 1, color: "#5c594f", fontSize: 10.5, fontWeight: "600" },
+  /*
+   * The contact lookup, opened from the search box.
+   *
+   * It sits under the search row rather than in a modal, because the search box
+   * is what it belongs to and a member should be able to move between the two
+   * without a sheet appearing over the list.
+   */
+  contactLookupPanel: { marginTop: 10, marginBottom: 12, borderRadius: 17, padding: 11, gap: 8 },
+  contactLookupHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  contactLookupTitle: { flex: 1, color: "#4a4740", fontSize: 12, fontWeight: "700" },
+  contactLookupSub: { color: "#918e87", fontSize: 8.5, lineHeight: 12, marginTop: 1 },
+  contactLookupInput: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 13, paddingHorizontal: 10, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.42)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
+  contactLookupField: { flex: 1, minWidth: 0, height: 36, color: "#4f4d48", fontSize: 10.5, outlineStyle: "none" as any },
+  contactGroupTitle: { color: "#6f6c65", fontSize: 8.5, fontWeight: "700", letterSpacing: 0.7, marginTop: 4 },
+  contactGroupNote: { color: "#95928c", fontSize: 8.5, marginBottom: 3 },
+  contactLookupEmpty: { alignItems: "center", paddingVertical: 14, gap: 4 },
+  contactLookupEmptyTitle: { color: "#514e47", fontSize: 11.5, fontWeight: "700" },
+  contactLookupEmptyBody: { color: "#8e8b85", fontSize: 9, lineHeight: 14, textAlign: "center" },
+  /** The sender that appears once contacts have been chosen. */
+  contactInviteBar: { marginBottom: 13, gap: 7 },
+  /*
+   * Which people are being shown.
+   *
+   * Two chips and a note, so choosing between the app's suggestions and the
+   * member's own address book is one tap and is never in doubt.
+   */
+  peopleSourceRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13 },
+  peopleSourceChip: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 7, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.4)") },
+  peopleSourceChipActive: { backgroundColor: glassNestedFill("rgba(241, 234, 197, 0.78)"), borderColor: glassNestedFill("rgba(226, 213, 153, 0.95)") },
+  peopleSourceText: { color: "#5d5a52", fontSize: 10, fontWeight: "650" as any },
+  peopleSourceTextActive: { color: "#4A4210" },
+  peopleSourceNote: { flex: 1, color: "#95928c", fontSize: 8, lineHeight: 11 },
   bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: glassNestedFill("rgba(255, 255, 255, 0.55)"), flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   tabButton: { width: "25%", minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
   tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"), backgroundColor: "rgba(255, 255, 255, 0.28)" },
