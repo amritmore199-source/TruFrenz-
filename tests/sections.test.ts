@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -100,5 +101,23 @@ describe("switching sections", () => {
     for (const section of ["Groups", "Hangouts", "Bizz", "Profile"] as const) {
       expect(shouldCloseThreadForSection(section)).toBe(true);
     }
+  });
+});
+describe("the bar's own layout arithmetic", () => {
+  /*
+   * The bar rendered four entries for a while after the fifth was added, and
+   * the reason was not the model — it was the button style, which was pinned at
+   * `width: "25%"` from when four sections existed. Five at 25% is 125% of the
+   * row, so the last section was laid out past the right edge and Profile was
+   * not on screen at all.
+   *
+   * The bar now gives each entry flex: 1, so the width follows the section count
+   * by construction. This reads the style table to keep it that way.
+   */
+  it("lets each entry take an equal share rather than a fixed percentage", () => {
+    const screen = readFileSync(new URL("../app/(tabs)/index.tsx", import.meta.url).pathname, "utf8");
+    const tabButton = screen.match(/\n  tabButton: \{([^}]*)\}/)?.[1] ?? "";
+    expect(tabButton).toContain("flex: 1");
+    expect(tabButton).not.toMatch(/width:\s*"/);
   });
 });

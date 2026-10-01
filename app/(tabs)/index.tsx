@@ -240,7 +240,7 @@ import {
   type SigninChannel,
   type StoreReceiptPayload,
 } from "@/lib/account-client";
-import { contactInviteMessage, normalizeDeviceContacts, type ContactMatch, type NormalizedDeviceContact } from "@/lib/contact-discovery";
+import { normalizeDeviceContacts, type ContactMatch, type NormalizedDeviceContact } from "@/lib/contact-discovery";
 import { resolveMobileBackAction } from "@/lib/mobile-navigation";
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
 import {
@@ -286,6 +286,8 @@ import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
   GLASS_TINT_LABEL,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
+import { INVITE_BASE_FALLBACK, buildInviteAppLink, buildInviteLink, inviteSmsText } from "@/lib/invite-link";
+import { describeRequestWait } from "@/lib/request-wait";
 import { GLASS_PRESETS, GLASS_SHADOW, glassAmbient, glassBlur, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatch, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
@@ -794,6 +796,16 @@ export default function TrufrenzApp() {
    */
   const [connectionSync, setConnectionSync] = useState<ConnectionSync>(EMPTY_CONNECTION_SYNC);
   /**
+   * When each outgoing request was sent, keyed by who it went to.
+   *
+   * "Requests you sent" listed names with no sense of how long they had been
+   * waiting, so a request sent this morning and one sent a fortnight ago looked
+   * identical and the member had no way to tell which needed chasing. The dates
+   * are recorded locally when the request goes out; the server stores its own
+   * createdAt, but the panel only has to answer "how long has this been open?".
+   */
+  const [requestSentAt, setRequestSentAt] = useState<Record<string, number>>({});
+  /**
    * The circles the member made, as the server has them.
    *
    * Kept beside the device's own list rather than replacing it, so the section
@@ -1203,6 +1215,14 @@ export default function TrufrenzApp() {
   const applyConnectionChange = useCallback((peerId: string, state: ConnectionState) => {
     setFriendships((current) => setConnectionState(current, peerId, state));
     setConnectionSync((current) => queueChange(current, peerId, state));
+    /*
+     * Stamped only when the request goes out, and only if it has not been
+     * stamped already — accepting, declining or re-sending must not rewrite the
+     * date the member's patience is being measured from.
+     */
+    if (state === "requested") {
+      setRequestSentAt((current) => (current[peerId] ? current : { ...current, [peerId]: Date.now() }));
+    }
   }, []);
 
   /**
@@ -1237,6 +1257,12 @@ export default function TrufrenzApp() {
   const withdrawSentRequest = useCallback((peerId: string) => {
     setFriendships((current) => withdrawRequest(current, peerId));
     setConnectionSync((current) => queueRemoval(current, peerId));
+    setRequestSentAt((current) => {
+      if (!current[peerId]) return current;
+      const next = { ...current };
+      delete next[peerId];
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -1896,8 +1922,20 @@ export default function TrufrenzApp() {
     }
     const nextIndex = inviteCursor;
     const contact = selected[nextIndex]!;
-    const baseUrl = process.env.EXPO_PUBLIC_INVITE_URL?.trim() || "https://trufrenz.net";
-    const inviteText = contactInviteMessage(baseUrl, myProfile.name || fullName || undefined);
+    /*
+     * The invite carries a code derived from this member's own account, so the
+     * friend who follows it can be traced back to whoever sent it — which is
+     * what the referral month in the pricing plan is built on. Both forms travel
+     * together: the web link for people who do not have the app, the scheme link
+     * for people who do.
+     */
+    const inviteSeed = remoteAccount?.id ?? fullName ?? "trufrenz";
+    const baseUrl = process.env.EXPO_PUBLIC_INVITE_URL?.trim() || INVITE_BASE_FALLBACK;
+    const inviteText = inviteSmsText({
+      link: buildInviteLink(baseUrl, inviteSeed),
+      fromName: myProfile.name || fullName || undefined,
+      appLink: buildInviteAppLink(Constants.expoConfig?.scheme ?? null, inviteSeed),
+    });
     setContactInviteLoading(true);
     try {
       const result = await SMS.sendSMSAsync(contact.phoneE164, inviteText);
@@ -4086,7 +4124,7 @@ export default function TrufrenzApp() {
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
 
       {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#83721f" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#8d8b86" /></Pressable></View></View>; })}</View> : null}
-      {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#7393A9" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>Request sent · waiting quietly</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
+      {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#7393A9" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>{describeRequestWait(requestSentAt[person.id]).text}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
       {/*
         The interest filter came across with the suggestions when the Friends
         section closed. It is what turns a list of nearby members into a list of
@@ -5000,7 +5038,7 @@ const styles = StyleSheet.create({
   filterChipText: { fontSize: 10, color: "#5F5D57", fontWeight: "500" },
   filterChipTextActive: { color: "#797353", fontWeight: "700" },
   circlesSection: { marginTop: 3, marginBottom: 12 },
-  sectionHeaderLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sectionHeaderLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 7 },
   sectionEyebrow: { color: "#5F5D57", fontSize: 8, fontWeight: "700", letterSpacing: 1.1 },
   sectionLink: { color: "#83721f", fontSize: 9, fontWeight: "600" },
   circlesRow: { alignItems: "flex-start", gap: 17, paddingTop: 10, paddingBottom: 3 },
@@ -5239,7 +5277,7 @@ const styles = StyleSheet.create({
   acceptButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: "#8FB5A2", alignItems: "center", justifyContent: "center" },
   declineButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: glassNestedFill("#f1f0ec"), alignItems: "center", justifyContent: "center" },
   suggestHeading: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 10 },
-  sectionTitle: { color: "#4a4842", fontSize: 17, fontWeight: "700", letterSpacing: -0.3, marginTop: 4 },
+  sectionTitle: { color: "#4a4842", fontSize: 16, fontWeight: "700", letterSpacing: -0.3, marginTop: 3 },
   sortChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5, backgroundColor: "#f3edd2" },
   sortChipText: { fontSize: 7, color: "#83721f", fontWeight: "600" },
   friendConnectionList: { gap: 7 },
@@ -5366,7 +5404,7 @@ const styles = StyleSheet.create({
   guestLoginText: { color: "#83721f", fontSize: 12, fontWeight: "700" },
   phoneRequired: { flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", marginTop: 10 },
   phoneRequiredText: { color: "#8493A0", fontSize: 7 },
-  settingsLabel: { color: "#5F5D57", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 19, marginBottom: 8 },
+  settingsLabel: { color: "#5F5D57", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 11, marginBottom: 6 },
   settingsPanel: { paddingHorizontal: 11, borderRadius: 17 },
   appearancePanel: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 17 },
   appearanceHeadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 9 },
@@ -5425,7 +5463,7 @@ const styles = StyleSheet.create({
    * difference between the two is carried by the row itself: a dimmed monogram
    * and a state chip, rather than two differently shaped rows.
    */
-  groupToolRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 },
+  groupToolRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 },
   groupCreateCta: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.62)") },
   groupCreateCtaText: { color: "#4A4210", fontSize: 11.5, fontWeight: "700" },
   groupCreateNote: { flex: 1, color: "#5F5D57", fontSize: 8.5, lineHeight: 12 },
@@ -5468,7 +5506,7 @@ const styles = StyleSheet.create({
    * "Soon" rather than being tappable, so nobody is invited to press something
    * that cannot yet do anything.
    */
-  bizzHero: { flexDirection: "row", alignItems: "center", gap: 11, padding: 11, borderRadius: 17, marginBottom: 16 },
+  bizzHero: { flexDirection: "row", alignItems: "center", gap: 11, padding: 11, borderRadius: 17, marginBottom: 11 },
   bizzHeroArt: { width: 58, height: 48, borderRadius: 15, backgroundColor: glassNestedFill("rgba(233, 241, 250, 0.42)"), alignItems: "center", justifyContent: "center" },
   bizzHeroTitle: { color: "#46433c", fontSize: 12.5, fontWeight: "700", lineHeight: 17 },
   bizzHeroCopy: { color: "#8b887f", fontSize: 9.5, lineHeight: 14, marginTop: 3 },
@@ -5517,8 +5555,15 @@ const styles = StyleSheet.create({
    * double rim as a card: a bright top edge, then a hairline just inside it.
    */
   barInnerRim: { position: "absolute", left: 10, right: 10, top: 4, height: 0, borderTopWidth: 1, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.88)", flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
-  tabButton: { width: "25%", minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.88)", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
+  /*
+   * Each entry takes an equal share of the bar rather than a fixed percentage.
+   * This was `width: "25%"` from when the bar had four entries; five at 25% is
+   * 125% of the row, so the last section — Profile — was laid out past the right
+   * edge and simply was not on screen. flex: 1 also means the bar cannot break
+   * the same way again if the number of sections ever changes.
+   */
+  tabButton: { flex: 1, minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
   /*
    * A tab pill: real glass rather than a grey lozenge with a border.
    *
@@ -5541,7 +5586,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  tabLabel: { color: "#969590", fontSize: 8, fontWeight: "500" },
+  tabLabel: { color: "#969590", fontSize: 8.5, fontWeight: "500" },
   tabLabelActive: { color: "#83721f", fontWeight: "700" },
   toast: { position: "absolute", top: "50%", marginTop: -34, left: 21, right: 21, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#F1DE55", flexDirection: "row", alignItems: "center", gap: 7, shadowColor: "#544d2f", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
   fieldError: { color: "#83721f", fontSize: 8.5, lineHeight: 13, marginTop: -6, marginBottom: 10 },
