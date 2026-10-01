@@ -282,7 +282,7 @@ import {
   type ChatSearchGroup,
   type ChatSearchRow,
 } from "@/lib/chat-search";
-import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
+import { DEFAULT_APPEARANCE_PREFERENCES, DEFAULT_GLASS_OPACITY, DEFAULT_GLASS_TINT, GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
   GLASS_TINT_LABEL,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
@@ -304,7 +304,7 @@ import {
   type BizzOffer,
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
-import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -590,6 +590,15 @@ function ActionButton({ children, onPress, style, secondary = false, disabled = 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity, glassTint: glassTintChoice, wallpaperVisible, setGlassOpacity, setGlassTint, setWallpaperVisible } = useAppAppearance();
+  /*
+   * Whether the member has moved anything off the shipped appearance. Compared
+   * against the same defaults the preference store falls back to, so the reset
+   * control and the persisted state cannot disagree about what "default" means.
+   */
+  const appearanceIsDefault =
+    glassOpacity === DEFAULT_GLASS_OPACITY &&
+    glassTintChoice === DEFAULT_GLASS_TINT &&
+    wallpaperVisible === DEFAULT_APPEARANCE_PREFERENCES.wallpaperVisible;
   /*
    * The style table, rebuilt whenever the glass setting changes.
    *
@@ -4612,6 +4621,32 @@ export default function TrufrenzApp() {
           <Text style={styles.glassSampleCopy}>Your cards, rows and sheets all look like this right now.</Text>
         </View>
       </GlassSurface>
+      {/*
+        One way back to the shipped look.
+        Opacity, cast, presets and the wallpaper toggle can now all be tuned, and
+        every one of them is persisted — so a member who adjusts themselves into a
+        combination they do not like has had no way out except to guess which of
+        four controls caused it. This restores all of them at once. It is shown only
+        when something actually differs from the defaults, so it never occupies a
+        row in the settings of a member who has not changed anything.
+      */}
+      {appearanceIsDefault ? null : (
+        <Pressable
+          onPress={() => {
+            setGlassOpacity(DEFAULT_GLASS_OPACITY);
+            setGlassTint(DEFAULT_GLASS_TINT);
+            setWallpaperVisible(true);
+            tap();
+            feedback("Appearance reset to the Trufrenz default.");
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Reset the frosted glass and wallpaper to the default appearance"
+          style={({ pressed }) => [styles.resetAppearance, pressed && styles.pressed]}
+        >
+          <Icon name="restart-alt" size={14} color="#6F6D64" />
+          <Text style={styles.resetAppearanceText}>Reset to default look</Text>
+        </Pressable>
+      )}
       <View style={styles.settingDivider} />
       {/*
         The glass cast. Sky is the cool blue-white of the reference sheet; lemon
@@ -5213,7 +5248,17 @@ export default function TrufrenzApp() {
         differs a little per section, because the content behind the bar ranges
         from dense chat rows to an almost empty screen.
       */}
-      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat; return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? "#83721f" : "#93A0AB"} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{section.label}</Text></Pressable>; })}</View>}
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
+        /*
+         * The active pill takes its own section's colour rather than one shared
+         * lemon, so the bar says *what* is selected and not merely *that* something
+         * is — matching the backdrop and the empty-state tile the section already
+         * has. The ink is derived with the fill, because the old dark-lemon label
+         * only worked on a lemon pill and would sit as muddy yellow on the sky and
+         * ash ones.
+         */
+        const tabAccentStyle = glassTabAccent(section.accent, glassTintChoice);
+        return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive, active && { backgroundColor: tabAccentStyle.fill, borderColor: "rgba(255, 255, 255, 0.95)" }]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? tabAccentStyle.ink : "#93A0AB"} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive, active && { color: tabAccentStyle.ink }]}>{section.label}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
@@ -5854,6 +5899,8 @@ const frozenStyles = StyleSheet.create({
   glassSampleBody: { paddingHorizontal: 11, paddingVertical: 10 },
   glassSampleTitle: { color: "#3F3D37", fontSize: 10.5, fontWeight: "700" },
   glassSampleCopy: { color: "#6F6D64", fontSize: 9, lineHeight: 13, marginTop: 3 },
+  resetAppearance: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: "rgba(120, 116, 104, 0.28)" },
+  resetAppearanceText: { color: "#6F6D64", fontSize: 10, fontWeight: "600" },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
   adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"), shadowColor: "#544f3a", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   adBannerText: { flex: 1, fontSize: 10.5, lineHeight: 14.5, color: "#6d6b63" },

@@ -7,6 +7,7 @@ import {
   ambientIntensityFor,
   glassAlpha,
   glassEmptyAccent,
+  glassTabAccent,
   glassAmbient,
   glassNestedSurfaceColor,
   glassSurfaceColor,
@@ -297,5 +298,59 @@ describe("the empty-state tile", () => {
     // A surface with no section keeps the tile it had rather than a new colour.
     expect(glassEmptyAccent(null)).toContain("rgba(");
     expect(glassEmptyAccent(undefined)).toContain("rgba(");
+  });
+});
+
+describe("the active tab pill", () => {
+  /*
+   * The active tab used one fixed lemon for all five sections, so the bar said
+   * "something is selected" but never *what*, while the sections had already been
+   * given distinct backdrops and empty-state tiles.
+   */
+  it("takes its own section's colour", () => {
+    const fills = (["chats", "groups", "hangouts", "bizz", "profile"] as const).map((s) => glassTabAccent(s).fill);
+    // At least three distinct fills, so the bar is genuinely per-section rather
+    // than nominally so.
+    expect(new Set(fills).size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("is stronger than the empty-state tile it is derived from", () => {
+    // A pill is a quarter the size of an empty-state tile and has to read as the
+    // active control at a glance rather than as decoration.
+    const tile = Number(glassEmptyAccent("profile").match(/([\d.]+)\)$/)![1]);
+    const pill = Number(glassTabAccent("profile").fill.match(/([\d.]+)\)$/)![1]);
+    expect(pill).toBeGreaterThan(tile);
+  });
+
+  it("keeps its label legible on every section and every cast", () => {
+    // The old label colour was a dark lemon that only worked on a lemon pill. This
+    // is the whole reason the ink is derived with the fill rather than fixed, so it
+    // is checked across the full matrix rather than on one case.
+    const lin = (v: number) => {
+      const x = v / 255;
+      return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = (c: number[]) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+    const contrast = (a: number[], b: number[]) =>
+      (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+    const over = (fg: number[], alpha: number, bg: number[]) =>
+      fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
+    // The worst backdrop the pill can sit over: the darkest wallpaper pixel under
+    // the page field.
+    const backdrop = over([150, 205, 245], 0.22, [80, 80, 80]);
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+      for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
+        const { fill, ink } = glassTabAccent(section, cast);
+        const [r, g, b, a] = fill.match(/[\d.]+/g)!.map(Number);
+        const inkRgb = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16));
+        const pill = over([r, g, b], a, backdrop);
+        expect(contrast(inkRgb, pill)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("falls back to the shipped lemon for an unknown section", () => {
+    // A bar with no section keeps the colour it had rather than a new one.
+    expect(glassTabAccent(null).ink).toBe("#83721f");
   });
 });

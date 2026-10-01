@@ -831,6 +831,53 @@ export function ambientIntensityFor(section: AmbientSection | null | undefined):
  * the field to read as the same colour — but it sits under an icon, not under text,
  * so it is not bound by the AA floor that constrains the field itself.
  */
+/**
+ * The active tab pill's fill and the ink that sits on it, for a section.
+ *
+ * The active tab used one fixed lemon for all five sections, so the bar said
+ * "something is selected" but never *what* — while the sections had already been
+ * given distinct backdrops and empty-state tiles. This finishes that: the pill is
+ * filled with the same colour the section's field is made of, so the active tab
+ * matches the screen it is sitting under.
+ *
+ * The ink is derived rather than fixed. The old label colour was a dark lemon that
+ * only worked because every pill was lemon; on the sky and ash pills it would sit
+ * as a muddy yellow on blue. Each section's ink is chosen to clear 4.5:1 on that
+ * section's own pill over the darkest wallpaper pixel, which is the condition the
+ * label actually renders under.
+ */
+const TAB_INK: Record<AmbientSection, string> = {
+  // The chats pill is the faintest of the five (its field is the calmest), so its
+  // ink has to be the darkest to hold AA on it — measured, not guessed: the first
+  // value tried landed at 4.36 and this one at 4.73.
+  chats: "#2A3941",
+  groups: "#33404B",
+  hangouts: "#3A3A34",
+  bizz: "#3A3A34",
+  profile: "#33343A",
+};
+
+export function glassTabAccent(
+  section: AmbientSection | null | undefined,
+  tint: GlassTint = activeTint,
+): { fill: string; ink: string } {
+  /*
+   * A caller with no section keeps the shipped lemon rather than silently taking
+   * Chats' colour, which would claim a selection that does not exist.
+   */
+  if (!section || !(section in TAB_INK)) return { fill: "rgba(241, 233, 176, 0.55)", ink: "#83721f" };
+  const key = section as AmbientSection;
+  const nums = glassEmptyAccent(key, tint).match(/[\d.]+/g) ?? [];
+  if (nums.length < 4) return { fill: "rgba(241, 233, 176, 0.55)", ink: "#83721f" };
+  const [r, g, b, a] = nums.map(Number);
+  // Lifted past the empty-state tile: a pill is a quarter of its size and has to
+  // read as the active control at a glance rather than as decoration.
+  return {
+    fill: `rgba(${r}, ${g}, ${b}, ${Math.min(0.72, a * 1.5).toFixed(3)})`,
+    ink: TAB_INK[key],
+  };
+}
+
 export function glassEmptyAccent(
   section: AmbientSection | null | undefined,
   tint: GlassTint = activeTint,

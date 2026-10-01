@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
+import { GlassSurface } from "@/components/glass-surface";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 
@@ -276,6 +277,31 @@ export function PremiumPaywall({
               </>
             )}
 
+            {/*
+              The upgrade is sold on a *surface*, so the surface is shown.
+              The feature list below says "ad-free" and leaves the member to
+              imagine it; this renders the real ad-free card, built from the same
+              glass primitives the app uses, at their own weight and cast. It is
+              not an illustration of the benefit — it is the benefit, at the size
+              it appears in the app, so nothing here can drift out of step with
+              what they actually receive. The dismiss control is included because
+              "no banner" is only meaningful once you have seen the banner.
+            */}
+            <Text style={styles.sectionLabel}>WHAT THE AD-FREE SCREEN LOOKS LIKE</Text>
+            <GlassSurface surface="card" radius={14} style={styles.adFreeSample}>
+              <View style={styles.adFreeBody}>
+                <View style={styles.adFreeRow}>
+                  <View style={styles.adFreeAvatar} />
+                  <View style={styles.adFreeLines}>
+                    <Text style={styles.adFreeName}>Maya Chen</Text>
+                    <Text style={styles.adFreeCopy}>That little garden café was lovely</Text>
+                  </View>
+                  <View style={styles.adFreeDismiss}><MaterialIcons name="close" size={13} color="#8C8A82" /></View>
+                </View>
+                <Text style={styles.adFreeNote}>No banner, no dismiss control, nothing to scroll past.</Text>
+              </View>
+            </GlassSurface>
+
             <Text style={styles.sectionLabel}>WHAT CHANGES</Text>
             <View style={[styles.featureCard, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.56)"), glassOpacity) }]}>
               {rows.map((row, index) => (
@@ -385,6 +411,19 @@ const styles = StyleSheet.create({
   close: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.8)") },
   body: { flexGrow: 0 },
   bodyContent: { paddingHorizontal: 16, paddingBottom: 14, gap: 9 },
+  /*
+   * The ad-free sample. Deliberately the same shape and weight as a real chat row,
+   * because the claim is about a surface rather than about a feature.
+   */
+  adFreeSample: { overflow: "hidden" },
+  adFreeBody: { paddingHorizontal: 11, paddingVertical: 10, gap: 6 },
+  adFreeRow: { flexDirection: "row", alignItems: "center", gap: 9 },
+  adFreeAvatar: { width: 30, height: 30, borderRadius: 11, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)") },
+  adFreeLines: { flex: 1 },
+  adFreeName: { fontSize: 11.5, fontWeight: "700", color: "#3F3D37" },
+  adFreeCopy: { fontSize: 10, color: "#6F6D64", marginTop: 1 },
+  adFreeDismiss: { width: 22, height: 22, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(140, 138, 130, 0.3)") },
+  adFreeNote: { fontSize: 9.5, color: "#83721f", fontWeight: "600" },
   reasonCard: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), borderRadius: 14, padding: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.75)") },
   reasonText: { flex: 1, fontSize: 11.5, color: "#53514C", lineHeight: 16 },
   activeCard: { flexDirection: "row", gap: 9, alignItems: "center", backgroundColor: glassNestedFill("rgba(233, 245, 238, 0.75)"), borderRadius: 14, padding: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.8)") },
