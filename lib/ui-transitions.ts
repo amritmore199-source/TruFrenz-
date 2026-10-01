@@ -1,15 +1,18 @@
-import type { MenuDestination } from "@/lib/sections";
+import { BOTTOM_SECTION_IDS, type MenuDestination } from "./sections";
 
 /**
  * Every screen the handoff animation can move between.
  *
- * Meetups is no longer on the bar but still exists as a destination, and the
- * profile is reached from the avatar, so both stay in the set.
+ * The plan feed is no longer on the bar but still exists as a destination, so it
+ * stays in the set; every other destination is a bar section.
  */
 export type SocialTab = MenuDestination;
 
 /**
- * The original handoff: the inbox to the meetup feed and back.
+ * The original handoff: the inbox to the plan feed and back.
+ *
+ * It still matters because the plan feed is not a bar entry, so the move is not
+ * caught by the section rule below.
  */
 export function isInboxMeetupTransition(from: SocialTab, to: SocialTab): boolean {
   return (from === "Chats" && to === "Meetups") || (from === "Meetups" && to === "Chats");
@@ -17,10 +20,15 @@ export function isInboxMeetupTransition(from: SocialTab, to: SocialTab): boolean
 
 /**
  * Whether the change is between two of the bar's sections.
+ *
+ * Read from the section model rather than repeating its names here: this list
+ * was hand-written, and when the bar changed it silently stopped matching the
+ * bar it was describing.
  */
 export function isSectionChange(from: SocialTab, to: SocialTab): boolean {
-  const sections: SocialTab[] = ["Chats", "Groups", "Friends", "Bizz"];
-  return from !== to && sections.includes(from) && sections.includes(to);
+  if (from === to) return false;
+  const sections: readonly SocialTab[] = BOTTOM_SECTION_IDS;
+  return sections.includes(from) && sections.includes(to);
 }
 
 /**

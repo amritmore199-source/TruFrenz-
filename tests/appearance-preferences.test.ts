@@ -236,11 +236,11 @@ describe("glass presets", () => {
 
 describe("per-tab glass weight", () => {
   it("nudges the bar's weight per tab while staying within the glass range", () => {
-    const tabs = ["chats", "friends", "meetups", "you"] as const;
+    const tabs = ["chats", "groups", "hangouts", "bizz", "profile"] as const;
     const alphas = tabs.map((t) => tabBarAlpha(t, 80));
     // The denser tab is lighter and the emptier tab is heavier, so the bar does
     // not read as a different component: the whole spread stays small.
-    expect(alphas[0]).toBeLessThan(alphas[3]);
+    expect(alphas[0]).toBeLessThan(alphas[alphas.length - 1]);
     expect(Math.max(...alphas) - Math.min(...alphas)).toBeLessThan(0.1);
     for (const a of alphas) {
       expect(a).toBeGreaterThanOrEqual(0.16);
@@ -249,7 +249,7 @@ describe("per-tab glass weight", () => {
   });
 
   it("falls back to the plain tab weight with no tab", () => {
-    expect(tabBarAlpha(null, 80)).toBeCloseTo(tabBarAlpha("friends", 80), 5);
+    expect(tabBarAlpha(null, 80)).toBeCloseTo(tabBarAlpha("hangouts", 80), 5);
   });
 });
 

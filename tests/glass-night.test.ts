@@ -140,7 +140,7 @@ describe("surfaces over the crew artwork", () => {
     for (const opacity of [50, 80, 95]) {
       for (const cast of ["sky", "lemon"] as const) {
         expect(glassAlpha("card", opacity, cast)).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
-        expect(tabBarAlpha("you", opacity, cast)).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
+        expect(tabBarAlpha("profile", opacity, cast)).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
       }
     }
   });

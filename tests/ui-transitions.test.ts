@@ -8,8 +8,8 @@ describe("inbox and meetup transition routing", () => {
   });
 
   it("does not show the handoff animation for unrelated tabs", () => {
-    expect(isInboxMeetupTransition("Chats", "Friends")).toBe(false);
-    expect(isInboxMeetupTransition("You", "Meetups")).toBe(false);
+    expect(isInboxMeetupTransition("Chats", "Groups")).toBe(false);
+    expect(isInboxMeetupTransition("Profile", "Meetups")).toBe(false);
   });
 });
 
@@ -17,13 +17,19 @@ describe("moving between the bar's sections", () => {
   it("recognises a change from one section to another", () => {
     expect(isSectionChange("Chats", "Groups")).toBe(true);
     expect(isSectionChange("Groups", "Bizz")).toBe(true);
-    expect(isSectionChange("Friends", "Chats")).toBe(true);
+    expect(isSectionChange("Hangouts", "Chats")).toBe(true);
   });
 
   it("does not call a destination or a repeat a section change", () => {
+    /*
+     * The plan feed is the only destination that is not a bar entry, so it is
+     * the one that must not count as a section move in either direction. Every
+     * other destination is a section now, including the profile, which moved
+     * from the header onto the bar.
+     */
     expect(isSectionChange("Meetups", "Chats")).toBe(false);
-    expect(isSectionChange("You", "Bizz")).toBe(false);
-    expect(isSectionChange("Friends", "Friends")).toBe(false);
+    expect(isSectionChange("Chats", "Meetups")).toBe(false);
+    expect(isSectionChange("Profile", "Profile")).toBe(false);
   });
 });
 
@@ -36,8 +42,8 @@ describe("the frosted handoff", () => {
   it("covers section moves in both directions", () => {
     expect(shouldShowHandoff("Chats", "Groups")).toBe(true);
     expect(shouldShowHandoff("Groups", "Chats")).toBe(true);
-    expect(shouldShowHandoff("Friends", "Bizz")).toBe(true);
-    expect(shouldShowHandoff("Bizz", "Friends")).toBe(true);
+    expect(shouldShowHandoff("Hangouts", "Bizz")).toBe(true);
+    expect(shouldShowHandoff("Bizz", "Hangouts")).toBe(true);
   });
 
   it("still covers the original inbox and meetup move", () => {
@@ -47,6 +53,6 @@ describe("the frosted handoff", () => {
 
   it("stays instant when nothing changed", () => {
     expect(shouldShowHandoff("Chats", "Chats")).toBe(false);
-    expect(shouldShowHandoff("You", "You")).toBe(false);
+    expect(shouldShowHandoff("Profile", "Profile")).toBe(false);
   });
 });

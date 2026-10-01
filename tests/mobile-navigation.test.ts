@@ -48,7 +48,7 @@ describe("mobile back navigation", () => {
   });
 
   it("returns every other section to Chat before allowing the app to exit", () => {
-    for (const section of ["Groups", "Friends", "Bizz", "Meetups", "You"] as const) {
+    for (const section of ["Groups", "Hangouts", "Bizz", "Profile", "Meetups"] as const) {
       expect(resolveMobileBackAction({ ...baseState, activeTab: section })).toBe("go-to-chats");
     }
     expect(resolveMobileBackAction(baseState)).toBe("exit-app");

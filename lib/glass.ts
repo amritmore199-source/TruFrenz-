@@ -281,29 +281,28 @@ export function matchGlassPreset(
  * enough that the bar never reads as a different component.
  */
 /**
- * The sections the bar can be sitting over, plus the two destinations that are
- * reached from elsewhere. "meetups" and "you" are kept because those screens
- * still exist behind the avatar and the chat header, and the bar keeps its
- * weight while they are showing.
+ * The sections the bar can be sitting over, plus the plan feed, which is reached
+ * from the chat header and shown by the Hangouts entry.
  */
 export type TabAccent =
   | "chats"
   | "groups"
-  | "friends"
+  | "hangouts"
   | "bizz"
-  | "meetups"
-  | "you";
+  | "profile";
 
 const TAB_ACCENT_OFFSET: Record<TabAccent, number> = {
   chats: -0.03,
   // Groups is a dense list of rows, like the chat inbox but shorter, so it sits
   // between the two extremes rather than repeating the inbox's lightest weight.
   groups: -0.01,
-  friends: 0,
+  // Hangouts is a short list of plan cards over artwork, so it sits mid-weight.
+  hangouts: 0,
   // Bizz starts as a mostly empty screen, so its bar leans heavier.
   bizz: 0.03,
-  meetups: 0.02,
-  you: 0.04,
+  // Profile is mostly settings panels, the densest reading surface in the app,
+  // so its bar is the heaviest — the blur has to work hardest there.
+  profile: 0.04,
 };
 
 /**
@@ -484,6 +483,36 @@ export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): 
   };
   const { r, g, b } = tint === "lemon" ? { r: 255, g: 253, b: 235 } : { r: 255, g: 255, b: 255 };
   return `rgba(${r}, ${g}, ${b}, ${strength[surface] ?? 0.6})`;
+}
+
+/**
+ * The outline for an input, which has to be *seen* rather than caught.
+ *
+ * `glassEdge` is a highlight: a white rim over a pale page, which is what makes
+ * a card look like a lit sheet of glass. The same white rim around an input is
+ * useless — measured over the artwork it differs from the page by about 2% of
+ * luminance, and the search box read as a rectangle with no border at all.
+ *
+ * A field needs the opposite polarity: a line slightly *darker* than the glass
+ * it encloses, in the member's own cast, so it reads as a groove rather than a
+ * glow. A cool cast gives a cool grey line and a warm one gives a warm grey, so
+ * the box follows the same setting as everything else.
+ *
+ * The alpha is not a taste decision. A field boundary is a non-text element
+ * that carries meaning — it is how an input is told apart from a card — so it
+ * is held to 3:1 against the surface behind it, the same as the rating the
+ * contrast tests apply to the rest of the app. Solved over the lightest glass
+ * the app draws, 0.66 lands each cast at 3.2:1; 0.42, the value the sheet's
+ * highlight uses, measured 1.5:1 and was invisible.
+ */
+export function glassFieldBorder(tint: GlassTint = activeTint): string {
+  const line =
+    tint === "lemon"
+      ? { r: 96, g: 84, b: 40 }
+      : tint === "white"
+        ? { r: 72, g: 82, b: 92 }
+        : { r: 56, g: 84, b: 120 };
+  return `rgba(${line.r}, ${line.g}, ${line.b}, 0.66)`;
 }
 
 /**

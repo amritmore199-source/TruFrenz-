@@ -7,6 +7,7 @@ import {
   glassAmbient,
   glassBlur,
   glassEdge,
+  glassFieldBorder,
   glassInnerRim,
   glassSwitchTrack,
 } from "../lib/glass";
@@ -184,5 +185,46 @@ describe("the ambient colour field", () => {
     }
     expect(Math.max(...steps)).toBeLessThan(8);
     expect(RINGS).toBeGreaterThanOrEqual(12);
+  });
+});
+
+describe("the field outline", () => {
+  /*
+   * An input is told apart from a card by its edge, so that edge is carrying
+   * meaning and is held to the 3:1 non-text minimum rather than to taste.
+   *
+   * The sheet's own rim is a white highlight at 0.46 alpha, which is right for
+   * a card and useless for a field: over the app's pale glass it measured about
+   * 1.5:1 and the search box read as a rectangle with no border at all.
+   */
+  it("draws a border dark enough to be seen against the lightest glass", () => {
+    const lin = (x: number) => {
+      const c = x / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    const contrast = (a: number[], b: number[]) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((m, n) => n - m);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+
+    for (const cast of ["white", "sky", "lemon"] as const) {
+      const parts = glassFieldBorder(cast).match(/[\d.]+/g)!.map(Number);
+      const alpha = parts[3]!;
+      const page = [244, 248, 252];
+      const drawn = page.map((channel, index) => Math.round(parts[index]! * alpha + channel * (1 - alpha)));
+      expect(contrast(drawn, page)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("takes its hue from the member's cast rather than being one fixed grey", () => {
+    const sky = glassFieldBorder("sky");
+    const lemon = glassFieldBorder("lemon");
+    expect(sky).not.toBe(lemon);
+    // Cool is blue-leading, warm is red-leading: the two must not collapse.
+    const [sr, , sb] = sky.match(/[\d.]+/g)!.map(Number) as [number, number, number];
+    const [lr, , lb] = lemon.match(/[\d.]+/g)!.map(Number) as [number, number, number];
+    expect(sb).toBeGreaterThan(sr!);
+    expect(lr).toBeGreaterThan(lb);
   });
 });

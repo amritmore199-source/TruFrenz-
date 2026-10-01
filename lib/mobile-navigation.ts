@@ -20,7 +20,7 @@ export type MobileBackAction =
 /**
  * Where the member currently is.
  *
- * The bar carries four sections, and Meetups and the profile are destinations
+ * The bar carries five sections, and the plan feed is one more destination
  * reached from the header, so the active screen is any of the six.
  */
 export type ActiveDestination = MenuDestination;
