@@ -7,15 +7,19 @@ import {
   ambientIntensityFor,
   glassAlpha,
   glassEmptyAccent,
+  glassQuietTabInk,
   glassTabAccent,
   glassAmbient,
   glassNestedSurfaceColor,
   glassSurfaceColor,
   matchGlassPreset,
+  setActiveGlassOpacity,
+  tabBarTint,
   setActiveGlassTint,
   tabBarAlpha,
 } from "../lib/glass";
 import {
+  DEFAULT_GLASS_OPACITY,
   GLASS_TINT_LABEL,
   GLASS_TINT_OPTIONS,
   normalizeGlassTint,
@@ -352,5 +356,70 @@ describe("the active tab pill", () => {
   it("falls back to the shipped lemon for an unknown section", () => {
     // A bar with no section keeps the colour it had rather than a new one.
     expect(glassTabAccent(null).ink).toBe("#83721f");
+  });
+});
+
+describe("the inactive tab ink", () => {
+  /*
+   * Both values shipped below their own accessibility floors against the bar they
+   * sit on — the icon measured 1.79:1 against a 3:1 floor for a graphical object,
+   * and the label 2.01:1 against 4.5:1 for text. Neither had been checked against
+   * the light glass bar, only against the page.
+   */
+  const lin = (v: number) => {
+    const x = v / 255;
+    return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (c: number[]) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  const contrast = (a: number[], b: number[]) =>
+    (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+  const over = (fg: number[], alpha: number, bg: number[]) =>
+    fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
+  const hex = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
+
+  /** The lightest bar any section can produce for a cast — the worst case for dark ink. */
+  function lightestBar(cast: "ash" | "white" | "sky" | "lemon"): number[] {
+    setActiveGlassTint(cast);
+    setActiveGlassOpacity(DEFAULT_GLASS_OPACITY);
+    let lightest: number[] | null = null;
+    for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
+      const parsed = tabBarTint(section, DEFAULT_GLASS_OPACITY, cast).match(/[\d.]+/g)!.map(Number);
+      const solid = over([parsed[0], parsed[1], parsed[2]], parsed[3] ?? 1, [246, 244, 238]);
+      if (!lightest || lum(solid) > lum(lightest)) lightest = solid;
+    }
+    return lightest!;
+  }
+
+  it("clears 3:1 for the icon on every cast", () => {
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+      expect(contrast(hex(glassQuietTabInk(cast).icon), lightestBar(cast))).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("clears 4.5:1 for the label on every cast", () => {
+    // The label is text, so it has the stricter floor of the two.
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+      expect(contrast(hex(glassQuietTabInk(cast).label), lightestBar(cast))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("follows the cast, so the bar carries it even with nothing selected", () => {
+    const icons = (["ash", "white", "sky", "lemon"] as const).map((c) => glassQuietTabInk(c).icon);
+    expect(new Set(icons).size).toBe(4);
+    // And the lemon ink is warm rather than a grey with a different alpha.
+    const [r, , b] = hex(glassQuietTabInk("lemon").icon);
+    expect(r).toBeGreaterThan(b);
+  });
+
+  it("keeps the icon and label a matched pair", () => {
+    // Both are derived at the same hue weight, so neither reads as belonging to a
+    // different colour scheme from the other.
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+      const ink = glassQuietTabInk(cast);
+      const iconWarm = hex(ink.icon)[0] - hex(ink.icon)[2];
+      const labelWarm = hex(ink.label)[0] - hex(ink.label)[2];
+      // Same sign: both lean warm, or both lean cool.
+      expect(Math.sign(iconWarm)).toBe(Math.sign(labelWarm));
+    }
   });
 });

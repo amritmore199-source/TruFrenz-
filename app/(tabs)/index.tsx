@@ -285,6 +285,7 @@ import {
 import { DEFAULT_APPEARANCE_PREFERENCES, DEFAULT_GLASS_OPACITY, DEFAULT_GLASS_TINT, GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
   GLASS_TINT_LABEL,
   glassNestedFill,
+  type AppearancePreferences,
 } from "@/lib/appearance-preferences";
 import { INVITE_BASE_FALLBACK, buildInviteAppLink, buildInviteLink, inviteCodeFromUrl, inviteSmsText } from "@/lib/invite-link";
 import { describeRequestWait } from "@/lib/request-wait";
@@ -304,7 +305,7 @@ import {
   type BizzOffer,
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
-import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -595,6 +596,16 @@ export default function TrufrenzApp() {
    * against the same defaults the preference store falls back to, so the reset
    * control and the persisted state cannot disagree about what "default" means.
    */
+  /*
+   * The appearance the reset would replace, held only long enough to offer an undo.
+   *
+   * The reset changes every surface in the app at once, so a member who taps it by
+   * accident would otherwise have to reconstruct four settings by memory. Keeping
+   * the previous values here makes the control reversible without a confirmation
+   * dialog in front of it — the action stays one tap, and the escape hatch appears
+   * only after it is needed.
+   */
+  const [appearanceResetUndo, setAppearanceResetUndo] = useState<AppearancePreferences | null>(null);
   const appearanceIsDefault =
     glassOpacity === DEFAULT_GLASS_OPACITY &&
     glassTintChoice === DEFAULT_GLASS_TINT &&
@@ -3400,6 +3411,20 @@ export default function TrufrenzApp() {
     feedback("Shared into your chat.");
     tap();
   };
+  /*
+   * Any change after a reset invalidates the undo: once the member has moved a
+   * setting themselves, the offer would restore a state that is no longer "what
+   * they had before", and honouring it would discard the change they just made.
+   */
+  useEffect(() => {
+    if (!appearanceResetUndo) return;
+    const stillDefault =
+      glassOpacity === DEFAULT_GLASS_OPACITY &&
+      glassTintChoice === DEFAULT_GLASS_TINT &&
+      wallpaperVisible === DEFAULT_APPEARANCE_PREFERENCES.wallpaperVisible;
+    if (!stillDefault) setAppearanceResetUndo(null);
+  }, [appearanceResetUndo, glassOpacity, glassTintChoice, wallpaperVisible]);
+
   const toggleGroup = () => {
     if (requireAccount("create-meetup")) return;
     if (!newGroupName.trim()) { feedback("Give your private group a name first."); return; }
@@ -4630,12 +4655,34 @@ export default function TrufrenzApp() {
         when something actually differs from the defaults, so it never occupies a
         row in the settings of a member who has not changed anything.
       */}
-      {appearanceIsDefault ? null : (
+      {appearanceResetUndo ? (
+        <View accessibilityLabel="Appearance reset, with an option to undo" style={[styles.resetConfirm, { backgroundColor: liveGlass("rgba(233, 245, 238, 0.75)") }]}>
+          <Icon name="check-circle" size={14} color="#5C8F73" />
+          <Text style={styles.resetConfirmText}>Appearance reset to the default.</Text>
+          <Pressable
+            onPress={() => {
+              const previous = appearanceResetUndo;
+              setGlassOpacity(previous.glassOpacity);
+              setGlassTint(previous.glassTint);
+              setWallpaperVisible(previous.wallpaperVisible);
+              setAppearanceResetUndo(null);
+              tap();
+              feedback("Your previous appearance is back.");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Undo the appearance reset and restore your previous settings"
+            style={({ pressed }) => [styles.resetUndo, pressed && styles.pressed]}
+          >
+            <Text style={styles.resetUndoText}>Undo</Text>
+          </Pressable>
+        </View>
+      ) : appearanceIsDefault ? null : (
         <Pressable
           onPress={() => {
+            setAppearanceResetUndo({ glassOpacity, glassTint: glassTintChoice, wallpaperVisible });
             setGlassOpacity(DEFAULT_GLASS_OPACITY);
             setGlassTint(DEFAULT_GLASS_TINT);
-            setWallpaperVisible(true);
+            setWallpaperVisible(DEFAULT_APPEARANCE_PREFERENCES.wallpaperVisible);
             tap();
             feedback("Appearance reset to the Trufrenz default.");
           }}
@@ -5258,7 +5305,15 @@ export default function TrufrenzApp() {
          * ash ones.
          */
         const tabAccentStyle = glassTabAccent(section.accent, glassTintChoice);
-        return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive, active && { backgroundColor: tabAccentStyle.fill, borderColor: "rgba(255, 255, 255, 0.95)" }]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? tabAccentStyle.ink : "#93A0AB"} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive, active && { color: tabAccentStyle.ink }]}>{section.label}</Text></Pressable>; })}</View>}
+        /*
+         * The inactive icon and label take their own solved inks rather than one
+         * fixed grey. Both were below their accessibility floors against the bar
+         * they sit on — 1.79:1 for the icon against a 3:1 floor, 2.01:1 for the
+         * label against 4.5:1 — and both now follow the member's cast, so the bar
+         * carries it even where nothing is selected.
+         */
+        const quietInk = glassQuietTabInk(glassTintChoice);
+        return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive, active && { backgroundColor: tabAccentStyle.fill, borderColor: "rgba(255, 255, 255, 0.95)" }]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? tabAccentStyle.ink : quietInk.icon} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive, { color: active ? tabAccentStyle.ink : quietInk.label }]}>{section.label}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
@@ -5901,6 +5956,10 @@ const frozenStyles = StyleSheet.create({
   glassSampleCopy: { color: "#6F6D64", fontSize: 9, lineHeight: 13, marginTop: 3 },
   resetAppearance: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: "rgba(120, 116, 104, 0.28)" },
   resetAppearanceText: { color: "#6F6D64", fontSize: 10, fontWeight: "600" },
+  resetConfirm: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 6, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)" },
+  resetConfirmText: { flex: 1, color: "#3F5548", fontSize: 10, fontWeight: "600" },
+  resetUndo: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: "rgba(92, 143, 115, 0.4)" },
+  resetUndoText: { color: "#3F5548", fontSize: 10, fontWeight: "700" },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
   adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"), shadowColor: "#544f3a", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   adBannerText: { flex: 1, fontSize: 10.5, lineHeight: 14.5, color: "#6d6b63" },

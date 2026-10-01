@@ -878,6 +878,46 @@ export function glassTabAccent(
   };
 }
 
+/**
+ * The quiet ink for an *inactive* tab: its icon and its label.
+ *
+ * Both were fixed values that measured below their own accessibility floors against
+ * the bar they actually sit on — the icon at 1.79:1 against a 3:1 floor for a
+ * graphical object, and the label at 2.01:1 against 4.5:1 for text. The bar is a
+ * light glass panel, so a mid-grey icon on it was never going to clear anything.
+ *
+ * This also answers the question the per-section idea could not. Tinting the
+ * inactive icons per *section* is not achievable: measured across the blend range,
+ * the five inks converge on a single grey at the lightness where an inactive icon
+ * still reads as inactive (channel spread of 3 at 15%, needing 45% before they
+ * separate — by which point they look selected). Tying them to the *cast* does
+ * work, because the cast is a wider spread and the member chose it deliberately, so
+ * the bar now carries their cast even where nothing is selected.
+ *
+ * The two inks are kept at one hue weight so they stay a matched pair, and each is
+ * solved to its own floor: the icon to 3:1, the label to 4.5:1.
+ */
+const QUIET_ICON_INK: Record<GlassTint, string> = {
+  ash: "#757575",
+  white: "#727578",
+  sky: "#6D757B",
+  lemon: "#787566",
+};
+
+const QUIET_LABEL_INK: Record<GlassTint, string> = {
+  ash: "#585858",
+  white: "#57595A",
+  sky: "#565A5E",
+  lemon: "#5B5950",
+};
+
+export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; label: string } {
+  return {
+    icon: QUIET_ICON_INK[tint] ?? QUIET_ICON_INK.ash,
+    label: QUIET_LABEL_INK[tint] ?? QUIET_LABEL_INK.ash,
+  };
+}
+
 export function glassEmptyAccent(
   section: AmbientSection | null | undefined,
   tint: GlassTint = activeTint,
