@@ -68,12 +68,19 @@ function blend(
 /*
  * The worst case the app can actually produce.
  *
- * The shipped wallpaper's brightest patch sits at roughly 216/205/193. A surface
- * is judged over that patch, not over the photo's average, because that is where
- * bright text fails first.
+ * The night wallpaper's brightest patch sits at roughly 163/119/77 — it ships
+ * already carrying a quarter of the dusk veil in its own pixels. A surface is
+ * judged over that patch and not over the photo's average, because the bright
+ * patch is where light text fails first.
+ *
+ * UNBAKED is the same photo before that tint, and it is here to keep the asset's
+ * own veil honest: the pair is only safe because of it, and a test that cannot
+ * tell the difference would let somebody strip the tint and ship a wallpaper
+ * that fails contrast.
  */
-const WALLPAPER_BRIGHTEST: [number, number, number] = [216, 205, 193];
-const WALLPAPER_AVERAGE: [number, number, number] = [74, 62, 58];
+const WALLPAPER_BRIGHTEST: [number, number, number] = [163, 119, 77];
+const WALLPAPER_UNBAKED: [number, number, number] = [216, 144, 76];
+const WALLPAPER_AVERAGE: [number, number, number] = [34, 53, 81];
 
 describe("the dusk cast", () => {
   it("is offered, labelled and accepted as a setting", () => {
@@ -133,31 +140,35 @@ describe("the night backdrop", () => {
   });
 
   /*
-   * The reason the veil exists. Without it, bright text over the wallpaper's
-   * brightest patch fails; with it, the whole ramp clears the bar. This test
-   * would fail if someone removed the veil as decoration, which is exactly the
-   * mistake worth guarding against.
+   * The reason both halves of the veil exist. The work is shared: the asset
+   * carries a quarter tint, and the app lays a further quarter over it when the
+   * dusk cast is on. Neither half is decoration — against the untinted photo the
+   * app's own veil alone leaves body and secondary text under AA, and against
+   * the tinted asset the pair clears it comfortably.
    */
-  it("is what makes bright text legible, measured", () => {
-    const surface = hex(TEXT_ON_GLASS.body);
-    const alpha = glassAlpha("card", 80, "dusk");
+  it("is what makes bright text legible, and the asset's own tint carries half of it", () => {
     const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, "dusk"));
-    void surface;
+    const body = hex(TEXT_ON_GLASS.body);
+    const secondary = hex(TEXT_ON_GLASS.secondary);
 
-    const unveiled = over([...surfaceGlass], WALLPAPER_BRIGHTEST);
-    const veiled = over([...surfaceGlass], blend(WALLPAPER_BRIGHTEST, [42, 65, 90], DUSK_VEIL_ALPHA));
-    void alpha;
+    // With the app's veil but without the asset's own tint, small text fails.
+    const untinted = over([...surfaceGlass], blend(WALLPAPER_UNBAKED, [42, 65, 90], DUSK_VEIL_ALPHA));
+    expect(contrast(body, untinted)).toBeLessThan(4.5);
+    expect(contrast(secondary, untinted)).toBeLessThan(4.5);
 
-    expect(contrast(surface, unveiled)).toBeLessThan(4.5);
-    expect(contrast(surface, veiled)).toBeGreaterThanOrEqual(4);
+    // As shipped — tinted asset plus the app's veil — the ramp clears AA.
+    const shipped = over([...surfaceGlass], blend(WALLPAPER_BRIGHTEST, [42, 65, 90], DUSK_VEIL_ALPHA));
+    for (const step of Object.values(TEXT_ON_GLASS)) {
+      expect(contrast(hex(step), shipped)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
-  it("holds body and heading text well past AA over the wallpaper's average", () => {
+  it("holds the whole ramp past AA over the wallpaper's average", () => {
     const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, "dusk"));
     const rendered = over([...surfaceGlass], blend(WALLPAPER_AVERAGE, [42, 65, 90], DUSK_VEIL_ALPHA));
-    expect(contrast(hex(TEXT_ON_GLASS.heading), rendered)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(hex(TEXT_ON_GLASS.body), rendered)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(hex(TEXT_ON_GLASS.secondary), rendered)).toBeGreaterThanOrEqual(4.5);
+    for (const step of Object.values(TEXT_ON_GLASS)) {
+      expect(contrast(hex(step), rendered)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   /*

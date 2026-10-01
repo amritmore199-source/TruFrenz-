@@ -154,7 +154,12 @@ export function WelcomeScreen({
 
   return (
     <View style={styles.root}>
-      <Image source={require("../assets/images/kindred-background.jpg")} style={styles.backdrop} resizeMode="cover" />
+      {/*
+        The night sky, fixed rather than paired with the cast: the welcome screen
+        renders before a member has chosen anything, and its own wash already
+        carries the light glass panel above it.
+      */}
+      <Image source={require("../assets/images/trufrenz-night.jpg")} style={styles.backdrop} resizeMode="cover" />
       <View style={styles.backdropWash} pointerEvents="none" />
       <View style={styles.bubbleField} pointerEvents="none">
         {BUBBLES.map((bubble, index) => (

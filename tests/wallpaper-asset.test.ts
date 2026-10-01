@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const projectRoot = process.cwd();
-const wallpaperPath = join(projectRoot, "assets/images/kindred-background.jpg");
+const nightPath = join(projectRoot, "assets/images/trufrenz-night.jpg");
+const dayPath = join(projectRoot, "assets/images/trufrenz-day.jpg");
 
 function jpegDimensions(bytes: Buffer): { width: number; height: number } {
   expect(bytes[0]).toBe(0xff);
@@ -35,18 +36,35 @@ function jpegDimensions(bytes: Buffer): { width: number; height: number } {
   throw new Error("Wallpaper JPEG has no valid start-of-frame marker.");
 }
 
-describe("shared wallpaper asset", () => {
-  it("is a valid, optimized portrait JPEG at the supplied image dimensions", () => {
-    const bytes = readFileSync(wallpaperPath);
-    expect(bytes.subarray(-2)).toEqual(Buffer.from([0xff, 0xd9]));
-    expect(jpegDimensions(bytes)).toEqual({ width: 768, height: 1364 });
-    expect(bytes.length).toBeLessThan(800_000);
+describe("wallpaper assets", () => {
+  /*
+   * Both wallpapers come from the same crew artwork, sized to ship cheaply. The
+   * pair exists because the two colour palettes need opposite things from a
+   * background: bright white text wants a dark picture and dark ink wants a
+   * bright one. The day version is the drawing lifted onto white paper, the
+   * night version is the same line work standing on the night sky.
+   */
+  for (const [name, path] of [["night", nightPath], ["day", dayPath]] as const) {
+    it(`ships a valid, optimized portrait JPEG for the ${name} palette`, () => {
+      const bytes = readFileSync(path);
+      expect(bytes.subarray(-2)).toEqual(Buffer.from([0xff, 0xd9]));
+      const dimensions = jpegDimensions(bytes);
+      expect(dimensions.width).toBe(768);
+      expect(dimensions.height).toBeGreaterThan(1200);
+      expect(bytes.length).toBeLessThan(400_000);
+    });
+  }
+
+  it("pairs each wallpaper with the cast that needs it", () => {
+    const pairs = readFileSync(join(projectRoot, "lib/wallpaper.ts"), "utf8");
+    expect(pairs).toContain("wallpaperForTint");
+    expect(pairs).toContain('tint === "dusk" ? "night" : "day"');
   });
 
   it("is used by both the welcome screen and signed-in app background", () => {
     const welcome = readFileSync(join(projectRoot, "components/welcome-screen.tsx"), "utf8");
     const app = readFileSync(join(projectRoot, "app/(tabs)/index.tsx"), "utf8");
-    expect(welcome).toContain('require("../assets/images/kindred-background.jpg")');
-    expect(app).toContain('require("../../assets/images/kindred-background.jpg")');
+    expect(welcome).toContain('require("../assets/images/trufrenz-night.jpg")');
+    expect(app).toContain("wallpaperSource(glassTintChoice)");
   });
 });

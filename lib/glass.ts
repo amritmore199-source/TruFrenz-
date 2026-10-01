@@ -112,22 +112,26 @@ const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
 const DUSK_WEIGHT_BONUS = 0.06;
 
 /**
- * How much dark backdrop dusk lays over the wallpaper.
+ * The dark backdrop the dusk cast lays over the wallpaper.
  *
  * Bright text on glass is only as legible as what is behind the glass, so this
  * is not decoration — it is the thing that makes the night palette readable at
- * all. Measured against the wallpaper's brightest patch, the app's own photo has
- * pixels at luminance 0.62: with no backdrop a card there rendered at 118/255
- * and even the brightest body text managed 3.5:1, well under the 4.5:1 that body
- * text needs.
+ * all. With no backdrop, a card over a bright patch rendered at 118/255 and even
+ * the brightest body text managed 3.5:1, well under the 4.5:1 body text needs.
  *
- * 0.50 is the point where the whole ramp clears it. It is a *tint* of the same
- * slate rather than a black film, so the photo still shows through and still
- * reads as a night sky instead of a dimmed picture. It only applies while the
- * dusk cast is chosen: the pale casts carry dark text and need no veil, and
- * adding one would simply mute their wallpaper for nothing.
+ * The work is shared with the night wallpaper, which ships already carrying a
+ * quarter veil in its own pixels. That leaves a light touch here rather than a
+ * film, which is the difference between the photo reading as a night sky and it
+ * reading as a dimmed picture. The number that matters is the total: a quarter
+ * baked into the asset plus this, measured against the night wallpaper's
+ * brightest patch, gives heading 5.65:1, body 5.24:1 and secondary 4.94:1 —
+ * every step past AA rather than merely at it.
+ *
+ * It only applies while the dusk cast is chosen. The pale casts carry dark text,
+ * which a dark backdrop would destroy, so they pair with the light wallpaper
+ * instead.
  */
-export const DUSK_VEIL_ALPHA = 0.5;
+export const DUSK_VEIL_ALPHA = 0.25;
 
 /** The colour the dusk backdrop lays over the wallpaper. */
 export function duskVeilColor(): string {

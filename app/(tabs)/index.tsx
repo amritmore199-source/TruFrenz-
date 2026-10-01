@@ -282,6 +282,7 @@ import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
 } from "@/lib/appearance-preferences";
 import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, matchGlassPreset, tabBarTint, type GlassSurface, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
+import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
@@ -4128,7 +4129,7 @@ export default function TrufrenzApp() {
         </View>
       </View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the soft photo backdrop across the app.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: "#dddace", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#7393A9" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the crew artwork behind the glass. Its tone follows your glass colour.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: "#dddace", true: "#B9D9E9" }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
     <Text style={styles.settingsLabel}>ACCOUNT</Text>
     <Frosted style={styles.settingsPanel}>
@@ -4473,7 +4474,12 @@ export default function TrufrenzApp() {
           onContinueAsGuest={enterAsGuest}
         />
       ) : null}
-      {showWelcome ? null : <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={require("../../assets/images/kindred-background.jpg")} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 0.62 : 0 }]} resizeMode="cover" /></View>}
+      {/*
+        The wallpaper follows the glass cast, because the two palettes need
+        opposite things from a background — bright white text wants a dark
+        picture and dark ink wants a bright one. See lib/wallpaper.ts.
+      */}
+      {showWelcome ? null : <View style={[styles.backgroundImageWrap, styles.noninteractive]}><Image source={wallpaperSource(glassTintChoice)} style={[styles.backgroundImage, { opacity: wallpaperVisible ? 1 : 0 }]} resizeMode="cover" /></View>}
       {/*
         The night backdrop.
 
