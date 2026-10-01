@@ -30,6 +30,22 @@ export type GroupEntry = {
 
 export const DEFAULT_GROUP_LIFECYCLE: GroupLifecycle = "active";
 
+/**
+ * The id for a circle the member created.
+ *
+ * The name is not unique — two circles can both be called "Sunday walk" — so
+ * the position in the list is part of the id. This is derived in one place
+ * because it is used from three: the list that builds the directory, the create
+ * flow that opens the new circle's Group Info, and the row that decides whether
+ * a circle is chattable yet. When the formula lived in two of those, a group
+ * appeared in the list under one id and was opened under another, which showed
+ * as a row that could never be tapped into anything.
+ */
+export function createdGroupId(name: string, index: number): string {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "circle";
+  return `created-group-${Math.max(0, Math.floor(index))}-${slug}`;
+}
+
 export function groupLifecycleFor(
   states: Record<string, GroupLifecycle>,
   groupId: string,

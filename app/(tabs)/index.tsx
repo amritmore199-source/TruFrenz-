@@ -239,6 +239,7 @@ import {
 } from "@/lib/sections";
 import {
   groupAcceptsMessages,
+  createdGroupId,
   groupLifecycleFor,
   groupLifecycleLabel,
   groupLifecycleNote,
@@ -659,6 +660,15 @@ export default function TrufrenzApp() {
    * appears to have vanished.
    */
   const [groupLifecycles, setGroupLifecycles] = useState<Record<string, GroupLifecycle>>({});
+  /**
+   * The circle the member is currently editing in Group Info.
+   *
+   * The seeded circle and the member's own one share a single Group value,
+   * because Group Info only ever edits one circle at a time. This records which
+   * it is, so a rename or an invitation is written back to the right row rather
+   * than silently landing on the seeded club.
+   */
+  const [openGroupId, setOpenGroupId] = useState<string>("group-sunday-walk");
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
   const [chatMessages, setChatMessages] = useState(initialMessages);
@@ -2238,19 +2248,26 @@ export default function TrufrenzApp() {
         lastActivity: chatMessages[chat.id]?.at(-1)?.text ?? chat.lastMessage,
       }));
     const created = createdGroups.map((name, index): GroupEntry => {
-      const id = `created-group-${index}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+      const id = createdGroupId(name, index);
+      const active = group.id === id ? group : null;
       return {
         id,
         name,
         origin: "created",
         lifecycle: groupLifecycleFor(groupLifecycles, id),
-        // A circle the member just made has only themselves in it so far.
-        memberCount: 1,
-        lastActivity: "Invite accepted friends to begin",
+        /*
+         * The count is read from the circle itself once it has been opened and
+         * friends have been invited, so the row stops saying "invite friends to
+         * begin" the moment somebody joins. Before that it is just the creator.
+         */
+        memberCount: active ? active.members.length : 1,
+        lastActivity: active && active.members.length > 1
+          ? `${active.members.length - 1} ${active.members.length - 1 === 1 ? "friend has" : "friends have"} joined this circle`
+          : "Invite accepted friends to begin",
       };
     });
     return [...fromConversations, ...created];
-  }, [chatMessages, createdGroups, group.id, group.members.length, groupLifecycles]);
+  }, [chatMessages, createdGroups, group, groupLifecycles]);
 
   const groupLists = useMemo(() => partitionGroups(groupDirectory), [groupDirectory]);
   const groupSummary = useMemo(() => groupSectionSummary(groupDirectory), [groupDirectory]);
@@ -2343,6 +2360,17 @@ export default function TrufrenzApp() {
   })();
 
   const currentThread = selectedChat ? (seedConversations.find((chat) => chat.id === selectedChat) ?? (() => {
+    /*
+     * A created circle resolves to a group thread of its own once it has been
+     * opened. Without this the thread fell through to the friend lookup, found
+     * nobody, and left an empty header over an empty composer.
+     */
+    const createdCircle = selectedChat === openGroupId && createdGroups.length
+      ? groupDirectory.find((entry) => entry.id === selectedChat && entry.origin === "created")
+      : undefined;
+    if (createdCircle) {
+      return { id: createdCircle.id, name: createdCircle.name, image: require("../../assets/images/people/friends.jpg"), kind: "group" as const, lastMessage: createdCircle.lastActivity, time: "now", unread: 0 };
+    }
     const person = suggestions.find((item) => item.id === selectedChat);
     return person ? { id: person.id, name: person.name, image: person.image, kind: "friend" as const, lastMessage: "You are now friends", time: "now", unread: 0, verified: person.verification === "ID + selfie verified" } : null;
   })()) : null;
@@ -2998,10 +3026,20 @@ export default function TrufrenzApp() {
   const toggleGroup = () => {
     if (requireAccount("create-meetup")) return;
     if (!newGroupName.trim()) { feedback("Give your private group a name first."); return; }
-    setCreatedGroups((current) => [...current, newGroupName.trim()]);
+    const name = newGroupName.trim();
+    setCreatedGroups((current) => [...current, name]);
     setNewGroupName("");
     setComposerOpen(false);
-    feedback("Private group created. Invite accepted friends from the group chat.");
+    /*
+     * The member is taken straight to the new circle's Group Info, which is the
+     * only place friends can be added to it. Left on the list, they would have
+     * to find the row and guess that tapping it is what invites people.
+     */
+    const entries = [...createdGroups, name];
+    const index = entries.length - 1;
+    setOpenGroupId(createdGroupId(name, index));
+    setGroupInfoOpen(true);
+    feedback("Private circle created. Add the friends who should be in it.");
   };
 
   /**
@@ -3019,6 +3057,57 @@ export default function TrufrenzApp() {
         ? `${entry.name} closed. Messages are kept, and you can reopen it any time.`
         : `${entry.name} is active again. Messages will arrive as usual.`,
     );
+    tap();
+  };
+
+  /**
+   * Open Group Info for the circle that is showing.
+   *
+   * Group Info edits one circle at a time, so the screen records which one it
+   * is before opening the sheet. Without this a rename would always be written
+   * to the seeded club, whichever row had been tapped.
+   */
+  const openGroupInfo = (groupId: string = selectedChat ?? group.id) => {
+    setOpenGroupId(groupId);
+    setGroupInfoOpen(true);
+    tap();
+  };
+
+  /**
+   * Turn a circle the member created into a real, chattable group.
+   *
+   * Created circles lived only as names: tapping one ran the friend-chat path,
+   * which can never resolve, so the row was a dead end. Now the first open
+   * builds the circle for real — the member as its admin — and gives it a
+   * conversation, so Group Info can add accepted friends and the thread has
+   * somewhere to put their messages. The name is preserved, and reopening it
+   * does not build a second copy.
+   */
+  const openCreatedGroup = (entry: GroupEntry) => {
+    if (requireAccount("create-meetup")) return;
+    if (!seedConversations.some((chat) => chat.id === entry.id)) {
+      const created = createGroup({
+        id: entry.id,
+        name: entry.name,
+        creator: { id: "me", name: fullName.trim() || "You", role: "admin", paidTier },
+      });
+      seedConversations.push({
+        id: entry.id,
+        name: entry.name,
+        image: require("../../assets/images/people/friends.jpg"),
+        kind: "group",
+        lastMessage: "Invite accepted friends to begin",
+        time: "now",
+        unread: 0,
+      });
+      setChatMessages((current) => ({ ...current, [entry.id]: [] }));
+      setGroup(created);
+      feedback(`${entry.name} is ready. Invite the friends who should be in it.`);
+    }
+    setOpenGroupId(entry.id);
+    setSelectedChat(entry.id);
+    setTab("Chats");
+    setGroupInfoOpen(true);
     tap();
   };
 
@@ -3142,7 +3231,7 @@ export default function TrufrenzApp() {
             <Text style={[styles.backButtonText, styles.threadPrimaryText]}>Back</Text>
           </Pressable>
         ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#4A4210" /></View>}
-        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? setGroupInfoOpen(true) : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && setGroupInfoOpen(true)} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={[styles.threadTitle, styles.threadPrimaryText]} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={[styles.topBarSub, styles.threadSecondaryText]} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color={CHAT_NIGHT.accentText} /> : null}<Text style={[styles.threadStatus, styles.threadSecondaryText]} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <View style={styles.brandNameRow}><Text style={styles.brandWord}>Trufrenz</Text><Text style={styles.brandGreeting} numberOfLines={1}>{joined ? `· Hello, ${fullName.split(" ")[0] || "friend"}` : "· A little closer."}</Text></View>}
+        {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? openGroupInfo() : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && openGroupInfo()} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={[styles.threadTitle, styles.threadPrimaryText]} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={[styles.topBarSub, styles.threadSecondaryText]} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color={CHAT_NIGHT.accentText} /> : null}<Text style={[styles.threadStatus, styles.threadSecondaryText]} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <View style={styles.brandNameRow}><Text style={styles.brandWord}>Trufrenz</Text><Text style={styles.brandGreeting} numberOfLines={1}>{joined ? `· Hello, ${fullName.split(" ")[0] || "friend"}` : "· A little closer."}</Text></View>}
       </View>
       {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="call" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="videocam" size={19} color={CHAT_NIGHT.primaryText} /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="more-vert" size={21} color={CHAT_NIGHT.primaryText} /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#757056" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#77725a" />}</Pressable></View>}
     </View>
@@ -3351,7 +3440,19 @@ export default function TrufrenzApp() {
           group={group}
           viewerId="me"
           friendDirectory={suggestions.filter((person) => acceptedFriends.includes(person.id)).map((person) => ({ id: person.id, name: person.name, paidTier: paidTier }))}
-          onClose={() => setGroupInfoOpen(false)}
+          onClose={() => {
+            setGroupInfoOpen(false);
+            /*
+             * Closing Group Info lands in the conversation rather than back on
+             * the list. A member who has just added two friends to a brand new
+             * circle expects to arrive in it, not to have to find it again.
+             */
+            if (openGroupId) {
+              setFrozenUnreadStart(firstUnreadIndex(chatMessages[openGroupId] ?? [], threadState, openGroupId));
+              setSelectedChat(openGroupId);
+              setTab("Chats");
+            }
+          }}
           tier={tier}
           onUpgrade={(reason) => openPaywall(reason, "quarterly")}
           onUpdate={setGroup}
@@ -3706,12 +3807,24 @@ export default function TrufrenzApp() {
   const groupRow = (entry: GroupEntry) => {
     const lifecycle = groupLifecycleFor(groupLifecycles, entry.id);
     const acceptsMessages = groupAcceptsMessages(lifecycle);
+    /*
+     * A circle the member made themselves has an id rather than a seeded
+     * conversation, and the thread only resolves a conversation by id. The
+     * conversation is created on first open, so the row is worth tapping only
+     * once that has happened; until then the row opens Group Info, which is
+     * where the friends who give the circle someone to talk to are added.
+     */
+    const isChattable = seedConversations.some((chat) => chat.id === entry.id);
+    const openEntry = () => {
+      if (isChattable) { startThread(entry.id); return; }
+      openCreatedGroup(entry);
+    };
     return (
       <Frosted key={entry.id} style={styles.groupRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open ${entry.name} group chat`}
-          onPress={() => startThread(entry.id)}
+          accessibilityLabel={isChattable ? `Open ${entry.name} group chat` : `Add friends to ${entry.name}`}
+          onPress={openEntry}
           style={({ pressed }) => [styles.groupRowMain, pressed && styles.pressed]}
         >
           <View style={[styles.groupAvatar, lifecycle === "closed" && styles.groupAvatarClosed]}>

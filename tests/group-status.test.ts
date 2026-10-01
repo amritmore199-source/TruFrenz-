@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createdGroupId,
   groupAcceptsMessages,
   groupLifecycleFor,
   groupLifecycleLabel,
@@ -69,5 +70,36 @@ describe("the Groups section's lists", () => {
     expect(groupMemberSummary(1)).toBe("1 member");
     expect(groupMemberSummary(4)).toBe("4 members");
     expect(groupMemberSummary(null)).toBe("Private circle");
+  });
+});
+
+describe("naming a circle the member created", () => {
+  /*
+   * This id is the only thing joining the row in the list, the create flow that
+   * opens Group Info, and the check for whether a circle is chattable yet. It
+   * was written inline in two of those three, and a mismatch is not a cosmetic
+   * bug: the row simply cannot be opened.
+   */
+  it("is stable for the same name and position", () => {
+    expect(createdGroupId("Sunday walk", 0)).toBe(createdGroupId("Sunday walk", 0));
+  });
+
+  it("separates two circles that share a name", () => {
+    expect(createdGroupId("Sunday walk", 0)).not.toBe(createdGroupId("Sunday walk", 1));
+  });
+
+  it("produces an id safe to use as a key from any name", () => {
+    const id = createdGroupId("  Priya's Study & Chai!  ", 2);
+    expect(id).toMatch(/^created-group-2-[a-z0-9-]+$/);
+    expect(id).not.toMatch(/--$|^-/);
+  });
+
+  it("still produces a usable id when the name has nothing to slug", () => {
+    expect(createdGroupId("!!!", 0)).toBe("created-group-0-circle");
+  });
+
+  it("does not trust a negative or fractional position", () => {
+    expect(createdGroupId("Walk", -3)).toBe("created-group-0-walk");
+    expect(createdGroupId("Walk", 2.7)).toBe("created-group-2-walk");
   });
 });
