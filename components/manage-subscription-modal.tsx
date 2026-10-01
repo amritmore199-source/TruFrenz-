@@ -667,8 +667,8 @@ const styles = StyleSheet.create({
   statusActive: { backgroundColor: "rgba(214, 238, 224, 0.9)" },
   statusStopped: { backgroundColor: "rgba(250, 240, 224, 0.95)" },
   statusText: { fontSize: 9.5, fontWeight: "700" },
-  statusTextActive: { color: "#4E8567" },
-  statusTextStopped: { color: "#A5763F" },
+  statusTextActive: { color: "#45765C" },
+  statusTextStopped: { color: "#8C6436" },
   secondaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -682,8 +682,8 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: { fontSize: 12.5, fontWeight: "700", color: "#6f6741" },
   restoreNote: { fontSize: 11, color: "#5F5D57", lineHeight: 15 },
-  restoreNoteOk: { color: "#4E8567", fontWeight: "600" },
-  restoreNoteBad: { color: "#A5603F" },
+  restoreNoteOk: { color: "#45765C", fontWeight: "600" },
+  restoreNoteBad: { color: "#9D5B3C" },
   changeRow: { flexDirection: "row", gap: 8 },
   changeCard: {
     flex: 1,
@@ -707,13 +707,13 @@ const styles = StyleSheet.create({
   },
   cancelBody: { fontSize: 11.5, color: "#53514C", lineHeight: 16 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storeHintText: { fontSize: 11, color: "#767055", fontWeight: "700" },
+  storeHintText: { fontSize: 11, color: "#726D52", fontWeight: "700" },
   /*
    * The store row is a link, and it previously looked like one without being
    * one — an open-in-new icon beside instruction text. The affordance now
    * matches the behaviour, so the label is underlined and slightly darker.
    */
-  storeHintTextLinked: { fontSize: 11, color: "#767055", fontWeight: "700", textDecorationLine: "underline" },
+  storeHintTextLinked: { fontSize: 11, color: "#726D52", fontWeight: "700", textDecorationLine: "underline" },
   storeStepsText: {
     fontSize: 10.5,
     lineHeight: 15,

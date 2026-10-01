@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   chipText: { color: "#5F5D57", fontSize: 10, fontWeight: "650" as any },
   chipTextActive: { color: "#43423d" },
   mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(245, 242, 223, 0.8)" },
-  mapText: { flex: 1, color: "#83721f", fontSize: 9, fontWeight: "600" },
+  mapText: { flex: 1, color: "#7C6C1D", fontSize: 9, fontWeight: "600" },
   input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), paddingHorizontal: 12, paddingVertical: 9, color: "#53514C", fontSize: 11, outlineStyle: "none" as any },
   share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), shadowColor: "#5c5634", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   shareText: { color: "#4A4210", fontSize: 11, fontWeight: "700" },

@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   primaryText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
   ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
-  ghostText: { color: "#83721f", fontSize: 10, fontWeight: "650" as any },
+  ghostText: { color: "#7C6C1D", fontSize: 10, fontWeight: "650" as any },
   note: { color: "#5F5D57", fontSize: 9, lineHeight: 14, marginTop: 9 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 3 },
   cancelText: { color: "#5F5D57", fontSize: 10, fontWeight: "600" },

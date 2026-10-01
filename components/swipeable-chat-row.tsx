@@ -414,10 +414,10 @@ const styles = StyleSheet.create({
   nameCluster: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
   name: { color: "#464336", fontSize: 12, fontWeight: "650" as any, flexShrink: 1 },
   time: { color: "#5F5D57", fontSize: 9 },
-  timeUnread: { color: "#806f1c", fontWeight: "700" },
+  timeUnread: { color: "#7C6C1B", fontWeight: "700" },
   lastRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
   preview: { flex: 1, color: "#5F5D57", fontSize: 10 },
   badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#E9D177" },
   badgeText: { color: "#4A4210", fontSize: 9, fontWeight: "700" },
-  status: { color: "#83721f", fontSize: 8.5, fontWeight: "600", marginTop: 3 },
+  status: { color: "#7C6C1D", fontSize: 8.5, fontWeight: "600", marginTop: 3 },
 });
