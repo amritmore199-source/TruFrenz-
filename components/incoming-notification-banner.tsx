@@ -136,7 +136,7 @@ export function IncomingNotificationBanner({
             <Text style={styles.sender} numberOfLines={1}>{displayed.senderName}</Text>
             <Text style={styles.preview} numberOfLines={1}>{displayed.preview}</Text>
           </View>
-          <MaterialIcons name="chevron-right" size={20} color="#9e9b93" />
+          <MaterialIcons name="chevron-right" size={20} color="#8B8881" />
         </Pressable>
         <Pressable onPress={onDismiss} style={styles.close} accessibilityRole="button" accessibilityLabel="Dismiss notification">
           <MaterialIcons name="close" size={15} color="#807d76" />

@@ -107,26 +107,26 @@ export function ChatOverflowMenu({
                 <Pressable accessibilityRole="button" accessibilityLabel={`View ${first}'s profile`} onPress={() => { onClose(); onViewProfile(); }} style={styles.row}>
                   <View style={styles.iconPink}><MaterialIcons name="person-outline" size={17} color="#83721f" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>View profile</Text><Text style={styles.rowSub}>Photos, interests, and verification</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                  <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
               ) : null}
 
               <View style={styles.divider} />
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.muted }} accessibilityLabel={state.muted ? "Unmute notifications" : "Mute notifications"} onPress={onToggleMute} style={styles.row}>
-                <View style={styles.iconBlue}><MaterialIcons name={state.muted ? "notifications-active" : "notifications-off"} size={17} color="#7393A8" /></View>
+                <View style={styles.iconBlue}><MaterialIcons name={state.muted ? "notifications-active" : "notifications-off"} size={17} color="#6E8DA1" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.muted ? "Unmute this chat" : "Mute this chat"}</Text><Text style={styles.rowSub}>{state.muted ? "Notifications are paused" : "Stay quiet, keep the badge"}</Text></View>
                 <Switch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.archived }} accessibilityLabel={state.archived ? "Unarchive conversation" : "Archive conversation"} onPress={onToggleArchive} style={styles.row}>
-                <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#DFE6EB" /></View>
+                <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#6E6C67" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.archived ? "Move back to inbox" : "Archive this chat"}</Text><Text style={styles.rowSub}>{state.archived ? "Returns to your main list" : "Hidden until a new message arrives"}</Text></View>
                 <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: shareReadReceipts }} accessibilityLabel="Show when I have read messages" onPress={() => onToggleReadReceipts(!shareReadReceipts)} style={styles.row}>
-                <View style={styles.iconBlue}><MaterialIcons name="done-all" size={17} color="#7393A8" /></View>
+                <View style={styles.iconBlue}><MaterialIcons name="done-all" size={17} color="#6E8DA1" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>Show when I&apos;ve read messages</Text><Text style={styles.rowSub}>{shareReadReceipts ? "Read receipts are on" : "Off by default · your friends see Delivered only"}</Text></View>
                 <Switch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
@@ -134,30 +134,30 @@ export function ChatOverflowMenu({
               <View style={styles.divider} />
 
               <Pressable accessibilityRole="button" accessibilityLabel="Report this conversation" onPress={() => { onReport(); closeAll(); }} style={styles.row}>
-                <View style={styles.iconNeutral}><MaterialIcons name="flag" size={17} color="#DFE6EB" /></View>
+                <View style={styles.iconNeutral}><MaterialIcons name="flag" size={17} color="#6E6C67" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>Report</Text><Text style={styles.rowSub}>Send this conversation to the safety team</Text></View>
-                <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
               </Pressable>
 
               {!isGroup ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Block ${first}`} onPress={() => setPending("block")} style={styles.row}>
-                  <View style={styles.iconNeutral}><MaterialIcons name="block" size={17} color="#DFE6EB" /></View>
+                  <View style={styles.iconNeutral}><MaterialIcons name="block" size={17} color="#6E6C67" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Block</Text><Text style={styles.rowSub}>They can&apos;t reach you anywhere in Trufrenz</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                  <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
               ) : null}
 
               <Pressable accessibilityRole="button" accessibilityLabel={isGroup ? "Leave this group" : `Unfriend ${first}`} onPress={() => setPending(isGroup ? "delete" : "unfriend")} style={styles.row}>
                 <View style={styles.iconDanger}><MaterialIcons name={isGroup ? "logout" : "person-remove-alt-1"} size={17} color="#B4707F" /></View>
                 <View style={styles.copy}><Text style={[styles.rowTitle, styles.dangerText]}>{isGroup ? "Leave group" : `Unfriend ${first}`}</Text><Text style={styles.rowSub}>{isGroup ? "You keep your copy of the history" : "Chat becomes archived and read-only"}</Text></View>
-                <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
               </Pressable>
 
               {state.archived ? (
                 <Pressable accessibilityRole="button" accessibilityLabel="Delete this conversation" onPress={() => setPending("delete")} style={styles.row}>
                   <View style={styles.iconDanger}><MaterialIcons name="delete-outline" size={17} color="#B4707F" /></View>
                   <View style={styles.copy}><Text style={[styles.rowTitle, styles.dangerText]}>Delete messages</Text><Text style={styles.rowSub}>Removes this conversation from your device</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                  <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
               ) : null}
 

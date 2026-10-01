@@ -115,12 +115,12 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                     <Text style={styles.tileSub}>From your library</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel="Record a short voice note" onPress={() => setMode("voice")} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
-                    <View style={styles.tileIconBlue}><MaterialIcons name="mic-none" size={19} color="#7393A8" /></View>
+                    <View style={styles.tileIconBlue}><MaterialIcons name="mic-none" size={19} color="#6E8DA1" /></View>
                     <Text style={styles.tileTitle}>Voice note</Text>
                     <Text style={styles.tileSub}>Up to {MAX_VOICE_SECONDS}s</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel="Share a place manually" onPress={() => setMode("location")} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
-                    <View style={styles.tileIconGreen}><MaterialIcons name="place" size={19} color="#6E9C86" /></View>
+                    <View style={styles.tileIconGreen}><MaterialIcons name="place" size={19} color="#66917D" /></View>
                     <Text style={styles.tileTitle}>Place pin</Text>
                     <Text style={styles.tileSub}>Manual, never live</Text>
                   </Pressable>
@@ -131,12 +131,12 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a hangout card" onPress={() => { onClose(); onSuggestPlan("hangout"); }} style={styles.row}>
                   <View style={styles.tileIconPink}><MaterialIcons name="local-cafe" size={17} color="#83721f" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Hangout</Text><Text style={styles.rowSub}>A card with time and place, accept or decline</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                  <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a meetup card" onPress={() => { onClose(); onSuggestPlan("meetup"); }} style={styles.row}>
-                  <View style={styles.tileIconBlue}><MaterialIcons name="event-available" size={17} color="#7393A8" /></View>
+                  <View style={styles.tileIconBlue}><MaterialIcons name="event-available" size={17} color="#6E8DA1" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Meetup</Text><Text style={styles.rowSub}>Adds an arrival check-in for the day</Text></View>
-                  <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                  <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
               </>
             ) : null}
@@ -178,9 +178,9 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <Text style={styles.note}>This is a manual share, separate from the live-location map. Your exact position is never sent automatically.</Text>
                 {PLACE_CHOICES.map((place) => (
                   <Pressable key={place} accessibilityRole="button" accessibilityLabel={`Share ${place}`} onPress={() => { onSend({ kind: "location", place }); onClose(); }} style={styles.row}>
-                    <View style={styles.tileIconGreen}><MaterialIcons name="place" size={16} color="#6E9C86" /></View>
+                    <View style={styles.tileIconGreen}><MaterialIcons name="place" size={16} color="#66917D" /></View>
                     <View style={styles.copy}><Text style={styles.rowTitle} numberOfLines={1}>{place.split(" · ")[0]}</Text><Text style={styles.rowSub}>{place.split(" · ")[1]}</Text></View>
-                    <MaterialIcons name="send" size={15} color="#BFC8CF" />
+                    <MaterialIcons name="send" size={15} color="#848A8F" />
                   </Pressable>
                 ))}
                 <Pressable accessibilityRole="button" accessibilityLabel="Back to attachments" onPress={() => setMode("menu")} style={styles.cancel}>

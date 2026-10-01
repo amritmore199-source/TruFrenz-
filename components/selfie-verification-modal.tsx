@@ -20,11 +20,11 @@ import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage }
 
 const colors = {
   ink: "#43423d",
-  muted: "#88857f",
+  muted: "#6E6C67",
   purple: "#83721f",
   glass: glassNestedFill("rgba(255, 255, 255, 0.82)"),
   stroke: glassNestedFill("rgba(255, 255, 255, 0.97)"),
-  green: "#70A889",
+  green: "#6AA082",
 };
 
 export function SelfieVerificationModal({
@@ -112,7 +112,7 @@ export function SelfieVerificationModal({
       <Text style={styles.title}>A small step for a little more trust.</Text>
       <Text style={styles.description}>Take a fresh front-camera selfie. A real identity provider would check it against your profile before Trufrenz grants the stronger badge.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#7C92A1" />
+        <MaterialIcons name="lock-outline" size={18} color="#778C9B" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Your photo stays on this device in this prototype.</Text>
           <Text style={styles.promiseText}>It is not uploaded, stored in your profile, or treated as a completed identity check.</Text>
@@ -149,12 +149,12 @@ export function SelfieVerificationModal({
 
   const renderPermissionRequest = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#7894A4" /></View>
+      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#728D9C" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS</Text>
       <Text style={styles.title}>Your camera stays off until you say yes.</Text>
       <Text style={styles.description}>Trufrenz needs the front camera for one fresh selfie. We never turn it on in the background, and you can leave this step any time.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#7C92A1" />
+        <MaterialIcons name="lock-outline" size={18} color="#778C9B" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Camera access is optional.</Text>
           <Text style={styles.promiseText}>If you choose Allow, a camera preview opens. If you choose Don’t Allow, you can still use Trufrenz without a selfie badge.</Text>
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   promiseTitle: { color: "#5F5D57", fontSize: 9, fontWeight: "700" },
   promiseText: { color: "#6E6C67", fontSize: 8, lineHeight: 12 },
   primaryButton: { width: "100%", minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, backgroundColor: colors.purple, paddingHorizontal: 13, marginTop: 15 },
-  primaryButtonText: { flex: 1, textAlign: "center", color: "#43423d", fontSize: 10, fontWeight: "700" },
+  primaryButtonText: { flex: 1, textAlign: "center", color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   buttonPressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
   secondaryButton: { padding: 12, alignItems: "center" },
   secondaryText: { color: "#6E6C67", fontSize: 9, fontWeight: "600" },

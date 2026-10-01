@@ -73,7 +73,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
           <Image source={{ uri: pending.uri }} style={styles.thumb} />
         ) : (
           <View style={styles.voiceThumb}>
-            <MaterialIcons name="graphic-eq" size={18} color="#7E93A4" />
+            <MaterialIcons name="graphic-eq" size={18} color="#788C9C" />
           </View>
         )}
       </View>

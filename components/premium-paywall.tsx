@@ -296,7 +296,7 @@ export function PremiumPaywall({
                     <Text style={styles.adFreeName}>Maya Chen</Text>
                     <Text style={styles.adFreeCopy}>That little garden café was lovely</Text>
                   </View>
-                  <View style={styles.adFreeDismiss}><MaterialIcons name="close" size={13} color="#8C8A82" /></View>
+                  <View style={styles.adFreeDismiss}><MaterialIcons name="close" size={13} color="#8B8981" /></View>
                 </View>
                 <Text style={styles.adFreeNote}>No banner, no dismiss control, nothing to scroll past.</Text>
               </View>
@@ -315,7 +315,7 @@ export function PremiumPaywall({
                     )}
                   </View>
                   {row.free === row.premium ? (
-                    <MaterialIcons name="check" size={16} color="#8FA9A0" />
+                    <MaterialIcons name="check" size={16} color="#788E86" />
                   ) : (
                     <View style={styles.premiumCell}>
                       <MaterialIcons name="check" size={16} color="#5C8F73" />
@@ -351,7 +351,7 @@ export function PremiumPaywall({
             </View>
 
             <View style={styles.paymentNote}>
-              <MaterialIcons name="lock-outline" size={14} color="#DFE6EB" />
+              <MaterialIcons name="lock-outline" size={14} color="#6E6C67" />
               <Text style={styles.paymentNoteText}>{PAYMENT_NOTE}</Text>
             </View>
           </ScrollView>
@@ -377,7 +377,7 @@ export function PremiumPaywall({
                   style={({ pressed }) => [styles.primaryButton, inFlight && styles.primaryButtonBusy, pressed && styles.pressed]}
                 >
                   {inFlight ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <ActivityIndicator color="#4A4210" size="small" />
                   ) : (
                     <>
                       <MaterialIcons name="workspace-premium" size={17} color="#4A4210" />

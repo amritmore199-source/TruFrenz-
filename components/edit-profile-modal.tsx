@@ -144,10 +144,10 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                       )}
                       <View style={styles.photoControls}>
                         <Pressable onPress={() => onChange({ ...profile, photos: move(profile.photos, index, -1), primaryPhotoId: profile.primaryPhotoId })} disabled={index === 0} accessibilityLabel={`Move photo ${index + 1} earlier`} style={[styles.photoControl, index === 0 && styles.photoControlDisabled]}>
-                          <MaterialIcons name="chevron-left" size={15} color="#C8D3DA" />
+                          <MaterialIcons name="chevron-left" size={15} color="#82898E" />
                         </Pressable>
                         <Pressable onPress={() => onChange({ ...profile, photos: move(profile.photos, index, 1), primaryPhotoId: profile.primaryPhotoId })} disabled={index === profile.photos.length - 1} accessibilityLabel={`Move photo ${index + 1} later`} style={[styles.photoControl, index === profile.photos.length - 1 && styles.photoControlDisabled]}>
-                          <MaterialIcons name="chevron-right" size={15} color="#C8D3DA" />
+                          <MaterialIcons name="chevron-right" size={15} color="#82898E" />
                         </Pressable>
                         <Pressable onPress={() => onChange(removePhoto(profile, photo.id))} accessibilityLabel={`Remove photo ${index + 1}`} style={styles.photoControl}>
                           <MaterialIcons name="delete-outline" size={15} color="#83721f" />
@@ -239,7 +239,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
               </View>
               {statusText.trim() ? (
                 <Pressable accessibilityLabel="Clear status" onPress={() => { setStatusText(""); setStatusEmoji(""); }} style={styles.statusClear}>
-                  <MaterialIcons name="close" size={13} color="#DFE6EB" />
+                  <MaterialIcons name="close" size={13} color="#6E6C67" />
                   <Text style={styles.statusClearText}>Clear status</Text>
                 </Pressable>
               ) : null}
@@ -248,7 +248,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
               <Text style={styles.sectionLabel}>AGE · LOCKED TO YOUR VERIFIED DATE OF BIRTH</Text>
               <View style={[styles.input, styles.lockedField]}>
                 <Text style={styles.lockedValue}>{profile.age}</Text>
-                <MaterialIcons name="lock" size={14} color="#DFE6EB" />
+                <MaterialIcons name="lock" size={14} color="#6E6C67" />
               </View>
               <Text style={styles.hint}>Ages stay accurate because they come from verification, not a free-text field.</Text>
 
@@ -275,7 +275,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
               />
               <View style={styles.chipWrap}>
                 <Pressable onPress={() => patch({ locality: "Pacific Heights", localityAutoFilled: true })} accessibilityLabel="Use device location for home area" style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
-                  <MaterialIcons name="my-location" size={13} color="#7E8D98" />
+                  <MaterialIcons name="my-location" size={13} color="#7B8A95" />
                   <Text style={styles.chipText}>Use device location</Text>
                 </Pressable>
                 {LOCALITY_SUGGESTIONS.slice(0, 3).map((item) => (
@@ -373,7 +373,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                     <MaterialIcons name="block" size={15} color="#83721f" />
                     <Text style={styles.blockListText}>Block list</Text>
                     <Text style={styles.blockListCount}>{profile.privacy.blockedIds.length}</Text>
-                    <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                    <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                   </Pressable>
                 </View>
               ) : null}

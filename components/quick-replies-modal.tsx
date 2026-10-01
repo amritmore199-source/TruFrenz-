@@ -65,7 +65,7 @@ export function QuickRepliesModal({
                     <Text style={styles.phraseText}>{reply.text}</Text>
                     <MaterialIcons name="north-west" size={14} color="#83721f" />
                   </Pressable>
-                  {custom ? <Pressable onPress={() => onRemove(reply.id)} style={styles.removeButton} accessibilityLabel={`Remove custom reply: ${reply.text}`}><MaterialIcons name="close" size={16} color="#939188" /></Pressable> : null}
+                  {custom ? <Pressable onPress={() => onRemove(reply.id)} style={styles.removeButton} accessibilityLabel={`Remove custom reply: ${reply.text}`}><MaterialIcons name="close" size={16} color="#8A8880" /></Pressable> : null}
                 </View>
               );
             })}

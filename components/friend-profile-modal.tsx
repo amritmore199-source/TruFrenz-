@@ -178,7 +178,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
                 <Text style={[styles.badgeText, !verified && styles.phoneText]}>{profile.verification}</Text>
               </View>
               <View style={styles.locality}>
-                <MaterialIcons name="place" size={15} color="#8e8b83" />
+                <MaterialIcons name="place" size={15} color="#8B8880" />
                 <Text style={styles.localityText}>{profile.locality} · broad area only</Text>
               </View>
               {distance ? (
@@ -232,7 +232,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
                 <Text style={styles.sectionLabel}>SPEAKS</Text>
                 <View style={styles.tags}>
                   {profile.languages.map((item) => (
-                    <View key={item} style={styles.languageTag}><MaterialIcons name="translate" size={12} color="#7C8E9A" /><Text style={styles.languageText}>{item}</Text></View>
+                    <View key={item} style={styles.languageTag}><MaterialIcons name="translate" size={12} color="#7A8B97" /><Text style={styles.languageText}>{item}</Text></View>
                   ))}
                 </View>
               </>
@@ -248,7 +248,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             </View>
 
             <View style={styles.safetyNote}>
-              <MaterialIcons name="lock-outline" size={15} color="#7893A2" />
+              <MaterialIcons name="lock-outline" size={15} color="#738D9C" />
               <Text style={styles.safetyText}>
                 {/*
                   The notice has to match who asked whom. A request that arrived

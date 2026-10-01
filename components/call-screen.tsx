@@ -79,7 +79,7 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
           )}
 
           <View style={styles.noteRow}>
-            <MaterialIcons name="lock-outline" size={13} color="#DFE6EB" />
+            <MaterialIcons name="lock-outline" size={13} color="#6E6C67" />
             <Text style={styles.note}>Calls are end-to-end encrypted and only reachable by accepted friends. Declining never sends a pushy notification.</Text>
           </View>
         </View>
@@ -102,9 +102,9 @@ const styles = StyleSheet.create({
   state: { color: "#7C6C1D", fontSize: 10, fontWeight: "650" as any, marginTop: 6 },
   warn: { color: "#7C6C1D", fontSize: 9.5, lineHeight: 14, textAlign: "center", marginTop: 9 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 20 },
-  decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#C98191", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
-  accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
-  actionText: { color: "#4A4210", fontSize: 10, fontWeight: "700" },
+  decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#9F6673", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
+  accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
+  actionText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   noteRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 20, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "rgba(246, 244, 229, 0.86)" },
   note: { flex: 1, color: "#5F5D57", fontSize: 9, lineHeight: 14 },
   pressed: { opacity: 0.88, transform: [{ scale: 0.97 }] },

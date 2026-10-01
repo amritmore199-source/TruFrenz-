@@ -304,9 +304,9 @@ export function SwipeableChatRow({
                 <Text style={styles.name} numberOfLines={1}>
                   {chat.name}
                 </Text>
-                {chat.verified ? <MaterialIcons name="verified" size={13} color="#61A088" /> : null}
-                {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#a2a099" /> : null}
-                {state.archived ? <MaterialIcons name="archive" size={12} color="#a2a099" /> : null}
+                {chat.verified ? <MaterialIcons name="verified" size={13} color="#5A957E" /> : null}
+                {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#8A8882" /> : null}
+                {state.archived ? <MaterialIcons name="archive" size={12} color="#8A8882" /> : null}
               </View>
               <Text style={[styles.time, unread > 0 && styles.timeUnread]}>{chat.time}</Text>
             </View>
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
   },
-  muteAction: { backgroundColor: "#8FA6B6" },
+  muteAction: { backgroundColor: "#8297A6" },
   archiveAction: { backgroundColor: "#F1DE55" },
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },

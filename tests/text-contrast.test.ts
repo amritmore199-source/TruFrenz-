@@ -44,6 +44,41 @@ function sourceFiles(dir: string): string[] {
   return found;
 }
 
+
+/*
+ * A translucent fill, resolved where it actually lands.
+ *
+ * Every other check in this file measures an ink against the card, because the card
+ * is the lightest surface. That is right for an opaque surface and wrong for a
+ * translucent one: a field declaring rgba(255, 255, 255, 0.7) is not white, it is
+ * whatever it composites to over the card — and it moves when the surface behind it
+ * moves. One of the defects found in this pass was exactly that, and it had to be
+ * solved by hand because nothing in the suite could answer "what colour is this,
+ * really?".
+ *
+ * The wrappers matter too: most fields declare their fill as glassNestedFill("rgba(...)")
+ * so the rgba has to be read out of the wrapper. The glass resolvers then lighten it
+ * toward the cast, which only raises contrast against dark ink, so resolving the
+ * declared rgba is the conservative reading.
+ */
+function parseColour(value: string): { rgb: number[]; alpha: number } | null {
+  const hexValue = /^#([0-9A-Fa-f]{6})$/.exec(value);
+  if (hexValue) return { rgb: hex(value), alpha: 1 };
+  const rgba = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)/.exec(value);
+  if (!rgba) return null;
+  return {
+    rgb: [1, 2, 3].map((i) => Number(rgba[i])),
+    alpha: rgba[4] === undefined ? 1 : Number(rgba[4]),
+  };
+}
+
+/** What a declared fill actually shows over the given surface. */
+function composite(fill: string, over: number[]): number[] | null {
+  const parsed = parseColour(fill);
+  if (!parsed) return null;
+  return parsed.rgb.map((v, i) => Math.round(v * parsed.alpha + over[i] * (1 - parsed.alpha)));
+}
+
 type Declaration = { file: string; style: string; value: string };
 
 function textColourDeclarations(): Declaration[] {
@@ -171,6 +206,127 @@ describe("text contrast", () => {
     const overCard = (base: number[]) =>
       base.map((v, i) => Math.round(v * 0.92 + CARD[i] * 0.08));
     expect(contrast([255, 255, 255], overCard(hex("#915D68")))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("keeps the global text tokens legible on a card", () => {
+    /*
+     * theme.config.js sits outside the style-table reader, so every token in it was
+     * unmeasured — including the one behind text-muted, which sat at 3.18:1 on a card.
+     * It happened not to be used as text anywhere, which is luck rather than design:
+     * it is one class name away from being written.
+     *
+     * foreground and muted are the two tokens that carry text, so they answer to AA.
+     * primary is the brand gold and is used as an accent and for icons, not for body
+     * copy on a card; it clears the 3:1 non-text floor and is pinned there, so that if
+     * it ever does become body text the change is deliberate rather than accidental.
+     */
+    const config = readFileSync("theme.config.js", "utf8");
+    const light = (token: string): number[] => {
+      const match = new RegExp(`${token}:\\s*\\{\\s*light:\\s*'(#[0-9A-Fa-f]{6})'`).exec(config);
+      expect(match, `${token} must exist in theme.config.js`).not.toBeNull();
+      return hex(match![1]);
+    };
+    expect(contrast(light("foreground"), CARD)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(light("muted"), CARD)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(light("primary"), CARD)).toBeGreaterThanOrEqual(3);
+  });
+
+  /*
+   * Icons.
+   *
+   * Icons take their colour as a prop, so neither the text pass nor the outline pass
+   * could see them — the style-table reader walks declarations, and an icon colour is
+   * not one. Thirty-eight values were below the 3:1 non-text floor, and they had the
+   * same shape as the text drift: pale blue-greys carried over from the dark theme
+   * that was tried and abandoned, left behind on light surfaces.
+   *
+   * The worst were not drift but contradictions. A near-white lock sat on the pale
+   * locked-age field at 1.09:1. The selfie button drew a white icon inside a gold
+   * button whose own label is dark, at 1.16:1 — and its label was itself below AA at
+   * 2.11:1. The call buttons put a dark 10px label and a white icon inside the same
+   * filled circle, at 3.01:1, failing and arguing with each other about what the fill
+   * was. The check-in button did the same thing. A white spinner sat on the lemon
+   * purchase button at 1.37:1.
+   *
+   * White is exempt because it is frequently right — on the gold brand mark (4.78:1),
+   * on the call fills and the muted-swipe fill once those were deepened to carry it,
+   * and on the dark scrims over camera and photo imagery. The remaining whites are
+   * pinned below so a future fill change cannot quietly strand one.
+   */
+  const ICON_FLOOR = 3;
+  const ICON_COMPONENT = /<(MaterialIcons|IconSymbol|Icon)\b[^>]{0,400}?color="(#[0-9A-Fa-f]{6})"/g;
+
+  function iconColours(): { file: string; value: string }[] {
+    const found: { file: string; value: string }[] = [];
+    for (const file of [...sourceFiles("app"), ...sourceFiles("components")]) {
+      for (const m of readFileSync(file, "utf8").matchAll(ICON_COMPONENT)) {
+        found.push({ file, value: m[2] });
+      }
+    }
+    return found;
+  }
+
+  it("keeps every icon visible against the card", () => {
+    const failing = iconColours()
+      .filter(({ value }) => value.toUpperCase() !== "#FFFFFF")
+      .filter(({ value }) => contrast(hex(value), CARD) < ICON_FLOOR)
+      .map(({ file, value }) => `${file}: ${value} at ${contrast(hex(value), CARD).toFixed(2)}:1`);
+    expect(failing).toEqual([]);
+  });
+
+  it("pins the fills that white icons rely on", () => {
+    // Each of these carries a white icon, so each has to reach the non-text floor.
+    // Two are states rather than surfaces: the selfie success badge and the muted
+    // swipe action, which answer to the same 3:1 as any other indicator.
+    const carriesWhite: [string, string][] = [
+      ["selfie success badge", "#6AA082"],
+      ["call decline", "#9F6673"],
+      ["call accept", "#597E6D"],
+      ["check-in action", "#597E6D"],
+      ["muted swipe action", "#8297A6"],
+      ["brand mark gold", "#83721f"],
+    ];
+    for (const [what, fill] of carriesWhite) {
+      expect(contrast([255, 255, 255], hex(fill)), `${what} must carry white`)
+        .toBeGreaterThanOrEqual(ICON_FLOOR);
+    }
+  });
+
+  it("keeps a button's label and its icon on the same side of the fill", () => {
+    // The pattern that produced three of these defects: a button whose label is dark
+    // and whose icon is white. The light lemon takes the app's dark ink; the dark
+    // brand gold takes white.
+    expect(contrast(hex("#4A4210"), hex("#F1DE55"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast([255, 255, 255], hex("#83721f"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("measures a translucent fill where it lands, not where it is declared", () => {
+    // Read each style that declares both a translucent fill and an ink, resolve the
+    // fill over the card, and hold the ink to AA against the result. The declared
+    // value is compared too: a fill lighter than the card makes things worse and a
+    // darker one makes them better, so the worse of the two is the honest reading.
+    const failing: string[] = [];
+    let checked = 0;
+    for (const file of [...sourceFiles("app"), ...sourceFiles("components")]) {
+      const source = readFileSync(file, "utf8");
+      const stylePattern = /^ {2}([A-Za-z0-9_]+):\s*\{([^}]*)\}/gm;
+      for (const match of source.matchAll(stylePattern)) {
+        const [, style, body] = match;
+        const fillMatch = /backgroundColor:\s*(?:[A-Za-z_$][\w$.]*\()?"(rgba\([^"]*\)|[^"]*)"/.exec(body);
+        const inkMatch = /color:\s*"(#[0-9A-Fa-f]{6})"/.exec(body);
+        if (!fillMatch || !inkMatch) continue;
+        const landed = composite(fillMatch[1], CARD);
+        if (!landed) continue;
+        checked += 1;
+        const ink = hex(inkMatch[1]);
+        const worst = Math.min(contrast(ink, landed), contrast(ink, CARD));
+        if (worst < 4.5) {
+          failing.push(`${file}: ${style} ${inkMatch[1]} on ${fillMatch[1]} = ${worst.toFixed(2)}:1`);
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+    expect(failing).toEqual([]);
   });
 
   it("keeps the quiet tier the lightest ink that still clears AA", () => {

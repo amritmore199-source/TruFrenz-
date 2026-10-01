@@ -460,7 +460,7 @@ export function ManageSubscriptionModal({
                   {isComp ? (
                     <>
                       <View style={styles.storeHint}>
-                        <MaterialIcons name="card-giftcard" size={13} color="#DFE6EB" />
+                        <MaterialIcons name="card-giftcard" size={13} color="#6E6C67" />
                         <Text style={styles.storeHintText}>{storeManagementLine("comp")}</Text>
                       </View>
                       <Text style={styles.storeStepsText}>
@@ -476,7 +476,7 @@ export function ManageSubscriptionModal({
                         accessibilityLabel={storeManageActionLabel(Platform.OS)}
                         style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
                       >
-                        <MaterialIcons name="open-in-new" size={13} color="#DFE6EB" />
+                        <MaterialIcons name="open-in-new" size={13} color="#6E6C67" />
                         <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
                       </Pressable>
                       <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
@@ -534,7 +534,7 @@ export function ManageSubscriptionModal({
                   )}
 
                   <View style={styles.refundRow}>
-                    <MaterialIcons name="help-outline" size={13} color="#DFE6EB" />
+                    <MaterialIcons name="help-outline" size={13} color="#6E6C67" />
                     <Text style={styles.refundText}>{REFUND_LINE}</Text>
                   </View>
                 </View>
@@ -555,7 +555,7 @@ export function ManageSubscriptionModal({
             )}
 
             <View style={styles.footerNote}>
-              <MaterialIcons name="lock-outline" size={13} color="#DFE6EB" />
+              <MaterialIcons name="lock-outline" size={13} color="#6E6C67" />
               <Text style={styles.footerNoteText}>
                 {verification === "store"
                   ? "Every purchase is confirmed with your store before Premium turns on."

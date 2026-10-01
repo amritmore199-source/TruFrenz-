@@ -119,7 +119,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
                   {viewerIsAdmin && member.id !== viewerId ? (
                     <View style={styles.memberActions}>
                       <Pressable accessibilityRole="button" accessibilityLabel={`Make ${member.name.split(" ")[0]} the admin`} onPress={() => apply(transferAdmin(group, member.id, viewerId))} style={styles.iconAction}>
-                        <MaterialIcons name="swap-horiz" size={15} color="#DFE6EB" />
+                        <MaterialIcons name="swap-horiz" size={15} color="#6E6C67" />
                       </Pressable>
                       <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${member.name.split(" ")[0]} from the group`} onPress={() => apply(removeMember(group, member.id, viewerId))} style={styles.iconAction}>
                         <MaterialIcons name="person-remove-alt-1" size={15} color="#B4707F" />
@@ -149,15 +149,15 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
 
               <Text style={styles.sectionLabel}>GROUP SETTINGS</Text>
               <View style={styles.settingRow}>
-                <MaterialIcons name="notifications-off" size={16} color="#DFE6EB" />
+                <MaterialIcons name="notifications-off" size={16} color="#6E6C67" />
                 <View style={styles.memberCopy}><Text style={styles.settingTitle}>Mute notifications</Text><Text style={styles.memberRole}>Your choice only — other members are unaffected</Text></View>
                 <Switch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" />
               </View>
 
               <Pressable accessibilityRole="button" accessibilityLabel="Start a group call" onPress={() => { onFeedback(callGate.message); if (callGate.allowed) onStartGroupCall(); }} style={({ pressed }) => [styles.callRow, pressed && styles.pressed]}>
-                <View style={styles.callIcon}><MaterialIcons name="videocam" size={17} color="#7393A8" /></View>
+                <View style={styles.callIcon}><MaterialIcons name="videocam" size={17} color="#6E8DA1" /></View>
                 <View style={styles.memberCopy}><Text style={styles.settingTitle}>Group call</Text><Text style={styles.memberRole}>{callGate.allowed ? "Everyone here has Premium" : "Needs Premium on every member"}</Text></View>
-                <MaterialIcons name="chevron-right" size={17} color="#BFC8CF" />
+                <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
               </Pressable>
 
               <Pressable accessibilityRole="button" accessibilityLabel="Leave this group" onPress={() => { const result = leaveGroup(group, viewerId); if (result.ok) { onFeedback(result.message); onLeave(); } else onFeedback(result.message); }} style={styles.leaveRow}>

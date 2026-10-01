@@ -76,7 +76,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           accessibilityLabel="Dismiss this hint"
           style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}
         >
-          <MaterialIcons name="close" size={15} color="#98968d" />
+          <MaterialIcons name="close" size={15} color="#8A8880" />
         </Pressable>
       </View>
       <Pressable
