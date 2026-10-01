@@ -35,9 +35,14 @@ export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
  * rather than a replacement, so a member who liked the pale daytime glass keeps
  * it and nothing about the default changes for them.
  */
-export const GLASS_TINT_OPTIONS = ["white", "sky", "lemon"] as const;
+export const GLASS_TINT_OPTIONS = ["ash", "white", "sky", "lemon"] as const;
 
-export const DEFAULT_GLASS_TINT: GlassTint = "sky";
+/*
+ * Ash is the default because it is the only cast that carries no colour of its
+ * own, so it never competes with the member's wallpaper. The three coloured casts
+ * remain available for anyone who wants the glass itself to have a tint.
+ */
+export const DEFAULT_GLASS_TINT: GlassTint = "ash";
 
 export type AppearancePreferences = {
   glassOpacity: number;
@@ -53,6 +58,7 @@ export const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
 
 /** What each cast is called where the member chooses one. */
 export const GLASS_TINT_LABEL: Record<GlassTint, string> = {
+  ash: "Ash grey",
   white: "White",
   sky: "Sky blue",
   lemon: "Lemon",
@@ -69,9 +75,22 @@ export const GLASS_TINT_LABEL: Record<GlassTint, string> = {
  * than resolving to a colour picker no longer offers.
  */
 export function normalizeGlassTint(value: unknown): GlassTint {
-  if (value === "lemon") return "lemon";
-  if (value === "white") return "white";
-  return "sky";
+  /*
+   * Compared case-insensitively. The value comes from stored settings that a
+   * previous build may have written in any casing, and a saved "Sky" that fell
+   * through to the default would silently reset a member's choice — which is the
+   * sort of change that looks like a bug rather than a new default.
+   */
+  const text = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (text === "lemon" || text === "white" || text === "sky" || text === "ash") {
+    return text;
+  }
+  /*
+   * Anything else — a typo, a number, a value this build has no cast for — takes
+   * the system default. A stored cast that is still valid is honoured rather than
+   * migrated, so only a genuinely unrecognised value changes appearance.
+   */
+  return "ash";
 }
 
 export function normalizeGlassOpacity(value: unknown): number {

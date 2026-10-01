@@ -103,7 +103,7 @@ describe("resolving a fill into glass", () => {
     setActiveGlassOpacity(-10);
     expect(activeGlassOpacity()).toBe(50);
     setActiveGlassOpacity(80);
-    expect(activeGlassTint()).toBe("sky");
+    expect(activeGlassTint()).toBe("ash");
   });
 });
 

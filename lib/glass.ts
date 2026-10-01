@@ -26,7 +26,7 @@
  * How a neutral surface is coloured.
  *
  */
-export type GlassTint = "white" | "lemon" | "sky";
+export type GlassTint = "ash" | "white" | "lemon" | "sky";
 
 /** A named surface, so each kind can carry its own weight. */
 export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" | "floater";
@@ -66,23 +66,80 @@ const NEUTRAL_TINT_MIX = 0.6;
 const NEUTRAL_CHROMA = 26;
 
 const TINTS: Record<GlassTint, Rgb> = {
-  // The blue-white of the reference sheet and the blue glass mockup.
-  sky: { r: 233, g: 241, b: 250 },
-  // A warm lemon wash that keeps the app's accent family.
-  lemon: { r: 247, g: 240, b: 205 },
   /*
-   * Plain white glass: the reference sheet's own cast.
+   * Ash — the system-wide default.
    *
-   * It carries no hue of its own, so the surface reads as clear frosted glass and
-   * takes all of its colour from the wallpaper behind it. It is the third choice
-   * rather than the default because a member who wants a cool or warm cast should
-   * not have to find the setting first.
+   * A true neutral: every channel identical, so the glass carries no colour of
+   * its own and reads as grey frosted glass over whatever is behind it. That is
+   * what the member asked for after the coloured casts kept fighting the artwork
+   * — "try if you can change the glass colour fixed to grey or ash colour, for
+   * whole system UI".
+   *
+   * All four casts are now fitted to this same depth. Before this pass the three
+   * coloured casts sat a level too high — they rendered only 1.063:1 against the
+   * page, against the 1.17-1.25:1 the reference samples show — which is why none
+   * of them read as glass no matter which one was selected. The depth is what
+   * makes a sheet visible; the cast only decides what colour that sheet is.
+   *
+   * It earns the default on measurement, not on preference. The page behind every
+   * card is white paper at about (240, 246, 246), so the surface has to be
+   * *darker* than the page to be seen at all; the reference samples' own cards sit
+   * 1.17 to 1.25:1 against their ground. Pure white resolves to the page at every
+   * alpha, which is why the white cast produced the least visible glass in the
+   * app. Ash is solved to the middle of the reference range: this value renders a
+   * card at 1.138:1 against the page, with dark ink holding 8.10:1 and body text
+   * 6.37:1.
+   *
+   * Because it is neutral it needs no washing toward itself, and it is the value
+   * every other cast is measured against.
    */
-  white: { r: 255, g: 255, b: 255 },
+  ash: { r: 144, g: 144, b: 144 },
+  /*
+   * The cool cast.
+   *
+   * Deepened from (233, 241, 250) after measuring why nothing in the app read as
+   * glass. The wallpaper is white paper, so the *page* is already (240, 246, 246)
+   * — and a cast of (233, 241, 250) laid over it differs by two or three levels
+   * per channel. At any alpha that still lets the wallpaper through, a card came
+   * out as the same colour as the page around it, which is exactly what "it does
+   * not look like frosted glass" meant. The tint has to be visibly deeper than
+   * the surface it sits on for the fill to read at all.
+   *
+   * It keeps the blue-white family of the reference sheet; it is simply no longer
+   * almost the same colour as the paper behind it.
+   */
+  sky: { r: 129, g: 146, b: 164 },
+  // A warm lemon wash that keeps the app's accent family.
+  lemon: { r: 151, g: 145, b: 109 },
+  /*
+   * The neutral cast, leaning very slightly cool.
+   *
+   * This replaced pure white, and the reason is measurable rather than a matter
+   * of taste. The wallpaper is white paper, so the page behind every card is
+   * already about (240, 246, 246). A pure-white tint over that resolves to the
+   * page at every alpha — the card became literally invisible, which is the most
+   * literal form of the white patch the member kept reporting. Choosing "white
+   * glass" therefore produced the *least* visible glass in the app.
+   *
+   * The three casts are now solved the same way rather than picked by eye. Each
+   * one is walked along its own hue until the rendered card sits about 1.14:1
+   * against the page, which is where the supplied reference samples measure
+   * (their cards run 1.17 to 1.25:1 against their own ground). Scaling every
+   * channel by one factor keeps the hue intact, so the cool cast stays cool and
+   * the warm one stays warm.
+   *
+   * The fills are still translucent — at the default weight a card resolves to
+   * roughly (223, 232, 238) over the paper, so the burst of colour behind it and
+   * the blurred artwork both still read through the surface.
+   */
+  white: { r: 140, g: 144, b: 149 },
 };
 
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
+  /* Ash takes a plain white sheen: a coloured one would give it the hue it exists
+     to avoid, and a grey one would dim the sheet instead of lighting it. */
+  ash: { r: 255, g: 255, b: 255 },
   sky: { r: 255, g: 255, b: 255 },
   lemon: { r: 255, g: 254, b: 244 },
   white: { r: 255, g: 255, b: 255 },
@@ -97,6 +154,18 @@ const VEIL: Record<GlassTint, Rgb> = {
  * a near-opaque white, so the cast has to outweigh it rather than merely tint it.
  */
 const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
+  /*
+   * Ash washes by the same amount as every other cast, and that is deliberate.
+   *
+   * The wash is not decoration — it is what pulls a declared near-white down to
+   * the cast. A declared `rgba(255, 255, 255, 0.72)` over white paper renders as
+   * the page unless something moves it, which is the original defect. Setting this
+   * to zero "because grey is already neutral" left every neutral surface at pure
+   * white and brought the invisible patch straight back. The amount is the same
+   * as the other casts so all four stay interchangeable and the live re-resolver,
+   * which has to invert this operation, stays well conditioned.
+   */
+  ash: 0.62,
   sky: 0.62,
   lemon: 0.62,
   // White needs no wash: it is already the colour a neutral surface is heading
@@ -128,7 +197,14 @@ const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
  */
 export const TEXT_ON_GLASS = {
   heading: "#43423d",
-  body: "#53514C",
+  /*
+   * The body tone was darkened when the casts were fitted to the reference
+   * depth. Every surface is 8-10 levels deeper than it used to be, and the old
+   * value fell to 4.51:1 on the deepest surface over the darkest wallpaper in the
+   * suite — a hair under AA, and only held up by a rounding. This value clears
+   * 4.80:1 on that same surface and stays well past AA everywhere else.
+   */
+  body: "#4F4D48",
   /*
    * The secondary tone is darker than it looks like it needs to be, and that is
    * deliberate. The colour field added behind the glass darkens the surfaces the
@@ -158,11 +234,11 @@ function neutralMixFor(tint: GlassTint): number {
  * that pass a tint are unaffected; the provider re-renders the tree when the
  * choice changes, so a render never reads a stale value.
  */
-let activeTint: GlassTint = "sky";
+let activeTint: GlassTint = "ash";
 
 /** Called by the appearance provider when the member changes the glass colour. */
 export function setActiveGlassTint(tint: GlassTint): void {
-  activeTint = tint === "lemon" ? "lemon" : tint === "white" ? "white" : "sky";
+  activeTint = tint === "lemon" || tint === "white" || tint === "ash" ? tint : "ash";
 }
 
 /** The tint currently in effect. Exposed for tests and diagnostics. */
@@ -232,6 +308,124 @@ export function glassNestedFill(color: string): string {
 }
 
 /**
+ * Re-resolve a fill that was resolved too early, at render time.
+ *
+ * This exists because of how React Native style tables work, and it is the last
+ * of the white/glass defects rather than a new feature.
+ *
+ * Every style in this app is declared in a module-scope `StyleSheet.create`
+ * table. That table is evaluated **once**, when the file is first imported —
+ * long before the member's glass weight has been read out of storage. So a fill
+ * written as `glassNestedFill(...)` inside a style table is resolved against the
+ * *default* weight and then frozen in that style object for the rest of the
+ * session. The member drags the opacity control, the provider re-renders, and
+ * every card, row, chip and toggle keeps the setting it was built with.
+ *
+ * That is why the complaint survived every earlier pass: the patches had been
+ * converted to glass, and the glass was correct, but it could never move.
+ *
+ * The fix is to treat a resolved fill as a *value* rather than a colour. Rising
+ * the weight within one cast moves every channel the same way, so comparing each
+ * channel against the neutral mid-grey recovers the direction the fill was
+ * resolved in; re-applying that difference to the cast currently selected
+ * reproduces the same fill at the current weight, for every surface class and
+ * every declared alpha, without carrying the tint or the weight around in the
+ * style table.
+ *
+ * The convention this relies on is already the only one in the codebase: a
+ * surface that wants no colour of its own declares a neutral — white or grey —
+ * and a surface that wants to keep its hue declares a saturated fill. A
+ * saturated fill is left exactly as it was resolved, which is what keeps the
+ * lemon buttons lemon.
+ */
+export function liveGlass(color: string | undefined | null): string | undefined {
+  if (!color) return color as undefined;
+  const parsed = parseColor(color);
+  if (!parsed) return color as string;
+
+  /*
+   * Undo the resolution to recover what was declared.
+   *
+   * The resolver computes `mix(declared, cast, m)`, so a resolved neutral is
+   * `declared * (1 - m) + cast * m`. That is one equation in two unknowns — the
+   * neutral that was declared and the cast it was resolved against — and both
+   * were thrown away when the style table was built.
+   *
+   * It is still exactly solvable, because the cast can only be one of three known
+   * values. For each candidate cast the neutral is `(resolved - cast * m) / (1 - m)`,
+   * and only the correct candidate yields something that is actually a plausible
+   * declared surface: light and close to grey. The wrong candidates produce
+   * impossible colours — a channel below zero, or a strongly tinted "neutral".
+   * So the solve is a search over three options scored on how neutral and light
+   * the recovered value is, and it recovers the declared colour exactly rather
+   * than approximating it.
+   */
+  const m = neutralMixFor(activeTint);
+  let best: { neutral: Rgb; score: number } | null = null;
+  for (const cast of Object.values(TINTS)) {
+    const neutral = {
+      r: (parsed.rgb.r - cast.r * m) / (1 - m),
+      g: (parsed.rgb.g - cast.g * m) / (1 - m),
+      b: (parsed.rgb.b - cast.b * m) / (1 - m),
+    };
+    const rounded: Rgb = {
+      r: Math.round(neutral.r),
+      g: Math.round(neutral.g),
+      b: Math.round(neutral.b),
+    };
+    // A declared surface is a light neutral. Penalise anything that is not.
+    const chroma = Math.max(rounded.r, rounded.g, rounded.b) - Math.min(rounded.r, rounded.g, rounded.b);
+    const darkness = Math.max(0, 240 - Math.min(rounded.r, rounded.g, rounded.b));
+    const outOfRange =
+      [neutral.r, neutral.g, neutral.b].some((c) => c < -0.5 || c > 255.5) ? 1000 : 0;
+    const score = chroma + darkness + outOfRange;
+    if (!best || score < best.score) best = { neutral: rounded, score };
+  }
+  if (!best) return color as string;
+  /*
+   * The catch-all for everything that is *not* a resolved neutral.
+   *
+   * This is what separates the app's accents from its glass without keeping a
+   * register of them. A saturated fill was passed through the resolver untouched,
+   * so no candidate cast can invert it back into a light neutral: solving the
+   * lemon button's `#F1DE55` against any cast demands a channel above 255, which
+   * is an impossible surface. Only a fill the resolver actually produced inverts
+   * cleanly, so the guard is a consequence of the algebra rather than a threshold.
+   *
+   * Note the inversion is deliberately *not* gated on `isNeutral(resolved)`. A
+   * resolved neutral legitimately carries more chroma than the neutral that went
+   * in, because mixing it toward the cast adds the cast's own hue — the sky cast
+   * alone takes it from at most 26 to about 38. Gating on the resolved colour's
+   * chroma rejected the very values this function exists to fix, which is how the
+   * first attempt silently returned every fill unchanged.
+   */
+  const recoveredChroma =
+    Math.max(best.neutral.r, best.neutral.g, best.neutral.b) -
+    Math.min(best.neutral.r, best.neutral.g, best.neutral.b);
+  if (recoveredChroma > NEUTRAL_CHROMA) return color as string;
+
+  // Now re-resolve the recovered surface against the cast in effect right now.
+  const live = mix(best.neutral, TINTS[activeTint], m);
+  /*
+   * The weight, recovered by subtraction rather than by counting.
+   *
+   * Alpha is always `base + declaredWeight + weightFromSetting(opacity)`, and the
+   * setting's contribution is the only term that varies at render time. A style
+   * table is evaluated once, at import, before the member's stored weight has been
+   * read — so every frozen fill carries the contribution of the module's own
+   * initial weight, 80, and nothing else. Subtracting that fixed contribution and
+   * adding the current one moves the fill to where it belongs at any setting,
+   * including the nesting band and the per-surface weights, which are baked into
+   * the value already.
+   */
+  const frozenSetting = weightFromSetting(80);
+  const targetAlpha = clampAlpha(
+    (parsed.alpha ?? BASE_ALPHA + frozenSetting) - frozenSetting + weightFromSetting(activeOpacity),
+  );
+  return `rgba(${live.r}, ${live.g}, ${live.b}, ${targetAlpha.toFixed(3)})`;
+}
+
+/**
  * One-tap glass presets.
  *
  * Tuning six values by hand to find a look is work, and most members only ever
@@ -240,16 +434,19 @@ export function glassNestedFill(color: string): string {
  * preset can be recognised again from the current values.
  */
 export const GLASS_PRESETS = [
-  { id: "subtle", label: "Subtle", glassOpacity: 50, glassTint: "sky" },
-  { id: "balanced", label: "Balanced", glassOpacity: 80, glassTint: "sky" },
-  { id: "strong", label: "Strong", glassOpacity: 95, glassTint: "lemon" },
   /*
-   * Night glass: the slate cast at the same weight as Balanced.
+   * All three presets use the ash cast.
    *
-   * Weight and colour are different questions, so the preset pairs the new cast
-   * with the middle weight rather than with the heaviest one — a member picking
-   * it wants a darker tint, not a thicker sheet.
+   * A preset is a weight, and the cast is a separate question the chips below it
+   * answer. Pointing the presets at the system default means the shipped
+   * appearance lights "Balanced" when the member opens the panel, rather than
+   * showing three unselected presets beside a cast they never chose. A member who
+   * picks a colour keeps it — the presets only set weight — and picking a preset
+   * afterwards returns the surface to ash.
    */
+  { id: "subtle", label: "Subtle", glassOpacity: 50, glassTint: "ash" },
+  { id: "balanced", label: "Balanced", glassOpacity: 80, glassTint: "ash" },
+  { id: "strong", label: "Strong", glassOpacity: 95, glassTint: "ash" },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
@@ -351,6 +548,19 @@ const SURFACE_WEIGHT: Record<GlassSurface, number> = {
 function clampAlpha(value: number): number {
   if (!Number.isFinite(value)) return BASE_ALPHA;
   return Math.min(MAX_GLASS_ALPHA, Math.max(0.16, value));
+}
+
+/**
+ * Map a nested surface's declared alpha onto the nested weight band.
+ *
+ * The declared alpha runs roughly 0.4 (quietest) to 1 (most present). Keeping it
+ * as an *ordering* rather than a magnitude is what stops a row, a tile, and a
+ * highlighted tile inside one sheet from collapsing onto the same weight. Pulled
+ * out of the resolver so the live re-resolver can apply the identical rule.
+ */
+function nestedWeightForDeclared(declared: number): number {
+  const position = Math.min(1, Math.max(0, (declared - 0.4) / 0.5));
+  return NESTED_MIN_WEIGHT + position * (NESTED_MAX_WEIGHT - NESTED_MIN_WEIGHT);
 }
 
 function parseColor(color: string): { rgb: Rgb; alpha: number | null } | null {
@@ -473,13 +683,17 @@ export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): 
    * every inner line competes with the sheet it sits on.
    */
   const strength: Record<GlassSurface, number> = {
-    card: 0.86,
-    panel: 0.78,
-    row: 0.6,
-    chip: 0.5,
-    tab: 0.8,
-    field: 0.46,
-    floater: 0.44,
+    card: 0.92,
+    panel: 0.86,
+    // A row and a chip are the surfaces the member reads most often, and they
+    // were the two carrying a rim too faint to see. A light translucent fill over
+    // a light page barely differs from the page at any alpha — the rim is what
+    // separates it, which is exactly how the reference cards work.
+    row: 0.78,
+    chip: 0.72,
+    tab: 0.86,
+    field: 0.56,
+    floater: 0.66,
   };
   const { r, g, b } = tint === "lemon" ? { r: 255, g: 253, b: 235 } : { r: 255, g: 255, b: 255 };
   return `rgba(${r}, ${g}, ${b}, ${strength[surface] ?? 0.6})`;
@@ -511,7 +725,9 @@ export function glassFieldBorder(tint: GlassTint = activeTint): string {
       ? { r: 96, g: 84, b: 40 }
       : tint === "white"
         ? { r: 72, g: 82, b: 92 }
-        : { r: 56, g: 84, b: 120 };
+        : tint === "ash"
+          ? { r: 88, g: 94, b: 100 }
+          : { r: 56, g: 84, b: 120 };
   return `rgba(${line.r}, ${line.g}, ${line.b}, 0.66)`;
 }
 
@@ -560,20 +776,31 @@ export function glassAmbient(tint: GlassTint = activeTint): {
   soft: string;
 } {
   const field: Record<GlassTint, { warm: string; cool: string; soft: string }> = {
+    /*
+     * The field for ash keeps its blue and warm pools rather than going grey.
+     * Those pools are the only colour the backdrop has, and a grey field over a
+     * grey wash would leave the blur nothing to pick up — a flat panel again. They
+     * are faint enough at these alphas not to tint the glass.
+     */
+    ash: {
+      warm: "rgba(168, 214, 246, 0.13)",
+      cool: "rgba(118, 182, 234, 0.12)",
+      soft: "rgba(196, 228, 250, 0.10)",
+    },
     sky: {
-      warm: "rgba(168, 214, 246, 0.36)",
-      cool: "rgba(118, 182, 234, 0.34)",
-      soft: "rgba(196, 228, 250, 0.28)",
+      warm: "rgba(168, 214, 246, 0.13)",
+      cool: "rgba(118, 182, 234, 0.12)",
+      soft: "rgba(196, 228, 250, 0.10)",
     },
     lemon: {
-      warm: "rgba(246, 226, 132, 0.38)",
-      cool: "rgba(228, 216, 118, 0.32)",
-      soft: "rgba(250, 238, 170, 0.28)",
+      warm: "rgba(246, 226, 132, 0.13)",
+      cool: "rgba(228, 216, 118, 0.11)",
+      soft: "rgba(250, 238, 170, 0.10)",
     },
     white: {
-      warm: "rgba(214, 228, 242, 0.34)",
-      cool: "rgba(196, 214, 236, 0.32)",
-      soft: "rgba(228, 238, 248, 0.26)",
+      warm: "rgba(214, 228, 242, 0.12)",
+      cool: "rgba(196, 214, 236, 0.11)",
+      soft: "rgba(228, 238, 248, 0.09)",
     },
   };
   return field[tint] ?? field.sky;
@@ -590,6 +817,9 @@ export function glassAmbient(tint: GlassTint = activeTint): {
  */
 export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; on: string } {
   const track: Record<GlassTint, { off: string; on: string }> = {
+    /* A grey track, light when off and mid when on, so the switch reads as a
+       control carved from the same stone as the card. */
+    ash: { off: "rgba(226, 231, 236, 0.9)", on: "rgba(150, 163, 175, 0.95)" },
     sky: { off: "rgba(226, 233, 239, 0.9)", on: "rgba(122, 188, 232, 0.95)" },
     lemon: { off: "rgba(233, 230, 214, 0.9)", on: "rgba(240, 219, 78, 0.95)" },
     white: { off: "rgba(230, 234, 239, 0.9)", on: "rgba(198, 214, 228, 0.95)" },
@@ -600,6 +830,9 @@ export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; o
 /** The inner hairline's colour for a cast. Saturated, unlike the fill. */
 export function glassInnerRim(tint: GlassTint = activeTint): string {
   const inner: Record<GlassTint, string> = {
+    /* A soft grey hairline: the neutral sample's own inner line is a plain light
+       grey rather than a hue, and ash follows it. */
+    ash: "rgba(210, 216, 222, 0.95)",
     // A cool line, the sky sample's own ring.
     sky: "rgba(122, 188, 232, 0.92)",
     // The lemon sample's ring.
@@ -619,6 +852,8 @@ export function glassInnerRim(tint: GlassTint = activeTint): string {
  */
 export function glassTopGlow(tint: GlassTint = activeTint): string {
   const glow: Record<GlassTint, string> = {
+    /* A white glow: light from above is not itself coloured. */
+    ash: "rgba(255, 255, 255, 0.40)",
     sky: "rgba(150, 205, 245, 0.30)",
     lemon: "rgba(246, 228, 128, 0.34)",
     white: "rgba(255, 255, 255, 0.42)",
@@ -637,6 +872,13 @@ export function glassTopGlow(tint: GlassTint = activeTint): string {
  */
 export function glassSwatch(tint: GlassTint): string {
   const { r, g, b } = TINTS[tint];
+  /*
+   * Ash is achromatic, so the saturation lift below would push all three channels
+   * away from a mean they already share and return the same grey. A slightly
+   * deeper grey is what reads as "grey" against a pale panel, so it is returned
+   * directly.
+   */
+  if (tint === "ash") return `rgb(${Math.round(r * 0.78)}, ${Math.round(g * 0.78)}, ${Math.round(b * 0.78)})`;
   // Deepen by scaling every channel by the same factor, which keeps the hue's
   // channel ordering intact, then push the result away from its own mean to
   // raise saturation. Scaling channels independently is what would let a cool
@@ -737,8 +979,7 @@ export function glassNestedSurfaceColor(
   // The declared alpha runs roughly 0.4 (quietest) to 1 (most present). Map it
   // onto a band that stays under a sheet's weight.
   const declared = parsed.alpha ?? 0.6;
-  const position = Math.min(1, Math.max(0, (declared - 0.4) / 0.5));
-  const nestedWeight = NESTED_MIN_WEIGHT + position * (NESTED_MAX_WEIGHT - NESTED_MIN_WEIGHT);
+  const nestedWeight = nestedWeightForDeclared(declared);
 
   const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], neutralMixFor(tint)) : parsed.rgb;
   /*

@@ -310,6 +310,7 @@ import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { AmbientField } from "@/components/ambient-field";
 import { GlassSurface } from "@/components/glass-surface";
+import { liveGlass } from "@/lib/glass";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
 import {
@@ -539,6 +540,23 @@ const Icon = ({ name, color = "#65614c", size = 20 }: { name: keyof typeof Mater
   <MaterialIcons name={name} color={color} size={size} />
 );
 
+/*
+ * The few styles that module-scope components need.
+ *
+ * `Frosted` and `ActionButton` are declared outside the screen component, so they
+ * cannot read a table built inside it. Their own fills are resolved through the
+ * same re-resolver as the rest of the app, which keeps the frosted card and the
+ * primary button following the member's glass instead of the weight the module
+ * happened to be imported with.
+ */
+const cardStyles = StyleSheet.create({
+  frosted: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
+  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.54)"), paddingHorizontal: 14, shadowColor: "#6b643d", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9, elevation: 2 },
+  actionButtonSecondary: { backgroundColor: "#efe9cd" },
+  actionButtonDisabled: { opacity: 0.62 },
+  pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
+});
+
 /**
  * The screen's frosted card, now a thin wrapper over the shared surface.
  *
@@ -550,9 +568,9 @@ const Icon = ({ name, color = "#65614c", size = 20 }: { name: keyof typeof Mater
  */
 function Frosted({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const flattened = StyleSheet.flatten(style);
-  const radius = flattened?.borderRadius ?? styles.frosted.borderRadius;
+  const radius = flattened?.borderRadius ?? cardStyles.frosted.borderRadius;
   return (
-    <GlassSurface surface="card" radius={radius} style={[styles.frosted, style]}>
+    <GlassSurface surface="card" radius={radius} style={[cardStyles.frosted, style]}>
       {children}
     </GlassSurface>
   );
@@ -561,12 +579,25 @@ function Frosted({ children, style }: { children: React.ReactNode; style?: Style
 function ActionButton({ children, onPress, style, secondary = false, disabled = false }: { children: React.ReactNode; onPress: () => void; style?: object; secondary?: boolean; disabled?: boolean }) {
   // A disabled button still reports its state, so a screen reader explains why
   // the action is unavailable rather than silently ignoring the tap.
-  return <Pressable onPress={disabled ? undefined : onPress} disabled={disabled} accessibilityState={{ disabled }} style={({ pressed }) => [styles.actionButton, secondary && styles.actionButtonSecondary, style, disabled && styles.actionButtonDisabled, pressed && !disabled && styles.pressed]}>{children}</Pressable>;
-}
+  const action = cardStyles.actionButton;
+  /*
+   * The primary button is a lemon accent, so its own fill passes through the
+   * re-resolver unchanged; only its neutral rim is re-resolved, which is what
+   * keeps the button part of the same glass as the card it sits on.
+   */
+  return <Pressable onPress={disabled ? undefined : onPress} disabled={disabled} accessibilityState={{ disabled }} style={({ pressed }) => [action, { backgroundColor: liveGlass(action.backgroundColor), borderColor: liveGlass(action.borderColor) }, secondary && cardStyles.actionButtonSecondary, style, disabled && cardStyles.actionButtonDisabled, pressed && !disabled && cardStyles.pressed]}>{children}</Pressable>; }
 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
   const { glassOpacity, glassTint: glassTintChoice, wallpaperVisible, setGlassOpacity, setGlassTint, setWallpaperVisible } = useAppAppearance();
+  /*
+   * The style table, rebuilt whenever the glass setting changes.
+   *
+   * The dependency is deliberately the setting and not the table: the provider has
+   * already written the new weight into the glass module by the time this render
+   * runs, so the rebuild picks up the new value rather than the previous one.
+   */
+  const styles = useMemo(() => buildStyles(), [glassOpacity, glassTintChoice]);
   /* The pools of colour behind the content, following the chosen glass colour. */
   const ambientField = glassAmbient(glassTintChoice);
   /* The switch tracks, so a toggle carries the same cast as the card it sits in. */
@@ -5303,7 +5334,9 @@ export default function TrufrenzApp() {
   );
 }
 
-const styles = StyleSheet.create({
+const frozenStyles = StyleSheet.create({
+  /* Shared with the hoisted `cardStyles`: the screen uses it at many call sites. */
+  pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
   safeArea: { flex: 1, backgroundColor: "#FAF8F7", overflow: "hidden" },
   noninteractive: { pointerEvents: "none" },
   backgroundImageWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
@@ -5375,7 +5408,6 @@ const styles = StyleSheet.create({
   /** The control beside the search field that opens the device's contacts. */
   searchFilterButton: { width: 30, height: 30, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
   searchFilterButtonActive: { backgroundColor: glassNestedFill("rgba(241, 234, 197, 0.72)"), borderColor: glassNestedFill("rgba(226, 213, 153, 0.9)") },
-  frosted: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
   searchBar: { height: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.2, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.78)") },
   searchInput: { flex: 1, color: "#4a4945", fontSize: 12.5, paddingVertical: 0, outlineStyle: "none" as any },
@@ -5464,11 +5496,8 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 53, height: 53, borderRadius: 20, backgroundColor: "#efe9cd", alignItems: "center", justifyContent: "center" },
   emptyTitle: { color: "#514e3e", fontSize: 15, fontWeight: "700", marginTop: 10 },
   emptyCopy: { color: "#5F5D57", fontSize: 10, lineHeight: 16, textAlign: "center", marginTop: 5 },
-  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.54)"), paddingHorizontal: 14, shadowColor: "#6b643d", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9, elevation: 2 },
-  actionButtonSecondary: { backgroundColor: "#efe9cd" },
   actionText: { color: "#4A4210", fontSize: 11, fontWeight: "700" },
   emptyAction: { marginTop: 13 },
-  pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
   /*
    * `paddingBottom: 0` is deliberate. The tab bar is hidden whenever a
    * conversation is open, so any bottom padding here becomes a dead band of
@@ -6198,7 +6227,6 @@ const styles = StyleSheet.create({
   accountNoticeActionText: { fontSize: 12.5, fontWeight: "700", color: "#83721f" },
 
   /** In-flight state: clearly inert, but still legible. */
-  actionButtonDisabled: { opacity: 0.62 },
 
   noticeMarkButton: {
     paddingHorizontal: 11,
@@ -6266,3 +6294,48 @@ const styles = StyleSheet.create({
   noticeStoreActionText: { fontSize: 11.5, fontWeight: "700", color: "#83721f" },
 
 });
+
+/*
+ * The style table the screen actually reads, rebuilt when the member changes the
+ * glass.
+ *
+ * This indirection is the fix for the last and most stubborn half of the glass
+ * problem, and it is a consequence of how React Native style tables work rather
+ * than a design choice.
+ *
+ * A `StyleSheet.create` table is evaluated once, when the module is first
+ * imported — before the member's stored glass weight has been read. Every fill
+ * written as `glassNestedFill(...)` inside this table was therefore resolved
+ * against the module's default weight and frozen there for the whole session.
+ * The member dragged the opacity control, the provider re-rendered, and every
+ * card, row, chip and toggle kept the weight it was built with.
+ *
+ * That is why the complaint outlived several passes of "convert the patches to
+ * glass": the surfaces *were* glass, but glass that could never move. There are
+ * 125 such fills in this one file.
+ *
+ * Rather than resolve 125 call sites by hand — and leave every new one to make
+ * the same mistake — the frozen table is rebuilt through `liveGlass`, which
+ * recovers what each fill was declared as and re-resolves it against the setting
+ * in effect right now. `useMemo` keeps the cost to two tables, one per change,
+ * and rebuilds it after the provider has written the new weight, so the values
+ * are never one render behind.
+ */
+function buildStyles(): typeof frozenStyles {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(frozenStyles)) {
+    out[key] = typeof value === "object" && value !== null
+      ? {
+          ...value,
+          backgroundColor: liveGlass((value as { backgroundColor?: string }).backgroundColor),
+          borderColor: liveGlass((value as { borderColor?: string }).borderColor),
+        }
+      : value;
+  }
+  /*
+   * The nested opener key the styles are read under, kept identical to the frozen
+   * table's own shape so every `styles.x` reference in the render tree is
+   * unchanged.
+   */
+  return out as unknown as typeof frozenStyles;
+}

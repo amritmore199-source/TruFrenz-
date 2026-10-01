@@ -116,7 +116,16 @@ describe("the double rim and the colour field", () => {
       const field = glassAmbient(cast);
       for (const pool of [field.warm, field.cool, field.soft]) {
         const [r, g, b, a] = pool.match(/[\d.]+/g)!.map(Number);
-        expect(a).toBeGreaterThan(0.2);
+        /*
+         * The field is deliberately faint. Its first version ran at 0.34-0.38,
+         * which the member read as "a mixing of colours": the tall profile card is
+         * a faithful view of the pools behind it, so it showed as flat blue and
+         * lemon patches rather than as glass. The field only needs to give the blur
+         * something to pick up, and the ripple it contributes is about 5%, which is
+         * what the reference samples show too.
+         */
+        expect(a).toBeGreaterThan(0.08);
+        expect(a).toBeLessThan(0.2);
         // A pool with no chroma would leave the glass reading grey again.
         expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeGreaterThan(10);
       }

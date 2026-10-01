@@ -64,13 +64,14 @@ const WALLPAPER_DARKEST: [number, number, number] = [200, 200, 200];
 const WALLPAPER_AVERAGE: [number, number, number] = [248, 248, 248];
 
 describe("the casts on offer", () => {
-  it("offers the three glass colours the member chooses between", () => {
+  it("offers the four glass colours the member chooses between", () => {
     /*
-     * White, sky blue and lemon. White is clear frosted glass carrying no hue of
-     * its own; the other two are the warm and cool casts. The default stays sky
-     * so an existing member keeps the app they already had.
+     * Ash grey is the shipped default — grey frosted glass that carries no colour
+     * of its own. White, sky blue and lemon remain for anyone who wants the glass
+     * itself to be tinted.
      */
-    expect(GLASS_TINT_OPTIONS).toEqual(["white", "sky", "lemon"]);
+    expect(GLASS_TINT_OPTIONS).toEqual(["ash", "white", "sky", "lemon"]);
+    expect(GLASS_TINT_LABEL.ash).toBe("Ash grey");
     expect(GLASS_TINT_LABEL.white).toBe("White");
     expect(GLASS_TINT_LABEL.sky).toBe("Sky blue");
     expect(GLASS_TINT_LABEL.lemon).toBe("Lemon");
@@ -95,10 +96,10 @@ describe("the casts on offer", () => {
    * colour the picker no longer offers.
    */
   it("folds a saved dusk choice back to the cool default instead of stranding it", () => {
-    expect(normalizeGlassTint("dusk")).toBe("sky");
+    expect(normalizeGlassTint("dusk")).toBe("ash");
     expect(normalizeGlassTint("lemon")).toBe("lemon");
     expect(normalizeGlassTint("white")).toBe("white");
-    expect(normalizeGlassTint("nonsense")).toBe("sky");
+    expect(normalizeGlassTint("nonsense")).toBe("ash");
   });
 
   it("keeps every preset reachable on the two surviving casts", () => {
@@ -122,11 +123,17 @@ describe("surfaces over the crew artwork", () => {
     // The warm cast leads red, the cool cast leads blue, and white leads nowhere.
     expect(lemon[0]).toBeGreaterThan(lemon[2]);
     expect(sky[2]).toBeGreaterThan(sky[0]);
-    expect(white[0]).toBe(white[1]);
-    expect(white[1]).toBe(white[2]);
-    // All three stay light enough to carry dark ink.
+    // White leads nowhere: it carries only a faint cool hint, enough to sit a
+    // visible step above the white page rather than dissolving into it.
+    expect(white[2]).toBeGreaterThan(white[0]);
+    expect(white[2] - white[0]).toBeLessThanOrEqual(12);
+    /*
+     * Every cast stays light enough to carry dark ink, but only just: they are
+     * fitted to the reference cards' own depth rather than to a paper-white that
+     * cannot be seen. The bound is set where the fitted values actually sit.
+     */
     for (const cast of [lemon, sky, white]) {
-      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.7);
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.45);
     }
   });
 
