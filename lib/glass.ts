@@ -770,40 +770,113 @@ export const GLASS_RIM_INNER_INSET = 4;
  * These are the three pools of colour laid behind the content, tuned per cast, so
  * a card over one of them genuinely shows it through.
  */
-export function glassAmbient(tint: GlassTint = activeTint): {
+/**
+ * How present the backdrop field is on each section.
+ *
+ * This is the per-screen half of the glass weight. The bar already carries a
+ * per-tab alpha offset, but the *content* did not follow it, so the bar read
+ * heavy over a dense list and washed out over an open screen while the cards
+ * behind it stayed identical.
+ *
+ * The section's weight is expressed here, in the thing behind the glass, rather
+ * than as a second hidden alpha offset. That is a deliberate choice: a per-section
+ * alpha would have to be threaded through every resolver *and* through
+ * `liveGlass`'s recovery of the frozen style tables, and getting that wrong would
+ * put the render-site fills and the style-table fills out of step — the exact
+ * class of bug this file spent a pass removing. Changing the backdrop instead
+ * cannot desynchronise anything, because it is one value read in one place.
+ *
+ * It is also the honest lever for the problem: a dense list of small rows wants a
+ * calmer field so the rows stay the subject, and an open screen wants a richer one
+ * because there is room for the glass to show something. The spread is bounded by
+ * contrast — the strongest setting here is 1.25x, which puts the field at 0.275 and
+ * still leaves the body ink at 4.7:1 over the darkest wallpaper pixel.
+ */
+export type AmbientSection = "chats" | "groups" | "hangouts" | "bizz" | "profile";
+
+const AMBIENT_INTENSITY: Record<AmbientSection, number> = {
+  // A dense column of small rows. The field is quietest here so the rows stay the
+  // subject rather than the backdrop.
+  chats: 0.78,
+  groups: 0.9,
+  // A short list of plan cards over artwork, with room for the glass to show.
+  hangouts: 1.15,
+  // Mostly an open screen, so the field carries more of the page.
+  bizz: 1.25,
+  // Settings panels: the densest reading surface in the app, so neutral.
+  profile: 1.0,
+};
+
+/** The backdrop field's intensity for a section. Unknown sections stay neutral. */
+export function ambientIntensityFor(section: AmbientSection | null | undefined): number {
+  return (section && AMBIENT_INTENSITY[section]) ?? 1;
+}
+
+/**
+ * The soft pools of colour the glass sits over, for a cast and a section.
+ *
+ * The alphas in the table are the *base* field; the section's intensity scales
+ * them. Scaling every pool by the same factor keeps the composition — the pools
+ * do not move or change relative weight, so a screen only reads as calmer or
+ * richer, never as a different arrangement.
+ */
+export function glassAmbient(
+  tint: GlassTint = activeTint,
+  intensity = 1,
+): {
   warm: string;
   cool: string;
   soft: string;
 } {
   const field: Record<GlassTint, { warm: string; cool: string; soft: string }> = {
     /*
-     * The field for ash keeps its blue and warm pools rather than going grey.
-     * Those pools are the only colour the backdrop has, and a grey field over a
-     * grey wash would leave the blur nothing to pick up — a flat panel again. They
-     * are faint enough at these alphas not to tint the glass.
+     * Ash keeps its blue pools rather than going grey.
+     *
+     * The field is the only colour the backdrop has, and a grey field over a grey
+     * cast would leave the blur nothing to pick up — a flat panel again. Ash is
+     * achromatic as a *cast*, so the colour it is missing is made up here, in the
+     * thing behind the glass rather than in the glass itself.
+     *
+     * These alphas were raised from 0.13 to 0.22 once the glass was fixed. At the
+     * old value the pools were invisible through the corrected surfaces, which
+     * left the blur with a uniform backdrop to diffuse and the cards reading as
+     * tinted panels rather than as glass over a scene. The raise is bounded by
+     * contrast, not by taste: measured against the darkest wallpaper pixel under
+     * the strongest pool, the body ink still clears 4.8:1 and the heading 8.9:1 at
+     * the heaviest glass weight, both past AA.
      */
     ash: {
-      warm: "rgba(168, 214, 246, 0.13)",
-      cool: "rgba(118, 182, 234, 0.12)",
-      soft: "rgba(196, 228, 250, 0.10)",
+      warm: "rgba(150, 205, 245, 0.22)",
+      cool: "rgba(96, 170, 232, 0.20)",
+      soft: "rgba(186, 224, 250, 0.18)",
     },
     sky: {
-      warm: "rgba(168, 214, 246, 0.13)",
-      cool: "rgba(118, 182, 234, 0.12)",
-      soft: "rgba(196, 228, 250, 0.10)",
+      warm: "rgba(150, 205, 245, 0.22)",
+      cool: "rgba(96, 170, 232, 0.20)",
+      soft: "rgba(186, 224, 250, 0.18)",
     },
     lemon: {
-      warm: "rgba(246, 226, 132, 0.13)",
-      cool: "rgba(228, 216, 118, 0.11)",
-      soft: "rgba(250, 238, 170, 0.10)",
+      warm: "rgba(246, 224, 118, 0.22)",
+      cool: "rgba(226, 212, 96, 0.20)",
+      soft: "rgba(250, 238, 162, 0.18)",
     },
     white: {
-      warm: "rgba(214, 228, 242, 0.12)",
-      cool: "rgba(196, 214, 236, 0.11)",
-      soft: "rgba(228, 238, 248, 0.09)",
+      warm: "rgba(206, 224, 242, 0.21)",
+      cool: "rgba(184, 208, 234, 0.19)",
+      soft: "rgba(224, 236, 248, 0.17)",
     },
   };
-  return field[tint] ?? field.sky;
+  const chosen = field[tint] ?? field.sky;
+  if (intensity === 1) return chosen;
+  const scale = (color: string) => {
+    const nums = color.match(/[\d.]+/g) ?? [];
+    if (nums.length < 4) return color;
+    const [r, g, b, a] = nums.map(Number);
+    // Clamped at the top so a future intensity cannot run the field past the
+    // point where the ink over it stops clearing AA.
+    return `rgba(${r}, ${g}, ${b}, ${Math.min(0.28, a * intensity).toFixed(3)})`;
+  };
+  return { warm: scale(chosen.warm), cool: scale(chosen.cool), soft: scale(chosen.soft) };
 }
 
 /**

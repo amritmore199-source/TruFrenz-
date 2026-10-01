@@ -13,6 +13,7 @@ import {
   glassTint,
   glassTopGlow,
   glassVeil,
+  type GlassTint,
   type GlassSurface as GlassSurfaceKind,
 } from "@/lib/glass";
 
@@ -25,6 +26,15 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   /** A colour to lay under the glass, for a surface that needs its own cast. */
   fill?: string;
+  /**
+   * Render a cast other than the member's current one.
+   *
+   * Only the cast picker uses this: each chip is a live thumbnail of the material
+   * it offers, so the member sees the real glass — blur, rim, inner hairline, top
+   * glow — at their own opacity, before committing to it. Every other surface in
+   * the app takes the cast from the provider, as it should.
+   */
+  cast?: GlassTint;
   /**
    * A description for screen readers, for surfaces that read as one object rather
    * than as a group of controls — a plan card, a poll. The label belongs on the
@@ -65,9 +75,15 @@ export function GlassSurface({
   radius = 18,
   style,
   fill,
+  cast: castOverride,
   accessibilityLabel,
 }: Props) {
-  const { glassOpacity, glassTint: cast } = useAppAppearance();
+  /*
+   * Named `activeCast` rather than `glassTint` so it does not shadow the imported
+   * `glassTint()` resolver, which this component calls two lines further down.
+   */
+  const { glassOpacity, glassTint: activeCast } = useAppAppearance();
+  const cast = castOverride ?? activeCast;
   const shape = { borderRadius: radius };
   return (
     <View

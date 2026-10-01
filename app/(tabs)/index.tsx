@@ -304,7 +304,7 @@ import {
   type BizzOffer,
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
-import { GLASS_PRESETS, GLASS_SHADOW, glassAmbient, glassBlur, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatch, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -599,7 +599,6 @@ export default function TrufrenzApp() {
    */
   const styles = useMemo(() => buildStyles(), [glassOpacity, glassTintChoice]);
   /* The pools of colour behind the content, following the chosen glass colour. */
-  const ambientField = glassAmbient(glassTintChoice);
   /* The switch tracks, so a toggle carries the same cast as the card it sits in. */
   const switchTrack = glassSwitchTrack(glassTintChoice);
   /*
@@ -4608,8 +4607,17 @@ export default function TrufrenzApp() {
         <View accessibilityLabel="Frosted glass colour" style={styles.tintOptions}>
           {GLASS_TINT_OPTIONS.map((option) => {
             const selected = option === glassTintChoice;
-            const swatch = glassSwatch(option);
-            return <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={`Set frosted glass colour to ${GLASS_TINT_LABEL[option]}`} onPress={() => { setGlassTint(option); tap(); feedback(`Glass colour set to ${GLASS_TINT_LABEL[option].toLowerCase()}.`); }} style={({ pressed }) => [styles.tintOption, selected && styles.tintOptionActive, pressed && styles.pressed]}><View style={[styles.tintSwatch, { backgroundColor: swatch, borderColor: glassSwatchEdge(option) }]} /><Text style={[styles.tintOptionText, selected && styles.tintOptionTextActive]}>{GLASS_TINT_LABEL[option]}</Text></Pressable>;
+            /*
+             * A live thumbnail rather than a painted dot.
+             *
+             * A flat swatch shows the cast's *colour* and nothing else, so two
+             * casts that differ mostly in depth looked identical on the chips
+             * while the surfaces they produced did not. This renders the real
+             * material at the member's own opacity — blur, cast, sheen, top glow,
+             * outer rim and inner hairline — so the chip is a small sample of what
+             * they are choosing, and the choice is visible before it is made.
+             */
+            return <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={`Set frosted glass colour to ${GLASS_TINT_LABEL[option]}`} onPress={() => { setGlassTint(option); tap(); feedback(`Glass colour set to ${GLASS_TINT_LABEL[option].toLowerCase()}.`); }} style={({ pressed }) => [styles.tintOption, selected && styles.tintOptionActive, pressed && styles.pressed]}><GlassSurface surface="chip" radius={9} cast={option} style={[styles.tintSwatch, { borderColor: glassSwatchEdge(option) }]} /><Text style={[styles.tintOptionText, selected && styles.tintOptionTextActive]}>{GLASS_TINT_LABEL[option]}</Text></Pressable>;
           })}
         </View>
       </View>
@@ -4898,6 +4906,23 @@ export default function TrufrenzApp() {
    */
   const tabAccent: TabAccent | null =
     selectedChat !== null ? null : sectionDefinition(tab as AppSection).accent;
+
+  /*
+   * The backdrop field, per section rather than per app.
+   *
+   * It is derived here rather than near the other appearance values because it
+   * needs the current section, and it sits beside `tabAccent` because the two are
+   * the same idea expressed on either side of the glass: the bar's weight above,
+   * the backdrop's richness below. A dense column of chat rows and an open Bizz
+   * screen want different amounts of colour behind the glass — see
+   * `ambientIntensityFor` for why this is the backdrop rather than a second hidden
+   * alpha offset. While a conversation is open the member is reading messages
+   * rather than scanning a list, so it takes the calmest field.
+   */
+  const ambientField = glassAmbient(
+    glassTintChoice,
+    ambientIntensityFor(selectedChat !== null ? "chats" : sectionDefinition(tab as AppSection).accent),
+  );
 
   /**
    * The contact lookup, rendered wherever the member opened it.

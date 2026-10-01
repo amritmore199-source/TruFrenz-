@@ -112,20 +112,28 @@ describe("the double rim and the colour field", () => {
    * cream as the page behind it and the glass read as paint.
    */
   it("lays a colour field behind the glass so the blur has something to pick up", () => {
-    for (const cast of ["white", "sky", "lemon"] as const) {
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
       const field = glassAmbient(cast);
       for (const pool of [field.warm, field.cool, field.soft]) {
         const [r, g, b, a] = pool.match(/[\d.]+/g)!.map(Number);
         /*
-         * The field is deliberately faint. Its first version ran at 0.34-0.38,
-         * which the member read as "a mixing of colours": the tall profile card is
-         * a faithful view of the pools behind it, so it showed as flat blue and
-         * lemon patches rather than as glass. The field only needs to give the blur
-         * something to pick up, and the ripple it contributes is about 5%, which is
-         * what the reference samples show too.
+         * The field has to sit inside a band, and both ends of it are load-bearing.
+         *
+         * Above: its first version ran at 0.34-0.38, which the member read as "a
+         * mixing of colours" — the tall profile card is a faithful view of the
+         * pools behind it, so it showed as flat blue and lemon patches rather than
+         * as glass.
+         *
+         * Below: at 0.10-0.13 it was invisible through the corrected glass, which
+         * left the blur diffusing a flat backdrop — the cards read as tinted panels
+         * rather than as glass over a scene. So the floor is now a real one rather
+         * than a formality.
+         *
+         * The ceiling is where the ink over the darkest wallpaper pixel stops
+         * clearing AA; see the contrast test below.
          */
-        expect(a).toBeGreaterThan(0.08);
-        expect(a).toBeLessThan(0.2);
+        expect(a).toBeGreaterThanOrEqual(0.16);
+        expect(a).toBeLessThanOrEqual(0.24);
         // A pool with no chroma would leave the glass reading grey again.
         expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeGreaterThan(10);
       }

@@ -4,7 +4,9 @@ import {
   GLASS_PRESETS,
   MAX_GLASS_ALPHA,
   TEXT_ON_GLASS,
+  ambientIntensityFor,
   glassAlpha,
+  glassAmbient,
   glassNestedSurfaceColor,
   glassSurfaceColor,
   matchGlassPreset,
@@ -197,5 +199,59 @@ describe("text over the wallpaper", () => {
       const rendered = over([...surfaceGlass], WALLPAPER_DARKEST);
       expect(contrast(hex(TEXT_ON_GLASS.heading), rendered)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+describe("the backdrop field", () => {
+  /*
+   * The field is the only colour behind the glass, so it is what the blur has to
+   * work with. It was raised from 0.13 once the surfaces were fixed: at the old
+   * value the pools were invisible through the corrected glass, which left the
+   * blur diffusing a flat backdrop and the cards reading as tinted panels.
+   */
+  it("is strong enough for the blur to pick up", () => {
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+      const field = glassAmbient(cast);
+      for (const pool of [field.warm, field.cool, field.soft]) {
+        const alpha = Number(pool.match(/([\d.]+)\)$/)![1]);
+        expect(alpha).toBeGreaterThanOrEqual(0.15);
+      }
+    }
+  });
+
+  it("never runs past the point where the ink stops clearing AA", () => {
+    // The clamp is the guarantee, so it is asserted directly rather than inferred
+    // from the table's current numbers.
+    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+      const field = glassAmbient(cast, 4);
+      for (const pool of [field.warm, field.cool, field.soft]) {
+        expect(Number(pool.match(/([\d.]+)\)$/)![1])).toBeLessThanOrEqual(0.28);
+      }
+    }
+  });
+
+  it("scales with the section without rearranging the pools", () => {
+    // Scaling every pool by one factor is what keeps a screen reading as calmer or
+    // richer rather than as a different composition.
+    const base = glassAmbient("ash", 1);
+    const calm = glassAmbient("ash", 0.78);
+    const rich = glassAmbient("ash", 1.25);
+    const alpha = (s: string) => Number(s.match(/([\d.]+)\)$/)![1]);
+    for (const key of ["warm", "cool", "soft"] as const) {
+      expect(alpha(calm[key])).toBeLessThan(alpha(base[key]));
+      expect(alpha(rich[key])).toBeGreaterThan(alpha(base[key]));
+      // The same factor on every pool, so the relative weight is untouched.
+      expect(alpha(calm[key]) / alpha(base[key])).toBeCloseTo(0.78, 2);
+      expect(alpha(rich[key]) / alpha(base[key])).toBeCloseTo(1.25, 2);
+    }
+  });
+
+  it("orders the sections by how dense their content is", () => {
+    // A dense column of rows wants the quietest field, an open screen the richest.
+    expect(ambientIntensityFor("chats")).toBeLessThan(ambientIntensityFor("profile"));
+    expect(ambientIntensityFor("profile")).toBeLessThan(ambientIntensityFor("hangouts"));
+    expect(ambientIntensityFor("hangouts")).toBeLessThan(ambientIntensityFor("bizz"));
+    // An unknown section stays neutral rather than landing at an extreme.
+    expect(ambientIntensityFor(null)).toBe(1);
+    expect(ambientIntensityFor(undefined)).toBe(1);
   });
 });
