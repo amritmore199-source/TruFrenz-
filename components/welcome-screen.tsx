@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.8)"),
   },
-  checkboxOn: { backgroundColor: "#F1DE55", borderColor: "#F1DE55" },
+  checkboxOn: { backgroundColor: "#F1DE55", borderColor: "#958A35" },
   termsText: { flex: 1, color: "#6E6C67", fontSize: 8.5, lineHeight: 14 },
   termsStrong: { color: "#686249", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },

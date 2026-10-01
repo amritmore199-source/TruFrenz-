@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 36,
     borderRadius: 12,
-    backgroundColor: "rgba(201, 129, 145, 0.92)",
+    backgroundColor: "rgba(145, 93, 104, 0.92)",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
   },

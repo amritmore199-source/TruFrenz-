@@ -91,6 +91,88 @@ describe("text contrast", () => {
     expect(contrast(hex("#7C6C1D"), CARD)).toBeGreaterThanOrEqual(4.5);
   });
 
+  /*
+   * Outlines and dividers.
+   *
+   * A border nobody can see is not a border. This is the same defect the text pass
+   * found, one layer out: the app declared outlines at 1.0:1 — literally the same
+   * colour as the card behind them — on the tick box, the selected chips and the
+   * camera shutter, and dividers at 1.27:1. WCAG asks 3:1 of a control's boundary
+   * and its state indicators; a decorative rule is held to a lower floor, since it
+   * separates rather than identifies, but it still has to be visible.
+   *
+   * Some borders are deliberately exempt, because darkening them would make the
+   * interface worse rather than better. Each was darkened by an earlier version of
+   * this pass and had to be reverted:
+   *
+   *   - a rim that punches a badge or status dot out of the avatar behind it. The dot
+   *     overlaps the photo, so the rim is the colour it is punching through, not an
+   *     outline drawn on the card. Darkening it drew a dark ring around every avatar.
+   *   - the ring around the member's own photo, which is decoration.
+   *   - the scan brackets in the selfie check, which sit over the live camera feed —
+   *     there is no card behind them, so the card is the wrong thing to measure.
+   */
+  const BORDER_FLOOR = 3;
+  const DIVIDER_FLOOR = 1.7;
+  const NOT_ON_THE_CARD =
+    /(profileVerifiedDot|circleStatus|notificationDot|addSmall|groupMini|userAvatar|addCircle|onlineDot|statusDot|profileAvatarFrame|profileCheck|verifiedBadge|scanCorner|^dot$)/;
+
+  function outlineDeclarations(): { file: string; style: string; prop: string; value: string }[] {
+    const found: { file: string; style: string; prop: string; value: string }[] = [];
+    for (const file of [...sourceFiles("app"), ...sourceFiles("components")]) {
+      const source = readFileSync(file, "utf8");
+      const stylePattern = /^ {2}([A-Za-z0-9_]+):\s*\{([^}]*)\}/gm;
+      for (const match of source.matchAll(stylePattern)) {
+        const [, style, body] = match;
+        for (const b of body.matchAll(/(border(?:Top|Bottom|Left|Right)?Color):\s*"(#[0-9A-Fa-f]{6})"/g)) {
+          found.push({ file, style, prop: b[1], value: b[2] });
+        }
+      }
+    }
+    return found;
+  }
+
+  it("keeps every control outline visible against the card", () => {
+    const failing = outlineDeclarations()
+      .filter(({ style }) => !NOT_ON_THE_CARD.test(style))
+      .filter(({ value }) => contrast(hex(value), CARD) < BORDER_FLOOR)
+      .map(({ file, style, prop, value }) => `${file}: ${style} ${prop} ${value}`);
+    expect(failing).toEqual([]);
+  });
+
+  it("keeps dividers perceptible without making them heavy", () => {
+    const declarations: { file: string; style: string; value: string }[] = [];
+    for (const file of [...sourceFiles("app"), ...sourceFiles("components")]) {
+      const source = readFileSync(file, "utf8");
+      const stylePattern = /^ {2}([A-Za-z0-9_]+):\s*\{([^}]*)\}/gm;
+      for (const match of source.matchAll(stylePattern)) {
+        const [, style, body] = match;
+        if (!/(divider|separator|rule)/i.test(style) || /Icon/i.test(style)) continue;
+        for (const d of body.matchAll(/backgroundColor:\s*"(#[0-9A-Fa-f]{6})"/g)) {
+          declarations.push({ file, style, value: d[1] });
+        }
+      }
+    }
+    expect(declarations.length).toBeGreaterThan(0);
+    const failing = declarations
+      .filter(({ value }) => contrast(hex(value), CARD) < DIVIDER_FLOOR)
+      .map(({ file, style, value }) => `${file}: ${style} ${value}`);
+    expect(failing).toEqual([]);
+  });
+
+  it("carries white ink on the danger fills", () => {
+    // These two were the real defect behind the pale-ink exemption: white on the
+    // overflow menu's confirm button measured 3.77:1 and on the subscription
+    // confirm 2.99:1. The fills moved rather than the ink, because a destructive
+    // action is meant to read as white-on-red.
+    expect(contrast([255, 255, 255], hex("#A26572"))).toBeGreaterThanOrEqual(4.5);
+    // The subscription confirm is a 0.92-alpha fill over the card, so it is the
+    // composited value that has to carry white.
+    const overCard = (base: number[]) =>
+      base.map((v, i) => Math.round(v * 0.92 + CARD[i] * 0.08));
+    expect(contrast([255, 255, 255], overCard(hex("#915D68")))).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("keeps the quiet tier the lightest ink that still clears AA", () => {
     // The quiet tier is solved rather than chosen: this is the value that lets
     // timestamps and hints read as secondary while staying legible. If it drifts

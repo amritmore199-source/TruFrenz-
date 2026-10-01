@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 4 },
   confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)") },
   confirmGhostText: { color: "#7C6C1D", fontSize: 10, fontWeight: "650" as any },
-  confirmDanger: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: "#B4707F" },
+  confirmDanger: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: "#A26572" },
   confirmDangerText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
   iconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)" },

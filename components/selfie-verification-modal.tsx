@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   // module-scope constant is fixed at import, so it could not follow the setting.
   cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   cameraCloseSpacer: { width: 38, height: 38 },
-  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#F1DE55", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"), alignItems: "center", justifyContent: "center" },
+  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#958A35", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"), alignItems: "center", justifyContent: "center" },
   shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   shutterPressed: { transform: [{ scale: 0.95 }] },
   deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#efebda", alignItems: "center", justifyContent: "center", marginBottom: 12 },
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(207, 236, 223, 0.20)" },
   scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#9AD5B6", shadowColor: "#9AD5B6", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
   scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#72A98B", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
-  scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#72A98B", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
+  scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#639379", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
   scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.78)") },
   scanningStatusText: { color: "#6E6C67", fontSize: 8 },
   successCheck: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: 9 },
