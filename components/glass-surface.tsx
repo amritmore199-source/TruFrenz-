@@ -73,8 +73,13 @@ export function GlassSurface({
     <View
       accessibilityLabel={accessibilityLabel}
       style={[
+        /*
+         * The defaults come first and the caller's style last, deliberately. An
+         * active tab pill or a selected chip passes its own cast through `style`,
+         * and a later entry would silently win over it — which is how the active
+         * states lost their tint when this order was the other way round.
+         */
         styles.base,
-        style,
         shape,
         {
           backgroundColor: fill ?? glassTint(surface, glassOpacity, cast),
@@ -82,6 +87,7 @@ export function GlassSurface({
           shadowColor: GLASS_SHADOW,
           shadowOpacity: GLASS_SHADOW_OPACITY,
         },
+        style,
       ]}
     >
       <BlurView

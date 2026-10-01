@@ -283,6 +283,7 @@ import { GLASS_PRESETS, GLASS_SHADOW, glassAmbient, glassBlur, glassInnerRim, gl
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
+import { AmbientField } from "@/components/ambient-field";
 import { GlassSurface } from "@/components/glass-surface";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
@@ -3811,7 +3812,7 @@ export default function TrufrenzApp() {
       <View style={styles.chatHeading}><Text style={styles.chatTitle}>Your conversations</Text><Pressable onPress={() => setComposerOpen(true)} accessibilityRole="button" accessibilityLabel="Start a new group" style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={18} color="#4A4210" /></Pressable></View>
       <View style={styles.searchBar}><Icon name="search" size={18} color="#929089" /><TextInput value={search} onChangeText={setSearch} placeholder="Search conversations & friends" placeholderTextColor="#C2CBD2" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#83721f" /></Pressable></View>
       {renderContactLookup()}
-      <View style={styles.filterRow}>{filters.map((filter) => <Pressable key={filter} onPress={() => setChatFilter(filter)} style={[styles.filterChip, chatFilter === filter && styles.filterChipActive]}><Text style={[styles.filterChipText, chatFilter === filter && styles.filterChipTextActive]}>{filter}{filter === "Unread" ? "  2" : ""}</Text></Pressable>)}</View>
+      <View style={styles.filterRow}>{filters.map((filter) => <Pressable key={filter} onPress={() => setChatFilter(filter)} ><GlassSurface surface="chip" radius={15} style={[styles.filterChip, chatFilter === filter && styles.filterChipActive]}><Text style={[styles.filterChipText, chatFilter === filter && styles.filterChipTextActive]}>{filter}{filter === "Unread" ? "  2" : ""}</Text></GlassSurface></Pressable>)}</View>
       {chatFilter === "All" && !search ? <View style={styles.circlesSection}><View style={styles.sectionHeaderLine}><Text style={styles.sectionEyebrow}>YOUR PEOPLE</Text><Pressable onPress={() => setTab("Friends")}><Text style={styles.sectionLink}>See all <Icon name="chevron-right" size={12} color="#83721f" /></Text></Pressable></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circlesRow}>
         {joined ? <Pressable onPress={() => setTab("You")} style={styles.circleItem}><View style={styles.myCircle}><Text style={styles.myCircleInitial}>{fullName.charAt(0).toUpperCase()}</Text><View style={styles.addSmall}><Icon name="add" size={11} color="#4A4210" /></View></View><Text style={styles.circleName}>Your note</Text></Pressable> : <Pressable onPress={openSignup} style={styles.circleItem}><View style={styles.addCircle}><Icon name="add" size={22} color="#83721f" /></View><Text style={styles.circleName}>Set up</Text></Pressable>}
         {friendCircles.map((chat) => <Pressable key={chat.id} onPress={() => startThread(chat.id)} style={styles.circleItem}><View style={styles.circleImageWrap}><Image source={chat.image} style={styles.circleImage} /><View style={[styles.circleStatus, chat.online && styles.circleStatusOnline]} /></View><Text style={styles.circleName} numberOfLines={1}>{chat.name.split(" ")[0]}</Text></Pressable>)}
@@ -4480,11 +4481,7 @@ export default function TrufrenzApp() {
       {showWelcome ? null : <>
       <View style={[styles.backgroundWash, styles.noninteractive]} />
       <View style={[styles.headingScrim, styles.noninteractive]} />
-      <View style={[styles.ambient, styles.noninteractive]}>{/*
-            The colour field the glass reads through. Resolved here rather than in the
-            style table because the table is built at module scope, long before the
-            member's glass colour is known.
-          */}<View style={[styles.ambientPink, { backgroundColor: ambientField.warm }]} /><View style={[styles.ambientBlue, { backgroundColor: ambientField.cool }]} /><View style={[styles.ambientLilac, { backgroundColor: ambientField.soft }]} /></View> </>}
+      <View style={[styles.ambient, styles.noninteractive]}><AmbientField warm={ambientField.warm} cool={ambientField.cool} soft={ambientField.soft} /></View> </>}
       <CallScreen
         session={callSession}
         groupLabel={callSession && selectedChat && currentThread?.kind === "group" ? currentThread.name : null}
@@ -4493,20 +4490,6 @@ export default function TrufrenzApp() {
         onEnd={() => { setCallSession((current) => (current ? endCall(current) : null)); setTimeout(() => setCallSession(null), 500); }}
       />
       {showWelcome ? null : <IncomingNotificationBanner notification={incomingNotification} onOpen={openIncomingNotification} onDismiss={dismissIncomingNotification} />}
-      <PremiumPaywall
-        visible={paywallOpen}
-        subscription={subscription}
-        initialPlanId={paywallPlan}
-        reason={paywallReason}
-        onClose={() => setPaywallOpen(false)}
-        onPurchase={(planId) => {
-          // Store first, server second: the tier only moves once the receipt is
-          // verified, so a failed charge never unlocks Premium.
-          void completeStorePurchase(planId);
-        }}
-        purchase={purchase}
-        storePrices={storePrices}
-      />
       {/*
         Manage Subscription.
         Premium members land here from the same row that sells the plan, so the
@@ -4530,6 +4513,20 @@ export default function TrufrenzApp() {
       />
       {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Friends" || tab === "Meetups" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#83721f" colors={["#83721f", "#87AEBF"]} progressBackgroundColor="#fcfaf2" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
       {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#83721f" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
+      <PremiumPaywall
+        visible={paywallOpen}
+        subscription={subscription}
+        initialPlanId={paywallPlan}
+        reason={paywallReason}
+        onClose={() => setPaywallOpen(false)}
+        onPurchase={(planId) => {
+          // Store first, server second: the tier only moves once the receipt is
+          // verified, so a failed charge never unlocks Premium.
+          void completeStorePurchase(planId);
+        }}
+        purchase={purchase}
+        storePrices={storePrices}
+      />
       {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#83721f" /><Text style={styles.handoffTitle}>{tab === "Meetups" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#4A4210" /><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/*
@@ -4592,7 +4589,7 @@ export default function TrufrenzApp() {
         differs a little per section, because the content behind the bar ranges
         from dense chat rows to an almost empty screen.
       */}
-      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat; return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><View style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? "#83721f" : "#BFC8CF"} size={19} /></View><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{section.label}</Text></Pressable>; })}</View>}
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat; return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? "#83721f" : "#93A0AB"} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{section.label}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
@@ -4770,9 +4767,6 @@ const styles = StyleSheet.create({
   headingScrim: { position: "absolute", left: 0, right: 0, top: 0, height: 132, backgroundColor: "rgba(252, 250, 246, 0.24)" },
   screenContent: { flex: 1 },
   ambient: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  ambientPink: { position: "absolute", top: 96, right: -120, height: 400, width: 400, borderRadius: 200 },
-  ambientBlue: { position: "absolute", top: 360, left: -150, height: 380, width: 380, borderRadius: 190 },
-  ambientLilac: { position: "absolute", top: 620, right: -140, height: 340, width: 340, borderRadius: 170 },
   scroll: { flex: 1 },
   /*
    * One place owns the page's padding, and the nested list that the chat
@@ -4835,8 +4829,8 @@ const styles = StyleSheet.create({
   searchBar: { height: 42, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.73)") },
   searchInput: { flex: 1, color: "#4f4d47", fontSize: 11, paddingVertical: 0, outlineStyle: "none" as any },
   filterRow: { flexDirection: "row", gap: 7, marginTop: 10, marginBottom: 10 },
-  filterChip: { minHeight: 27, borderRadius: 11, paddingHorizontal: 12, justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
-  filterChipActive: { backgroundColor: "#f0e8c1", borderColor: "#e4d89d" },
+  filterChip: { minHeight: 29, borderRadius: 15, paddingHorizontal: 13, justifyContent: "center", overflow: "hidden" },
+  filterChipActive: { backgroundColor: "rgba(240, 232, 193, 0.5)", borderColor: "rgba(255, 255, 255, 0.92)" },
   filterChipText: { fontSize: 10, color: "#5F5D57", fontWeight: "500" },
   filterChipTextActive: { color: "#797353", fontWeight: "700" },
   circlesSection: { marginTop: 3, marginBottom: 12 },
@@ -5324,8 +5318,28 @@ const styles = StyleSheet.create({
   barInnerRim: { position: "absolute", left: 10, right: 10, top: 4, height: 0, borderTopWidth: 1, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
   bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.88)", flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   tabButton: { width: "25%", minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
-  tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.9)", backgroundColor: "rgba(255, 255, 255, 0.24)" },
-  tabIconActive: { backgroundColor: "rgba(241, 233, 176, 0.62)", borderColor: "rgba(255, 255, 255, 0.95)", shadowColor: "#83721f", shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  /*
+   * A tab pill: real glass rather than a grey lozenge with a border.
+   *
+   * These were the most obviously flat elements left in the app — a solid fill
+   * with a hairline, which is a drawn shape, not a frosted one. They are now the
+   * shared GlassSurface in its small form: blurred backdrop, cast, sheen, top
+   * glow, and the same double rim as the cards.
+   */
+  tabIconWrap: { height: 30, minWidth: 50, borderRadius: 15, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  /*
+   * The active pill carries the lemon cast, and enough shadow to lift it off the
+   * bar, so it reads as lit rather than painted.
+   */
+  tabIconActive: {
+    backgroundColor: "rgba(241, 233, 176, 0.55)",
+    borderColor: "rgba(255, 255, 255, 0.95)",
+    shadowColor: "#83721f",
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
   tabLabel: { color: "#969590", fontSize: 8, fontWeight: "500" },
   tabLabelActive: { color: "#83721f", fontWeight: "700" },
   toast: { position: "absolute", top: "50%", marginTop: -34, left: 21, right: 21, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#F1DE55", flexDirection: "row", alignItems: "center", gap: 7, shadowColor: "#544d2f", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },

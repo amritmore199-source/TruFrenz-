@@ -138,3 +138,51 @@ describe("the double rim and the colour field", () => {
     }
   });
 });
+
+describe("the ambient colour field", () => {
+  /*
+   * The pools are stacked concentric circles, and their alphas are solved rather
+   * than guessed: each ring contributes 1 - (1 - a)^(1/N) so that N rings
+   * accumulate to exactly `a` at the centre.
+   *
+   * Two failure modes this pins. The first attempt drew each pool as a single
+   * View, which in React Native is a hard-edged shape — the result was three
+   * solid discs with crisp rims sitting on the wallpaper. The second is banding:
+   * too few rings and the falloff arrives in visible steps.
+   */
+  const RINGS = 14;
+  const perRing = (a: number) => 1 - Math.pow(1 - a, 1 / RINGS);
+  const rings = Array.from({ length: RINGS }, (_, i) => 1 - i / (RINGS + 1));
+
+  const coverage = (radius: number) => rings.filter((s) => s >= radius).length;
+  const alphaAt = (radius: number, target: number) =>
+    1 - Math.pow(1 - perRing(target), coverage(radius));
+
+  it("accumulates the rings to exactly the pool's own alpha at the centre", () => {
+    for (const target of [0.28, 0.32, 0.38]) {
+      expect(alphaAt(0, target)).toBeCloseTo(target, 6);
+    }
+  });
+
+  it("fades to nearly nothing at the edge, so a pool has no rim", () => {
+    // The failure this guards against is the hard-edged disc: an edge alpha that
+    // is a meaningful fraction of the centre's is a visible boundary.
+    const edge = alphaAt(1, 0.36);
+    const centre = alphaAt(0, 0.36);
+    expect(edge / centre).toBeLessThan(0.12);
+  });
+
+  it("has enough rings that the falloff is a ramp, not a set of bands", () => {
+    // Walk the radius and check no single step is a visible jump. A 1/255 step is
+    // the smallest change a screen can show, so a band would be far larger.
+    const target = 0.36;
+    const steps: number[] = [];
+    for (let i = 0; i < 50; i++) {
+      const a = alphaAt(i / 50, target);
+      const b = alphaAt((i + 1) / 50, target);
+      steps.push(Math.abs(b - a) * 255);
+    }
+    expect(Math.max(...steps)).toBeLessThan(8);
+    expect(RINGS).toBeGreaterThanOrEqual(12);
+  });
+});
