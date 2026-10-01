@@ -16,6 +16,7 @@ import { createHash } from "node:crypto";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import * as account from "./accountService";
+import * as referrals from "./referralService";
 import { getDb } from "./db";
 import * as billing from "./billingService";
 import * as challenges from "./challengeStore";
@@ -616,6 +617,21 @@ export function registerAccountRoutes(app: Express) {
         age: Number.isFinite(ageRaw) && ageRaw >= 18 ? Math.round(ageRaw) : null,
         homeArea: homeArea || null,
       });
+
+      /*
+       * Record who invited them, if anyone did.
+       *
+       * This is what lets the referral month be paid to the right person: at
+       * this moment the server has both the invitation code from the link and
+       * the new account, and never again will the pairing be this easy to make.
+       * Deliberately non-fatal — a referral that cannot be resolved must not
+       * cost somebody their signup — so the outcome is reported and the member
+       * is created either way.
+       */
+      const referral = await referrals.attributeReferral(member.id, req.body?.inviteCode);
+      if (!referral.ok && referral.reason && referral.reason !== "bad-code") {
+        console.log(`[referral] signup ${member.id} not attributed: ${referral.reason}`);
+      }
     } else if (name.length >= 2 && name !== member.name) {
       // Keep the profile in step when a returning member edits their details.
       const db = await getDb();

@@ -32,7 +32,7 @@ export type MessageRow = {
   kind: string;
 };
 
-const KINDS: readonly string[] = ["text", "photo", "voice", "location", "plan"];
+const KINDS: readonly string[] = ["text", "photo", "voice", "location", "plan", "offer"];
 
 function isKind(value: unknown): value is string {
   return typeof value === "string" && KINDS.includes(value);
@@ -133,7 +133,7 @@ export async function applyMessages(memberId: number, rows: unknown): Promise<Me
         clientId: row.clientId,
         text: row.text,
         time: row.time,
-        kind: row.kind as "text" | "photo" | "voice" | "location" | "plan",
+        kind: row.kind as "text" | "photo" | "voice" | "location" | "plan" | "offer",
       })
       .onDuplicateKeyUpdate({ set: { clientId: row.clientId } });
   }

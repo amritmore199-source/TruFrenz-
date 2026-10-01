@@ -1,4 +1,5 @@
 import type { MessageKind, Reaction } from "./chat-extras";
+import type { BizzOffer } from "./bizz-offers";
 import type { PlanCard, PlanPoll } from "./plan-cards";
 
 /**
@@ -24,6 +25,15 @@ export type Message = {
   place?: string;
   /** Structured plan card carried by the message. */
   plan?: PlanCard;
+  /**
+   * A Bizz offer carried by the message.
+   *
+   * Like the plan card, this is local to the sending device: what travels is the
+   * text line, which `offerSummary` writes to contain the whole offer. So a
+   * recipient on another device reads what is on offer and what it costs, and
+   * the card is the richer rendering available to the sender.
+   */
+  offer?: BizzOffer;
   /** Group poll carried by the message. */
   poll?: PlanPoll;
   reactions?: Reaction[];

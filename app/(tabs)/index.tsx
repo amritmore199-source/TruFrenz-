@@ -286,8 +286,24 @@ import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
   GLASS_TINT_LABEL,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
-import { INVITE_BASE_FALLBACK, buildInviteAppLink, buildInviteLink, inviteSmsText } from "@/lib/invite-link";
+import { INVITE_BASE_FALLBACK, buildInviteAppLink, buildInviteLink, inviteCodeFromUrl, inviteSmsText } from "@/lib/invite-link";
 import { describeRequestWait } from "@/lib/request-wait";
+import {
+  EMPTY_OFFER_DRAFT,
+  OFFER_DETAIL_MAX,
+  OFFER_PRICE_MAX,
+  OFFER_WHAT_MAX,
+  addOffer,
+  buildOffer,
+  offerListLine,
+  offerProblem,
+  offerProblemCopy,
+  offerSummary,
+  parseOffers,
+  removeOffer,
+  type BizzOffer,
+  type BizzOfferDraft,
+} from "@/lib/bizz-offers";
 import { GLASS_PRESETS, GLASS_SHADOW, glassAmbient, glassBlur, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatch, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
@@ -464,6 +480,14 @@ const QUICK_REPLIES_STORAGE_KEY = "kindred.quick-replies.v1";
  * a reload — otherwise a member could dismiss the limit by closing the app.
  */
 const USAGE_STORAGE_KEY = "trufrenz.usage.v1";
+/**
+ * Where a member's own Bizz offers live.
+ *
+ * Stored beside the app's other preferences rather than on the server, because
+ * an offer travels by being sent into a conversation. There is no directory to
+ * be listed in, so there is nothing server-side to keep in step.
+ */
+const OFFERS_STORAGE_KEY = "trufrenz.bizz-offers.v1";
 
 const friends: Person[] = [
   { id: "maya", name: "Maya Chen", age: 28, locality: "Pacific Heights", interests: ["Coffee walks", "Ceramics"], image: require("../../assets/images/people/maya.jpg"), verification: "ID + selfie verified", about: "Recently discovered the little flower shop on Fillmore." },
@@ -805,6 +829,56 @@ export default function TrufrenzApp() {
    * createdAt, but the panel only has to answer "how long has this been open?".
    */
   const [requestSentAt, setRequestSentAt] = useState<Record<string, number>>({});
+  /**
+   * The invitation code this visitor arrived with, if any.
+   *
+   * Held from the moment the app opens the link until the account is created,
+   * because those two events are separated by an entire onboarding flow and the
+   * code has to survive it. It is what lets the referral month be credited to
+   * whoever sent the link.
+   */
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  /**
+   * The member's own Bizz offers, and the draft being written.
+   *
+   * Kept on the device rather than on the server on purpose: an offer is shared
+   * by sending it into a conversation, so it travels as a message like anything
+   * else the member says. Keeping a second copy server-side would put a list of
+   * what somebody sells in a table that has nothing to do with their friendships.
+   */
+  const [offers, setOffers] = useState<BizzOffer[]>([]);
+  const [offerDraft, setOfferDraft] = useState<BizzOfferDraft>(EMPTY_OFFER_DRAFT);
+  const [offerComposerOpen, setOfferComposerOpen] = useState(false);
+  const [offerShareId, setOfferShareId] = useState<string | null>(null);
+  useEffect(() => {
+    void AsyncStorage.getItem(OFFERS_STORAGE_KEY)
+      .then((stored) => {
+        const parsed = parseOffers(stored);
+        if (parsed.length) setOffers(parsed);
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    void AsyncStorage.setItem(OFFERS_STORAGE_KEY, JSON.stringify(offers)).catch(() => undefined);
+  }, [offers]);
+  useEffect(() => {
+    let active = true;
+    const capture = (url: string | null) => {
+      const code = inviteCodeFromUrl(url);
+      if (code && active) setInviteCode(code);
+    };
+    /*
+     * Two sources, because a link reaches a cold app and a warm one differently.
+     * `getInitialURL` covers the launch that came from the link; `addEventListener`
+     * covers a link opened while the app is already running.
+     */
+    void Linking.getInitialURL().then(capture).catch(() => undefined);
+    const subscription = Linking.addEventListener("url", (event) => capture(event.url));
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
   /**
    * The circles the member made, as the server has them.
    *
@@ -1931,9 +2005,10 @@ export default function TrufrenzApp() {
      */
     const inviteSeed = remoteAccount?.id ?? fullName ?? "trufrenz";
     const baseUrl = process.env.EXPO_PUBLIC_INVITE_URL?.trim() || INVITE_BASE_FALLBACK;
+    const inviteName = myProfile.name || fullName || undefined;
     const inviteText = inviteSmsText({
-      link: buildInviteLink(baseUrl, inviteSeed),
-      fromName: myProfile.name || fullName || undefined,
+      link: buildInviteLink(baseUrl, inviteSeed, inviteName),
+      fromName: inviteName,
       appLink: buildInviteAppLink(Constants.expoConfig?.scheme ?? null, inviteSeed),
     });
     setContactInviteLoading(true);
@@ -2078,6 +2153,8 @@ export default function TrufrenzApp() {
         age: parsedDob ? ageFromDateOfBirth(parsedDob) : undefined,
         homeArea: locality.trim() || undefined,
         email: email.trim() || undefined,
+        // Sent only here, on creation. A later sign-in leaves attribution alone.
+        inviteCode,
       });
       setAuthBusy(false);
 
@@ -3225,6 +3302,65 @@ export default function TrufrenzApp() {
     typingTimer.current = setTimeout(() => setTypingChat(null), 2400);
   };
 
+  /** Save the offer being written, once it is complete enough to be answered. */
+  const saveOffer = () => {
+    const problem = offerProblem(offerDraft);
+    if (problem) {
+      feedback(offerProblemCopy(problem));
+      return;
+    }
+    const offer = buildOffer(offerDraft, `offer-${Date.now()}`);
+    if (!offer) return;
+    setOffers((current) => addOffer(current, offer));
+    setOfferDraft(EMPTY_OFFER_DRAFT);
+    setOfferComposerOpen(false);
+    tap();
+    feedback("Saved. Share it with someone whenever it feels useful.");
+  };
+  /**
+   * Share an offer into a conversation.
+   *
+   * Opens the member's own contacts rather than a list of everybody, because an
+   * offer is addressed to a person the member has already both agreed with. The
+   * message carries the whole offer as text so it reads correctly on the other
+   * device, and the card is attached for the richer rendering here.
+   */
+  const shareOffer = (offer: BizzOffer) => {
+    if (!acceptedFriends.length) {
+      feedback("Accept a friend request first — an offer is shared with someone you both agreed with.");
+      return;
+    }
+    setOfferShareId(offer.id);
+  };
+  const sendOfferTo = (chatId: string) => {
+    const offer = offers.find((item) => item.id === offerShareId);
+    setOfferShareId(null);
+    if (!offer) return;
+    if (!allowAction("send-messages")) return;
+    setSelectedChat(chatId);
+    setTab("Chats");
+    /*
+     * The message is written straight into the thread rather than through
+     * setMessageDraft, so it does not depend on the composer being open or on
+     * the draft being empty when it arrives.
+     */
+    const id = `offer-msg-${Date.now()}`;
+    const message: Message = {
+      id,
+      from: "me",
+      text: offerSummary(offer),
+      time: "now",
+      receipt: "sent",
+      kind: "offer",
+      offer,
+    };
+    setChatMessages((current) => ({ ...current, [chatId]: [...(current[chatId] ?? []), message] }));
+    const row = rowFromMessage(chatId, message);
+    if (row) setMessageSync((current) => queueMessage(current, row));
+    void runGuardedAction("message", { thread: chatId, groupId: chatId.startsWith("group") ? chatId : null });
+    feedback("Shared into your chat.");
+    tap();
+  };
   const toggleGroup = () => {
     if (requireAccount("create-meetup")) return;
     if (!newGroupName.trim()) { feedback("Give your private group a name first."); return; }
@@ -3751,6 +3887,28 @@ export default function TrufrenzApp() {
                         </View>
                       ) : message.kind === "photo" && message.mediaUri ? (
                         <Image source={{ uri: message.mediaUri }} style={styles.photoBubble} />
+                      ) : message.kind === "offer" && message.offer ? (
+                        /*
+                         * A shared Bizz offer.
+                         *
+                         * Rendered as a card rather than a bubble because it is
+                         * a small structured thing — what, how much — and the
+                         * reader should be able to take it in without reading a
+                         * paragraph. The summary line the sender's message
+                         * carries is what a second device shows, so this branch
+                         * is the richer rendering, never the only one.
+                         */
+                        <View style={styles.offerBubble}>
+                          <View style={styles.offerBubbleHead}>
+                            <Icon name="storefront" size={13} color="#4A4210" />
+                            <Text style={styles.offerBubbleLabel}>FROM BIZZ</Text>
+                          </View>
+                          <Text style={[styles.offerBubbleWhat, mine && styles.myMessageText]}>{message.offer.what}</Text>
+                          {message.offer.detail ? (
+                            <Text style={[styles.offerBubbleDetail, mine && styles.myMessageText]}>{message.offer.detail}</Text>
+                          ) : null}
+                          <Text style={[styles.offerBubblePrice, mine && styles.myMessageText]}>{message.offer.price}</Text>
+                        </View>
                       ) : (
                         <Text style={[styles.messageText, styles.threadPrimaryText, mine && styles.myMessageText]}>{message.text}</Text>
                       )}
@@ -3918,6 +4076,121 @@ export default function TrufrenzApp() {
                 </Pressable>
               </View>
             </View>
+          </BlurView>
+        </Modal>
+        {/*
+          The offer composer.
+
+          Centred rather than anchored to an edge, like every other sheet here,
+          and behind the same blurred scrim — a sheet that sits on a flat grey
+          film reads as a system dialogue rather than part of the app.
+        */}
+        <Modal visible={offerComposerOpen} transparent animationType="fade" onRequestClose={() => setOfferComposerOpen(false)}>
+          <BlurView intensity={glassBlur("panel")} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.closeSheetScrim}>
+              <View style={styles.offerSheet}>
+                <Text style={styles.offerSheetEyebrow}>TRUFRENZ BIZZ</Text>
+                <Text style={styles.offerSheetTitle}>What do you offer?</Text>
+                <Text style={styles.offerSheetSub}>
+                  Keep it short. This is the line somebody reads before deciding to ask you about it.
+                </Text>
+                <Text style={styles.offerFieldLabel}>What you do</Text>
+                <TextInput
+                  value={offerDraft.what}
+                  onChangeText={(value) => setOfferDraft((current) => ({ ...current, what: value }))}
+                  placeholder="Sourdough, Saturdays"
+                  placeholderTextColor="#8f9aa3"
+                  maxLength={OFFER_WHAT_MAX}
+                  style={styles.offerInput}
+                  returnKeyType="next"
+                />
+                <Text style={styles.offerFieldLabel}>One line of detail</Text>
+                <TextInput
+                  value={offerDraft.detail}
+                  onChangeText={(value) => setOfferDraft((current) => ({ ...current, detail: value }))}
+                  placeholder="Order by Friday, collect from Indiranagar"
+                  placeholderTextColor="#8f9aa3"
+                  maxLength={OFFER_DETAIL_MAX}
+                  style={styles.offerInput}
+                  returnKeyType="next"
+                />
+                <Text style={styles.offerFieldLabel}>What it costs</Text>
+                <TextInput
+                  value={offerDraft.price}
+                  onChangeText={(value) => setOfferDraft((current) => ({ ...current, price: value }))}
+                  placeholder="₹300 a loaf · Free first class · Swap welcome"
+                  placeholderTextColor="#8f9aa3"
+                  maxLength={OFFER_PRICE_MAX}
+                  style={styles.offerInput}
+                  returnKeyType="done"
+                  onSubmitEditing={saveOffer}
+                />
+                <Text style={styles.offerSheetNote}>
+                  A price is required, even when the answer is free. Everything else is up to you.
+                </Text>
+                <View style={styles.offerSheetActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel writing this offer"
+                    onPress={() => { setOfferComposerOpen(false); setOfferDraft(EMPTY_OFFER_DRAFT); }}
+                    style={({ pressed }) => [styles.offerSheetGhost, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.offerSheetGhostText}>Not now</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Save this offer"
+                    onPress={saveOffer}
+                    style={({ pressed }) => [styles.offerSheetPrimary, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.offerSheetPrimaryText}>Save it</Text>
+                  </Pressable>
+                </View>
+              </View>
+          </BlurView>
+        </Modal>
+        {/*
+          Choosing who to send an offer to.
+
+          Only people the member has both agreed with. An offer with no addressee
+          would be a listing, and a listing is the thing that turns a friendship
+          circle into a shop.
+        */}
+        <Modal visible={offerShareId !== null} transparent animationType="fade" onRequestClose={() => setOfferShareId(null)}>
+          <BlurView intensity={glassBlur("panel")} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.closeSheetScrim}>
+              <View style={styles.offerSheet}>
+                <Text style={styles.offerSheetEyebrow}>SHARE THIS OFFER</Text>
+                <Text style={styles.offerSheetTitle}>Send it to a friend</Text>
+                <Text style={styles.offerSheetSub}>
+                  It arrives in your chat, like anything else you would say. They can answer whenever they like.
+                </Text>
+                <ScrollView style={styles.offerPickerList} showsVerticalScrollIndicator={false}>
+                  {acceptedFriends.map((id) => {
+                    const chat = seedConversations.find((item) => item.id === id);
+                    if (!chat) return null;
+                    return (
+                      <Pressable
+                        key={id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Share this offer with ${chat.name}`}
+                        onPress={() => sendOfferTo(id)}
+                        style={({ pressed }) => [styles.offerPickerRow, pressed && styles.pressed]}
+                      >
+                        <Image source={chat.image} style={styles.offerPickerAvatar} />
+                        <Text style={styles.offerPickerName} numberOfLines={1}>{chat.name}</Text>
+                        <Icon name="send" size={15} color="#83721f" />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close without sharing"
+                  onPress={() => setOfferShareId(null)}
+                  style={({ pressed }) => [styles.offerSheetGhost, pressed && styles.pressed]}
+                >
+                  <Text style={styles.offerSheetGhostText}>Not now</Text>
+                </Pressable>
+              </View>
           </BlurView>
         </Modal>
       </View>;
@@ -4460,7 +4733,11 @@ export default function TrufrenzApp() {
       <View style={styles.pageIntro}>
         <Text style={styles.pageEyebrow}>TRUFRENZ BIZZ</Text>
         <Text style={styles.pageTitle}>Friends first. Business next.</Text>
-        <Text style={styles.pageSub}>The section is built and waiting. Its tools arrive in a later update.</Text>
+        <Text style={styles.pageSub}>
+          {offers.length
+            ? "What you offer, shared one person at a time."
+            : "Write down what you do, and share it with someone you already know."}
+        </Text>
       </View>
       <Frosted style={styles.bizzHero}>
         <View style={styles.bizzHeroArt}>
@@ -4475,6 +4752,76 @@ export default function TrufrenzApp() {
           </Text>
         </View>
       </Frosted>
+
+      {/*
+        The member's own offers.
+
+        This is the section's first real tool. Everything below it is a promise
+        about the future; this is the part that works today, so it sits above the
+        promise rather than under it.
+      */}
+      <View style={styles.sectionHeaderLine}>
+        <View>
+          <Text style={styles.sectionEyebrow}>WHAT YOU OFFER</Text>
+          <Text style={styles.sectionTitle}>
+            {offers.length === 1 ? "1 offer ready to share" : offers.length ? `${offers.length} offers ready to share` : "Nothing written yet"}
+          </Text>
+        </View>
+        <Icon name="storefront" size={19} color="#83721f" />
+      </View>
+      {offers.length ? (
+        <Frosted style={styles.bizzList}>
+          {offers.map((offer, index) => (
+            <View key={offer.id}>
+              {index > 0 ? <View style={styles.settingDivider} /> : null}
+              <View style={styles.offerRow}>
+                <View style={styles.settingContent}>
+                  <Text style={styles.offerWhat} numberOfLines={1}>{offer.what}</Text>
+                  <Text style={styles.offerLine} numberOfLines={2}>{offerListLine(offer)}</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share ${offer.what} in a chat`}
+                  onPress={() => shareOffer(offer)}
+                  style={({ pressed }) => [styles.offerShare, pressed && styles.pressed]}
+                >
+                  <Icon name="send" size={14} color="#4A4210" />
+                  <Text style={styles.offerShareText}>Share</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete the offer ${offer.what}`}
+                  onPress={() => { setOffers((current) => removeOffer(current, offer.id)); tap(); }}
+                  style={({ pressed }) => [styles.offerRemove, pressed && styles.pressed]}
+                >
+                  <Icon name="close" size={14} color="#8d8b86" />
+                </Pressable>
+              </View>
+            </View>
+          ))}
+        </Frosted>
+      ) : (
+        <Frosted style={styles.offerEmpty}>
+          <Text style={styles.offerEmptyTitle}>One line is enough to start.</Text>
+          <Text style={styles.offerEmptyCopy}>
+            &quot;Sourdough, Saturdays&quot;, &quot;Maths tutoring&quot;, &quot;Wedding photos&quot; — whatever you do, put a
+            price on it and it is ready to send.
+          </Text>
+        </Frosted>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={offers.length ? "Write another offer" : "Write your first offer"}
+        onPress={() => { setOfferDraft(EMPTY_OFFER_DRAFT); setOfferComposerOpen(true); tap(); }}
+        style={({ pressed }) => [styles.offerComposeButton, pressed && styles.pressed]}
+      >
+        <Icon name="add" size={16} color="#33322c" />
+        <Text style={styles.offerComposeButtonText}>{offers.length ? "Write another offer" : "Write your first offer"}</Text>
+      </Pressable>
+      <Text style={styles.offerBoundary}>
+        An offer is shared with one person at a time — somebody you and they have both already agreed to be friends with.
+        There is no directory and nobody can find you here.
+      </Text>
       <Text style={styles.settingsLabel}>WHAT IS COMING</Text>
       <Frosted style={styles.bizzList}>
         {[
@@ -5518,6 +5865,72 @@ const styles = StyleSheet.create({
   bizzSoonText: { color: "#7c7349", fontSize: 8, fontWeight: "700", letterSpacing: 0.3 },
   bizzAskRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14, marginHorizontal: 2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.4)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)") },
   bizzAskText: { flex: 1, color: "#5c594f", fontSize: 10.5, fontWeight: "600" },
+  offerRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
+  offerWhat: { color: "#3f3d37", fontSize: 12.5, fontWeight: "700" },
+  offerLine: { color: "#6f6d64", fontSize: 10, lineHeight: 14, marginTop: 3 },
+  offerShare: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    backgroundColor: glassNestedFill("rgba(240, 234, 205, 0.72)"),
+    borderWidth: 1,
+    borderColor: glassNestedFill("rgba(240, 234, 205, 0.30)"),
+  },
+  offerShareText: { color: "#4A4210", fontSize: 9.5, fontWeight: "700" },
+  offerRemove: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  offerEmpty: { padding: 13, borderRadius: 17, marginBottom: 10 },
+  offerEmptyTitle: { color: "#3f3d37", fontSize: 12, fontWeight: "700" },
+  offerEmptyCopy: { color: "#6f6d64", fontSize: 10, lineHeight: 15, marginTop: 4 },
+  offerComposeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingVertical: 11,
+    backgroundColor: "#F1DE55",
+    borderWidth: 1,
+    borderColor: glassNestedFill("rgba(255, 253, 232, 0.55)"),
+    shadowColor: "#3a4c62",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  offerComposeButtonText: { color: "#33322c", fontSize: 11.5, fontWeight: "700" },
+  offerBubble: { gap: 4, minWidth: 168 },
+  offerBubbleHead: { flexDirection: "row", alignItems: "center", gap: 5 },
+  offerBubbleLabel: { color: "#7c7349", fontSize: 7.5, fontWeight: "700", letterSpacing: 0.8 },
+  offerBubbleWhat: { color: "#33322c", fontSize: 13, fontWeight: "700", lineHeight: 17 },
+  offerBubbleDetail: { color: "#4f4d46", fontSize: 10.5, lineHeight: 14 },
+  offerBubblePrice: { color: "#4A4210", fontSize: 11.5, fontWeight: "700", marginTop: 1 },  offerBoundary: { color: "#6f6d64", fontSize: 9, lineHeight: 14, marginTop: 9, marginHorizontal: 2 },
+  offerSheet: { width: "100%", maxWidth: 360, borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), padding: 16, gap: 8, shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  offerSheetEyebrow: { color: "#6f6d64", fontSize: 8.5, fontWeight: "700", letterSpacing: 1.2 },
+  offerSheetTitle: { color: "#33322c", fontSize: 18, fontWeight: "700", marginTop: 5, letterSpacing: -0.3 },
+  offerSheetSub: { color: "#5f5d57", fontSize: 11, lineHeight: 16, marginTop: 5 },
+  offerFieldLabel: { color: "#6f6d64", fontSize: 9, fontWeight: "700", letterSpacing: 0.6, marginTop: 13, marginBottom: 5 },
+  offerInput: {
+    borderRadius: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 12.5,
+    color: "#33322c",
+    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.62)"),
+    borderWidth: 1,
+    borderColor: glassNestedFill("rgba(255, 255, 255, 0.35)"),
+  },
+  offerSheetNote: { color: "#6f6d64", fontSize: 9.5, lineHeight: 14, marginTop: 10 },
+  offerSheetActions: { flexDirection: "row", gap: 9, marginTop: 15 },
+  offerSheetGhost: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.50)") },
+  offerSheetGhostText: { color: "#4f4d46", fontSize: 11.5, fontWeight: "600" },
+  offerSheetPrimary: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999, paddingVertical: 11, backgroundColor: "#F1DE55" },
+  offerSheetPrimaryText: { color: "#33322c", fontSize: 11.5, fontWeight: "700" },
+  offerPickerList: { maxHeight: 240, marginTop: 13 },
+  offerPickerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
+  offerPickerAvatar: { width: 34, height: 34, borderRadius: 17 },
+  offerPickerName: { flex: 1, color: "#3f3d37", fontSize: 12.5, fontWeight: "600" },
   /*
    * The contact lookup, opened from the search box.
    *

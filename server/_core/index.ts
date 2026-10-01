@@ -9,6 +9,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerAdminRoutes } from "../adminRoutes";
+import { registerInvitePage } from "../inviteRoutes";
 import { registerAccountRoutes } from "../accountRoutes";
 import { seedAdminDemoData } from "../adminDb";
 import { startRevalidationJob } from "../revalidationJob";
@@ -66,6 +67,16 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });
+
+  /*
+   * The page an invitation opens.
+   *
+   * Registered here rather than in the account routes because it is not part of
+   * the API: it is an HTML document for a person who may not have the app yet.
+   * It sits above the admin dashboard and the SPA so a request for /i/CODE is
+   * answered by this and nothing else.
+   */
+  registerInvitePage(app);
 
   // Internal admin dashboard: its own API and its own login, kept apart from
   // the consumer app's tRPC surface and phone OTP sign-in.

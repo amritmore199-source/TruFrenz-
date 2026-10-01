@@ -124,6 +124,19 @@ export const members = mysqlTable("members", {
   reportCount: int("reportCount").default(0).notNull(),
   lastActiveAt: timestamp("lastActiveAt").defaultNow().notNull(),
   joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+  /**
+   * Who invited this member, as the code that travelled in their invite link.
+   *
+   * Stored as the code rather than as a member id because the link is generated
+   * on the sender's device: at the moment of signup the server has the code and
+   * nothing else. Resolving a code to a member is a lookup, done when a referral
+   * is actually paid out rather than on every signup.
+   *
+   * Nullable, because most members arrive by some other route.
+   */
+  referredByCode: varchar("referredByCode", { length: 16 }),
+  /** When the invitation was accepted, which starts any referral reward clock. */
+  referredAt: timestamp("referredAt"),
 });
 
 export type Member = typeof members.$inferSelect;
@@ -570,8 +583,10 @@ export const memberMessages = mysqlTable(
     text: text("text").notNull(),
     /** The display time the app showed, kept so the bubble reads the same everywhere. */
     time: varchar("time", { length: 32 }).notNull(),
-    /** Text, photo, voice, location, or a plan card. */
-    kind: mysqlEnum("messageKind", ["text", "photo", "voice", "location", "plan"]).default("text").notNull(),
+    /** Text, photo, voice, location, a plan card, or a shared Bizz offer. */
+    kind: mysqlEnum("messageKind", ["text", "photo", "voice", "location", "plan", "offer"])
+      .default("text")
+      .notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => [

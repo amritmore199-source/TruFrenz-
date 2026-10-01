@@ -107,7 +107,7 @@ export function shouldShowReceipt(
   return true;
 }
 
-export type MessageKind = "text" | "photo" | "voice" | "location" | "plan";
+export type MessageKind = "text" | "photo" | "voice" | "location" | "plan" | "offer";
 
 export type AttachmentDraft = {
   kind: Exclude<MessageKind, "text" | "plan">;
@@ -120,12 +120,13 @@ export type AttachmentDraft = {
 };
 
 /** Build the one-line summary shown on a chat row for a non-text message. */
-export function messagePreview(kind: MessageKind, options?: { text?: string; durationSeconds?: number; place?: string; planTitle?: string }): string {
+export function messagePreview(kind: MessageKind, options?: { text?: string; durationSeconds?: number; place?: string; planTitle?: string; offerWhat?: string }): string {
   switch (kind) {
     case "photo": return "📷 Photo";
     case "voice": return `🎤 Voice note · ${Math.max(1, Math.round(options?.durationSeconds ?? 0))}s`;
     case "location": return `📍 ${options?.place ?? "Shared a place"}`;
     case "plan": return `🗓️ ${options?.planTitle ?? "Plan card"}`;
+    case "offer": return `💼 ${options?.offerWhat ?? "Shared what they do"}`;
     case "text": return options?.text ?? "";
   }
 }

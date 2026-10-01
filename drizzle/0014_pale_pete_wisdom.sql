@@ -1,0 +1,1 @@
+ALTER TABLE `member_messages` MODIFY COLUMN `messageKind` enum('text','photo','voice','location','plan','offer') NOT NULL DEFAULT 'text';

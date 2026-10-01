@@ -59,7 +59,7 @@ export type MessageSync = {
 
 export const EMPTY_MESSAGE_SYNC: MessageSync = { queued: [], lastPushedAt: null };
 
-const KINDS: readonly string[] = ["text", "photo", "voice", "location", "plan"];
+const KINDS: readonly string[] = ["text", "photo", "voice", "location", "plan", "offer"];
 
 function isKind(value: unknown): value is string {
   return typeof value === "string" && KINDS.includes(value);

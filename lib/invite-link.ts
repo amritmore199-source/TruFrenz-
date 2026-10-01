@@ -98,12 +98,22 @@ function normalizeBase(baseUrl: string): string {
   return (baseUrl || "").trim().replace(/\/+$/, "");
 }
 
-/** The web link for a member's invitation. */
-export function buildInviteLink(baseUrl: string, seed: string | number): string {
+/**
+ * The web link for a member's invitation.
+ *
+ * `fromName` rides along in the query string so the landing page can name the
+ * sender without touching the database. It is a convenience, not the source of
+ * truth: the page falls back to resolving the code, and attribution at signup
+ * reads the code alone. So a name that someone strips out of the URL costs the
+ * sender nothing but a friendlier greeting.
+ */
+export function buildInviteLink(baseUrl: string, seed: string | number, fromName?: string | null): string {
   const base = normalizeBase(baseUrl) || INVITE_BASE_FALLBACK;
   const code = inviteCode(seed);
   if (!code) return base;
-  return `${base}/${INVITE_PATH}/${code}`;
+  const link = `${base}/${INVITE_PATH}/${code}`;
+  const name = (fromName ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+  return name ? `${link}?from=${encodeURIComponent(name)}` : link;
 }
 
 /**
@@ -171,4 +181,22 @@ export function inviteReadinessNote(baseUrl?: string | null): string {
   return inviteLinkIsLive(baseUrl)
     ? "Your invite link is live. Contacts can open it straight from the message."
     : "Your invite link points at a page that isn't published yet. The message still opens, but the link will not load until the landing page is live — set EXPO_PUBLIC_INVITE_URL once it is.";
+}
+
+/**
+ * The invitation code out of a link somebody opened.
+ *
+ * Accepts both shapes the app produces: the web link `/i/CODE` that a friend
+ * without the app follows, and the scheme link `app://i?code=CODE` that opens
+ * the installed app. Read from the whole URL rather than a parsed route, because
+ * the same code reaches us through a browser, a share sheet and a cold start.
+ */
+export function inviteCodeFromUrl(url: string | null | undefined): string | null {
+  const text = String(url ?? "").trim();
+  if (!text) return null;
+  const fromQuery = text.match(/[?&]code=([a-z2-9]{8})(?:[&#]|$)/i);
+  if (fromQuery?.[1]) return fromQuery[1].toLowerCase();
+  const fromPath = text.match(new RegExp(`/${INVITE_PATH}/([a-z2-9]{8})(?:[/?#]|$)`, "i"));
+  if (fromPath?.[1]) return fromPath[1].toLowerCase();
+  return null;
 }

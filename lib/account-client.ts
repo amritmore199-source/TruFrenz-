@@ -213,6 +213,14 @@ export async function completeSignin(input: {
    * so without it the server answers "your sign-in session has ended".
    */
   challengeToken?: string | null;
+  /**
+   * The invitation code that brought this member here, when there was one.
+   *
+   * Sent only on account creation, never on a later sign-in: attribution is
+   * settled once, at the moment the account exists, and a returning member
+   * opening somebody else's link must not be reassigned.
+   */
+  inviteCode?: string | null;
 }) {
   const result = await request<{ ok: boolean; token: string; account: RemoteAccount }>(
     "/api/account/complete-signin",
