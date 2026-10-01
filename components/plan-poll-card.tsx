@@ -2,10 +2,8 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { glassSurfaceColor,
-  glassNestedFill,
-} from "@/lib/appearance-preferences";
-import { useAppAppearance } from "@/lib/appearance-context";
+import { glassNestedFill } from "@/lib/appearance-preferences";
+import { GlassSurface } from "@/components/glass-surface";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { canVote, pollResults, winningProposal, type PlanPoll } from "@/lib/plan-cards";
 
@@ -19,14 +17,19 @@ type Props = {
 
 /** A group poll for deciding hangout plans together, shown as a card in chat. */
 export function PlanPollCard({ poll, viewerId, onVote, onUseWinning, nightMode = false }: Props) {
-  const { glassOpacity } = useAppAppearance();
   const results = pollResults(poll);
   const totalVotes = results.reduce((sum, item) => sum + item.count, 0);
   const votable = canVote(poll, viewerId);
   const winner = winningProposal(poll);
 
   return (
-    <View accessibilityLabel={`Poll: ${poll.question}, ${totalVotes} votes`} style={[styles.card, nightMode && styles.cardNight, { backgroundColor: nightMode ? CHAT_NIGHT.controlSurface : glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.9)"), glassOpacity) }]}>
+    <GlassSurface
+      surface="floater"
+      radius={18}
+      fill={nightMode ? CHAT_NIGHT.controlSurface : undefined}
+      style={[styles.card, nightMode && styles.cardNight]}
+      accessibilityLabel={`Poll: ${poll.question}, ${totalVotes} votes`}
+    >
       <View style={styles.headerRow}>
         <View style={styles.pill}>
           <MaterialIcons name="how-to-vote" size={13} color="#83721f" />
@@ -71,7 +74,7 @@ export function PlanPollCard({ poll, viewerId, onVote, onUseWinning, nightMode =
           <Text style={styles.convertText}>Turn this into a plan</Text>
         </Pressable>
       ) : null}
-    </View>
+    </GlassSurface>
   );
 }
 

@@ -113,7 +113,7 @@ describe("glass colour choice", () => {
      * neither ink reaches AA on it, so that cast was retired rather than left
      * offered and unreadable.
      */
-    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon"]);
+    expect(GLASS_TINT_OPTIONS).toEqual(["white", "sky", "lemon"]);
     expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("sky");
   });
 
@@ -136,7 +136,12 @@ describe("glass colour choice", () => {
   it("colours a neutral surface according to the chosen cast", () => {
     const sky = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "sky");
     const lemon = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "lemon");
+    const white = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "white");
     expect(sky).not.toBe(lemon);
+    // White glass carries no hue of its own: its channels are equal.
+    const [wr, wg, wb] = white.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
+    expect(wr).toBe(wg);
+    expect(wg).toBe(wb);
     // Sky is cooler than lemon: blue must lead in one and lose in the other.
     const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
     const [sr, , sb] = parse(sky);

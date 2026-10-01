@@ -2,10 +2,8 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
-import { glassSurfaceColor,
-  glassNestedFill,
-} from "@/lib/appearance-preferences";
-import { useAppAppearance } from "@/lib/appearance-context";
+import { glassNestedFill } from "@/lib/appearance-preferences";
+import { GlassSurface } from "@/components/glass-surface";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import {
   PLAN_KIND_LABEL,
@@ -31,7 +29,6 @@ type Props = {
  * place, the response controls, and a confirmed state with a day-of check-in.
  */
 export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, onCopyLink, nightMode = false }: Props) {
-  const { glassOpacity } = useAppAppearance();
   const timing = planTiming(card);
   const label = PLAN_KIND_LABEL[card.kind];
   const mine = card.proposedBy === "me";
@@ -44,9 +41,11 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const accentSoft = card.kind === "meetup" ? "rgba(247, 241, 214, 0.9)" : glassNestedFill("rgba(238, 244, 248, 0.9)");
 
   return (
-    <View
-      accessibilityLabel={`${label} card, ${timing.label}, ${card.proposal.time} at ${card.proposal.place}, ${card.status}`}
-      style={[styles.card, nightMode && styles.cardNight, { backgroundColor: nightMode ? CHAT_NIGHT.controlSurface : glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.9)"), glassOpacity) }]}
+    <GlassSurface
+      surface="floater"
+      radius={18}
+      fill={nightMode ? CHAT_NIGHT.controlSurface : undefined}
+      style={[styles.card, nightMode && styles.cardNight]}
     >
       <View style={styles.topRow}>
         <View style={[styles.kindPill, { backgroundColor: accentSoft }]}>
@@ -125,7 +124,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
         <Text style={[styles.linkText, nightMode && styles.lightSecondaryText]} numberOfLines={1}>{card.link}</Text>
         <Text style={[styles.linkAction, nightMode && styles.accentText]}>Copy</Text>
       </Pressable>
-    </View>
+    </GlassSurface>
   );
 }
 

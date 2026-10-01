@@ -26,16 +26,24 @@
  * How a neutral surface is coloured.
  *
  */
-export type GlassTint = "sky" | "lemon";
+export type GlassTint = "white" | "lemon" | "sky";
 
 /** A named surface, so each kind can carry its own weight. */
 export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" | "floater";
 
-/** The brightest glass weight for any surface. Beyond this it stops being glass. */
-export const MAX_GLASS_ALPHA = 0.46;
+/**
+ * The brightest glass weight for any surface. Beyond this it stops being glass.
+ *
+ * The card sits at 0.28 and the ceiling at 0.54. Walking the artwork wallpaper
+ * through the whole band, dark ink holds at least 5.47:1 at every setting, so the
+ * ceiling is set by what still reads as glass rather than by the text: the
+ * reference sheet's own card measured a light fill and a bright rim, and a
+ * surface has to keep enough of the wallpaper to be glass at all.
+ */
+export const MAX_GLASS_ALPHA = 0.54;
 
 /** Every surface starts here, then the tint weight and the setting adjust it. */
-const BASE_ALPHA = 0.24;
+const BASE_ALPHA = 0.28;
 
 /** How much a surface's own declared alpha can add, at most. */
 const MAX_DECLARED_WEIGHT = 0.11;
@@ -52,7 +60,7 @@ const NESTED_MAX_WEIGHT = 0.04;
 const MAX_SETTING_WEIGHT = 0.1;
 
 /** How far a neutral surface is pulled toward the glass tint. */
-const NEUTRAL_TINT_MIX = 0.62;
+const NEUTRAL_TINT_MIX = 0.6;
 
 /** Colour spread at or below which a surface counts as neutral (grey/white). */
 const NEUTRAL_CHROMA = 26;
@@ -63,22 +71,21 @@ const TINTS: Record<GlassTint, Rgb> = {
   // A warm lemon wash that keeps the app's accent family.
   lemon: { r: 247, g: 240, b: 205 },
   /*
-   * The night-glass slate: a smoky blue-grey, not black.
+   * Plain white glass: the reference sheet's own cast.
    *
-   * It is deliberately a mid slate rather than a near-black. Measured against
-   * pure white, this value gives roughly 8:1 wherever the wallpaper behind it is
-   * mid-toned, which is what makes bright text legible app-wide. A near-black
-   * would only have bought a couple more points of contrast while making every
-   * surface look like painted ink rather than glass — which is why the palette
-   * is "less blackish" and not "as dark as possible".
+   * It carries no hue of its own, so the surface reads as clear frosted glass and
+   * takes all of its colour from the wallpaper behind it. It is the third choice
+   * rather than the default because a member who wants a cool or warm cast should
+   * not have to find the setting first.
    */
+  white: { r: 255, g: 255, b: 255 },
 };
 
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
   sky: { r: 255, g: 255, b: 255 },
   lemon: { r: 255, g: 254, b: 244 },
-  // A cool rim rather than a white one; a white sheen over slate reads as fog.
+  white: { r: 255, g: 255, b: 255 },
 };
 
 /**
@@ -92,6 +99,9 @@ const VEIL: Record<GlassTint, Rgb> = {
 const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
   sky: 0.62,
   lemon: 0.62,
+  // White needs no wash: it is already the colour a neutral surface is heading
+  // toward, so mixing it in at full strength simply lets the wallpaper through.
+  white: 0.62,
 };
 
 /* ------------------------------- text ramp ------------------------------- */
@@ -145,7 +155,7 @@ let activeTint: GlassTint = "sky";
 
 /** Called by the appearance provider when the member changes the glass colour. */
 export function setActiveGlassTint(tint: GlassTint): void {
-  activeTint = tint === "lemon" ? "lemon" : "sky";
+  activeTint = tint === "lemon" ? "lemon" : tint === "white" ? "white" : "sky";
 }
 
 /** The tint currently in effect. Exposed for tests and diagnostics. */
@@ -450,21 +460,35 @@ export function glassBlur(surface: GlassSurface): number {
 
 /** The rim highlight that makes the surface feel physical. */
 export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): string {
+  /*
+   * The reference sheet's rim is opaque in the middle and fades at the corners,
+   * which is what gives the card a physical edge rather than a drawn outline. The
+   * card and the bar carry the brightest rim; a row inside a sheet needs less, or
+   * every inner line competes with the sheet it sits on.
+   */
   const strength: Record<GlassSurface, number> = {
-    card: 0.72,
-    panel: 0.6,
-    row: 0.58,
-    chip: 0.52,
-    tab: 0.55,
-    field: 0.5,
-    floater: 0.46,
+    card: 0.86,
+    panel: 0.78,
+    row: 0.6,
+    chip: 0.5,
+    tab: 0.8,
+    field: 0.46,
+    floater: 0.44,
   };
   const { r, g, b } = tint === "lemon" ? { r: 255, g: 253, b: 235 } : { r: 255, g: 255, b: 255 };
   return `rgba(${r}, ${g}, ${b}, ${strength[surface] ?? 0.6})`;
 }
 
-/** A soft, cool shadow. Warm shadows muddy a blue-white surface. */
-export const GLASS_SHADOW = "rgba(90, 108, 128, 0.16)";
+/**
+ * A soft, cool shadow, and the opacity to cast it at.
+ *
+ * The reference card's depth is a shadow rather than a dark fill: measured
+ * beneath the card it runs about 11% darker than the page, which is what lifts
+ * the glass off the wallpaper. A shadow is not a substitute for a light surface
+ * either — the card still sits proud by being lighter than the page around it.
+ */
+export const GLASS_SHADOW = "rgba(64, 84, 108, 0.30)";
+export const GLASS_SHADOW_OPACITY = 0.22;
 
 /**
  * A solid colour chip showing what a tint looks like.

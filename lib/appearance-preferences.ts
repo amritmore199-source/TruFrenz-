@@ -35,7 +35,7 @@ export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
  * rather than a replacement, so a member who liked the pale daytime glass keeps
  * it and nothing about the default changes for them.
  */
-export const GLASS_TINT_OPTIONS = ["sky", "lemon"] as const;
+export const GLASS_TINT_OPTIONS = ["white", "sky", "lemon"] as const;
 
 export const DEFAULT_GLASS_TINT: GlassTint = "sky";
 
@@ -53,7 +53,8 @@ export const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
 
 /** What each cast is called where the member chooses one. */
 export const GLASS_TINT_LABEL: Record<GlassTint, string> = {
-  sky: "Sky",
+  white: "White",
+  sky: "Sky blue",
   lemon: "Lemon",
 };
 
@@ -68,7 +69,9 @@ export const GLASS_TINT_LABEL: Record<GlassTint, string> = {
  * than resolving to a colour picker no longer offers.
  */
 export function normalizeGlassTint(value: unknown): GlassTint {
-  return value === "lemon" ? "lemon" : "sky";
+  if (value === "lemon") return "lemon";
+  if (value === "white") return "white";
+  return "sky";
 }
 
 export function normalizeGlassOpacity(value: unknown): number {

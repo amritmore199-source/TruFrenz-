@@ -279,10 +279,11 @@ import { GLASS_OPACITY_STEPS, GLASS_TINT_OPTIONS, glassSurfaceColor,
   GLASS_TINT_LABEL,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
-import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassTint, glassVeil, matchGlassPreset, tabBarTint, type GlassSurface, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, glassBlur, glassEdge, glassSwatch, glassSwatchEdge, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
+import { GlassSurface } from "@/components/glass-surface";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
 import {
@@ -504,45 +505,22 @@ const Icon = ({ name, color = "#65614c", size = 20 }: { name: keyof typeof Mater
   <MaterialIcons name={name} color={color} size={size} />
 );
 
+/**
+ * The screen's frosted card, now a thin wrapper over the shared surface.
+ *
+ * This used to hold the only copy of the glass recipe in the app, which is
+ * exactly why every other screen looked flat: their sheets painted a translucent
+ * fill and stopped there. The recipe lives in `GlassSurface` now, so a card here
+ * and a sheet on another screen cannot drift apart. The wrapper stays because
+ * this screen uses the name at more than seventy call sites.
+ */
 function Frosted({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
-  const { glassOpacity, glassTint: glassTintChoice } = useAppAppearance();
-  /*
-   * Four layers make the glass, in order:
-   *
-   *   1. a heavy blur, so the wallpaper diffuses instead of showing hard edges
-   *   2. a pale blue-white tint, thin enough that the wallpaper still reads
-   *   3. a sheen across the top half, which is what looks like lit glass
-   *   4. a bright rim, so the card has a physical edge
-   *
-   * The tint is deliberately thin. An opaque fill is what made the cards look
-   * like plain white panels before: no blur can show through a solid colour.
-   */
   const flattened = StyleSheet.flatten(style);
   const radius = flattened?.borderRadius ?? styles.frosted.borderRadius;
   return (
-    <View
-      style={[
-        styles.frosted,
-        style,
-        {
-          backgroundColor: glassTint("card", glassOpacity, glassTintChoice),
-          borderColor: glassEdge("card", glassTintChoice),
-          shadowColor: GLASS_SHADOW,
-        },
-      ]}
-    >
-      <BlurView
-        intensity={glassBlur("card")}
-        tint="light"
-        experimentalBlurMethod="dimezisBlurView"
-        style={[StyleSheet.absoluteFillObject, styles.noninteractive, { borderRadius: radius }]}
-      />
-      <View
-        pointerEvents="none"
-        style={[styles.glassSheen, { borderRadius: radius, backgroundColor: glassVeil("card", glassOpacity, glassTintChoice) }]}
-      />
+    <GlassSurface surface="card" radius={radius} style={[styles.frosted, style]}>
       {children}
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -4838,7 +4816,7 @@ const styles = StyleSheet.create({
   /** The control beside the search field that opens the device's contacts. */
   searchFilterButton: { width: 30, height: 30, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
   searchFilterButtonActive: { backgroundColor: glassNestedFill("rgba(241, 234, 197, 0.72)"), borderColor: glassNestedFill("rgba(226, 213, 153, 0.9)") },
-  frosted: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 19, shadowColor: "#DFE6EB", shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
+  frosted: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
   searchBar: { height: 42, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.73)") },
   searchInput: { flex: 1, color: "#4f4d47", fontSize: 11, paddingVertical: 0, outlineStyle: "none" as any },
@@ -5185,7 +5163,7 @@ const styles = StyleSheet.create({
   appearanceHeadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 9 },
   opacityReadout: { minWidth: 39, textAlign: "right", color: "#83721f", fontSize: 10, fontWeight: "700" },
   opacityOptions: { flexDirection: "row", gap: 4, marginTop: 7 },
-  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.52)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)") },
+  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.52)"), borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)" },
   opacityOptionActive: { backgroundColor: "rgba(232, 216, 140, 0.95)", borderColor: "rgba(233, 209, 119, 0.86)", shadowColor: "#83721f", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   opacityOptionText: { color: "#8f8c85", fontSize: 8, fontWeight: "600" },
   opacityOptionTextActive: { color: "#6e6538", fontWeight: "700" },
@@ -5216,7 +5194,13 @@ const styles = StyleSheet.create({
   settingIconPink: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#f4eecb", alignItems: "center", justifyContent: "center" },
   settingIconBlue: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#E9F1F5", alignItems: "center", justifyContent: "center" },
   settingContent: { flex: 1 },
-  toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.62)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#726f68", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  /*
+   * A toggle is glass too. The switch itself keeps its track colour, because a
+   * control has to show its state at a glance; the frame around it is the pale
+   * sheet with a bright rim, so a row of toggles reads as one material with the
+   * cards rather than as a set of plastic pills.
+   */
+  toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.34)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.92)", shadowColor: "#726f68", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
   settingTitle: { color: "#53514C", fontSize: 9, fontWeight: "700" },
   settingSub: { color: "#94928d", fontSize: 7, marginTop: 3 },
   quietHoursControls: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 7 },
@@ -5319,9 +5303,9 @@ const styles = StyleSheet.create({
   peopleSourceText: { color: "#5d5a52", fontSize: 10, fontWeight: "650" as any },
   peopleSourceTextActive: { color: "#4A4210" },
   peopleSourceNote: { flex: 1, color: "#6B6962", fontSize: 8, lineHeight: 11 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: glassNestedFill("rgba(255, 255, 255, 0.55)"), flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.88)", flexDirection: "row", alignItems: "center", justifyContent: "space-around", shadowColor: "#737068", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   tabButton: { width: "25%", minHeight: 50, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 3 },
-  tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"), backgroundColor: "rgba(47, 58, 69, 0.20)" },
+  tabIconWrap: { height: 28, minWidth: 48, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)", backgroundColor: "rgba(47, 58, 69, 0.20)" },
   tabIconActive: { backgroundColor: "rgba(239, 233, 199, 0.96)", borderColor: "rgba(226, 213, 153, 0.98)", shadowColor: "#83721f", shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   tabLabel: { color: "#969590", fontSize: 8, fontWeight: "500" },
   tabLabelActive: { color: "#83721f", fontWeight: "700" },
@@ -5434,7 +5418,7 @@ const styles = StyleSheet.create({
   typingDotMiddle: { opacity: 0.72 },
   typingDotLast: { opacity: 0.46 },
   typingText: { color: "#8f8d85", fontSize: 8 },
-  selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)") },
+  selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)" },
   selfieEntryIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#f0ebcd", alignItems: "center", justifyContent: "center" },
   navigationMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(53, 50, 31, 0.24)" },
   navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(250, 248, 239, 0)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#4f4b36", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },

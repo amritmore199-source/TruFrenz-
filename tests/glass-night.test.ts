@@ -64,10 +64,25 @@ const WALLPAPER_DARKEST: [number, number, number] = [200, 200, 200];
 const WALLPAPER_AVERAGE: [number, number, number] = [248, 248, 248];
 
 describe("the casts on offer", () => {
-  it("offers the two warm-cool casts that carry dark ink on bright paper", () => {
-    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon"]);
-    expect(GLASS_TINT_LABEL.sky).toBe("Sky");
+  it("offers the three glass colours the member chooses between", () => {
+    /*
+     * White, sky blue and lemon. White is clear frosted glass carrying no hue of
+     * its own; the other two are the warm and cool casts. The default stays sky
+     * so an existing member keeps the app they already had.
+     */
+    expect(GLASS_TINT_OPTIONS).toEqual(["white", "sky", "lemon"]);
+    expect(GLASS_TINT_LABEL.white).toBe("White");
+    expect(GLASS_TINT_LABEL.sky).toBe("Sky blue");
     expect(GLASS_TINT_LABEL.lemon).toBe("Lemon");
+  });
+
+  it("carries dark ink on every one of them", () => {
+    const ink = hex(TEXT_ON_GLASS.heading);
+    for (const cast of GLASS_TINT_OPTIONS) {
+      const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, cast));
+      const rendered = over([...surfaceGlass], WALLPAPER_DARKEST);
+      expect(contrast(ink, rendered)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   /*
@@ -82,6 +97,7 @@ describe("the casts on offer", () => {
   it("folds a saved dusk choice back to the cool default instead of stranding it", () => {
     expect(normalizeGlassTint("dusk")).toBe("sky");
     expect(normalizeGlassTint("lemon")).toBe("lemon");
+    expect(normalizeGlassTint("white")).toBe("white");
     expect(normalizeGlassTint("nonsense")).toBe("sky");
   });
 
@@ -102,10 +118,16 @@ describe("surfaces over the crew artwork", () => {
   it("tints a neutral surface rather than replacing it", () => {
     const lemon = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "lemon"));
     const sky = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "sky"));
-    // The warm cast leads red, the cool cast leads blue, and both stay light.
+    const white = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "white"));
+    // The warm cast leads red, the cool cast leads blue, and white leads nowhere.
     expect(lemon[0]).toBeGreaterThan(lemon[2]);
     expect(sky[2]).toBeGreaterThan(sky[0]);
-    expect(luminance([sky[0], sky[1], sky[2]])).toBeGreaterThan(0.7);
+    expect(white[0]).toBe(white[1]);
+    expect(white[1]).toBe(white[2]);
+    // All three stay light enough to carry dark ink.
+    for (const cast of [lemon, sky, white]) {
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.7);
+    }
   });
 
   it("leaves a saturated accent alone, so buttons keep their own colour", () => {
