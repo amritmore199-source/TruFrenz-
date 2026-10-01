@@ -40,10 +40,10 @@ export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" |
  * reference sheet's own card measured a light fill and a bright rim, and a
  * surface has to keep enough of the wallpaper to be glass at all.
  */
-export const MAX_GLASS_ALPHA = 0.54;
+export const MAX_GLASS_ALPHA = 0.46;
 
 /** Every surface starts here, then the tint weight and the setting adjust it. */
-const BASE_ALPHA = 0.28;
+const BASE_ALPHA = 0.24;
 
 /** How much a surface's own declared alpha can add, at most. */
 const MAX_DECLARED_WEIGHT = 0.11;
@@ -129,7 +129,14 @@ const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
 export const TEXT_ON_GLASS = {
   heading: "#43423d",
   body: "#53514C",
-  secondary: "#6B6962",
+  /*
+   * The secondary tone is darker than it looks like it needs to be, and that is
+   * deliberate. The colour field added behind the glass darkens the surfaces the
+   * text lands on, so the previous value measured 3.78:1 over the darkest of
+   * them — under AA. This value clears 4.53:1 against the worst surface in the
+   * whole band, across all three casts.
+   */
+  secondary: "#5F5D57",
 } as const;
 
 /** The mix for a cast, falling back to the pale wash for an unknown one. */
@@ -435,7 +442,7 @@ export function glassVeil(
   tint: GlassTint = activeTint,
 ): string {
   const { r, g, b } = VEIL[tint];
-  const alpha = Math.min(0.3, glassAlpha(surface, glassOpacity) * 0.55);
+  const alpha = Math.min(0.34, glassAlpha(surface, glassOpacity) * 0.62);
   return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
 }
 
@@ -446,14 +453,14 @@ export function glassVeil(
  */
 export function glassBlur(surface: GlassSurface): number {
   const base: Record<GlassSurface, number> = {
-    card: 62,
-    panel: 66,
-    row: 54,
-    chip: 46,
-    tab: 58,
-    field: 44,
+    card: 78,
+    panel: 82,
+    row: 62,
+    chip: 52,
+    tab: 72,
+    field: 50,
     // A nested surface blurs what is already blurred, so it needs less.
-    floater: 50,
+    floater: 58,
   };
   return base[surface] ?? 58;
 }
@@ -487,8 +494,108 @@ export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): 
  * the glass off the wallpaper. A shadow is not a substitute for a light surface
  * either — the card still sits proud by being lighter than the page around it.
  */
-export const GLASS_SHADOW = "rgba(64, 84, 108, 0.30)";
-export const GLASS_SHADOW_OPACITY = 0.22;
+export const GLASS_SHADOW = "rgba(58, 76, 98, 0.34)";
+export const GLASS_SHADOW_OPACITY = 0.3;
+
+/*
+ * The rim, and the second hairline just inside it.
+ *
+ * Measured off the supplied samples, and this is what actually makes them read
+ * as glass: a single flat border does not. Each card has a bright outer edge —
+ * pure white in the sky and lemon samples, near-white in the neutral one — and
+ * then, two or three pixels in, a thin inner line carrying the card's own cast,
+ * bright blue in the sky sample and bright yellow in the lemon one. The pair is
+ * what gives the sheet a physical thickness, like the ground edge of real glass.
+ *
+ * The first attempt at this app's glass had one rim at half opacity, which is
+ * why it read as a drawn outline rather than as a lit edge.
+ */
+export const GLASS_RIM_INNER_INSET = 4;
+
+/**
+ * The colour field the glass sits over.
+ *
+ * This is the other half of why the samples read as glass, and the reason the
+ * app's cards did not: their backdrops are saturated — a lemon, a blue ring, a
+ * grey marble — so the blur has real colour to soften and the card visibly picks
+ * that colour up. The app's backdrop was a pale drawing under a wash that had
+ * been flattened to a near-uniform cream, so every card came out the same cream
+ * as the page behind it and there was no depth to see.
+ *
+ * These are the three pools of colour laid behind the content, tuned per cast, so
+ * a card over one of them genuinely shows it through.
+ */
+export function glassAmbient(tint: GlassTint = activeTint): {
+  warm: string;
+  cool: string;
+  soft: string;
+} {
+  const field: Record<GlassTint, { warm: string; cool: string; soft: string }> = {
+    sky: {
+      warm: "rgba(168, 214, 246, 0.36)",
+      cool: "rgba(118, 182, 234, 0.34)",
+      soft: "rgba(196, 228, 250, 0.28)",
+    },
+    lemon: {
+      warm: "rgba(246, 226, 132, 0.38)",
+      cool: "rgba(228, 216, 118, 0.32)",
+      soft: "rgba(250, 238, 170, 0.28)",
+    },
+    white: {
+      warm: "rgba(214, 228, 242, 0.34)",
+      cool: "rgba(196, 214, 236, 0.32)",
+      soft: "rgba(228, 238, 248, 0.26)",
+    },
+  };
+  return field[tint] ?? field.sky;
+}
+
+/**
+ * The switch track colours for a cast.
+ *
+ * The samples' controls are pills carrying the card's own colour — a blue pill in
+ * the sky card, a white one with dark text in the neutral card. The app's toggles
+ * were the last flat elements left: a fixed grey when off and a fixed pastel when
+ * on, whatever glass colour the member had chosen. These follow the cast, so a
+ * toggle belongs to the same material as the card it sits in.
+ */
+export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; on: string } {
+  const track: Record<GlassTint, { off: string; on: string }> = {
+    sky: { off: "rgba(226, 233, 239, 0.9)", on: "rgba(122, 188, 232, 0.95)" },
+    lemon: { off: "rgba(233, 230, 214, 0.9)", on: "rgba(240, 219, 78, 0.95)" },
+    white: { off: "rgba(230, 234, 239, 0.9)", on: "rgba(198, 214, 228, 0.95)" },
+  };
+  return track[tint] ?? track.sky;
+}
+
+/** The inner hairline's colour for a cast. Saturated, unlike the fill. */
+export function glassInnerRim(tint: GlassTint = activeTint): string {
+  const inner: Record<GlassTint, string> = {
+    // A cool line, the sky sample's own ring.
+    sky: "rgba(122, 188, 232, 0.92)",
+    // The lemon sample's ring.
+    lemon: "rgba(240, 219, 78, 0.92)",
+    // The neutral sample's inner line is a plain light grey, not a hue.
+    white: "rgba(255, 255, 255, 0.95)",
+  };
+  return inner[tint] ?? inner.sky;
+}
+
+/**
+ * The soft glow that pools just inside the top rim.
+ *
+ * Every sample has one: a diffuse light halo inside the upper edge, as though
+ * the sheet were catching light from above. It is what stops a large card from
+ * reading as a flat panel, because a flat panel has no falloff across it.
+ */
+export function glassTopGlow(tint: GlassTint = activeTint): string {
+  const glow: Record<GlassTint, string> = {
+    sky: "rgba(150, 205, 245, 0.30)",
+    lemon: "rgba(246, 228, 128, 0.34)",
+    white: "rgba(255, 255, 255, 0.42)",
+  };
+  return glow[tint] ?? glow.sky;
+}
 
 /**
  * A solid colour chip showing what a tint looks like.

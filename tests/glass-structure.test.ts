@@ -1,7 +1,15 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { GLASS_SHADOW_OPACITY, MAX_GLASS_ALPHA, glassBlur, glassEdge } from "../lib/glass";
+import {
+  GLASS_SHADOW_OPACITY,
+  MAX_GLASS_ALPHA,
+  glassAmbient,
+  glassBlur,
+  glassEdge,
+  glassInnerRim,
+  glassSwitchTrack,
+} from "../lib/glass";
 
 const read = (relative: string) => readFileSync(new URL(relative, `file://${process.cwd()}/`).pathname, "utf8");
 
@@ -64,5 +72,69 @@ describe("the glass structure", () => {
     expect(MAX_GLASS_ALPHA).toBeLessThan(0.6);
     expect(GLASS_SHADOW_OPACITY).toBeGreaterThan(0);
     expect(GLASS_SHADOW_OPACITY).toBeLessThan(0.5);
+  });
+});
+
+describe("the double rim and the colour field", () => {
+  /*
+   * Measured off the supplied samples, and this is what separates glass from a
+   * drawn outline: a bright outer edge with a thin cast-coloured hairline just
+   * inside it, like the ground edge of a real sheet.
+   */
+  it("gives every cast both an outer rim and an inner hairline", () => {
+    for (const cast of ["white", "sky", "lemon"] as const) {
+      const outer = glassEdge("card", cast);
+      const inner = glassInnerRim(cast);
+      expect(outer).toMatch(/^rgba\(/);
+      expect(inner).toMatch(/^rgba\(/);
+      // The outer edge is near-opaque in every sample.
+      expect(Number(outer.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.8);
+      // The inner line is a separate, fully opaque stroke.
+      expect(Number(inner.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.9);
+      expect(inner).not.toBe(outer);
+    }
+  });
+
+  it("carries the cast in the inner hairline, not just a neutral line", () => {
+    // The sky sample's ring is blue and the lemon sample's is yellow: the inner
+    // line has to carry the cast or the card loses the colour of its own glass.
+    const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
+    const [sr, , sb] = channels(glassInnerRim("sky"));
+    const [lr, , lb] = channels(glassInnerRim("lemon"));
+    expect(sb).toBeGreaterThan(sr);
+    expect(lr).toBeGreaterThan(lb);
+  });
+
+  /*
+   * The samples' cards all sit over saturated backdrops. The app's backdrop had
+   * been flattened to a near-uniform cream, which is why a card came out the same
+   * cream as the page behind it and the glass read as paint.
+   */
+  it("lays a colour field behind the glass so the blur has something to pick up", () => {
+    for (const cast of ["white", "sky", "lemon"] as const) {
+      const field = glassAmbient(cast);
+      for (const pool of [field.warm, field.cool, field.soft]) {
+        const [r, g, b, a] = pool.match(/[\d.]+/g)!.map(Number);
+        expect(a).toBeGreaterThan(0.2);
+        // A pool with no chroma would leave the glass reading grey again.
+        expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeGreaterThan(10);
+      }
+    }
+  });
+
+  it("fogs hard enough to hide the backdrop's detail", () => {
+    // The samples' backdrops are unrecognisable behind the card, not merely soft.
+    expect(glassBlur("card")).toBeGreaterThanOrEqual(70);
+    expect(glassBlur("panel")).toBeGreaterThanOrEqual(75);
+  });
+
+  it("keeps the switch tracks on the same cast as the glass", () => {
+    const sky = glassSwitchTrack("sky");
+    const lemon = glassSwitchTrack("lemon");
+    expect(sky.on).not.toBe(lemon.on);
+    for (const cast of ["white", "sky", "lemon"] as const) {
+      const track = glassSwitchTrack(cast);
+      for (const value of [track.off, track.on]) expect(value).toMatch(/^rgba\(/);
+    }
   });
 });

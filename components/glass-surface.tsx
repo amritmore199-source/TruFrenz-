@@ -4,11 +4,14 @@ import { BlurView } from "expo-blur";
 
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
+  GLASS_RIM_INNER_INSET,
   GLASS_SHADOW,
   GLASS_SHADOW_OPACITY,
   glassBlur,
   glassEdge,
+  glassInnerRim,
   glassTint,
+  glassTopGlow,
   glassVeil,
   type GlassSurface as GlassSurfaceKind,
 } from "@/lib/glass";
@@ -32,24 +35,29 @@ type Props = {
 };
 
 /**
- * A frosted glass surface, in the structure the reference sheet uses.
+ * A frosted glass surface, built the way the reference samples are built.
  *
- * The app already had a version of this in the main screen, but it was local to
- * that file: every other screen painted its own translucent fill and stopped
- * there, which is why cards looked like flat coloured panels rather than glass.
- * A translucent fill is not a frosted surface — frost is a *blur of what is
- * behind it*, so a surface without a blur has nothing to make it frosted, no
- * matter how pale its colour is.
+ * The samples were measured rather than eyeballed, and two things in them turned
+ * out to matter more than the fill colour:
  *
- * Four layers, in order:
+ *   1. **The double rim.** Each card has a bright outer edge — pure white in two
+ *      of the three samples — and then, a few pixels in, a thin inner hairline
+ *      carrying the card's own cast: bright blue in the sky sample, bright yellow
+ *      in the lemon one. The pair reads as the ground edge of a real sheet of
+ *      glass. A single border does not; this app had one at half opacity, which
+ *      is why its cards looked drawn rather than lit.
+ *
+ *   2. **The top glow.** A soft light halo pools just inside the upper rim in
+ *      every sample, so the surface has a falloff across it. Without it a large
+ *      card is a flat field of one colour, which is exactly how the app's cards
+ *      were reading.
+ *
+ * The layers, in order:
  *
  *   1. the blur, which diffuses the wallpaper behind the surface
  *   2. the cast, the only colour the glass has of its own
- *   3. the sheen, light falling across the top third
- *   4. the rim, a bright edge that gives the surface a physical boundary
- *
- * The depth is a soft cool shadow rather than a dark fill, which is how the
- * reference card lifts off the page while staying lighter than it.
+ *   3. the sheen, light across the whole face, and the glow along the top edge
+ *   4. the outer rim, the inner hairline, and a soft shadow for depth
  */
 export function GlassSurface({
   children,
@@ -60,14 +68,15 @@ export function GlassSurface({
   accessibilityLabel,
 }: Props) {
   const { glassOpacity, glassTint: cast } = useAppAppearance();
+  const shape = { borderRadius: radius };
   return (
     <View
       accessibilityLabel={accessibilityLabel}
       style={[
         styles.base,
         style,
+        shape,
         {
-          borderRadius: radius,
           backgroundColor: fill ?? glassTint(surface, glassOpacity, cast),
           borderColor: glassEdge(surface, cast),
           shadowColor: GLASS_SHADOW,
@@ -80,13 +89,29 @@ export function GlassSurface({
         tint="light"
         experimentalBlurMethod="dimezisBlurView"
         pointerEvents="none"
-        style={[StyleSheet.absoluteFillObject, styles.noninteractive, { borderRadius: radius }]}
+        style={[StyleSheet.absoluteFillObject, styles.noninteractive, shape]}
       />
       <View
         pointerEvents="none"
+        style={[styles.sheen, shape, { backgroundColor: glassVeil(surface, glassOpacity, cast) }]}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.topGlow, { backgroundColor: glassTopGlow(cast) }]}
+      />
+      {/*
+        The inner hairline. Absolute rather than a second nested View, so it can
+        be inset a few pixels from the outer rim without changing the layout of
+        anything the caller puts inside the surface.
+      */}
+      <View
+        pointerEvents="none"
         style={[
-          styles.sheen,
-          { borderRadius: radius, backgroundColor: glassVeil(surface, glassOpacity, cast) },
+          styles.innerRim,
+          {
+            borderRadius: typeof radius === "number" ? Math.max(0, radius - GLASS_RIM_INNER_INSET) : radius,
+            borderColor: glassInnerRim(cast),
+          },
         ]}
       />
       {children}
@@ -94,17 +119,6 @@ export function GlassSurface({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    borderWidth: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  sheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
-  noninteractive: { pointerEvents: "none" },
-  pressed: { opacity: 0.85 },
-});
 /**
  * A glass card that is *also* a pressable, for rows and tiles that link onward.
  *
@@ -128,7 +142,7 @@ export function GlassCard({
 }) {
   if (!onPress) {
     return (
-      <GlassSurface surface={surface} radius={radius} style={style}>
+      <GlassSurface surface={surface} radius={radius} style={style} accessibilityLabel={accessibilityLabel}>
         {children}
       </GlassSurface>
     );
@@ -146,3 +160,26 @@ export function GlassCard({
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  base: {
+    borderWidth: 1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 9 },
+    elevation: 6,
+  },
+  /* The face light covers the whole card in the samples, not just the top half. */
+  sheen: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
+  /* A pool of light along the top edge, strongest at the very top. */
+  topGlow: { position: "absolute", left: 0, right: 0, top: 0, height: "38%" },
+  innerRim: {
+    position: "absolute",
+    left: GLASS_RIM_INNER_INSET,
+    right: GLASS_RIM_INNER_INSET,
+    top: GLASS_RIM_INNER_INSET,
+    bottom: GLASS_RIM_INNER_INSET,
+    borderWidth: 1,
+  },
+  noninteractive: { pointerEvents: "none" },
+  pressed: { opacity: 0.85 },
+});

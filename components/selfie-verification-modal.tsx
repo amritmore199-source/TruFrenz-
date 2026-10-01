@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   description: { color: colors.muted, fontSize: 10, lineHeight: 16, textAlign: "center", marginTop: 8, maxWidth: 340 },
   promiseCard: { alignSelf: "stretch", minHeight: 65, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 9, marginTop: 17, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, overflow: "hidden" },
   promiseCopy: { flex: 1, gap: 3 },
-  promiseTitle: { color: "#6B6962", fontSize: 9, fontWeight: "700" },
+  promiseTitle: { color: "#5F5D57", fontSize: 9, fontWeight: "700" },
   promiseText: { color: "#8f8e88", fontSize: 8, lineHeight: 12 },
   primaryButton: { width: "100%", minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, backgroundColor: colors.purple, paddingHorizontal: 13, marginTop: 15 },
   primaryButtonText: { flex: 1, textAlign: "center", color: "#43423d", fontSize: 10, fontWeight: "700" },
