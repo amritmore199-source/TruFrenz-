@@ -22,6 +22,8 @@ import { glassSurfaceColor,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
+import { AmbientField } from "@/components/ambient-field";
+import { ambientIntensityFor, glassAmbient } from "@/lib/glass";
 
 const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
 
@@ -54,7 +56,13 @@ export function WelcomeScreen({
   onContinueAsGuest: () => void;
   soundEnabledByDefault?: boolean;
 }) {
-  const { glassOpacity } = useAppAppearance();
+  const { glassOpacity, glassTint } = useAppAppearance();
+  /*
+   * The welcome screen takes the profile intensity: it is a reading screen first —
+   * three lines of copy and two buttons over the panel — so it wants the same
+   * calm field the denser signed-in screens take, not the richest one.
+   */
+  const ambient = glassAmbient(glassTint, ambientIntensityFor("profile"));
   const { width } = useWindowDimensions();
   const [slide, setSlide] = useState(0);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -156,6 +164,16 @@ export function WelcomeScreen({
     <View style={styles.root}>
       <Image source={require("../assets/images/trufrenz-art.jpg")} style={styles.backdrop} resizeMode="cover" />
       <View style={styles.backdropWash} pointerEvents="none" />
+      {/*
+        The same colour field the signed-in app lays behind its glass.
+        Without it the first-run panels were diffusing the wash rather than a
+        scene, which is the one place the app's own guidance says glass stops
+        reading as glass. The member now meets the real material on the very
+        first screen instead of a lighter imitation of it.
+      */}
+      <View style={styles.field} pointerEvents="none">
+        <AmbientField warm={ambient.warm} cool={ambient.cool} soft={ambient.soft} />
+      </View>
       <View style={styles.bubbleField} pointerEvents="none">
         {BUBBLES.map((bubble, index) => (
           <Animated.View
@@ -366,6 +384,8 @@ const styles = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, overflow: "hidden", backgroundColor: "#f7f5ea" },
   backdrop: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", opacity: 0.5 },
   backdropWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 247, 235, 0.42)" },
+  /* Clipped, so a pool that runs past the edge cannot widen the page. */
+  field: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   bubbleField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
   scroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 26, gap: 14 },

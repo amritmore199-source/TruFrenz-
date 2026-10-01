@@ -6,6 +6,7 @@ import {
   TEXT_ON_GLASS,
   ambientIntensityFor,
   glassAlpha,
+  glassEmptyAccent,
   glassAmbient,
   glassNestedSurfaceColor,
   glassSurfaceColor,
@@ -253,5 +254,48 @@ describe("the backdrop field", () => {
     // An unknown section stays neutral rather than landing at an extreme.
     expect(ambientIntensityFor(null)).toBe(1);
     expect(ambientIntensityFor(undefined)).toBe(1);
+  });
+});
+
+describe("the empty-state tile", () => {
+  /*
+   * Every empty state in the app used one fixed cream tile, so Chats, Groups and
+   * Bizz announced themselves identically — on the one screen where there is
+   * nothing else to look at, which is exactly where a section's identity should be
+   * most legible.
+   */
+  it("follows the section it belongs to", () => {
+    const alphas = (["chats", "groups", "profile", "hangouts", "bizz"] as const).map((s) =>
+      Number(glassEmptyAccent(s).match(/([\d.]+)\)$/)![1]),
+    );
+    // Ordered like the field, so a denser screen gets a quieter tile.
+    expect(alphas[0]).toBeLessThan(alphas[1]);
+    expect(alphas[1]).toBeLessThan(alphas[2]);
+    expect(alphas[2]).toBeLessThan(alphas[3]);
+  });
+
+  it("carries more presence than the field it comes from", () => {
+    // A 53-point tile needs more of the colour than a full-screen pool does to read
+    // as the same colour at all.
+    const field = Number(glassAmbient("ash", ambientIntensityFor("chats")).warm.match(/([\d.]+)\)$/)![1]);
+    const tile = Number(glassEmptyAccent("chats").match(/([\d.]+)\)$/)![1]);
+    expect(tile).toBeGreaterThan(field);
+    // But it is still a tint over the wallpaper, not a painted swatch.
+    expect(tile).toBeLessThan(0.6);
+  });
+
+  it("takes the cast, so the tiles are not all blue", () => {
+    const lemon = glassEmptyAccent("chats", "lemon");
+    const sky = glassEmptyAccent("chats", "sky");
+    expect(lemon).not.toBe(sky);
+    // The lemon tile must actually be warm, not a blue with a different alpha.
+    const [r, , b] = lemon.match(/[\d.]+/g)!.map(Number);
+    expect(r).toBeGreaterThan(b);
+  });
+
+  it("falls back to the shipped cream for a section it does not know", () => {
+    // A surface with no section keeps the tile it had rather than a new colour.
+    expect(glassEmptyAccent(null)).toContain("rgba(");
+    expect(glassEmptyAccent(undefined)).toContain("rgba(");
   });
 });

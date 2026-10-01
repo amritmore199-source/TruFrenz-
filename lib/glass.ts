@@ -813,6 +813,36 @@ export function ambientIntensityFor(section: AmbientSection | null | undefined):
 }
 
 /**
+ * The tile behind an empty state's icon, tinted with that section's own field.
+ *
+ * An empty state is the one screen where there is nothing else to look at, so it
+ * is where the section's identity should be most legible — and it is currently the
+ * least: every empty state in the app used one fixed cream tile, so Chats, Groups
+ * and Bizz all announced themselves identically.
+ *
+ * Rather than invent a palette per section, this reuses the colour that section's
+ * backdrop already has. The tile is therefore literally tinted with the field
+ * behind it, which is both the cheapest possible way to make the sections
+ * distinguishable and the most honest: the member is not learning a new code, they
+ * are seeing more of what is already on screen.
+ *
+ * The alpha is the field's own alpha lifted to where a small tile can carry it. A
+ * tile is 53 points across, far smaller than a pool, so it needs more presence than
+ * the field to read as the same colour — but it sits under an icon, not under text,
+ * so it is not bound by the AA floor that constrains the field itself.
+ */
+export function glassEmptyAccent(
+  section: AmbientSection | null | undefined,
+  tint: GlassTint = activeTint,
+): string {
+  const field = glassAmbient(tint, ambientIntensityFor(section));
+  const nums = field.warm.match(/[\d.]+/g) ?? [];
+  if (nums.length < 4) return "rgba(239, 233, 205, 1)";
+  const [r, g, b, a] = nums.map(Number);
+  return `rgba(${r}, ${g}, ${b}, ${Math.min(0.55, a * 2.4).toFixed(3)})`;
+}
+
+/**
  * The soft pools of colour the glass sits over, for a cast and a section.
  *
  * The alphas in the table are the *base* field; the section's intensity scales

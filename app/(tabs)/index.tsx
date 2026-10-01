@@ -304,7 +304,7 @@ import {
   type BizzOffer,
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
-import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -4363,7 +4363,7 @@ export default function TrufrenzApp() {
           the new one in both places only made the inbox say "Private group ·
           Invite friends to begin" for a row that is not a chat.
         */}
-        {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={styles.emptyIcon}><Icon name="forum" size={22} color="#83721f" /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
+        {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("chats") }]}><Icon name="forum" size={22} color="#83721f" /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
         <View style={styles.safeNote}><Icon name="lock-outline" size={13} color="#DFE6EB" /><Text style={styles.safeNoteText}>Messages open after you both accept a friend request.</Text></View>
         {/*
           A closing card rather than a strip of dead space.
@@ -4596,6 +4596,22 @@ export default function TrufrenzApp() {
         })}
       </View>
       <View style={styles.opacityScaleCaption}><Text style={styles.opacityScaleText}>More wallpaper</Text><Text style={styles.opacityScaleText}>More opaque</Text></View>
+      {/*
+        A live sample of the setting, not a picture of it.
+
+        The opacity chips are numbers, and the cast chips are colours; neither
+        tells the member what the two together actually produce on their own
+        wallpaper. This is the real material — the same GlassSurface every card in
+        the app uses, at their current weight and cast — with two lines of real
+        copy over it, so the one control that changes every surface in the app has
+        a visible reference point instead of an abstract percentage.
+      */}
+      <GlassSurface surface="card" radius={14} style={styles.glassSample}>
+        <View style={styles.glassSampleBody}>
+          <Text style={styles.glassSampleTitle}>Sample surface</Text>
+          <Text style={styles.glassSampleCopy}>Your cards, rows and sheets all look like this right now.</Text>
+        </View>
+      </GlassSurface>
       <View style={styles.settingDivider} />
       {/*
         The glass cast. Sky is the cool blue-white of the reference sheet; lemon
@@ -4733,7 +4749,7 @@ export default function TrufrenzApp() {
         {groupLists.active.map(groupRow)}
         {groupLists.active.length === 0 ? (
           <Frosted style={styles.groupEmptyCard}>
-            <View style={styles.emptyIcon}><Icon name="groups" size={21} color="#83721f" /></View>
+            <View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("groups") }]}><Icon name="groups" size={21} color="#83721f" /></View>
             <Text style={styles.emptyTitle}>No active groups</Text>
             <Text style={styles.emptyCopy}>Start a circle with accepted friends, then plan together in one place.</Text>
           </Frosted>
@@ -4841,6 +4857,7 @@ export default function TrufrenzApp() {
         </Frosted>
       ) : (
         <Frosted style={styles.offerEmpty}>
+          <View style={[styles.emptyIcon, styles.offerEmptyIcon, { backgroundColor: glassEmptyAccent("bizz") }]}><Icon name="storefront" size={21} color="#83721f" /></View>
           <Text style={styles.offerEmptyTitle}>One line is enough to start.</Text>
           <Text style={styles.offerEmptyCopy}>
             &quot;Sourdough, Saturdays&quot;, &quot;Maths tutoring&quot;, &quot;Wedding photos&quot; — whatever you do, put a
@@ -5829,6 +5846,14 @@ const frozenStyles = StyleSheet.create({
   tintOptionTextActive: { color: "#4A4210" },
   opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
   opacityScaleText: { color: "#989791", fontSize: 7 },
+  /*
+   * The live sample. Deliberately not centred and not full width, so it reads as a
+   * sample of a surface rather than as another settings panel.
+   */
+  glassSample: { marginTop: 2, marginBottom: 4, alignSelf: "stretch" },
+  glassSampleBody: { paddingHorizontal: 11, paddingVertical: 10 },
+  glassSampleTitle: { color: "#3F3D37", fontSize: 10.5, fontWeight: "700" },
+  glassSampleCopy: { color: "#6F6D64", fontSize: 9, lineHeight: 13, marginTop: 3 },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
   adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"), shadowColor: "#544f3a", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   adBannerText: { flex: 1, fontSize: 10.5, lineHeight: 14.5, color: "#6d6b63" },
@@ -5936,6 +5961,11 @@ const frozenStyles = StyleSheet.create({
   offerShareText: { color: "#4A4210", fontSize: 9.5, fontWeight: "700" },
   offerRemove: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   offerEmpty: { padding: 13, borderRadius: 17, marginBottom: 10 },
+  /*
+   * The Bizz panel is left-aligned prose rather than a centred empty state, so the
+   * tile is smaller and sits above the copy rather than in a centred column.
+   */
+  offerEmptyIcon: { width: 40, height: 40, borderRadius: 15, marginTop: 0, marginBottom: 9 },
   offerEmptyTitle: { color: "#3f3d37", fontSize: 12, fontWeight: "700" },
   offerEmptyCopy: { color: "#6f6d64", fontSize: 10, lineHeight: 15, marginTop: 4 },
   offerComposeButton: {
