@@ -294,7 +294,12 @@ const styles = StyleSheet.create({
   gallerySlide: { height: "100%" },
   galleryImage: { width: "100%", height: "100%" },
   trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: glassNestedFill("rgba(252, 250, 242, 0.96)"), backgroundColor: "#E9D177", alignItems: "center", justifyContent: "center", shadowColor: "#776b33", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  counter: { position: "absolute", left: 9, top: 9, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(77, 71, 43, 0.42)" },
+  /*
+   * The pill darkens whatever photo sits under it, so its label is white and
+   * the pill is deep enough to hold it: a translucent brown at 0.42 over a
+   * bright photo leaves dark ink at 2.4:1.
+   */
+  counter: { position: "absolute", left: 9, top: 9, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(40, 36, 20, 0.72)" },
   counterText: { color: "#FFFFFF", fontSize: 8.5, fontWeight: "700" },
   dots: { flexDirection: "row", justifyContent: "center", gap: 5, marginTop: 8 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(131, 114, 31, 0.38)" },
@@ -315,7 +320,7 @@ const styles = StyleSheet.create({
   mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(244, 236, 200, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   mutualText: { flex: 1, color: "#767158", fontSize: 10, fontWeight: "700" },
   divider: { height: 1, backgroundColor: "rgba(219, 215, 192, 0.65)", marginTop: 14, marginBottom: 12 },
-  sectionLabel: { color: "#DFE6EB", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
+  sectionLabel: { color: "#6B6962", fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
   about: { color: "#63615c", fontSize: 12, lineHeight: 18, marginTop: 6, marginBottom: 9 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
   tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(244, 236, 200, 0.91)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.93)"), paddingHorizontal: 9, paddingVertical: 6 },
@@ -334,8 +339,8 @@ const styles = StyleSheet.create({
   // as an ordering below the sheet, so a button is always lighter than its panel.
   actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#75736a", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
   actionPrimary: { backgroundColor: "#F1DE55", borderColor: glassNestedFill("rgba(255, 255, 255, 0.64)"), shadowColor: "#5c5634", shadowOpacity: 0.14 },
-  actionText: { color: "#C8D3DA", fontSize: 10, fontWeight: "700" },
-  actionTextPrimary: { color: "#FFFFFF" },
+  actionText: { color: "#6B6962", fontSize: 10, fontWeight: "700" },
+  actionTextPrimary: { color: "#43423d" },
   actionTextDanger: { color: "#83721f" },
   safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: glassNestedFill("rgba(232, 241, 246, 0.73)") },
   safetyText: { flex: 1, color: "#7E8D98", fontSize: 9, lineHeight: 14 },

@@ -1,45 +1,27 @@
 import type { ImageSourcePropType } from "react-native";
 
-import type { GlassTint } from "./glass";
-
 /**
- * Which wallpaper belongs behind which glass cast.
+ * The app's wallpaper: the crew artwork.
  *
- * The casts were not fully interchangeable with any single wallpaper, and the
- * reason is arithmetic rather than taste. The app draws text in one of two
- * directions: the night cast is bright white on translucent slate, and the pale
- * casts are dark ink on translucent white. A wallpaper that helps one hurts the
- * other — a bright photo is what light glass wants, and a dark photo is what
- * light text wants — so no single image can serve both, and forcing one to try
- * meant a heavy veil over the good parts of the picture.
+ * There is deliberately only one. An earlier version shipped a pair, pairing a
+ * dark photo with the night cast and a light one with the pale casts, because
+ * the two palettes want opposite things from a background — bright white text
+ * wants a dark picture, dark ink wants a bright one. The member's artwork
+ * settles the question instead of splitting it: it is a drawing on white paper,
+ * so the app is a light app, and the casts are surface tints laid over the same
+ * picture rather than three different worlds.
  *
- * So the wallpaper follows the cast, which is the pairing that lets each be good
- * on its own terms. Measured against its own wallpaper, each cast clears AA with
- * room rather than by a hair:
- *
- *   night  (dusk + the night sky)   heading 5.65:1  body 5.24:1  secondary 4.94:1
- *   day    (sky/lemon + the light)  heading 8.16:1  body 7.29:1  secondary 5.05:1
- *
- * An unknown cast falls back to the light pairing, which is the app's default.
+ * The artwork is published lifted: its black point is raised so the drawing's
+ * shadows sit at 200/255 rather than near-black. That is not decoration. The
+ * paper field is already excellent — body text reads 7.7:1 over it — but the
+ * line work and sunglasses are dark enough that small text over them fell to
+ * 3.7:1. Raised, the worst shadow in the picture holds body text at 6.4:1 and
+ * the secondary grey at 4.6:1, and the drawing still reads as a drawing because
+ * the lift moves only its darkest values.
  */
-export type WallpaperId = "night" | "day";
+export const WALLPAPER: ImageSourcePropType = require("../assets/images/trufrenz-art.jpg");
 
-export const WALLPAPERS: Record<WallpaperId, ImageSourcePropType> = {
-  night: require("../assets/images/trufrenz-night.jpg"),
-  day: require("../assets/images/trufrenz-day.jpg"),
-};
-
-export const WALLPAPER_LABEL: Record<WallpaperId, string> = {
-  night: "Midnight crew",
-  day: "Crew watermark",
-};
-
-/** The wallpaper a cast is paired with. */
-export function wallpaperForTint(tint: GlassTint): WallpaperId {
-  return tint === "dusk" ? "night" : "day";
-}
-
-/** The image source for a cast. */
-export function wallpaperSource(tint: GlassTint): ImageSourcePropType {
-  return WALLPAPERS[wallpaperForTint(tint)];
+/** The one wallpaper, whatever the cast. Kept as a function so call sites do not change. */
+export function wallpaperSource(): ImageSourcePropType {
+  return WALLPAPER;
 }

@@ -105,13 +105,15 @@ describe("appearance preferences", () => {
 describe("glass colour choice", () => {
   afterEach(() => setActiveGlassTint("sky"));
 
-  it("offers the three supported casts and defaults to the cool one", () => {
-    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon", "dusk"]);
+  it("offers the two supported casts and defaults to the cool one", () => {
     /*
-     * The default stays the pale cool cast on purpose. The night look is the
-     * member's choice, so an existing member keeps the app they already had and
-     * nobody has their text colour changed underneath them.
+     * Two casts, because the wallpaper fixed the question. The wallpaper is the
+     * crew artwork on white paper, so every cast has to carry dark ink; a slate
+     * cast deep enough for white text resolves to mid-grey over that paper and
+     * neither ink reaches AA on it, so that cast was retired rather than left
+     * offered and unreadable.
      */
+    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon"]);
     expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("sky");
   });
 

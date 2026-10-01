@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DUSK_VEIL_ALPHA,
   GLASS_PRESETS,
   MAX_GLASS_ALPHA,
   TEXT_ON_GLASS,
-  backdropVeilAlpha,
-  duskVeilColor,
   glassAlpha,
   glassNestedSurfaceColor,
   glassSurfaceColor,
@@ -53,164 +50,123 @@ function hex(value: string): [number, number, number] {
   const v = parseInt(value.slice(1), 16);
   return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
 }
-function blend(
-  a: readonly [number, number, number],
-  b: readonly [number, number, number],
-  t: number,
-): [number, number, number] {
-  return [
-    Math.round(a[0] * (1 - t) + b[0] * t),
-    Math.round(a[1] * (1 - t) + b[1] * t),
-    Math.round(a[2] * (1 - t) + b[2] * t),
-  ];
-}
 
 /*
- * The worst case the app can actually produce.
+ * The worst cases the app can actually produce.
  *
- * The night wallpaper's brightest patch sits at roughly 163/119/77 — it ships
- * already carrying a quarter of the dusk veil in its own pixels. A surface is
- * judged over that patch and not over the photo's average, because the bright
- * patch is where light text fails first.
- *
- * UNBAKED is the same photo before that tint, and it is here to keep the asset's
- * own veil honest: the pair is only safe because of it, and a test that cannot
- * tell the difference would let somebody strip the tint and ship a wallpaper
- * that fails contrast.
+ * The wallpaper is the crew artwork: a drawing on white paper, published with
+ * its black point raised to 200/255 so the drawing's darkest marks do not sink
+ * small text below AA. Its paper field is the brightest thing a surface can sit
+ * over, and its lifted shadows are the darkest.
  */
-const WALLPAPER_BRIGHTEST: [number, number, number] = [163, 119, 77];
-const WALLPAPER_UNBAKED: [number, number, number] = [216, 144, 76];
-const WALLPAPER_AVERAGE: [number, number, number] = [34, 53, 81];
+const WALLPAPER_BRIGHTEST: [number, number, number] = [255, 255, 255];
+const WALLPAPER_DARKEST: [number, number, number] = [200, 200, 200];
+const WALLPAPER_AVERAGE: [number, number, number] = [248, 248, 248];
 
-describe("the dusk cast", () => {
-  it("is offered, labelled and accepted as a setting", () => {
-    expect(GLASS_TINT_OPTIONS).toContain("dusk");
-    expect(GLASS_TINT_LABEL.dusk).toBe("Dusk");
-    expect(normalizeGlassTint("dusk")).toBe("dusk");
+describe("the casts on offer", () => {
+  it("offers the two warm-cool casts that carry dark ink on bright paper", () => {
+    expect(GLASS_TINT_OPTIONS).toEqual(["sky", "lemon"]);
+    expect(GLASS_TINT_LABEL.sky).toBe("Sky");
+    expect(GLASS_TINT_LABEL.lemon).toBe("Lemon");
   });
 
-  it("stays selected rather than collapsing to the pale default", () => {
-    setActiveGlassTint("dusk");
-    const surface = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80));
-    setActiveGlassTint("sky");
-    expect(surface[0]).toBeLessThan(120);
-    // Every surface returns to a pale value once the cast is switched back.
-    const pale = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80));
-    expect(pale[0]).toBeGreaterThan(200);
+  /*
+   * Dusk was a third cast: a slate tint deep enough to carry white text, which
+   * only worked over a dark wallpaper. The member's artwork is bright paper, and
+   * over it the dusk surface resolves to mid-grey where neither ink reaches AA —
+   * dark text stops at 3.4:1 over the drawing's shadows and white text at 2.7:1,
+   * while white text over the paper field manages 1.9:1. So the cast is retired,
+   * and a member who had saved it lands on the cool default rather than on a
+   * colour the picker no longer offers.
+   */
+  it("folds a saved dusk choice back to the cool default instead of stranding it", () => {
+    expect(normalizeGlassTint("dusk")).toBe("sky");
+    expect(normalizeGlassTint("lemon")).toBe("lemon");
+    expect(normalizeGlassTint("nonsense")).toBe("sky");
   });
 
-  it("darkens a neutral surface rather than merely tinting it", () => {
-    const dusk = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "dusk"));
+  it("keeps every preset reachable on the two surviving casts", () => {
+    for (const preset of GLASS_PRESETS) {
+      expect(GLASS_TINT_OPTIONS).toContain(preset.glassTint);
+    }
+  });
+
+  it("still recognises the preset a member's settings add up to", () => {
+    const balanced = GLASS_PRESETS.find((preset) => preset.id === "balanced");
+    expect(balanced).toBeDefined();
+    expect(matchGlassPreset(balanced!.glassOpacity, balanced!.glassTint)).toBe("balanced");
+  });
+});
+
+describe("surfaces over the crew artwork", () => {
+  it("tints a neutral surface rather than replacing it", () => {
+    const lemon = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "lemon"));
     const sky = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "sky"));
-    expect(luminance([dusk[0], dusk[1], dusk[2]])).toBeLessThan(luminance([sky[0], sky[1], sky[2]]) / 4);
+    // The warm cast leads red, the cool cast leads blue, and both stay light.
+    expect(lemon[0]).toBeGreaterThan(lemon[2]);
+    expect(sky[2]).toBeGreaterThan(sky[0]);
+    expect(luminance([sky[0], sky[1], sky[2]])).toBeGreaterThan(0.7);
   });
 
   it("leaves a saturated accent alone, so buttons keep their own colour", () => {
-    const lemon = parseRgba(glassSurfaceColor("rgba(241, 222, 85, 0.72)", 80, "dusk"));
+    const lemon = parseRgba(glassSurfaceColor("rgba(241, 222, 85, 0.72)", 80, "sky"));
     expect(lemon[0]).toBeGreaterThan(200);
     expect(lemon[2]).toBeLessThan(140);
   });
 
-  it("adds weight to compensate for its own darkness", () => {
-    expect(glassAlpha("card", 80, "dusk")).toBeGreaterThan(glassAlpha("card", 80, "sky"));
-    expect(tabBarAlpha("chats", 80, "dusk")).toBeGreaterThan(tabBarAlpha("chats", 80, "sky"));
-  });
-
-  it("still cannot become an opaque fill", () => {
+  it("cannot become an opaque fill at any setting", () => {
     for (const opacity of [50, 80, 95]) {
-      expect(glassAlpha("card", opacity, "dusk")).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
-      expect(tabBarAlpha("you", opacity, "dusk")).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
+      for (const cast of ["sky", "lemon"] as const) {
+        expect(glassAlpha("card", opacity, cast)).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
+        expect(tabBarAlpha("you", opacity, cast)).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
+      }
     }
+  });
+
+  it("keeps a nested row quieter than the card it sits on", () => {
+    for (const cast of ["sky", "lemon"] as const) {
+      const card = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, cast))[3];
+      const row = parseRgba(glassNestedSurfaceColor("rgba(241, 246, 252, 0.4)", 80, cast))[3];
+      expect(row).toBeLessThan(card);
+    }
+  });
+
+  it("still follows the module-level cast when a call site is not explicit", () => {
+    setActiveGlassTint("lemon");
+    const warm = glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80);
+    setActiveGlassTint("sky");
+    const cool = glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80);
+    expect(parseRgba(warm)[0]).toBeGreaterThan(parseRgba(cool)[0]);
   });
 });
 
-describe("the night backdrop", () => {
-  it("is a slate veil, not a black film", () => {
-    const [r, g, b, a] = parseRgba(duskVeilColor());
-    expect(a).toBe(DUSK_VEIL_ALPHA);
-    // Blue leads, so it reads as night sky rather than as a dimmed photo.
-    expect(b).toBeGreaterThan(r);
-    expect(r).toBeGreaterThan(0);
-  });
-
-  it("applies to the night cast only", () => {
-    expect(backdropVeilAlpha("dusk")).toBe(DUSK_VEIL_ALPHA);
-    expect(backdropVeilAlpha("sky")).toBe(0);
-    expect(backdropVeilAlpha("lemon")).toBe(0);
-  });
-
+describe("text over the wallpaper", () => {
   /*
-   * The reason both halves of the veil exist. The work is shared: the asset
-   * carries a quarter tint, and the app lays a further quarter over it when the
-   * dusk cast is on. Neither half is decoration — against the untinted photo the
-   * app's own veil alone leaves body and secondary text under AA, and against
-   * the tinted asset the pair clears it comfortably.
+   * There is no backdrop veil any more. It existed to darken a dark photo so
+   * white text stayed legible, and it needed half the picture to do it. Over the
+   * member's artwork the same veil would need three quarters, which is not a
+   * backdrop but a way of hiding the drawing the member chose. The artwork is
+   * bright paper, so the app carries dark ink instead and needs no veil at all.
    */
-  it("is what makes bright text legible, and the asset's own tint carries half of it", () => {
-    const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, "dusk"));
-    const body = hex(TEXT_ON_GLASS.body);
-    const secondary = hex(TEXT_ON_GLASS.secondary);
-
-    // With the app's veil but without the asset's own tint, small text fails.
-    const untinted = over([...surfaceGlass], blend(WALLPAPER_UNBAKED, [42, 65, 90], DUSK_VEIL_ALPHA));
-    expect(contrast(body, untinted)).toBeLessThan(4.5);
-    expect(contrast(secondary, untinted)).toBeLessThan(4.5);
-
-    // As shipped — tinted asset plus the app's veil — the ramp clears AA.
-    const shipped = over([...surfaceGlass], blend(WALLPAPER_BRIGHTEST, [42, 65, 90], DUSK_VEIL_ALPHA));
-    for (const step of Object.values(TEXT_ON_GLASS)) {
-      expect(contrast(hex(step), shipped)).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it("holds the whole ramp past AA over the wallpaper's average", () => {
-    const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, "dusk"));
-    const rendered = over([...surfaceGlass], blend(WALLPAPER_AVERAGE, [42, 65, 90], DUSK_VEIL_ALPHA));
-    for (const step of Object.values(TEXT_ON_GLASS)) {
-      expect(contrast(hex(step), rendered)).toBeGreaterThanOrEqual(4.5);
+  it("holds the ink past AA over the paper field and its lifted shadows", () => {
+    const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80));
+    for (const background of [WALLPAPER_BRIGHTEST, WALLPAPER_AVERAGE, WALLPAPER_DARKEST]) {
+      const rendered = over([...surfaceGlass], background);
+      expect(contrast(hex(TEXT_ON_GLASS.heading), rendered)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(hex(TEXT_ON_GLASS.body), rendered)).toBeGreaterThanOrEqual(4.5);
     }
   });
 
   /*
-   * Depth is an alpha relationship, not a brightness one. A nested row carries
-   * less presence than the sheet it sits on, which over a dark backdrop makes it
-   * the darker of the two — so "inset" has to be asserted as an alpha gap, and
-   * the gap has to stay close to what the pale casts produce or the night look
-   * would sink every inner surface.
+   * The assertion that stops the app being flipped back to white-on-light, which
+   * is the one combination this wallpaper cannot support: white text over the
+   * pale surfaces as they resolve over paper manages about 1.6:1.
    */
-  it("keeps a nested row quieter than the card it sits on, by the same margin", () => {
-    const cardDusk = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, "dusk"))[3];
-    const rowDusk = parseRgba(glassNestedSurfaceColor("rgba(241, 246, 252, 0.4)", 80, "dusk"))[3];
-    const cardSky = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, "sky"))[3];
-    const rowSky = parseRgba(glassNestedSurfaceColor("rgba(241, 246, 252, 0.4)", 80, "sky"))[3];
-
-    expect(rowDusk).toBeLessThan(cardDusk);
-    expect(rowSky).toBeLessThan(cardSky);
-    /*
-     * The card-to-row gap is what the eye reads as depth. It is not identical
-     * between casts — the night card sits at the glass ceiling, so its gap is
-     * slightly tighter — but it has to stay in the band that reads as gently
-     * inset rather than as flat (no gap) or sharply sunk (a large one).
-     */
-    for (const gap of [cardDusk - rowDusk, cardSky - rowSky]) {
-      expect(gap).toBeGreaterThanOrEqual(0.08);
-      expect(gap).toBeLessThanOrEqual(0.15);
+  it("keeps dark ink legible even at the thinnest glass over the darkest marks", () => {
+    for (const weight of [50, 80, 95]) {
+      const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", weight));
+      const rendered = over([...surfaceGlass], WALLPAPER_DARKEST);
+      expect(contrast(hex(TEXT_ON_GLASS.heading), rendered)).toBeGreaterThanOrEqual(4.5);
     }
-  });
-});
-
-describe("the night preset", () => {
-  it("pairs the slate cast with the middle weight", () => {
-    const night = GLASS_PRESETS.find((preset) => preset.id === "night");
-    expect(night?.glassTint).toBe("dusk");
-    expect(night?.glassOpacity).toBe(80);
-    expect(matchGlassPreset(80, "dusk")).toBe("night");
-  });
-
-  it("leaves the pale presets matching exactly what they did before", () => {
-    expect(matchGlassPreset(50, "sky")).toBe("subtle");
-    expect(matchGlassPreset(80, "sky")).toBe("balanced");
-    expect(matchGlassPreset(95, "lemon")).toBe("strong");
-    expect(matchGlassPreset(60, "dusk")).toBeNull();
   });
 });

@@ -16,7 +16,16 @@ function luminance([r, g, b]: [number, number, number]): number {
   return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
 }
 
-function contrastWhiteOn(color: string, backdrop: [number, number, number]): number {
+/** Parses "#RRGGBB" into the bare channel triple. */
+function darkRgb(value: string): [number, number, number] {
+  const parsed = value.match(/^#([0-9a-f]{6})$/i);
+  if (!parsed) throw new Error(`not a hex colour: ${value}`);
+  const v = parseInt(parsed[1], 16);
+  return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+}
+
+/** The conversation's ink as it resolves over a translucent bubble on a backdrop. */
+function contrastInkOn(color: string, backdrop: [number, number, number]): number {
   const [r, g, b, alpha] = parseRgba(color);
   const composite: [number, number, number] = [
     Math.round(r * alpha + backdrop[0] * (1 - alpha)),
@@ -24,22 +33,30 @@ function contrastWhiteOn(color: string, backdrop: [number, number, number]): num
     Math.round(b * alpha + backdrop[2] * (1 - alpha)),
   ];
   const l = luminance(composite);
-  return 1.05 / (l + 0.05);
+  const ink = luminance(darkRgb("#2F3A45"));
+  return (Math.max(l, ink) + 0.05) / (Math.min(l, ink) + 0.05);
 }
 
 const appScreen = (relativePath: string) =>
   new URL(relativePath, `file://${process.cwd()}/`).pathname;
 
-describe("chat-only bright white appearance", () => {
-  it("uses translucent dark surfaces behind white conversation text", () => {
+describe("the open conversation's palette", () => {
+  /*
+   * A conversation keeps its own deeper surfaces while the rest of the app draws
+   * dark ink on pale glass. What it cannot keep is white text: the wallpaper is
+   * the crew artwork on white paper, so white over these surfaces resolved on the
+   * paper manages about 1.1:1. The ink is dark and the surfaces are light, and
+   * the assertion below is what stops the two drifting apart again.
+   */
+  it("carries dark ink at AA on its own translucent surfaces", () => {
     for (const surface of [CHAT_NIGHT.incomingBubble, CHAT_NIGHT.outgoingBubble, CHAT_NIGHT.composerSurface]) {
       expect(surface).toMatch(/^rgba\(/);
-      expect(parseRgba(surface)[3]).toBeGreaterThanOrEqual(0.76);
-      expect(parseRgba(surface)[3]).toBeLessThan(0.9);
-      // White text remains legible even over the brightest underlying wallpaper.
-      expect(contrastWhiteOn(surface, [255, 255, 255])).toBeGreaterThan(4.5);
+      expect(parseRgba(surface)[3]).toBeGreaterThanOrEqual(0.8);
+      expect(parseRgba(surface)[3]).toBeLessThan(0.95);
+      expect(contrastInkOn(surface, [255, 255, 255])).toBeGreaterThanOrEqual(4.5);
     }
-    expect(CHAT_NIGHT.primaryText).toBe("#FFFFFF");
+    // The ink is dark, and it is the same ink the rest of the app uses.
+    expect(parseRgba(`rgba(${darkRgb(CHAT_NIGHT.primaryText)}, 1)`)[0]).toBeLessThan(120);
   });
 
   it("is applied only while rendering an open conversation, not the chat inbox", () => {

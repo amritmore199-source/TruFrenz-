@@ -154,12 +154,7 @@ export function WelcomeScreen({
 
   return (
     <View style={styles.root}>
-      {/*
-        The night sky, fixed rather than paired with the cast: the welcome screen
-        renders before a member has chosen anything, and its own wash already
-        carries the light glass panel above it.
-      */}
-      <Image source={require("../assets/images/trufrenz-night.jpg")} style={styles.backdrop} resizeMode="cover" />
+      <Image source={require("../assets/images/trufrenz-art.jpg")} style={styles.backdrop} resizeMode="cover" />
       <View style={styles.backdropWash} pointerEvents="none" />
       <View style={styles.bubbleField} pointerEvents="none">
         {BUBBLES.map((bubble, index) => (
@@ -391,7 +386,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  soundHint: { color: "#DFE6EB", fontSize: 7.5 },
+  soundHint: { color: "#6B6962", fontSize: 7.5 },
   guestPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -434,7 +429,7 @@ const styles = StyleSheet.create({
   },
   brand: { color: "#4c4936", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
   tagline: { color: "#77735a", fontSize: 13, fontWeight: "600", marginTop: 6, textAlign: "center" },
-  support: { color: "#DFE6EB", fontSize: 9.5, lineHeight: 15, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
+  support: { color: "#6B6962", fontSize: 9.5, lineHeight: 15, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
   primaryButton: {
     minHeight: 50,
     width: "100%",
@@ -547,7 +542,7 @@ const styles = StyleSheet.create({
   termsTitle: { color: "#4c4936", fontSize: 17, fontWeight: "800" },
   termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
   termsBodyTitle: { color: "#5c5946", fontSize: 10.5, fontWeight: "700", marginTop: 10 },
-  termsBody: { color: "#DFE6EB", fontSize: 9.5, lineHeight: 15, marginTop: 3 },
+  termsBody: { color: "#6B6962", fontSize: 9.5, lineHeight: 15, marginTop: 3 },
   termsFootnote: { color: "#9f9c95", fontSize: 8, marginTop: 10, textAlign: "center" },
   pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
 });

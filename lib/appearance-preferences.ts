@@ -6,12 +6,9 @@ export const APPEARANCE_STORAGE_KEY = "trufrenz.appearance.v1";
  * glass reaches all of them without touching twenty call sites.
  */
 export {
-  DUSK_VEIL_ALPHA,
   GLASS_SHADOW,
   MAX_GLASS_ALPHA,
   TEXT_ON_GLASS,
-  backdropVeilAlpha,
-  duskVeilColor,
   glassAlpha,
   glassBlur,
   glassEdge,
@@ -38,7 +35,7 @@ export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
  * rather than a replacement, so a member who liked the pale daytime glass keeps
  * it and nothing about the default changes for them.
  */
-export const GLASS_TINT_OPTIONS = ["sky", "lemon", "dusk"] as const;
+export const GLASS_TINT_OPTIONS = ["sky", "lemon"] as const;
 
 export const DEFAULT_GLASS_TINT: GlassTint = "sky";
 
@@ -58,12 +55,20 @@ export const DEFAULT_APPEARANCE_PREFERENCES: AppearancePreferences = {
 export const GLASS_TINT_LABEL: Record<GlassTint, string> = {
   sky: "Sky",
   lemon: "Lemon",
-  dusk: "Dusk",
 };
 
-/** Falls back to the cool default for anything unrecognised. */
+/**
+ * Falls back to the cool default for anything unrecognised.
+ *
+ * Dusk used to be a third cast: a slate tint deep enough to carry white text,
+ * paired with a dark wallpaper. The member's artwork is bright paper, and over
+ * it the dusk surface resolves to mid-grey where neither ink reaches AA — dark
+ * text stops at 3.4:1 over the drawing's shadows and white text at 2.7:1. So
+ * the cast is retired and a saved "dusk" folds back to the cool default rather
+ * than resolving to a colour picker no longer offers.
+ */
 export function normalizeGlassTint(value: unknown): GlassTint {
-  return value === "lemon" ? "lemon" : value === "dusk" ? "dusk" : "sky";
+  return value === "lemon" ? "lemon" : "sky";
 }
 
 export function normalizeGlassOpacity(value: unknown): number {

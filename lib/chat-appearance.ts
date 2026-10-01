@@ -1,19 +1,28 @@
 /**
- * Experimental palette for the open conversation only.
- * The inbox, tabs, profile, and all other app surfaces keep the existing palette.
+ * The open conversation's palette.
+ *
+ * A conversation used to be a dark room: near-black translucent bubbles with
+ * bright white text, which suited the dark wallpaper that used to sit behind the
+ * app. The wallpaper is now the crew artwork on white paper and the rest of the
+ * app draws dark ink on pale glass, so a conversation keeps the dark *surfaces*
+ * but swaps the ink — dark bubbles, dark text — which is what a light-on-light
+ * app looks like when one screen is deliberately deeper than the others.
+ *
+ * Named for what it is rather than for a colour, because the colour has changed
+ * once already and the call sites should not have to care.
  */
 export const CHAT_NIGHT = {
-  backdrop: "rgba(7, 16, 30, 0.22)",
-  incomingBubble: "rgba(9, 25, 43, 0.82)",
-  outgoingBubble: "rgba(18, 37, 55, 0.88)",
-  typingBubble: "rgba(8, 22, 39, 0.84)",
-  controlSurface: "rgba(8, 22, 39, 0.76)",
-  composerSurface: "rgba(6, 19, 34, 0.82)",
-  markerSurface: "rgba(8, 22, 39, 0.74)",
-  primaryText: "#FFFFFF",
-  secondaryText: "rgba(255, 255, 255, 0.82)",
-  subtleText: "rgba(255, 255, 255, 0.68)",
-  accentText: "#FFF0A6",
-  border: "rgba(255, 255, 255, 0.36)",
-  divider: "rgba(255, 255, 255, 0.36)",
+  backdrop: "rgba(236, 241, 247, 0.42)",
+  incomingBubble: "rgba(232, 238, 245, 0.88)",
+  outgoingBubble: "rgba(245, 231, 168, 0.92)",
+  typingBubble: "rgba(232, 238, 245, 0.86)",
+  controlSurface: "rgba(240, 244, 249, 0.82)",
+  composerSurface: "rgba(243, 246, 250, 0.86)",
+  markerSurface: "rgba(238, 242, 248, 0.82)",
+  primaryText: "#2F3A45",
+  secondaryText: "rgba(47, 58, 69, 0.78)",
+  subtleText: "rgba(47, 58, 69, 0.62)",
+  accentText: "#8A6A12",
+  border: "rgba(47, 58, 69, 0.28)",
+  divider: "rgba(47, 58, 69, 0.28)",
 } as const;
