@@ -19,7 +19,7 @@ import { GLASS_PRESETS, activeGlassTint, glassNestedSurfaceColor, glassSwatch, g
 
 describe("appearance preferences", () => {
   it("provides a readable default appearance and opacity presets", () => {
-    expect(DEFAULT_APPEARANCE_PREFERENCES).toEqual({ glassOpacity: 80, glassTint: "ash", wallpaperVisible: true });
+    expect(DEFAULT_APPEARANCE_PREFERENCES).toEqual({ glassOpacity: 80, glassTint: "white", wallpaperVisible: true });
     expect(GLASS_OPACITY_STEPS).toContain(DEFAULT_APPEARANCE_PREFERENCES.glassOpacity);
   });
 
@@ -31,16 +31,16 @@ describe("appearance preferences", () => {
   });
 
   it("loads valid settings and safely falls back when saved data is malformed", () => {
-    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 90, wallpaperVisible: false }))).toEqual({ glassOpacity: 90, glassTint: "ash", wallpaperVisible: false });
+    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 90, wallpaperVisible: false }))).toEqual({ glassOpacity: 90, glassTint: "white", wallpaperVisible: false });
     expect(parseAppearancePreferences("not json")).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
     expect(parseAppearancePreferences(null)).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
-    expect(normalizeAppearancePreferences({ glassOpacity: 75, wallpaperVisible: "false" })).toEqual({ glassOpacity: 75, glassTint: "ash", wallpaperVisible: true });
+    expect(normalizeAppearancePreferences({ glassOpacity: 75, wallpaperVisible: "false" })).toEqual({ glassOpacity: 75, glassTint: "white", wallpaperVisible: true });
   });
 
   it("applies opacity while preserving each glass surface's tint", () => {
     // A neutral surface becomes pale blue-white glass rather than the near-opaque
     // white fill it used to be, which is what stopped the wallpaper showing through.
-    const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80);
+    const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
     /*
      * The resolved colour is the cast mixed with the declared white, so with the
      * sky cast deepened it resolves to a cool grey-blue rather than the
@@ -48,7 +48,7 @@ describe("appearance preferences", () => {
      * translucent, and a visible step from the page — rather than one frozen
      * channel value, so a future retune of the cast does not silently pass.
      */
-    expect(surface).toMatch(/^rgba\(186, 186, 186, 0\.\d+\)$/);
+    expect(surface).toMatch(/^rgba\(132, 132, 132, 0\.\d+\)$/);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -102,64 +102,65 @@ describe("appearance preferences", () => {
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70)).toMatch(/^rgba\(186, 186, 186, 0\.\d+\)$/);
+    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(132, 132, 132, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });
 
 describe("glass colour choice", () => {
-  afterEach(() => setActiveGlassTint("ash"));
+  afterEach(() => setActiveGlassTint("white"));
 
-  it("offers four casts and defaults to the untinted one", () => {
+  it("offers the two combinations the member asked for", () => {
     /*
-     * Ash, white, sky blue and lemon. Ash is the default because it is the only
-     * cast that carries no colour of its own, so it never competes with the
-     * member's wallpaper; the other three let the glass itself take a tint.
+     * White and black, then sky blue and white. Both are fitted to the same
+     * luminance, so choosing a colour changes only the hue and never how visible
+     * the glass is - the member is picking one thing, not two.
      *
-     * All four are fitted to the same depth. That is the part that was wrong
-     * before: the coloured casts sat a level too high to read as panes at all,
-     * which is why switching between them made so little difference.
+     * Ash grey and lemon were retired with them. Four casts that all render almost
+     * identically, because none was calibrated to a depth that can be seen, is a
+     * choice that is not really a choice.
      */
-    expect(GLASS_TINT_OPTIONS).toEqual(["ash", "white", "sky", "lemon"]);
-    expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("ash");
+    expect(GLASS_TINT_OPTIONS).toEqual(["white", "sky"]);
+    expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("white");
   });
 
-  it("falls back to ash for anything it does not recognise", () => {
+  it("falls back to the default for anything it does not recognise", () => {
     // A stored value from an older build, or a typo, must not produce a
-    // half-tinted surface.
-    expect(normalizeGlassTint("lemon")).toBe("lemon");
+    // half-tinted surface. The retired casts are covered by this too: a member who
+    // had chosen ash or lemon simply lands on white rather than on a blank glass.
+    expect(normalizeGlassTint("ash")).toBe("white");
+    expect(normalizeGlassTint("lemon")).toBe("white");
     expect(normalizeGlassTint("Sky")).toBe("sky");
-    expect(normalizeGlassTint(undefined)).toBe("ash");
-    expect(normalizeGlassTint(42)).toBe("ash");
+    expect(normalizeGlassTint(undefined)).toBe("white");
+    expect(normalizeGlassTint(42)).toBe("white");
   });
 
   it("keeps the existing choice when older saved settings omit it", () => {
     // Settings written before this option existed must still load, and they must
     // not lose their opacity.
     expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 60, wallpaperVisible: false })))
-      .toEqual({ glassOpacity: 60, glassTint: "ash", wallpaperVisible: false });
+      .toEqual({ glassOpacity: 60, glassTint: "white", wallpaperVisible: false });
   });
 
   it("colours a neutral surface according to the chosen cast", () => {
     const sky = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "sky");
-    const lemon = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "lemon");
     const white = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "white");
-    expect(sky).not.toBe(lemon);
+    expect(sky).not.toBe(white);
     /*
-     * White glass carries the faintest possible hue, not none. Pure white over a
-     * white page resolves to the page at any alpha, so "white" used to make every
-     * card invisible — the literal white patch. It now leans a few levels cool,
-     * which is enough to sit above the paper without reading as a colour.
+     * White glass carries no hue at all: it is a true neutral, so the glass takes
+     * the colour of nothing and reads as grey over whatever is behind it. That is
+     * what makes the "white and black" combination the neutral default. What it
+     * must not be is *light* — a pure-white fill resolves to the page at every
+     * alpha, which is the white patch the member kept reporting. This one renders
+     * at 132 before the sheen, a visible step below the page.
      */
-    const [wr, wg, wb] = white.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
-    expect(wb).toBeGreaterThan(wr);
-    expect(wb - wr).toBeLessThanOrEqual(12);
-    // Sky is cooler than lemon: blue must lead in one and lose in the other.
     const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
+    const [wr, wg, wb] = parse(white);
+    expect(wr).toBe(wg);
+    expect(wg).toBe(wb);
+    // Sky leads with blue, and by a wide margin.
     const [sr, , sb] = parse(sky);
-    const [lr, , lb] = parse(lemon);
-    expect(sb - sr).toBeGreaterThan(0);
-    expect(lb - lr).toBeLessThan(0);
+    expect(sb - sr).toBeGreaterThan(20);
   });
 
   it("still keeps a saturated accent in its own hue regardless of the cast", () => {
@@ -173,38 +174,41 @@ describe("glass colour choice", () => {
   it("applies the chosen cast to surfaces that do not name one", () => {
     // Most sheets resolve their own colour without passing a tint. They must
     // still follow the member's choice.
-    setActiveGlassTint("lemon");
-    expect(activeGlassTint()).toBe("lemon");
+    setActiveGlassTint("sky");
+    expect(activeGlassTint()).toBe("sky");
     const implicit = glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80);
-    expect(implicit).toBe(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "lemon"));
+    expect(implicit).toBe(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "sky"));
 
-    setActiveGlassTint("ash");
+    setActiveGlassTint("white");
     expect(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80))
-      .toBe(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "ash"));
+      .toBe(glassSurfaceColor("rgba(255, 255, 255, 0.9)", 80, "white"));
   });
 
   it("treats an unrecognised active cast as the system default", () => {
     setActiveGlassTint("chartreuse" as never);
-    expect(activeGlassTint()).toBe("ash");
+    expect(activeGlassTint()).toBe("white");
   });
 
   it("shows a legible colour chip for each cast", () => {
     // The tint itself is far too thin to read as a colour over a pale panel, so
     // the picker needs a solid chip. It must be opaque and clearly the hue.
     const sky = glassSwatch("sky");
-    const lemon = glassSwatch("lemon");
+    const white = glassSwatch("white");
     expect(sky).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
-    expect(lemon).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
-    expect(sky).not.toBe(lemon);
+    expect(white).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+    expect(sky).not.toBe(white);
 
     const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
     const [sr, sg, sb] = parse(sky);
-    const [lr, lg, lb] = parse(lemon);
-    // Sky leads with blue; lemon leads with red and is barely blue at all.
+    const [nr, ng, nb] = parse(white);
+    // Sky leads with blue and trails on red and green, so the chip is visibly
+    // blue rather than merely darker.
     expect(sb).toBeGreaterThan(sr);
     expect(sb).toBeGreaterThan(sg);
-    expect(lr).toBeGreaterThan(lb);
-    expect(lg).toBeGreaterThan(lb);
+    // The neutral chip leads nowhere: all three channels are equal, so it reads
+    // as grey rather than as a colour.
+    expect(nr).toBe(ng);
+    expect(ng).toBe(nb);
   });
 
   it("outlines a swatch so a pale chip does not vanish into its own selection", () => {

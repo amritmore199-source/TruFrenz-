@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { DEFAULT_GLASS_TINT } from "../lib/appearance-preferences";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -78,12 +79,12 @@ describe("resolving a fill into glass", () => {
   });
 
   it("follows the tint the member chose", () => {
+    setActiveGlassTint("white");
+    const neutral = glassNestedFill("rgba(255, 255, 255, 0.72)");
     setActiveGlassTint("sky");
-    const sky = glassNestedFill("rgba(255, 255, 255, 0.72)");
-    setActiveGlassTint("lemon");
-    const lemon = glassNestedFill("rgba(255, 255, 255, 0.72)");
-    expect(sky).not.toBe(lemon);
-    setActiveGlassTint("sky");
+    const cool = glassNestedFill("rgba(255, 255, 255, 0.72)");
+    expect(neutral).not.toBe(cool);
+    setActiveGlassTint("white");
   });
 
   it("keeps an accent surface's own hue instead of washing it out", () => {
@@ -103,7 +104,9 @@ describe("resolving a fill into glass", () => {
     setActiveGlassOpacity(-10);
     expect(activeGlassOpacity()).toBe(50);
     setActiveGlassOpacity(80);
-    expect(activeGlassTint()).toBe("ash");
+    // The setter is not what restores the cast; the module's own default is. The
+    // assertion names the default so a future rename cannot leave it dangling.
+    expect(activeGlassTint()).toBe(DEFAULT_GLASS_TINT);
   });
 });
 

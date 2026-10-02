@@ -83,7 +83,7 @@ describe("the double rim and the colour field", () => {
    * inside it, like the ground edge of a real sheet.
    */
   it("gives every cast both an outer rim and an inner hairline", () => {
-    for (const cast of ["white", "sky", "lemon"] as const) {
+    for (const cast of ["white", "sky"] as const) {
       const outer = glassEdge("card", cast);
       const inner = glassInnerRim(cast);
       expect(outer).toMatch(/^rgba\(/);
@@ -97,13 +97,16 @@ describe("the double rim and the colour field", () => {
   });
 
   it("carries the cast in the inner hairline, not just a neutral line", () => {
-    // The sky sample's ring is blue and the lemon sample's is yellow: the inner
-    // line has to carry the cast or the card loses the colour of its own glass.
+    // The sky sample's ring is blue and the neutral sample's is a plain light
+    // grey: the inner line has to carry the cast, or the card loses the colour of
+    // its own glass. A grey that leaned blue would be indistinguishable from sky.
     const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
     const [sr, , sb] = channels(glassInnerRim("sky"));
-    const [lr, , lb] = channels(glassInnerRim("lemon"));
-    expect(sb).toBeGreaterThan(sr);
-    expect(lr).toBeGreaterThan(lb);
+    const [nr, ng, nb] = channels(glassInnerRim("white"));
+    expect(sb - sr).toBeGreaterThan(60);
+    // The neutral line leads nowhere: it is a light grey, not a faint blue.
+    expect(nb - nr).toBeLessThanOrEqual(8);
+    expect(ng).toBeGreaterThan(nr);
   });
 
   /*
@@ -112,7 +115,7 @@ describe("the double rim and the colour field", () => {
    * cream as the page behind it and the glass read as paint.
    */
   it("lays a colour field behind the glass so the blur has something to pick up", () => {
-    for (const cast of ["ash", "white", "sky", "lemon"] as const) {
+    for (const cast of ["white", "sky"] as const) {
       const field = glassAmbient(cast);
       for (const pool of [field.warm, field.cool, field.soft]) {
         const [r, g, b, a] = pool.match(/[\d.]+/g)!.map(Number);
@@ -148,9 +151,15 @@ describe("the double rim and the colour field", () => {
 
   it("keeps the switch tracks on the same cast as the glass", () => {
     const sky = glassSwitchTrack("sky");
-    const lemon = glassSwitchTrack("lemon");
-    expect(sky.on).not.toBe(lemon.on);
-    for (const cast of ["white", "sky", "lemon"] as const) {
+    const white = glassSwitchTrack("white");
+    expect(sky.on).not.toBe(white.on);
+    // The sky track is blue-leading; the neutral one is achromatic.
+    const ch = (v: string) => v.match(/\d+/g)!.slice(0, 3).map(Number);
+    expect(ch(sky.on)[2]).toBeGreaterThan(ch(sky.on)[0]);
+    const [nr, ng, nb] = ch(white.on);
+    expect(nr).toBe(ng);
+    expect(ng).toBe(nb);
+    for (const cast of ["white", "sky"] as const) {
       const track = glassSwitchTrack(cast);
       for (const value of [track.off, track.on]) expect(value).toMatch(/^rgba\(/);
     }
@@ -225,7 +234,7 @@ describe("the field outline", () => {
       return (hi + 0.05) / (lo + 0.05);
     };
 
-    for (const cast of ["white", "sky", "lemon"] as const) {
+    for (const cast of ["white", "sky"] as const) {
       const parts = glassFieldBorder(cast).match(/[\d.]+/g)!.map(Number);
       const alpha = parts[3]!;
       const page = [244, 248, 252];
@@ -236,12 +245,28 @@ describe("the field outline", () => {
 
   it("takes its hue from the member's cast rather than being one fixed grey", () => {
     const sky = glassFieldBorder("sky");
-    const lemon = glassFieldBorder("lemon");
-    expect(sky).not.toBe(lemon);
-    // Cool is blue-leading, warm is red-leading: the two must not collapse.
-    const [sr, , sb] = sky.match(/[\d.]+/g)!.map(Number) as [number, number, number];
-    const [lr, , lb] = lemon.match(/[\d.]+/g)!.map(Number) as [number, number, number];
-    expect(sb).toBeGreaterThan(sr!);
-    expect(lr).toBeGreaterThan(lb);
+    const white = glassFieldBorder("white");
+    expect(sky).not.toBe(white);
+    // Cool leads with blue; the neutral border is achromatic, so it reads as a
+    // grey rule over the scene rather than as a coloured one.
+    const ch = (v: string) => v.match(/[\d.]+/g)!.map(Number) as [number, number, number, number];
+    const [sr, , sb] = ch(sky);
+    const [nr, ng, nb] = ch(white);
+    expect(sb).toBeGreaterThan(sr);
+    expect(nr).toBe(ng);
+    expect(ng).toBe(nb);
+    // Both clear 3:1 against the page at the alpha the border is drawn at.
+    const rel = (v: number) => {
+      const x = v / 255;
+      return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    };
+    const relLum = ([r, g, b]: number[]) => 0.2126 * rel(r) + 0.7152 * rel(g) + 0.0722 * rel(b);
+    const ratio = (a: number[], b: number[]) =>
+      (Math.max(relLum(a), relLum(b)) + 0.05) / (Math.min(relLum(a), relLum(b)) + 0.05);
+    const page = [244, 248, 252];
+    for (const parts of [ch(sky), ch(white)]) {
+      const drawn = page.map((channel, i) => parts[i]! * parts[3]! + channel * (1 - parts[3]!));
+      expect(ratio(drawn, page)).toBeGreaterThanOrEqual(3);
+    }
   });
 });

@@ -124,3 +124,67 @@ a rounding.
 - The live re-resolver covers fills declared in a style table. A surface that already
   declares a transparent background and reads its fill at the render site was always
   live and needed no repair.
+---
+
+# Resolution: white-and-black and sky-blue-and-white
+
+## What the member asked for, and what was wrong with four casts
+
+The request was to retire ash grey and lemon and keep two combinations: **white and
+black** as the default, **sky blue and white** as the option. The reason four casts
+never felt like a choice is the same reason the glass never felt like glass: **none of
+them was calibrated to a depth that could be seen.** Ash, white and sky resolved within
+a couple of levels of each other, so switching between them changed almost nothing.
+
+## The two decisions that had to be made together
+
+Deepening the glass and darkening the ink are one decision, not two. The old ink ramp
+was mid-grey (`#43423D`), and a mid-grey ink *needs a light card* to clear AA — so the
+surfaces could never go deep. Fitting the surfaces to the samples forced the ink to
+near-black, which is what the samples' own text is anyway.
+
+| | value | note |
+|---|---|---|
+| `TINTS.white` | `57, 57, 57` | a true neutral: all three channels equal |
+| `TINTS.sky` | `50, 50, 85` | fitted to the **same luminance**, so the cast changes hue and never depth |
+| `NEUTRAL_TINT_MIX` | `0.62` | both casts, identical — this is the wash that pulls a declared white down to the cast |
+| ink `heading / body / secondary` | `#1C1B19 / #2B2A27 / #45433F` | measured 10.0:1 / 8.3:1 / 5.7:1 on the card |
+
+`white` is a neutral, not a light value, and that is the point: a *pure-white* fill
+resolves to the page at every alpha, which is the "white patch" that kept coming back.
+At `57` the neutral card renders **198** against a page of **246** — a 1.56:1 step the
+eye reads immediately, and the neutral cast is still unmistakably neutral.
+
+## Three defects found by measuring rather than reading
+
+1. **The pill lift was above its own cap.** `EMPTY_TILE_LIFT` (2.4 × the field) pushed
+   the richest section past `TAB_PILL_ALPHA_CAP` (0.8), so Hangouts and Bizz rendered
+   the *same* pill. The lift is now 1.3 and the cap 0.8: all five sections differ, in
+   both casts.
+2. **The field's clamp silently flattened the sections.** `AMBIENT_ALPHA_CAP` was 0.28
+   while the richest pool needed 0.30, so Bizz and Hangouts both collapsed onto the cap.
+   The cap is now 0.30 and the bases are set to fit under it — with the coupling
+   asserted in the tests, because changing any one of the three numbers can undo the
+   others.
+3. **Both casts shared the same field RGB.** `sky` differed from `white` only in alpha,
+   so choosing "sky blue" changed the *strength* of the backdrop and never its hue —
+   the one thing the choice is supposed to change. The sky pools now lead with blue.
+
+## The tab bar, solved rather than eyeballed
+
+The inactive icon and label, the active pill's ink, and the field border were each
+solved to the lightest value that still clears its floor, against the worst backdrop
+that can actually occur:
+
+| element | floor | solved | measured |
+|---|---|---|---|
+| inactive icon | 3:1 | `#606060` / `#5C6064` | 3.24 / 3.22 |
+| inactive label | 4.5:1 | `#464646` / `#42464A` | 4.86 / 4.84 |
+| active pill ink | 4.5:1 | `#222222` … `#373737` | 4.61 – 4.65 |
+| field border | 3:1 | `rgba(82,82,82,0.66)` / `rgba(75,83,91,0.66)` | 3.22 / 3.23 |
+
+## Validation
+
+TypeScript clean; **1014 tests pass**, 1 pre-existing skip across 69 files; lint 0 errors
+(28 pre-existing warnings, none new); `git diff --check` clean; the Metro bundle
+compiles at HTTP 200 and carries the new palette.
