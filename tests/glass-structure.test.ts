@@ -10,7 +10,6 @@ import {
   glassEdge,
   glassFieldBorder,
   glassInnerRim,
-  glassTextureInk,
   glassSwitchTrack,
 } from "../lib/glass";
 
@@ -388,13 +387,13 @@ describe("every large surface is built from the whole recipe", () => {
      *
      * The inner hairline is no longer one of them: the member asked for it removed from
      * everywhere, because two hairlines a pixel or two apart read as a double outline at
-     * these card sizes rather than as the thickness of a sheet. The grain replaced it as
-     * the third layer, and it is the one that actually gives the surface its tooth.
+     * these card sizes rather than as the thickness of a sheet. A third layer was tried in
+     * its place - a vector grain - and was removed again: see the note below.
      *
      * The glow is produced by `GlassTopGlow`, which resolves its own colour, so the
      * surfaces name the component rather than the resolver.
      */
-  const LAYERS = ["glassVeil", "GlassTopGlow", "GlassTexture"] as const;
+  const LAYERS = ["glassVeil", "GlassTopGlow"] as const;
 
   const SURFACES = [
     "components/glass-glow.tsx",
@@ -515,39 +514,7 @@ describe("the single rim, the grain and the rounded corners", () => {
     }
   });
 
-  it("lays a grain over the surface without it reading as content", () => {
-    /*
-     * The grain is the second dimension of the material - the fine tooth that separates
-     * frosted glass from a translucent rectangle - but it is a *hairline*, and a hairline
-     * with too much presence becomes a pattern the member can see through the text on
-     * top of it. The alpha is therefore bounded on both sides: enough to register as
-     * tooth, never enough to compete with a label.
-     */
-    for (const cast of ["white", "sky"] as const) {
-      const ink = glassTextureInk(cast);
-      expect(ink).toMatch(/^rgba\(/);
-      const alpha = Number(ink.match(/, ([\d.]+)\)$/)![1]);
-      expect(alpha).toBeGreaterThan(0.04);
-      expect(alpha).toBeLessThanOrEqual(0.12);
-    }
-    // The grain belongs to the cast rather than being a fixed grey.
-    expect(glassTextureInk("white")).not.toBe(glassTextureInk("sky"));
-  });
 
-  it("builds the grain from real geometry rather than a raster tile", () => {
-    /*
-     * A raster tile would need one asset per density, would blur when scaled, and would
-     * sit at a fixed pixel size on a 3x screen. A pattern in an SVG is one definition at
-     * every density - and it is what lets the grain be clipped to the surface's own
-     * radius on native as well as on web.
-     */
-    const source = read("components/glass-texture.tsx");
-    expect(source).toContain("Pattern");
-    expect(source).toContain("patternUnits");
-    expect(source).toContain("glassTextureInk");
-    // Two diagonals, so the grain is a weave rather than a set of parallel lines.
-    expect(source.match(/<Path /g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-  });
 
   it("rounds the bottom bar at the top and leaves no square surface", () => {
     /*

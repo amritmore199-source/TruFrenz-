@@ -20,8 +20,8 @@ import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage }
 
 const colors = {
   ink: "#43423d",
-  muted: "#6E6C67",
-  purple: "#8E6F91",
+  muted: "#F5F5F7",
+  purple: "#A78FA9",
   glass: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   stroke: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   green: "#6AA082",
@@ -112,7 +112,7 @@ export function SelfieVerificationModal({
       <Text style={styles.title}>A small step for a little more trust.</Text>
       <Text style={styles.description}>Take a fresh front-camera selfie. A real identity provider would check it against your profile before Trufrenz grants the stronger badge.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#4B4651" />
+        <MaterialIcons name="lock-outline" size={18} color="#F5F5F7" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Your photo stays on this device in this prototype.</Text>
           <Text style={styles.promiseText}>It is not uploaded, stored in your profile, or treated as a completed identity check.</Text>
@@ -138,7 +138,7 @@ export function SelfieVerificationModal({
           <Text style={styles.title}>Center your face.</Text>
           <Text style={styles.description}>Remove sunglasses; make sure your full face is visible. No audio is recorded.</Text>
           <View style={styles.captureControls}>
-            <Pressable onPress={onClose} style={styles.cameraClose}><MaterialIcons name="close" size={19} color="#4B4651" /></Pressable>
+            <Pressable onPress={onClose} style={styles.cameraClose}><MaterialIcons name="close" size={19} color="#F5F5F7" /></Pressable>
             <Pressable onPress={captureSelfie} accessibilityLabel="Take selfie" style={({ pressed }) => [styles.shutter, pressed && styles.shutterPressed]}><View style={styles.shutterInner}><MaterialIcons name="camera-alt" size={21} color={colors.purple} /></View></Pressable>
             <View style={styles.cameraCloseSpacer} />
           </View>
@@ -149,12 +149,12 @@ export function SelfieVerificationModal({
 
   const renderPermissionRequest = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#4B4651" /></View>
+      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#F5F5F7" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS</Text>
       <Text style={styles.title}>Your camera stays off until you say yes.</Text>
       <Text style={styles.description}>Trufrenz needs the front camera for one fresh selfie. We never turn it on in the background, and you can leave this step any time.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#4B4651" />
+        <MaterialIcons name="lock-outline" size={18} color="#F5F5F7" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Camera access is optional.</Text>
           <Text style={styles.promiseText}>If you choose Allow, a camera preview opens. If you choose Don’t Allow, you can still use Trufrenz without a selfie badge.</Text>
@@ -167,7 +167,7 @@ export function SelfieVerificationModal({
 
   const renderDenied = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#4B4651" /></View>
+      <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#F5F5F7" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS PAUSED</Text>
       <Text style={styles.title}>No rush. You’re still welcome here.</Text>
       <Text style={styles.description}>To try the selfie check, enable camera access in device settings. You can keep using Trufrenz without it.</Text>
@@ -181,7 +181,7 @@ export function SelfieVerificationModal({
     return (
       <View style={styles.centeredContent}>
         <View style={styles.scanFrame}>
-          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#666070" /></View>}
+          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#F5F5F7" /></View>}
           <View style={styles.scanTint} />
           <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanTranslate }] }]} />
           <View style={styles.scanCornerTop} /><View style={styles.scanCornerBottom} />
@@ -200,7 +200,7 @@ export function SelfieVerificationModal({
       <Text style={styles.kicker}>SELFIE CAPTURED</Text>
       <Text style={styles.title}>That’s a good first step.</Text>
       <Text style={styles.description}>Your photo was captured locally. Identity review is not connected in this prototype, so your profile won’t receive a verified badge yet.</Text>
-      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#666070" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
+      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#F5F5F7" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
       <View style={styles.successButtons}><ActionButton onPress={finish} icon="check" title="Done" /><Pressable onPress={() => { setPhotoUri(null); setStage("capture"); }} style={styles.retakeButton}><Text style={styles.retakeText}>Retake</Text></Pressable></View>
     </Animated.View>
   );
@@ -211,7 +211,7 @@ export function SelfieVerificationModal({
         <View style={styles.background}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /></View>
         <View style={styles.header}>
           <View style={styles.headerBrand}><View style={styles.brandMark}><MaterialIcons name="spa" size={15} color="#FFFFFF" /></View><View><Text style={styles.brandText}>Trufrenz</Text><Text style={styles.headerSub}>Selfie identity check</Text></View></View>
-          <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#4B4651" /></Pressable>
+          <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#F5F5F7" /></Pressable>
         </View>
         <View style={styles.body}>
           {stage === "intro" ? renderIntro() : null}
@@ -245,18 +245,18 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   centeredContent: { width: "100%", alignItems: "center", paddingVertical: 15 },
   heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(255, 255, 255, 0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
-  kicker: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
+  kicker: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
   title: { color: colors.ink, fontSize: 24, lineHeight: 30, letterSpacing: -0.65, fontWeight: "700", textAlign: "center", marginTop: 8, maxWidth: 330 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 8, maxWidth: 340 },
   promiseCard: { alignSelf: "stretch", minHeight: 65, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 9, marginTop: 17, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, overflow: "hidden" },
   promiseCopy: { flex: 1, gap: 3 },
-  promiseTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
-  promiseText: { color: "#4B4651", fontSize: 12, lineHeight: 17 },
+  promiseTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
+  promiseText: { color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
   primaryButton: { width: "100%", minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, backgroundColor: colors.purple, paddingHorizontal: 13, marginTop: 15 },
   primaryButtonText: { flex: 1, textAlign: "center", color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   buttonPressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
   secondaryButton: { padding: 12, alignItems: "center" },
-  secondaryText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  secondaryText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   captureContent: { flex: 1, justifyContent: "center", paddingVertical: 12 },
   cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#CFCFCF", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
   cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(38, 35, 16, 0.08)" },
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   // module-scope constant is fixed at import, so it could not follow the setting.
   cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   cameraCloseSpacer: { width: 38, height: 38 },
-  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#81848C", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#93959C", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
   shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#5D5D5D", alignItems: "center", justifyContent: "center" },
   shutterPressed: { transform: [{ scale: 0.95 }] },
   deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#D0D0CF", alignItems: "center", justifyContent: "center", marginBottom: 12 },
@@ -279,15 +279,15 @@ const styles = StyleSheet.create({
   scanPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#CCD0CE", shadowColor: "#C8C8C8", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
-  scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#858388", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
+  scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#93959C", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
   scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#858289", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
   scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  scanningStatusText: { color: "#4B4651", fontSize: 12 },
+  scanningStatusText: { color: "#F5F5F7", fontSize: 12 },
   successCheck: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: 9 },
   pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "#5C5A4F", marginTop: 14 },
-  pendingText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  pendingText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   successButtons: { width: "100%", alignItems: "center" },
   retakeButton: { padding: 11 },
-  retakeText: { color: "#666070", fontSize: 12, fontWeight: "700" },
-  errorText: { color: "#666070", textAlign: "center", fontSize: 12, marginHorizontal: 20, marginBottom: 9 },
+  retakeText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
+  errorText: { color: "#F5F5F7", textAlign: "center", fontSize: 12, marginHorizontal: 20, marginBottom: 9 },
 });

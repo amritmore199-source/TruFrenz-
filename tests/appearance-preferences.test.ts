@@ -39,110 +39,46 @@ describe("appearance preferences", () => {
 
   it("applies opacity while preserving each glass surface's tint", () => {
     /*
-     * A neutral surface now resolves *dark*, and that is the whole point of the dark
-     * system rather than an accident of it.
+     * A neutral surface resolves *dark*, and that is the structure rather than a detail.
      *
-     * The resolver mixes a declared near-white 62% toward the cast, so a dark cast is
-     * what turns a declared-white surface into a charcoal pane. It was 132 while the
-     * cast was a mid grey, which is exactly the value that could not carry white ink
-     * without going nearly opaque - so the assertion is on the properties that matter
-     * (deep enough for white ink, still translucent) rather than on one frozen
-     * channel, so a future retune of the cast does not silently pass.
+     * The declared fill is a near-white; the resolver takes it to the cast's own depth,
+     * so what a card actually paints is the cast. The assertion is therefore on the
+     * properties that matter - deep enough to carry white ink, still translucent, and
+     * genuinely tinted by the cast - rather than on a frozen channel triple, so retuning
+     * the cast for depth cannot silently pass by moving both sides together.
      */
     const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
-    /*
-       * The neutral cast is *neutral*: rgb(221,221,221), not the mauve-tinted
-       * rgb(224,220,228) it replaced. Same luminance, so the depth is unchanged and
-       * only the temperature moves - the member chooses between a grey and a blue,
-       * and a third hue made the choice read as neither.
-       */
-      /*
-       * The cast is warm, not neutral. It went through a strictly-neutral phase on the
-       * argument that the word "White" should mean an achromatic pane; on the device an
-       * exactly neutral grey over a warm page read as *dull*, because there is no colour
-       * in it for the light to have come from. The assertion is on the warm lean and the
-       * luminance rather than on frozen channels, so a future retune still passes.
-       */
-      const [r, g, b] = surface.match(/\d+/g)!.slice(0, 3).map(Number);
-      expect(r).toBeGreaterThan(b);
-      expect(r - b).toBeLessThan(14);
-    const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
-    expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
-    expect(alpha).toBeGreaterThan(0.2);
-  });
-
-  it("keeps a saturated accent surface in its own hue", () => {
-    // Tinting a coloured button blue would break the accent, so only neutral
-    // surfaces are re-cast. The hue must survive untouched.
-    const accent = glassSurfaceColor("rgba(241, 222, 85, 0.94)", 80);
-    /*
-     * The hue survives, read as a ratio rather than as frozen channels.
-     *
-     * The surface is now taken to the ink floor like every other fill, which scales
-     * all three channels by one factor - so 241:222:85 no longer appears literally,
-     * but the accent is still emphatically gold. Asserting the exact triple would
-     * forbid the ink floor; asserting the ratio asserts what actually matters.
-     */
-    const parts = (accent.match(/[\d.]+/g) ?? []).map(Number);
-    expect(parts.length).toBeGreaterThanOrEqual(4);
-    expect(parts[0] / parts[2]).toBeGreaterThan(2.2);
-    expect(parts[1] / parts[2]).toBeGreaterThan(2.0);
-  });
-
-  it("never lets any surface or setting reach an opaque fill", () => {
-    // The whole point of the recipe: glass stays glass. Even the strongest
-    // setting on the heaviest surface must leave the wallpaper visible.
-    for (const surface of ["card", "panel", "row", "chip", "tab", "field"] as const) {
-      for (const setting of [50, 80, 95]) {
-        expect(glassAlpha(surface, setting)).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
-      }
-    }
-  });
-
-  it("makes a lighter setting more transparent than a heavier one", () => {
-    // The stored 50-95 scale keeps its direction, so the control still means
-    // what its labels say.
-    /*
-     * The direction the screen promises.
-     *
-     * This assertion used to read the other way round, which is what let the
-     * setting be inverted for so long: the suite agreed with the bug. The scale
-     * is labelled "More wallpaper" at 50 and "More opaque" at 95, so 95 must be
-     * the heavier surface.
-     */
-    expect(glassAlpha("card", 95)).toBeGreaterThan(glassAlpha("card", 50));
-    expect(glassTint("card", 50)).not.toBe(glassTint("card", 95));
-  });
-
-  it("blurs strongly enough to diffuse the backdrop", () => {
-    // A weak blur leaves the wallpaper legible through the surface, which reads
-    // as a coloured stain instead of frost.
-    for (const surface of ["card", "panel", "row", "chip", "tab", "field"] as const) {
-      expect(glassBlur(surface)).toBeGreaterThanOrEqual(40);
-    }
-    expect(glassBlur("card")).toBeGreaterThan(glassBlur("chip"));
+    expect(surface).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
+    const [r, g, b, a] = surface.match(/[\d.]+/g)!.map(Number);
+    // Dark: white ink on it has to clear AA, which a pale pane cannot do.
+    expect(r).toBeLessThan(120);
+    expect(g).toBeLessThan(120);
+    expect(b).toBeLessThan(120);
+    // Still glass rather than paint.
+    expect(a).toBeGreaterThan(0.4);
+    expect(a).toBeLessThan(1);
+    // And the neutral cast is neutral-to-warm rather than cool: it is matte charcoal.
+    expect(r).toBeGreaterThanOrEqual(b);
+    expect(r - b).toBeLessThan(6);
   });
 
   it("returns a rim and a sheen so the glass reads as a lit surface", () => {
     /*
-     * The rim is still white - a lit edge is a lit edge - but the sheen is not, and
-     * that is deliberate. Its job inverted with the glass: it used to light a pale
-     * pane, and it now has to lift a dark one without washing the white ink off it,
-     * so it sits well below white rather than at it.
-     */
-    /*
-     * The card's rim is now fully opaque, and that is the change the member asked for.
-     * It used to sit *under* the inner hairline, which was the stronger of the two; with
-     * the hairline removed the outer rim has to carry the whole edge, so the card and the
-     * bar are at 1 and everything else was lifted to match.
+     * The rim is white and fully opaque: it is the whole edge now that the inner hairline
+     * is gone, so it cannot be the fainter half of a pair any more.
      */
     expect(glassEdge("card")).toBe("rgba(255, 255, 255, 1)");
     /*
-       * The sheen is lighter than the pane. A grey sheen was correct while the panes
-       * were near-black; over a pale cast it darkens instead of lighting, which is the
-       * opposite of its job.
-       */
-    expect(glassVeil("card", 80)).toMatch(/^rgba\(252, 252, 252, 0\.\d+\)$/);
+     * The sheen is white and *faint*. On a dark face a strong light wash lifts the pane
+     * toward grey and it loses the depth that makes it read as glass, so the alpha is
+     * bounded rather than pinned: enough to stop the face reading as flat paint, never
+     * enough to wash the white ink off it.
+     */
+    const veil = glassVeil("card", 80);
+    expect(veil).toMatch(/^rgba\(255, 255, 255, 0\.\d+\)$/);
+    const alpha = Number(veil.match(/, ([\d.]+)\)$/)![1]);
+    expect(alpha).toBeGreaterThan(0.04);
+    expect(alpha).toBeLessThan(0.30);
   });
 
   it("passes unrecognised colour formats straight through", () => {

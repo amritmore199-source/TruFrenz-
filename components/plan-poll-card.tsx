@@ -32,7 +32,7 @@ export function PlanPollCard({ poll, viewerId, onVote, onUseWinning, nightMode =
     >
       <View style={styles.headerRow}>
         <View style={styles.pill}>
-          <MaterialIcons name="how-to-vote" size={13} color="#666070" />
+          <MaterialIcons name="how-to-vote" size={13} color="#F5F5F7" />
           <Text style={styles.pillText}>Group poll</Text>
         </View>
         <Text style={[styles.voteCount, nightMode && styles.lightSecondaryText]}>{totalVotes} {totalVotes === 1 ? "vote" : "votes"}</Text>
@@ -86,26 +86,26 @@ const styles = StyleSheet.create({
   accentText: { color: CHAT_NIGHT.accentText },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   pill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(0, 0, 0, 0.10)" },
-  pillText: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
-  voteCount: { color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
-  question: { color: "#4B4651", fontSize: 12.5, fontWeight: "700" },
+  pillText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
+  voteCount: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
+  question: { color: "#F5F5F7", fontSize: 12.5, fontWeight: "700" },
   option: { borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
   optionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.markerSurface },
   optionMine: { borderColor: "rgba(255, 255, 255, 0.6)", backgroundColor: "rgba(0, 0, 0, 0.10)" },
   optionLeading: { borderColor: "rgba(140, 190, 168, 0.55)" },
   optionTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  optionLabel: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
-  optionLabelMine: { color: "#4B4651" },
-  optionCount: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  optionLabel: { flex: 1, color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
+  optionLabelMine: { color: "#F5F5F7" },
+  optionCount: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
   barTrackNight: { backgroundColor: "rgba(0, 0, 0, 0.10)" },
   barTrack: { height: 4, borderRadius: 2, backgroundColor: "rgba(0, 0, 0, 0.10)", overflow: "hidden" },
   barFillNight: { backgroundColor: CHAT_NIGHT.accentText },
   barFill: { height: 4, borderRadius: 2, backgroundColor: "#B0B0B0" },
   barFillLeading: { backgroundColor: "#7FAE96" },
-  leadNote: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
-  tieNote: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
-  hint: { color: "#4B4651", fontSize: 12 },
-  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  leadNote: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
+  tieNote: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
+  hint: { color: "#F5F5F7", fontSize: 12 },
+  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   convertText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

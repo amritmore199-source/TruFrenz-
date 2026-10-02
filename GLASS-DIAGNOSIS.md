@@ -664,3 +664,75 @@ with it. Two fixes, because the flag should not depend on an animation at all:
 
 Verified on the rendered app: after signing out, the overlay text is absent and the
 welcome controls are present.
+
+## The inversion: what was actually wrong, after many passes
+
+Read the two references as *values* rather than as pictures and one thing is constant,
+and it had never been built:
+
+| | page | card | card : page |
+|---|---|---|---|
+| sky sample | rgb(233,239,245) | rgb(132,186,222) | **1.80 : 1** |
+| monochrome sample | rgb(241,241,241) | rgb(48,48,48) | **10.6 : 1** |
+| **this app, as it was** | rgb(212,209,205) | rgb(226,222,217) | **0.88 : 1** |
+
+The card was *lighter* than the page. A pane lighter than the ground is not a pane: there
+is no separation to read, so every surface came out the same tone as the wallpaper and
+the whole screen read grey. That is the dullness that was reported again and again, and
+this is why retuning the pale values never fixed it - the direction was wrong, not the
+amount. Light comes from the page *through* the glass, so the glass is the shadowed side
+of the sheet and the ink on it is white.
+
+**The model, inverted.** `TINTS.white` is now matte charcoal rgb(62,60,58); `sky` is
+rgb(40,48,62). Measured on the rendered panel it lands at lum 0.099 against a page of
+0.290 - a 2.9:1 step, in the right direction. `TEXT_ON_GLASS` is white, the cast's quiet
+tab ink is white, and the ink-floor guard now solves *downward* (it was `lightenToInkFloor`,
+solving for dark ink on a pale pane; the mechanism is unchanged - the landed colour is what
+gets measured, never the declared one - but the direction is toward black).
+
+**Matte, not brown.** The first charcoal carried an eleven-point warm lean so the glass
+would "belong to the warm artwork". On a large panel that spread reads as **brown**. The
+reference's charcoal is dead neutral (r-b = 0); the shipped value leans two points, which
+is too little to read as a colour. Freshness comes from the neutral and the light page, not
+from tinting the pane.
+
+**Light-on-light, the systemic fault.** 696 ink values were dark on what is now dark glass.
+Rather than invert by guesswork, the scanner's card constant was pointed at the *real*
+rendered card (`[74,72,70]` instead of a pale `[232,229,235]`) so it could enumerate the
+work, and the page-level styles - the headings that sit on the artwork - were restored to
+dark individually. The scanner had two bugs of its own, both found by this pass:
+
+* it took the worse of a fill's declared and landed colour for *every* fill, which is right
+  for a translucent one and wrong for an opaque chip - a solid light island must be judged
+  on its actual colour. The rule is now conditional on alpha.
+* it read the style table with a line-anchored pattern, so a style declaring two
+  properties on one line had its second value missed entirely.
+
+Finally, an audit of every opaque light fill carrying white text returned **zero**; the
+welcome screen's two buttons, its slide tiles and its company panel were the last, and the
+primary action now takes the solid brand mauve because two identical outlined pills gave
+the member no hierarchy.
+
+## Two defects found by looking rather than by testing
+
+* **The incoming-requests panel rendered twice.** A straight duplicated JSX line, present
+  in the previous checkpoint, which is why the pending request appeared once directly under
+  "RECENT CHATS" and again in a panel further down.
+* **The interest chips rendered as five tall boxes.** A horizontal `ScrollView` stretches
+  its content along the cross axis and lets a child with the default `flexGrow` take an
+  equal share of the main axis, so five one-word labels became five empty rectangles.
+  `flexGrow: 0` + `alignSelf: center` pins each chip to its own text.
+
+## The glow, measured down three times
+
+`glassTopGlow` was 0.46, correct when it lit a pale pane. Over a dark face a light pool
+that covers a third of the surface is not a highlight, it is the face: it lifted the
+welcome panel from charcoal to a muddy grey. 0.46 -> 0.20 -> 0.09, where the panel's top
+edge lifts by about four points of value - visible as light along the edge rather than as a
+different surface. The sheen cap came down with it (0.07 -> 0.05) for the same reason: it
+covers the whole face, so even a small alpha is a wash on dark. `BASE_ALPHA` stayed at 0.70
+deliberately - 0.76 filled the nesting band's headroom and a row inside a sheet then landed
+on the sheet's own alpha, which is the flat-panel defect the band exists to prevent.
+
+Validation: TypeScript clean, **1038 tests pass** with 1 pre-existing skip across 69 files,
+lint 0 errors (28 pre-existing warnings), `git diff --check` clean, web bundle HTTP 200.

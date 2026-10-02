@@ -49,12 +49,12 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
       >
         <GlassBlur intensity={32} style={styles.glassCard}>
           <View style={styles.cardContent}>
-            <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#666070" /></View>
+            <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#F5F5F7" /></View>
             <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.body}>{slide.body}</Text>
             <View style={styles.ruleCard}>
-              <View style={styles.ruleIcon}><MaterialIcons name={index === 2 ? "shield" : "favorite-border"} size={17} color={index === 2 ? "#8E8E8E" : "#8E6F91"} /></View>
+              <View style={styles.ruleIcon}><MaterialIcons name={index === 2 ? "shield" : "favorite-border"} size={17} color={index === 2 ? "#8E8E8E" : "#A78FA9"} /></View>
               <View style={styles.ruleCopy}><Text style={styles.ruleTitle}>{slide.ruleTitle}</Text><Text style={styles.ruleBody}>{slide.ruleBody}</Text></View>
             </View>
             <View style={styles.stepLabel}><Text style={styles.stepText}>A KINDER WAY TO CONNECT</Text><Text style={styles.stepNumber}>0{index + 1} / 0{ safetyOnboardingSlides.length }</Text></View>
@@ -62,7 +62,7 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
         </GlassBlur>
       </Animated.View>
       <View style={styles.controls}>
-        {index > 0 ? <Pressable onPress={goBack} accessibilityRole="button" style={styles.backButton}><MaterialIcons name="arrow-back" size={16} color="#4B4651" /><Text style={styles.backText}>Back</Text></Pressable> : <View style={styles.backPlaceholder} />}
+        {index > 0 ? <Pressable onPress={goBack} accessibilityRole="button" style={styles.backButton}><MaterialIcons name="arrow-back" size={16} color="#F5F5F7" /><Text style={styles.backText}>Back</Text></Pressable> : <View style={styles.backPlaceholder} />}
         <Pressable onPress={advance} accessibilityRole="button" style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}>
           <Text style={styles.nextText}>{index === safetyOnboardingSlides.length - 1 ? "Continue with phone" : "Continue"}</Text>
           <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
@@ -77,28 +77,28 @@ const styles = StyleSheet.create({
   container: { width: "100%", paddingTop: 5 },
   progressRow: { flexDirection: "row", gap: 6, marginBottom: 14 },
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(255, 255, 255, 0.24)" },
-  progressTrackActive: { backgroundColor: "#8E6F91" },
+  progressTrackActive: { backgroundColor: "#A78FA9" },
   slideAnimated: { width: "100%" },
   glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
   iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  eyebrow: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
-  title: { color: "#4B4651", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
-  body: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 7 },
+  eyebrow: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
+  title: { color: "#F5F5F7", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
+  body: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 7 },
   ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   ruleIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#CFD0D0", alignItems: "center", justifyContent: "center" },
   ruleCopy: { flex: 1, gap: 3 },
-  ruleTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
-  ruleBody: { color: "#4B4651", fontSize: 12, lineHeight: 17 },
+  ruleTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
+  ruleBody: { color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
   stepLabel: { flexDirection: "row", justifyContent: "space-between", marginTop: 13 },
-  stepText: { color: "#4B4651", fontSize: 12, letterSpacing: 0.7, fontWeight: "700" },
-  stepNumber: { color: "#666070", fontSize: 12, fontWeight: "700" },
+  stepText: { color: "#F5F5F7", fontSize: 12, letterSpacing: 0.7, fontWeight: "700" },
+  stepNumber: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
   controls: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, gap: 10 },
   backButton: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8 },
-  backText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  backText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   backPlaceholder: { width: 58 },
-  nextButton: { minHeight: 44, flex: 1, maxWidth: 220, borderRadius: 14, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: "#8E6F91", paddingHorizontal: 13 },
+  nextButton: { minHeight: 44, flex: 1, maxWidth: 220, borderRadius: 14, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: "#A78FA9", paddingHorizontal: 13 },
   nextText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
-  swipeHint: { color: "#4B4651", fontSize: 12, textAlign: "center", marginTop: 10 },
+  swipeHint: { color: "#F5F5F7", fontSize: 12, textAlign: "center", marginTop: 10 },
 });

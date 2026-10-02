@@ -14,7 +14,6 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { GlassBlur } from "@/components/glass-blur";
 import { GlassTopGlow } from "@/components/glass-glow";
-import { GlassTexture } from "@/components/glass-texture";
 
 import {
   GLASS_SHADOW,
@@ -301,7 +300,6 @@ export function SwipeableChatRow({
           />
           {/* A pool of light along the top edge, as a real gradient. */}
           <GlassTopGlow cast={cast} radius={16} heightRatio={0.46} />
-          <GlassTexture cast={cast} radius={16} />
           <View style={styles.avatarWrap}>
             <Image source={chat.image} style={styles.avatar} />
             {chat.kind === "group" ? (
@@ -325,9 +323,9 @@ export function SwipeableChatRow({
                 <Text style={styles.name} numberOfLines={1}>
                   {chat.name}
                 </Text>
-                {chat.verified ? <MaterialIcons name="verified" size={13} color="#4B4651" /> : null}
-                {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#4B4651" /> : null}
-                {state.archived ? <MaterialIcons name="archive" size={12} color="#4B4651" /> : null}
+                {chat.verified ? <MaterialIcons name="verified" size={13} color="#F5F5F7" /> : null}
+                {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#F5F5F7" /> : null}
+                {state.archived ? <MaterialIcons name="archive" size={12} color="#F5F5F7" /> : null}
               </View>
               <Text style={[styles.time, unread > 0 && styles.timeUnread]}>{chat.time}</Text>
             </View>
@@ -365,7 +363,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    backgroundColor: "#8E6F91",
+    backgroundColor: "#A78FA9",
   },
   archiveLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   actionsLayer: {
@@ -405,7 +403,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   muteAction: { backgroundColor: "#949494" },
-  archiveAction: { backgroundColor: "#8E6F91" },
+  archiveAction: { backgroundColor: "#A78FA9" },
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
@@ -447,12 +445,12 @@ const styles = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   nameCluster: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
-  name: { color: "#4B4651", fontSize: 12.5, fontWeight: "650" as any, flexShrink: 1 },
-  time: { color: "#4B4651", fontSize: 12 },
-  timeUnread: { color: "#4B4651", fontWeight: "700" },
+  name: { color: "#F5F5F7", fontSize: 12.5, fontWeight: "650" as any, flexShrink: 1 },
+  time: { color: "#F5F5F7", fontSize: 12 },
+  timeUnread: { color: "#F5F5F7", fontWeight: "700" },
   lastRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
-  preview: { flex: 1, color: "#4B4651", fontSize: 12 },
+  preview: { flex: 1, color: "#F5F5F7", fontSize: 12 },
   badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#6B6B6B" },
   badgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  status: { color: "#666070", fontSize: 12, fontWeight: "600", marginTop: 3 },
+  status: { color: "#F5F5F7", fontSize: 12, fontWeight: "600", marginTop: 3 },
 });

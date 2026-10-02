@@ -60,7 +60,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           <MaterialIcons
             name={atLimit ? "lock-clock" : "auto-awesome"}
             size={16}
-            color={atLimit ? "#A5763F" : "#8E6F91"}
+            color={atLimit ? "#A5763F" : "#A78FA9"}
           />
         </View>
         <View style={styles.text}>
@@ -76,7 +76,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           accessibilityLabel="Dismiss this hint"
           style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}
         >
-          <MaterialIcons name="close" size={15} color="#4B4651" />
+          <MaterialIcons name="close" size={15} color="#F5F5F7" />
         </Pressable>
       </View>
       <Pressable
@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
   },
   badgeAtLimit: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(255, 255, 255, 0.8)" },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: 13, fontWeight: "700", color: "#4B4651" },
-  body: { fontSize: 12, color: "#4B4651", lineHeight: 17 },
+  title: { fontSize: 13, fontWeight: "700", color: "#F5F5F7" },
+  body: { fontSize: 12, color: "#F5F5F7", lineHeight: 17 },
   dismiss: {
     width: 26,
     height: 26,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   ctaAtLimit: { backgroundColor: "#6B6B6B", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#4B4651" },
-  ctaTextAtLimit: { color: "#4B4651" },
+  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#F5F5F7" },
+  ctaTextAtLimit: { color: "#F5F5F7" },
   pressed: { opacity: 0.82 },
 });

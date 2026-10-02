@@ -1,7 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
-import { GlassTexture } from "@/components/glass-texture";
 import { GlassTopGlow } from "@/components/glass-glow";
 
 import { useAppAppearance } from "@/lib/appearance-context";
@@ -123,13 +122,6 @@ export function GlassSurface({
         fading, and that step was measurable across the middle of the card.
       */}
       <GlassTopGlow cast={cast} radius={typeof radius === "number" ? radius : 18} />
-      {/*
-        The grain, over the glow and under the content. Order matters: the glow is
-        light falling on the surface and the grain is the surface itself breaking
-        that light up, so the grain has to be the layer nearest the eye of the two -
-        otherwise the glow washes it out and the card flattens again.
-      */}
-      <GlassTexture cast={cast} radius={typeof radius === "number" ? radius : 18} />
       {children}
     </View>
   );

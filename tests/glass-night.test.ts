@@ -152,34 +152,35 @@ describe("surfaces over the crew artwork", () => {
   it("tints a neutral surface rather than replacing it", () => {
     const sky = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "sky"));
     const white = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "white"));
-    // The cool cast leads blue; the neutral cast leads nowhere at all. Read as a
-    // relationship rather than against a frozen channel value, so retuning the cast
-    // for depth cannot silently pass by moving both sides together.
+    /*
+     * The cool cast leads blue and the warm one leads red. Read as a relationship rather
+     * than against a frozen channel value, so retuning either cast for depth cannot
+     * silently pass by moving both sides together.
+     */
     expect(sky[2]).toBeGreaterThan(sky[0]);
     /*
-     * The neutral cast is *effectively* neutral, not identically so.
-     *
-     * It carries a few points of warmth on purpose - on a warm off-white page a dead
-     * grey reads as a hole rather than as glass - so the contract is that no channel
-     * stands out, rather than that all three are the same number. Asserting equality
-     * would forbid the warmth; asserting the spread pins the property that matters.
+     * The warm cast is warm-leaning or dead neutral, never cool. It is neutral charcoal
+     * (r-b = 2) rather than a tinted pane on purpose: a wider lean measured as *brown* on
+     * a large panel, and the reference's own charcoal card is dead neutral.
      */
-    expect(Math.max(...white.slice(0, 3)) - Math.min(...white.slice(0, 3))).toBeLessThan(12);
+    expect(white[0]).toBeGreaterThanOrEqual(white[2]);
     /*
-     * Both casts stay deep enough to carry white ink, and the neutral one is the
-     * deeper of the two because it has no colour of its own to lean on. The bound is
-     * set where the fitted values actually sit rather than to a paper-white that
-     * cannot be seen - which is the same mistake the light system made, inverted.
+     * The warm cast is *effectively* warm, not dramatically so: it carries a few points
+     * of amber over blue, which is the least that reads as light rather than as a dead
+     * grey. Asserting equality would forbid the warmth; asserting the spread pins the
+     * property that matters.
      */
+    expect(white[0] - white[2]).toBeLessThan(6);
     /*
-     * Both casts sit *above* the page, which is the light system's version of the same
-     * bound. A cast lighter than the ground would resolve a card to the page at every
-     * alpha - the invisible pane that was reported as a white patch - so the fitted
-     * values are a clear step up from the warm off-white ground rather than at it.
+     * Both casts are *dark* - the page is light and the glass is the shadowed side of the
+     * sheet, which is what makes a pane read as a pane. The bound is set where the fitted
+     * values actually sit, and it is the same bound for both because a cast lighter than
+     * the page would resolve a card to the page at every alpha: the invisible pane that
+     * was reported as a white patch.
      */
     for (const cast of [sky, white]) {
-      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.55);
-      expect(luminance([cast[0], cast[1], cast[2]])).toBeLessThan(1);
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeLessThan(0.20);
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.0);
     }
   });
 

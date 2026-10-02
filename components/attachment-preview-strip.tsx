@@ -71,7 +71,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
           <Image source={{ uri: pending.uri }} style={styles.thumb} />
         ) : (
           <View style={styles.voiceThumb}>
-            <MaterialIcons name="graphic-eq" size={18} color="#4B4651" />
+            <MaterialIcons name="graphic-eq" size={18} color="#F5F5F7" />
           </View>
         )}
       </View>
@@ -93,7 +93,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
         onPress={onRemove}
         style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
       >
-        <MaterialIcons name="close" size={15} color="#4B4651" />
+        <MaterialIcons name="close" size={15} color="#F5F5F7" />
       </Pressable>
     </Animated.View>
   );
@@ -124,8 +124,8 @@ const styles = StyleSheet.create({
   thumb: { width: "100%", height: "100%" },
   voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   copy: { flex: 1, minWidth: 0 },
-  title: { color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
-  meta: { color: "#4B4651", fontSize: 12, marginTop: 2 },
+  title: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
+  meta: { color: "#F5F5F7", fontSize: 12, marginTop: 2 },
   remove: {
     width: 26,
     height: 26,

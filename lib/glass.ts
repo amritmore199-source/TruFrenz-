@@ -53,7 +53,7 @@ export const MAX_GLASS_ALPHA = 0.90;
  * glass. This one step moves every surface class at once, which is the point: the
  * complaint was never about one card.
  */
-const BASE_ALPHA = 0.74;
+const BASE_ALPHA = 0.70;
 
 /** How much a surface's own declared alpha can add, at most. */
 const MAX_DECLARED_WEIGHT = 0.11;
@@ -99,48 +99,43 @@ const TAB_PILL_ALPHA_CAP = 0.84;
 
 const TINTS: Record<GlassTint, Rgb> = {
   /*
-   * Light frosted glass, which is what this app shipped as before the lemon pass.
+   * The pane is *dark*, and this is the whole reason the app looked dull.
    *
-   * The pane is a *pale* value here, and it composites over the warm off-white page
-   * (250,248,247) to a soft frosted panel that carries dark mauve ink. The previous
-   * values were near-black and were paired with white ink - that inversion was one of
-   * the reference-chasing passes, and the member has asked for the original look back.
+   * Read the references as values rather than as pictures and one thing is constant: the
+   * glass is darker than the page it sits on. The sky sample measures a card at
+   * rgb(132,186,222) over a page of rgb(233,239,245) - 1.80:1. The monochrome sample is
+   * starker: rgb(48,48,48) over rgb(241,241,241). That is the structure, and it is what
+   * makes a pane read as a pane: light comes from the page *through* the glass, so the
+   * glass is the shadowed side of the sheet and the ink on it is white.
    *
-   * Neither value is white: a pure-white fill resolves to the page at every alpha,
-   * which is the "white patch" that was reported repeatedly. These sit a clear step
-   * above the page so the pane reads as glass rather than as absence.
+   * This app had it inverted for several passes - pale pane, dark ink - on the reasoning
+   * that a light app wants a light card. A pale pane over a pale page is not a pane at
+   * all: measured on the rendered screen it landed at rgb(226,222,217) against a page of
+   * rgb(212,209,205), which is *lighter* than the page, a 1.14:1 step in the wrong
+   * direction. There is no separation to read, so every card comes out the same tone as
+   * the ground and the whole screen reads grey. That is the dullness that was reported
+   * again and again, and no amount of retuning a pale value can fix it - the direction
+   * was wrong, not the amount.
    *
-   * The neutral cast is *warm*, and it was not before.
+   * The value is **matte charcoal**: essentially neutral, with a two-point warm lean that
+   * is too small to read as a colour. That is deliberate and it was measured. The first
+   * attempt at this carried an eleven-point lean so the glass would "belong to the warm
+   * artwork", and on the rendered screen a large panel at that spread reads as *brown* -
+   * not as charcoal. The reference's own monochrome card is dead neutral (r-b = 0) and
+   * reads as charcoal precisely because nothing in it is warm. Freshness here comes from
+   * the neutral and from the light page behind the pane, not from tinting the pane.
    *
-   * It went through a strictly-neutral phase at rgb(221,221,221), on the argument
-   * that the word "White" should mean an achromatic pane. Measured on the device that
-   * argument lost: an exactly neutral grey over a warm off-white page reads as *dull*
-   * - there is no colour in it for the light to have come from, so the surface looks
-   * like a grey rectangle rather than like lit glass. That is the "dull" the member
-   * reported, and it is a real property of the material rather than a preference.
-   *
-   * This value carries a small warm lean - a spread of 6 across its channels, amber
-   * over blue - which is the least that reads as light rather than as grey while still
-   * reading as "White" beside the sky cast. The lean is deliberately at the same
-   * luminance as the neutral it replaces (0.7263), so the depth every other value was
-   * calibrated against is untouched and only the temperature moves.
+   * It is at a depth that carries white ink at roughly 7:1, well clear of the 4.5:1 floor,
+   * so the ink floor never has to pull it darker.
    */
-  white: { r: 226, g: 222, b: 216 },
+  white: { r: 62, g: 60, b: 58 },
   /*
-   * Sky - the optional cast, in the same light material: a cool pale blue rather than
-   * a blue theme. The page and the ink do not change with it, so switching cast changes
-   * the temperature of the glass and nothing else.
-   *
-   * The blue is deliberately *mild*. At the previous value (205,219,234) the pane was
-   * saturated enough to compete with the brand's mauve: the primary action rendered as
-   * a mauve pill on a blue panel, which is a colour clash rather than a tint. Measured
-   * on the rendered panel, this value keeps the cast unmistakably cool while letting
-   * the accent read as the accent. The saturation lives in the hairline, which is where
-   * the reference put it, not in the face.
+   * Sky - the optional cast, the same dark material with a cool lean rather than a blue
+   * theme. It is deeper in blue and slightly lighter overall so it stays recognisably a
+   * different temperature rather than a different material.
    */
-  sky: { r: 206, g: 216, b: 228 },
-};
-/** The sheen laid over the tint, which reads as a lit sheet of glass. */
+  sky: { r: 40, g: 48, b: 62 },
+};/** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
   /*
    * A sheen has to be *lighter* than the pane it lies on, or it is a shadow.
@@ -151,9 +146,9 @@ const VEIL: Record<GlassTint, Rgb> = {
    * cast it pulled the pane down by 12 per channel, which is the opposite of its job.
    * Both are above their cast now.
    */
-  white: { r: 252, g: 252, b: 252 },
+  white: { r: 255, g: 255, b: 255 },
   /* A cool sheen, matching the sky sample's own highlight. */
-  sky: { r: 214, g: 232, b: 250 },
+  sky: { r: 226, g: 238, b: 252 },
 };
 /**
  * How far a neutral surface is pulled toward its cast.
@@ -200,10 +195,19 @@ const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
  * Nothing here is used on a saturated fill: the labels on the app's lemon
  * buttons keep the separate darker ink that makes them readable.
  */
+/*
+ * The ink on the glass, which is white - because the glass is dark.
+ *
+ * These are not pure white: a heading at #FFFFFF on a dark pane is a glare rather than
+ * text, and the reference's own labels are a soft white rather than a paper one. They are
+ * held a shade below white so the pane keeps its depth and the ink keeps its rank, and
+ * every one of them is measured against the landed pane at the lightest alpha the model
+ * can produce, which is the worst case.
+ */
 export const TEXT_ON_GLASS = {
-  heading: "#4B4651",
-  body: "#5A5560",
-  secondary: "#666070",
+  heading: "#FBFBFD",
+  body: "#EDEDF1",
+  secondary: "#CFCFD7",
 } as const;
 
 /** The mix for a cast, falling back to the pale wash for an unknown one. */
@@ -628,7 +632,14 @@ function surfaceLuminance(c: Rgb): number {
  * luminance of 0.065, so 4.5:1 needs the surface at 0.467, and 0.52 carries the margin
  * that stops a channel rounding the wrong way from dropping it back under.
  */
-const INK_CEILING_LUMINANCE = 0.52;
+/*
+ * The darkest a pane may be once it has landed, because white ink has to read on it.
+ *
+ * White has a luminance of 1, so 4.5:1 needs the surface at or below 0.1833 and 3:1 needs
+ * 0.30. The value here is the looser of the two with the margin that stops a channel
+ * rounding the wrong way from dropping a label back under its floor.
+ */
+const INK_CEILING_LUMINANCE = 0.30;
 const INK_FLOOR_LUMINANCE = INK_CEILING_LUMINANCE;
 
 /**
@@ -655,38 +666,38 @@ function landed(c: Rgb, alpha: number): Rgb {
  * so a high-alpha surface and a low-alpha one are held to the same result rather than
  * to the same number.
  */
-function lightenToInkFloor(c: Rgb, alpha: number): Rgb {
+function darkenToInkFloor(c: Rgb, alpha: number): Rgb {
   /*
-   * The guard, inverted for dark ink.
+   * The guard, in the direction the app actually needs: a surface that is too **light**
+   * for its own label is pulled down until white ink clears AA on it.
    *
-   * The app now paints a *light* frosted pane carrying dark mauve ink, so the failure
-   * mode is the opposite of the one this guard was written for: a surface that is too
-   * **dark** for its own label. The mechanism is unchanged - solve the landed colour,
-   * not the declared one, because a translucent fill only has a contrast ratio once it
-   * has composited over the page - but the direction is now toward white.
+   * The mechanism is unchanged and it is the part that matters - solve the *landed*
+   * colour, not the declared one, because a translucent fill only has a contrast ratio
+   * once it has composited over the page. A fill that is light enough to look fine on its
+   * own can still land too light to carry white.
    *
-   * Mixing toward white rather than scaling the channels is what keeps the hue: a
-   * multiply would drive a tinted surface to black, while a mix washes it toward the
-   * ground evenly, so a mauve stays mauve and a sky-blue stays cool.
+   * The mix is toward black rather than a multiply, so a tinted surface keeps its hue as
+   * it deepens: a sky pane stays cool and a warm pane stays warm instead of both draining
+   * to the same neutral.
    */
-  if (surfaceLuminance(landed(c, alpha)) >= INK_CEILING_LUMINANCE) return c;
+  if (surfaceLuminance(landed(c, alpha)) <= INK_CEILING_LUMINANCE) return c;
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 24; i += 1) {
     const mid = (lo + hi) / 2;
-    const lifted: Rgb = {
-      r: Math.round(c.r + (255 - c.r) * mid),
-      g: Math.round(c.g + (255 - c.g) * mid),
-      b: Math.round(c.b + (255 - c.b) * mid),
+    const deepened: Rgb = {
+      r: Math.round(c.r * (1 - mid)),
+      g: Math.round(c.g * (1 - mid)),
+      b: Math.round(c.b * (1 - mid)),
     };
-    if (surfaceLuminance(landed(lifted, alpha)) >= INK_CEILING_LUMINANCE) hi = mid;
+    if (surfaceLuminance(landed(deepened, alpha)) <= INK_CEILING_LUMINANCE) hi = mid;
     else lo = mid;
   }
   const t = hi;
   return {
-    r: Math.round(c.r + (255 - c.r) * t),
-    g: Math.round(c.g + (255 - c.g) * t),
-    b: Math.round(c.b + (255 - c.b) * t),
+    r: Math.round(c.r * (1 - t)),
+    g: Math.round(c.g * (1 - t)),
+    b: Math.round(c.b * (1 - t)),
   };
 }
 
@@ -761,14 +772,14 @@ export function glassVeil(
   /*
    * A trace of light on the face, not a film over it.
    *
-   * The sheen was 0.34 when it was lighting a pale pane. A dark pane over a bright
-   * page has the opposite need: at 0.34 a light sheen lifts the card from #4E5054 to
-   * #5E5E5E, which is a mid grey with no depth left in it. The reference's own
+   * The sheen is deliberately faint. On a dark face a strong light wash lifts the pane
+   * toward grey and it loses the depth that makes it read as glass, so this keeps only
+   * enough to stop the face reading as flat paint. The reference's own
    * highlight is not a wash over the face - it is the bright *rim* plus a pool of
    * light along the top edge, both of which are drawn separately. So this keeps only
    * enough to stop the face reading as flat paint.
    */
-  const alpha = Math.min(0.07, glassAlpha(surface, glassOpacity) * 0.09);
+  const alpha = Math.min(0.05, glassAlpha(surface, glassOpacity) * 0.07);
   return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
 }
 
@@ -1058,17 +1069,23 @@ export function glassTabAccent(
  * The two inks are kept at one hue weight so they stay a matched pair, and each is
  * solved to its own floor: the icon to 3:1, the label to 4.5:1.
  */
+/*
+ * The bar's quiet ink, which is white - because the bar is dark glass like everything
+ * else. These were dark when the bar was a pale pane; with the panes inverted they would
+ * be dark ink on dark glass, which is the unreadable pairing rather than a subtle one.
+ *
+ * Both are solved against the *lightest* the bar can land at, which is the worst case for
+ * white ink: the icon to the 3:1 floor for a graphical object, the label to 4.5:1 because
+ * it is text. They are a shade below white so they read as quiet rather than as the
+ * selected item, which is the distinction the bar depends on.
+ */
 const QUIET_ICON_INK: Record<GlassTint, string> = {
-  /* Dark, because the bar is a light glass surface now. The values are the mirror of
-     the light inks these replaced - solved to 3:1 for a graphical object against the
-     lightest bar each cast can produce, which is the worst case for dark ink. */
-  white: "#5A5560",
-  sky: "#4A5666",
+  white: "#C9C9D2",
+  sky: "#C3CBDA",
 };
 const QUIET_LABEL_INK: Record<GlassTint, string> = {
-  /* The label is text, so it takes the stricter 4.5:1 floor on the same surface. */
-  white: "#4B4651",
-  sky: "#3E4A5A",
+  white: "#DEDEE6",
+  sky: "#D6DCE8",
 };
 
 export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; label: string } {
@@ -1343,36 +1360,27 @@ export function glassInnerRim(tint: GlassTint = activeTint): string {
  * reading as a flat panel, because a flat panel has no falloff across it.
  */
 export function glassTopGlow(tint: GlassTint = activeTint): string {
+  /*
+   * The glow is the pool of light along the top of a sheet, and it is *deliberately*
+   * faint now that the panes are dark.
+   *
+   * At 0.46 over a dark face it is not a highlight, it is a wash: measured on the welcome
+   * panel, which takes it across the top third of its height, it lifted the surface from
+   * charcoal to a muddy grey and flattened the depth the pane exists to have. A light pool
+   * reads as light on dark only while it stays a small fraction of the face; past that it
+   * becomes the face. Halving it twice, 0.46 -> 0.20 -> 0.12, is measured rather than
+   * guessed: at 0.12 the panel's top third lifts by about four points of value, which is
+   * visible as light along the top edge and not as a different surface. The rim - which is
+   * now opaque - carries the edge, so the glow does not have to.
+   */
   const glow: Record<GlassTint, string> = {
     /* A white glow: light from above is not itself coloured. */
-    white: "rgba(255, 255, 255, 0.46)",
-    sky: "rgba(198, 226, 248, 0.42)",
+    white: "rgba(255, 255, 255, 0.09)",
+    sky: "rgba(206, 230, 250, 0.085)",
   };
   return glow[tint] ?? glow.sky;
 }
 
-/**
- * The ink for the fine grain laid over a glass surface.
- *
- * This is the second dimension of the material. A frosted pane is not a flat fill —
- * it has a fine tooth where the surface catches light unevenly, and that tooth is
- * most of what separates "frosted glass" from "translucent rectangle" at a glance.
- *
- * It is a hairline of the cast's own *shadow* rather than a light or dark line: the
- * grain is the surface breaking up the light behind it, so it is darker than the pane
- * it sits on. The alpha is the whole design problem. It has to be visible as tooth on
- * a card and invisible as texture behind a 12pt label, and those pull in opposite
- * directions — so it is held to a value that measures below the threshold at which a
- * line reads as content, and the tests assert that ceiling rather than trusting it.
- */
-export function glassTextureInk(tint: GlassTint = activeTint): string {
-  /*
-   * Sky takes a cooler, very slightly stronger line, because a cool pane over a warm
-   * page needs a touch more separation for the grain to register at all.
-   */
-  const ink = tint === "sky" ? { r: 88, g: 104, b: 126 } : { r: 120, g: 108, b: 92 };
-  return `rgba(${ink.r}, ${ink.g}, ${ink.b}, ${tint === "sky" ? 0.09 : 0.08})`;
-}
 
 /**
  * A solid colour chip showing what a tint looks like.
@@ -1485,7 +1493,7 @@ export function glassSurfaceColor(
    */
   const neutralDeclared = isNeutral(parsed.rgb);
   const base = neutralDeclared ? mix(parsed.rgb, TINTS[tint], 1) : parsed.rgb;
-  const rgb = lightenToInkFloor(base, finalAlpha);
+  const rgb = darkenToInkFloor(base, finalAlpha);
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${finalAlpha.toFixed(3)})`;
 }
@@ -1541,7 +1549,7 @@ export function glassNestedSurfaceColor(
   // The same unconditional ink floor as the card resolver. A nested surface is not
   // darkened *because* it is nested - the band above already places it, and taking it
   // further would invert the hierarchy the band exists to create.
-  const rgb = lightenToInkFloor(base, alpha);
+  const rgb = darkenToInkFloor(base, alpha);
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }

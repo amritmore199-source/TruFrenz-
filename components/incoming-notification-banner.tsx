@@ -125,7 +125,7 @@ export function IncomingNotificationBanner({
         <GlassBlur intensity={44} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
-            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#8E6F91" : "#8C8C8C"} />
+            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#A78FA9" : "#8C8C8C"} />
             <View style={styles.statusDot} />
           </View>
           <View style={styles.copy}>
@@ -136,10 +136,10 @@ export function IncomingNotificationBanner({
             <Text style={styles.sender} numberOfLines={1}>{displayed.senderName}</Text>
             <Text style={styles.preview} numberOfLines={1}>{displayed.preview}</Text>
           </View>
-          <MaterialIcons name="chevron-right" size={20} color="#4B4651" />
+          <MaterialIcons name="chevron-right" size={20} color="#F5F5F7" />
         </Pressable>
         <Pressable onPress={onDismiss} style={styles.close} accessibilityRole="button" accessibilityLabel="Dismiss notification">
-          <MaterialIcons name="close" size={15} color="#4B4651" />
+          <MaterialIcons name="close" size={15} color="#F5F5F7" />
         </Pressable>
       </View>
     </Animated.View>
@@ -153,13 +153,13 @@ const styles = StyleSheet.create({
   iconWell: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", position: "relative" },
   inviteIconWell: { backgroundColor: "rgba(255, 255, 255, 0.94)" },
   messageIconWell: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#6B6B6B", borderWidth: 1.5, borderColor: "#858388" },
+  statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#6B6B6B", borderWidth: 1.5, borderColor: "#93959C" },
   copy: { flex: 1, minWidth: 0, paddingVertical: 10 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  kind: { color: "#666070", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
-  now: { color: "#4B4651", fontSize: 12, fontWeight: "600", letterSpacing: 0.6 },
-  sender: { color: "#4B4651", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 2 },
-  preview: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 1 },
+  kind: { color: "#F5F5F7", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
+  now: { color: "#F5F5F7", fontSize: 12, fontWeight: "600", letterSpacing: 0.6 },
+  sender: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 2 },
+  preview: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 1 },
   close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   pressed: { opacity: 0.8 },
 });
