@@ -27,11 +27,11 @@ import {
   GLASS_SHADOW_OPACITY,
   glassEdge,
   glassInnerRim,
-  glassTopGlow,
   glassVeil,
 } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { AmbientField } from "@/components/ambient-field";
+import { GlassTopGlow } from "@/components/glass-glow";
 import { ambientIntensityFor, glassAmbient } from "@/lib/glass";
 
 const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
@@ -259,8 +259,9 @@ export function WelcomeScreen({
             pointerEvents="none"
             style={[StyleSheet.absoluteFillObject, styles.glassShape, { backgroundColor: glassVeil("card", glassOpacity, cast) }]}
           />
-          {/* A pool of light along the top edge, so the surface has a falloff. */}
-          <View pointerEvents="none" style={[styles.glassTopGlow, { backgroundColor: glassTopGlow(cast) }]} />
+          {/* A pool of light along the top edge, so the surface has a falloff. A real
+              gradient: a solid band ends in a visible step across the card. */}
+          <GlassTopGlow cast={cast} radius={28} heightRatio={0.34} />
           {/* The inner hairline, a few pixels in from the outer rim. Together the two
               read as the ground edge of a sheet of glass rather than as a drawn border. */}
           <View
@@ -476,9 +477,6 @@ const styles = StyleSheet.create({
   },
   /* Clips the blur and the sheen to the panel's own shape. */
   glassShape: { borderRadius: 28 },
-  /* A pool of light along the top edge, strongest at the very top - the falloff that
-     keeps a large panel from reading as a flat field. */
-  glassTopGlow: { position: "absolute", left: 0, right: 0, top: 0, height: "34%", borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   /* The hairline, inset from the outer rim by the same amount every other surface
      uses, so the two edges read as one construction across the whole app. */
   glassInnerRim: {

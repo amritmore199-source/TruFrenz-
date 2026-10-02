@@ -109,8 +109,15 @@ const TINTS: Record<GlassTint, Rgb> = {
    * Neither value is white: a pure-white fill resolves to the page at every alpha,
    * which is the "white patch" that was reported repeatedly. These sit a clear step
    * above the page so the pane reads as glass rather than as absence.
+   *
+   * The neutral cast is *neutral*. It was rgb(224,220,228), which has a spread of 8
+   * across its channels - a mauve-tinted grey, not a grey. The word "White" is the
+   * name the member chooses between, so the choice has to be between a neutral and a
+   * blue, and a third hue made it read as neither. This value has the same luminance
+   * as the one it replaces (0.7263), so the depth the casts were matched to is
+   * unchanged and only the temperature moves.
    */
-  white: { r: 224, g: 220, b: 228 },
+  white: { r: 221, g: 221, b: 221 },
   /*
    * Sky - the optional cast, in the same light material: a cool pale blue rather than
    * a blue theme. The page and the ink do not change with it, so switching cast changes
@@ -128,13 +135,17 @@ const TINTS: Record<GlassTint, Rgb> = {
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
   /*
-   * A neutral sheen. Both casts carry white ink now, so the sheen's job has inverted
-   * with them: it was lighting a pale pane, and it now has to light a dark one
-   * without washing the ink off it. Kept well below white for that reason.
+   * A sheen has to be *lighter* than the pane it lies on, or it is a shadow.
+   *
+   * These values were set during the dark-glass pass, when the panes were near-black
+   * and a mid-grey sheen read as light on them. The casts are pale again, so a grey
+   * sheen now darkens the surface instead of lighting it: measured over the neutral
+   * cast it pulled the pane down by 12 per channel, which is the opposite of its job.
+   * Both are above their cast now.
    */
-  white: { r: 190, g: 190, b: 190 },
+  white: { r: 252, g: 252, b: 252 },
   /* A cool sheen, matching the sky sample's own highlight. */
-  sky: { r: 176, g: 200, b: 232 },
+  sky: { r: 214, g: 232, b: 250 },
 };
 /**
  * How far a neutral surface is pulled toward its cast.

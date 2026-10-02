@@ -372,9 +372,14 @@ describe("every large surface is built from the whole recipe", () => {
   const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
   /* The four layers that make a surface read as glass rather than as a tinted block. */
-  const LAYERS = ["glassVeil", "glassTopGlow", "glassInnerRim"] as const;
+  /*
+     * The glow is produced by `GlassTopGlow`, which resolves its own colour, so the
+     * surfaces name the component rather than the resolver.
+     */
+  const LAYERS = ["glassVeil", "GlassTopGlow", "glassInnerRim"] as const;
 
   const SURFACES = [
+    "components/glass-glow.tsx",
     "components/glass-surface.tsx",
     "components/welcome-screen.tsx",
     "components/swipeable-chat-row.tsx",
@@ -383,7 +388,16 @@ describe("every large surface is built from the whole recipe", () => {
   for (const file of SURFACES) {
     it(`${file} paints the whole recipe, not just a fill`, () => {
       const src = read(file);
-      // It must be a frosted surface at all...
+      /*
+       * It must be a frosted surface at all. `glass-glow.tsx` is the one exception:
+       * it *is* the glow layer, built on a gradient rather than on a blur, so it is
+       * held to naming the glow resolver instead.
+       */
+      if (file === "components/glass-glow.tsx") {
+        expect(src).toContain("glassTopGlow");
+        expect(src).toContain("RadialGradient");
+        return;
+      }
       expect(src).toMatch(/GlassBlur|glassBlur/);
       // ...and it must also carry each of the layers that give it an edge and a falloff.
       for (const layer of LAYERS) {

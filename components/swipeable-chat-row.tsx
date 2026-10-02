@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { GlassBlur } from "@/components/glass-blur";
+import { GlassTopGlow } from "@/components/glass-glow";
 
 import {
   GLASS_RIM_INNER_INSET,
@@ -22,7 +23,6 @@ import {
   glassEdge,
   glassInnerRim,
   glassTint,
-  glassTopGlow,
   glassVeil,
 } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
@@ -300,8 +300,8 @@ export function SwipeableChatRow({
             pointerEvents="none"
             style={[StyleSheet.absoluteFillObject, styles.rowTint, { backgroundColor: glassVeil("row", glassOpacity, cast) }]}
           />
-          {/* A pool of light along the top edge. */}
-          <View pointerEvents="none" style={[styles.rowTopGlow, { backgroundColor: glassTopGlow(cast) }]} />
+          {/* A pool of light along the top edge, as a real gradient. */}
+          <GlassTopGlow cast={cast} radius={16} heightRatio={0.46} />
           {/* The inner hairline, inset from the rim exactly as the cards' is. */}
           <View
             pointerEvents="none"
@@ -399,7 +399,6 @@ const styles = StyleSheet.create({
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
-  rowTopGlow: { position: "absolute", left: 0, right: 0, top: 0, height: "46%", borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   rowInnerRim: {
     position: "absolute",
     left: GLASS_RIM_INNER_INSET,

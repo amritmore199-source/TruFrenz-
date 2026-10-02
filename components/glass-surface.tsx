@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
+import { GlassTopGlow } from "@/components/glass-glow";
 
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
@@ -11,7 +12,6 @@ import {
   glassEdge,
   glassInnerRim,
   glassTint,
-  glassTopGlow,
   glassVeil,
   type GlassTint,
   type GlassSurface as GlassSurfaceKind,
@@ -115,10 +115,12 @@ export function GlassSurface({
         pointerEvents="none"
         style={[styles.sheen, shape, { backgroundColor: glassVeil(surface, glassOpacity, cast) }]}
       />
-      <View
-        pointerEvents="none"
-        style={[styles.topGlow, { backgroundColor: glassTopGlow(cast) }]}
-      />
+      {/*
+        A real gradient, not a solid band. See `GlassGlow` for why: a View is a
+        rectangle, so the previous solid block of light ended in a step rather than
+        fading, and that step was measurable across the middle of the card.
+      */}
+      <GlassTopGlow cast={cast} radius={typeof radius === "number" ? radius : 18} />
       {/*
         The inner hairline. Absolute rather than a second nested View, so it can
         be inset a few pixels from the outer rim without changing the layout of
@@ -190,8 +192,6 @@ const styles = StyleSheet.create({
   },
   /* The face light covers the whole card in the samples, not just the top half. */
   sheen: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
-  /* A pool of light along the top edge, strongest at the very top. */
-  topGlow: { position: "absolute", left: 0, right: 0, top: 0, height: "38%" },
   innerRim: {
     position: "absolute",
     left: GLASS_RIM_INNER_INSET,

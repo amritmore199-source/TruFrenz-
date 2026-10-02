@@ -50,7 +50,13 @@ describe("appearance preferences", () => {
      * channel, so a future retune of the cast does not silently pass.
      */
     const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
-    expect(surface).toMatch(/^rgba\(224, 220, 228, 0\.\d+\)$/);
+    /*
+       * The neutral cast is *neutral*: rgb(221,221,221), not the mauve-tinted
+       * rgb(224,220,228) it replaced. Same luminance, so the depth is unchanged and
+       * only the temperature moves - the member chooses between a grey and a blue,
+       * and a third hue made the choice read as neither.
+       */
+      expect(surface).toMatch(/^rgba\(221, 221, 221, 0\.\d+\)$/);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -116,12 +122,17 @@ describe("appearance preferences", () => {
      * so it sits well below white rather than at it.
      */
     expect(glassEdge("card")).toMatch(/^rgba\(255, 255, 255, 0\.\d+\)$/);
-    expect(glassVeil("card", 80)).toMatch(/^rgba\(190, 190, 190, 0\.\d+\)$/);
+    /*
+       * The sheen is lighter than the pane. A grey sheen was correct while the panes
+       * were near-black; over a pale cast it darkens instead of lighting, which is the
+       * opposite of its job.
+       */
+    expect(glassVeil("card", 80)).toMatch(/^rgba\(252, 252, 252, 0\.\d+\)$/);
   });
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(224, 220, 228, 0\.\d+\)$/);
+    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(221, 221, 221, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });
