@@ -423,3 +423,79 @@ the bar where it lands over the field instead of over a page it no longer sits o
 guard was exempted by *name* rather than by rule: `backgroundWash` is the page, not a
 surface, and it is the value the whole system is built on — so the next surface that
 tries to look like it is still caught.
+
+---
+
+## The structural error: the cards were lighter than the page
+
+### What was wrong, stated plainly
+
+Three passes in a row produced "this still doesn't look like frosted glass". The
+numbers were all defensible and the tests were all green, because the tests were
+measuring the wrong relationship. Sampling the two supplied references against the
+device render settles it:
+
+| | page | cards | heading ink |
+|---|---|---|---|
+| reference B (monochrome) | `#F1F1F1`–`#FDFDFB` | `#303030`–`#4C4E4D` | **black on the page** |
+| reference A (sky blue) | `#DCE0E3`–`#EDF0F5` | `#6FABDD` | **black on the page** |
+| what the app rendered | `#616C80` | `#8AA2BA` | white everywhere |
+
+**In both references the cards are darker than the page.** The app had them *lighter*
+than the page, and the page itself was mid-grey. There was no separation between
+pane and ground, so nothing could read as a pane — which is why it looked like mud
+regardless of how carefully the alphas were tuned.
+
+### The root cause, which the tests could not see
+
+`tests/text-contrast.test.ts` modelled exactly one surface: `CARD`. Every one of the
+784 ink declarations was measured against it. So the suite could certify that white
+ink was legible on dark glass while the app had black headings on a bare page at
+**1.9:1** — and it did, for three passes. A single-surface model cannot describe a
+two-ground design, and this design has two grounds: the artwork, and the glass.
+
+The second half of the same blind spot: the reference's page headings are *black*.
+When they were measured against a card they failed, and the "fix" the suite pushed
+toward was to lighten them — the exact opposite of the reference.
+
+### The repair
+
+The structure is now the reference's:
+
+- **the page is the artwork**, nearly unwashed (`rgba(255,255,255,0.12)`), with black
+  headings (`#141310`, `#1C1B19`, `#3A3833`) sitting directly on it
+- **the glass is dark** — a neutral charcoal for the shipped cast, a deep sky blue
+  for the option — and it carries white ink
+- `TINTS.white` is `40,40,40`, genuinely achromatic; a three-point cool bias reads as
+  a deliberate tint at card size and as a mistake on a bar
+- the **active pill** now derives from the section's *field* rather than its
+  empty-state tile. The tile inverted with the glass and became a pale wash, and a
+  pill derived from a pale wash over a bright page comes out pale — the one thing an
+  active control must not be. Solved to 5.5:1 for white ink.
+- the **field is two tables**: the shipped cast's pools are achromatic at 0.24–0.36,
+  because a blue wash under a monochrome interface is the mixing that was rejected;
+  the sky cast keeps the sections' hues at their original strength. A single shifted
+  table could not do this — rotating a neutral grey returns a grey.
+- the **veil** dropped from 0.34 to 0.07. At 0.34 a light sheen lifted a dark card to
+  mid-grey with no depth left; the reference's highlight is the bright rim and the top
+  glow, both drawn separately.
+
+### The tests were extended, not weakened
+
+Every floor moved with its surface. Two changes are substantive:
+
+1. A **second ground** was added to the contrast suite. `PAGE_LEVEL_STYLES` names the
+   five headings that render on the artwork, and a new assertion holds them to 4.5:1
+   against `PAGE = [250,250,251]`. It fails if a heading is ever lightened to satisfy
+   the card test — the failure mode that produced three wasted passes.
+2. The field test now asserts **two casts with two jobs**: the neutral field on
+   strength and neutrality (and that its three pools differ, so it is a composition
+   rather than a flat wash), the coloured field on hue and its original strength.
+
+### Verified
+
+TypeScript clean; **1032 tests pass** with 1 pre-existing skip across 69 files; lint 0
+errors and the same 28 pre-existing warnings; `git diff --check` clean; the Metro
+bundle serves HTTP 200. Measured in the running app: **page luminance 0.847–0.880,
+cards 0.070–0.089** — a 10:1 separation in the direction the reference uses, where the
+previous build had the cards *lighter* than the page.

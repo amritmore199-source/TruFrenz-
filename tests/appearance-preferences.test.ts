@@ -50,7 +50,7 @@ describe("appearance preferences", () => {
      * channel, so a future retune of the cast does not silently pass.
      */
     const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
-    expect(surface).toMatch(/^rgba\(106, 106, 106, 0\.\d+\)$/);
+    expect(surface).toMatch(/^rgba\(53, 53, 53, 0\.\d+\)$/);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -110,7 +110,7 @@ describe("appearance preferences", () => {
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(106, 106, 106, 0\.\d+\)$/);
+    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(53, 53, 53, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });
@@ -273,7 +273,15 @@ describe("per-tab glass weight", () => {
     expect(Math.max(...alphas) - Math.min(...alphas)).toBeLessThan(0.1);
     for (const a of alphas) {
       expect(a).toBeGreaterThanOrEqual(0.16);
-      expect(a).toBeLessThanOrEqual(0.46);
+      /*
+       * Bounded by the ceiling rather than by a frozen 0.46.
+       *
+       * The bar's alpha had to rise with the rest of the glass, because a dark bar
+       * over the artwork's paper is the reference's own structure. What this test
+       * protects is that the per-tab offset keeps every tab *inside* the glass range,
+       * so the bound follows the ceiling.
+       */
+      expect(a).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     }
   });
 

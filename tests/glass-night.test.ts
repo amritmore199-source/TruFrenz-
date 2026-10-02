@@ -82,9 +82,17 @@ function hex(value: string): [number, number, number] {
  * what makes the white-ink floors honest, exactly as measuring against the darkest
  * made the dark-ink floors honest before.
  */
-const WALLPAPER_BRIGHTEST: [number, number, number] = [78, 86, 98];
-const WALLPAPER_DARKEST: [number, number, number] = [16, 18, 22];
-const WALLPAPER_AVERAGE: [number, number, number] = [34, 39, 47];
+/*
+ * The backdrop the surfaces actually sit on, which inverted with the structure.
+ *
+ * These were the darkest pixels of a dark page. The page is the member's artwork
+ * again - a drawing on white paper - so the worst case for a dark pane is the
+ * *brightest* part of it, and the values below are measured from the file rather than
+ * assumed: the paper field under the wash, its darkest line work, and the midpoint.
+ */
+const WALLPAPER_BRIGHTEST: [number, number, number] = [252, 252, 253];
+const WALLPAPER_DARKEST: [number, number, number] = [214, 214, 216];
+const WALLPAPER_AVERAGE: [number, number, number] = [236, 236, 238];
 
 describe("the casts on offer", () => {
   it("offers the two glass colours the member chooses between", () => {
@@ -144,7 +152,9 @@ describe("surfaces over the crew artwork", () => {
   it("tints a neutral surface rather than replacing it", () => {
     const sky = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "sky"));
     const white = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80, "white"));
-    // The cool cast leads blue; the neutral cast leads nowhere at all.
+    // The cool cast leads blue; the neutral cast leads nowhere at all. Read as a
+    // relationship rather than against a frozen channel value, so retuning the cast
+    // for depth cannot silently pass by moving both sides together.
     expect(sky[2]).toBeGreaterThan(sky[0]);
     expect(white[0]).toBe(white[1]);
     expect(white[1]).toBe(white[2]);
@@ -239,7 +249,17 @@ describe("the backdrop field", () => {
       const field = glassAmbient(cast);
       for (const pool of [field.warm, field.cool, field.soft]) {
         const alpha = Number(pool.match(/([\d.]+)\)$/)![1]);
-        expect(alpha).toBeGreaterThanOrEqual(0.30);
+        /*
+         * The floor is lower than it was, and the reason is the neutral field.
+         *
+         * The field has to be strong enough for the blur to have something to act on -
+         * that is what this test protects and it still does. But the shipped cast is
+         * black and white, so its pools are neutral at 0.24-0.36: a stronger wash would
+         * tint a monochrome interface, which is the mixing the member rejected. The
+         * coloured field, which is where the sections' hues live, is asserted separately
+         * below to stay at the old strength.
+         */
+        expect(alpha).toBeGreaterThanOrEqual(0.24);
       }
     }
   });

@@ -5628,20 +5628,26 @@ export default function TrufrenzApp() {
 const frozenStyles = StyleSheet.create({
   /* Shared with the hoisted `cardStyles`: the screen uses it at many call sites. */
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
-  safeArea: { flex: 1, backgroundColor: "#0E1014", overflow: "hidden" },
+  safeArea: { flex: 1, backgroundColor: "#F7F5F1", overflow: "hidden" },
   noninteractive: { pointerEvents: "none" },
   backgroundImageWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   backgroundImage: { width: "100%", height: "100%", opacity: 0.86 },
   /* The wash that sets the depth of everything above it.
    *
-   * This one value is what makes dark translucent glass possible. A card renders at
-   * `alpha * fill + (1 - alpha) * backdrop`, so over a pale backdrop no cast and no
-   * alpha can produce a dark pane without going opaque. Darkening the field
-   * underneath lets the shipped alpha stay at 0.28 - the surface is still 72%
-   * backdrop, so it is genuinely translucent and the blur still has a scene to act
-   * on - while the card lands dark enough to carry white ink. The member's artwork
-   * shows through at just under a fifth, which is how the references use theirs. */
-  backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(16, 18, 22, 0.82)" },
+   * This is the single value that decides whether the app reads as the references.
+   * A card renders at `alpha * fill + (1 - alpha) * backdrop`, and in *both* supplied
+   * references the cards are darker than the page they sit on - the monochrome one
+   * measures #303030 against a #F1F1F1 page, the sky one #6FABDD against #DCE0E3. So
+   * the wash stays nearly clear: the artwork IS the page, its black headings sit
+   * directly on it, and the glass is what reads as the darker plane.
+   *
+   * The previous pass inverted this and darkened the page, which is why every surface
+   * went grey - with the ground darker than the panes there was nothing for the eye to
+   * read as a pane at all. Light ground, dark glass: that is the whole structure.
+   *
+   * Only enough veil is kept to hold the drawing back so text on the bare page stays
+   * comfortable over its line work. */
+  backgroundWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255, 255, 255, 0.12)" },
   /*
    * The heading needs a little help over a busy wallpaper, but a flat 0.62 field
    * across the top flattened the backdrop to a single tone — which is where the
@@ -5718,8 +5724,8 @@ const frozenStyles = StyleSheet.create({
   filterChipTextActive: { color: "#DFE8EF", fontWeight: "700" },
   circlesSection: { marginTop: 3, marginBottom: 12 },
   sectionHeaderLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 7 },
-  sectionEyebrow: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 1.1 },
-  sectionLink: { color: "#7FC0E8", fontSize: 12, fontWeight: "600" },
+  sectionEyebrow: { color: "#3A3833", fontSize: 12, fontWeight: "700", letterSpacing: 1.1 },
+  sectionLink: { color: "#1D4E6B", fontSize: 12, fontWeight: "600" },
   circlesRow: { alignItems: "flex-start", gap: 17, paddingTop: 10, paddingBottom: 3 },
   circleItem: { width: 51, alignItems: "center", gap: 4 },
   circleImageWrap: { width: 48, height: 48, borderRadius: 18, borderWidth: 1.5, borderColor: "#CED7DE", padding: 2, position: "relative" },
@@ -5765,8 +5771,8 @@ const frozenStyles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(196, 214, 228, 0.9)"),
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)"),
   },
-  listHeadingCount: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  listHeading: { height: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, borderBottomWidth: 1, borderBottomColor: "rgba(209, 206, 195, 0.42)" },
+  listHeadingCount: { color: "#4A4842", fontSize: 12, fontWeight: "600" },
+  listHeading: { height: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, borderBottomWidth: 1, borderBottomColor: "rgba(28, 27, 25, 0.16)" },
   chatListScroll: { flex: 1 },
   chatList: { paddingBottom: 0 },
   /** The closing card that uses the space under a short inbox. */
@@ -5794,7 +5800,7 @@ const frozenStyles = StyleSheet.create({
   safeNoteText: { color: "#E6EFF7", fontSize: 12 },
   emptyChats: { alignItems: "center", paddingVertical: 35, paddingHorizontal: 24 },
   emptyIcon: { width: 53, height: 53, borderRadius: 20, backgroundColor: "#5C594C", alignItems: "center", justifyContent: "center" },
-  emptyTitle: { color: "#EBF5FC", fontSize: 15, fontWeight: "700", marginTop: 10 },
+  emptyTitle: { color: "#1C1B19", fontSize: 15, fontWeight: "700", marginTop: 10 },
   emptyCopy: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 5 },
   actionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   emptyAction: { marginTop: 13 },
@@ -5944,9 +5950,18 @@ const frozenStyles = StyleSheet.create({
    * that reads as full and one with a gap under its own title.
    */
   pageIntro: { marginTop: 6, marginBottom: 9 },
-  pageEyebrow: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 1.1, marginBottom: 5 },
-  pageTitle: { color: "#EEF8FF", fontSize: 20, lineHeight: 25, fontWeight: "700", letterSpacing: -0.55 },
-  pageSub: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  /*
+   * The page eyebrow is a *dark* ink, not the light accent.
+   *
+   * It sits directly on the artwork - it is one of the few labels that never goes
+   * inside a card - so the light accent that works on the glass measures 1.90:1 here.
+   * This is the accent taken down to a deep blue that clears AA on the paper, which
+   * keeps the section identity while being legible where it actually renders. The
+   * per-section override at each call site supplies the hue; this is the fallback.
+   */
+  pageEyebrow: { color: "#1D4E6B", fontSize: 12, fontWeight: "700", letterSpacing: 1.1, marginBottom: 5 },
+  pageTitle: { color: "#141310", fontSize: 20, lineHeight: 25, fontWeight: "700", letterSpacing: -0.55 },
+  pageSub: { color: "#45433F", fontSize: 12, lineHeight: 17, marginTop: 3 },
   friendsTools: { gap: 8 },
   interestFilterRow: { gap: 6, paddingVertical: 1 },
   friendsScroll: { marginTop: 14 },
@@ -5990,7 +6005,7 @@ const frozenStyles = StyleSheet.create({
   acceptButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: "#8FB5A2", alignItems: "center", justifyContent: "center" },
   declineButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: glassNestedFill("#f1f0ec"), alignItems: "center", justifyContent: "center" },
   suggestHeading: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 10 },
-  sectionTitle: { color: "#ECF7FE", fontSize: 16, fontWeight: "700", letterSpacing: -0.3, marginTop: 3 },
+  sectionTitle: { color: "#1C1B19", fontSize: 16, fontWeight: "700", letterSpacing: -0.3, marginTop: 3 },
   sortChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5, backgroundColor: "#535A5E" },
   sortChipText: { fontSize: 12, color: "#7FC0E8", fontWeight: "600" },
   friendConnectionList: { gap: 7 },
@@ -6195,7 +6210,7 @@ const frozenStyles = StyleSheet.create({
   groupToolRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 },
   groupCreateCta: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
   groupCreateCtaText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  groupCreateNote: { flex: 1, color: "#E6EFF7", fontSize: 12, lineHeight: 17 },
+  groupCreateNote: { flex: 1, color: "#4A4842", fontSize: 12, lineHeight: 17 },
   groupList: { gap: 9 },
   groupRow: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 17, paddingHorizontal: 10, paddingVertical: 10 },
   groupRowMain: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10 },
@@ -6419,7 +6434,7 @@ const frozenStyles = StyleSheet.create({
   refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center", shadowColor: "#D7E0E7", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
   refreshGlassContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   refreshGlassText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  modalSafe: { flex: 1, backgroundColor: "#0E1014" },
+  modalSafe: { flex: 1, backgroundColor: "#F7F5F1" },
   modalKeyboard: { flex: 1 },
   modalHeader: { height: 51, paddingHorizontal: 21, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   modalBody: { paddingHorizontal: 23, paddingTop: 22, paddingBottom: 25 },

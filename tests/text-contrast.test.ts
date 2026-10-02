@@ -28,6 +28,39 @@ import { join } from "node:path";
  */
 const CARD = [64, 67, 72];
 
+/*
+ * The page, which is a surface in its own right again.
+ *
+ * The structure has two grounds, and the earlier passes only ever modelled one of
+ * them. Cards are dark glass over the artwork's paper; the page *is* the artwork, and
+ * the headings that sit directly on it are black. Measuring those against a card
+ * would report them as failures when they are exactly right - and, worse, would
+ * "fix" them by lightening the headings, which is the opposite of the reference.
+ *
+ * The value is the artwork's paper field under its wash, which is the lightest ground
+ * a page-level heading can land on and therefore the worst case for dark ink.
+ */
+const PAGE = [250, 250, 251];
+
+/*
+ * The styles that sit on the page rather than on a card.
+ *
+ * Named individually rather than matched by a pattern, because getting this list
+ * wrong in the permissive direction would silently stop guarding real card text.
+ * Every entry is a heading rendered directly over the artwork.
+ */
+const PAGE_LEVEL_STYLES = new Set([
+  "sectionEyebrow",
+  "sectionTitle",
+  "pageTitle",
+  "pageEyebrow",
+  "pageSub",
+  "listHeadingCount",
+  "groupCreateNote",
+  "emptyTitle",
+  "sectionLink",
+]);
+
 function lin(v: number): number {
   const x = v / 255;
   return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
@@ -123,9 +156,28 @@ describe("text contrast", () => {
       if (style.toLowerCase().includes("disabled")) return false;
       // Nor is the welcome screen's full-page veil, which is decorative.
       if (file.includes("welcome-screen") && style === "veil") return false;
+      // Page-level headings are measured against the page, in the test below.
+      if (PAGE_LEVEL_STYLES.has(style)) return false;
       return contrast(rgb, CARD) < 4.5;
     });
     expect(failing.map(({ file, style, value }) => `${file}: ${style} ${value}`)).toEqual([]);
+  });
+
+  it("keeps every heading on the page at AA over the artwork", () => {
+    /*
+     * The other half of the contrast contract, and the half that was missing.
+     *
+     * The reference carries black headings on a white page with dark cards beneath
+     * them; the earlier passes only had a card surface to measure against, so every
+     * page-level heading was checked against a ground it never sits on. This asserts
+     * them where they actually render, and it fails if one is ever lightened to pass
+     * the card test instead of being measured here.
+     */
+    const pageInk = declarations.filter(({ style }) => PAGE_LEVEL_STYLES.has(style));
+    // If this drops to nothing the guard has stopped seeing the headings at all.
+    expect(pageInk.length).toBeGreaterThanOrEqual(9);
+    const failing = pageInk.filter(({ value }) => contrast(hex(value), PAGE) < 4.5);
+    expect(failing.map(({ file, style, value }) => `${file}: ${style} ${value} at ${contrast(hex(value), PAGE).toFixed(2)}:1 on the page`)).toEqual([]);
   });
 
   it("keeps the accent at AA, since it is used for links and labels", () => {
