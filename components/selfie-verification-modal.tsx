@@ -21,7 +21,7 @@ import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage }
 const colors = {
   ink: "#43423d",
   muted: "#6E6C67",
-  purple: "#2B6C8F",
+  purple: "#666666",
   glass: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   stroke: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   green: "#6AA082",
@@ -112,7 +112,7 @@ export function SelfieVerificationModal({
       <Text style={styles.title}>A small step for a little more trust.</Text>
       <Text style={styles.description}>Take a fresh front-camera selfie. A real identity provider would check it against your profile before Trufrenz grants the stronger badge.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#B9DAF1" />
+        <MaterialIcons name="lock-outline" size={18} color="#D5D5D5" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Your photo stays on this device in this prototype.</Text>
           <Text style={styles.promiseText}>It is not uploaded, stored in your profile, or treated as a completed identity check.</Text>
@@ -149,12 +149,12 @@ export function SelfieVerificationModal({
 
   const renderPermissionRequest = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#B1DBF3" /></View>
+      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#D5D5D5" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS</Text>
       <Text style={styles.title}>Your camera stays off until you say yes.</Text>
       <Text style={styles.description}>Trufrenz needs the front camera for one fresh selfie. We never turn it on in the background, and you can leave this step any time.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#B9DAF1" />
+        <MaterialIcons name="lock-outline" size={18} color="#D5D5D5" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Camera access is optional.</Text>
           <Text style={styles.promiseText}>If you choose Allow, a camera preview opens. If you choose Don’t Allow, you can still use Trufrenz without a selfie badge.</Text>
@@ -181,7 +181,7 @@ export function SelfieVerificationModal({
     return (
       <View style={styles.centeredContent}>
         <View style={styles.scanFrame}>
-          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#7FC0E8" /></View>}
+          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#B8B8B8" /></View>}
           <View style={styles.scanTint} />
           <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanTranslate }] }]} />
           <View style={styles.scanCornerTop} /><View style={styles.scanCornerBottom} />
@@ -200,7 +200,7 @@ export function SelfieVerificationModal({
       <Text style={styles.kicker}>SELFIE CAPTURED</Text>
       <Text style={styles.title}>That’s a good first step.</Text>
       <Text style={styles.description}>Your photo was captured locally. Identity review is not connected in this prototype, so your profile won’t receive a verified badge yet.</Text>
-      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#7FC0E8" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
+      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#B8B8B8" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
       <View style={styles.successButtons}><ActionButton onPress={finish} icon="check" title="Done" /><Pressable onPress={() => { setPhotoUri(null); setStage("capture"); }} style={styles.retakeButton}><Text style={styles.retakeText}>Retake</Text></Pressable></View>
     </Animated.View>
   );
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   centeredContent: { width: "100%", alignItems: "center", paddingVertical: 15 },
   heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(255, 255, 255, 0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
-  kicker: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
+  kicker: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
   title: { color: colors.ink, fontSize: 24, lineHeight: 30, letterSpacing: -0.65, fontWeight: "700", textAlign: "center", marginTop: 8, maxWidth: 330 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 8, maxWidth: 340 },
   promiseCard: { alignSelf: "stretch", minHeight: 65, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 9, marginTop: 17, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, overflow: "hidden" },
@@ -278,9 +278,9 @@ const styles = StyleSheet.create({
   scanPhoto: { width: "100%", height: "100%", resizeMode: "cover" },
   scanPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.26)" },
-  scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#3B5A49", shadowColor: "#9AD5B6", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
-  scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#8ED2AD", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
-  scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#9AE5BD", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
+  scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#3B5A49", shadowColor: "#C8C8C8", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
+  scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#C3C3C3", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
+  scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#D5D5D5", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
   scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   scanningStatusText: { color: "#DFE9F0", fontSize: 12 },
   successCheck: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: 9 },
@@ -288,6 +288,6 @@ const styles = StyleSheet.create({
   pendingText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
   successButtons: { width: "100%", alignItems: "center" },
   retakeButton: { padding: 11 },
-  retakeText: { color: "#7FC0E8", fontSize: 12, fontWeight: "700" },
+  retakeText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
   errorText: { color: "#FF9AB2", textAlign: "center", fontSize: 12, marginHorizontal: 20, marginBottom: 9 },
 });

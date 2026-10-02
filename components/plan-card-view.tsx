@@ -37,7 +37,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const checkedIn = Boolean(card.checkedInAt);
   const first = friendName.split(" ")[0] || friendName;
 
-  const accent = card.kind === "meetup" ? "#2B6C8F" : "#7C94A5";
+  const accent = card.kind === "meetup" ? "#666666" : "#919191";
   const accentSoft = card.kind === "meetup" ? "rgba(0, 0, 0, 0.16)" : glassNestedFill("rgba(0, 0, 0, 0.16)");
 
   return (
@@ -60,21 +60,21 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       <Text style={[styles.title, nightMode && styles.lightText]}>{card.title}</Text>
 
       <View style={styles.detailRow}>
-        <MaterialIcons name="schedule" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
+        <MaterialIcons name="schedule" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]}>{card.proposal.date} · {card.proposal.time}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="place" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
+        <MaterialIcons name="place" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]} numberOfLines={1}>{card.proposal.place}{card.proposal.area ? ` · ${card.proposal.area}` : ""}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="person-outline" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
+        <MaterialIcons name="person-outline" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]}>{mine ? "You suggested this" : `${first} suggested this`}</Text>
       </View>
 
       {card.status === "accepted" ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="check-circle" size={14} color="#92E6BF" />
+          <MaterialIcons name="check-circle" size={14} color="#D5D5D5" />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>{card.kind === "meetup" ? "Meetup confirmed" : "Hangout confirmed"} · you&apos;ll both get a reminder{timing.emphasis === "today" ? " today" : ""}.</Text>
         </View>
       ) : null}
@@ -86,13 +86,13 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       ) : null}
       {card.status === "rescheduled" ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="update" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
+          <MaterialIcons name="update" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>New time suggested. {mine ? `${first} proposed the change` : "You proposed the change"}.</Text>
         </View>
       ) : null}
       {checkedIn ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="where-to-vote" size={14} color="#92E6BF" />
+          <MaterialIcons name="where-to-vote" size={14} color="#D5D5D5" />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>You checked in on arrival. Your trusted contact was not notified automatically.</Text>
         </View>
       ) : null}
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   kindPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   kindText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
   timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  timingText: { color: "#7FC0E8", fontSize: 12, fontWeight: "700" },
+  timingText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
   timingToday: { color: "#DFE8EF" },
   title: { color: "#EEF8FF", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -147,15 +147,15 @@ const styles = StyleSheet.create({
   stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.16)" },
   stateText: { flex: 1, color: "#E6EFF7", fontSize: 12, lineHeight: 17 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
   primaryActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   checkInActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghostActionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },
   ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)") },
-  ghostActionText: { color: "#7FC0E8", fontSize: 12, fontWeight: "650" as any },
+  ghostActionText: { color: "#B8B8B8", fontSize: 12, fontWeight: "650" as any },
   checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
   linkText: { flex: 1, color: "#E6EFF7", fontSize: 12 },
-  linkAction: { color: "#7FC0E8", fontSize: 12, fontWeight: "700" },
+  linkAction: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

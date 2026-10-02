@@ -32,7 +32,7 @@ export function PlanPollCard({ poll, viewerId, onVote, onUseWinning, nightMode =
     >
       <View style={styles.headerRow}>
         <View style={styles.pill}>
-          <MaterialIcons name="how-to-vote" size={13} color="#7FC0E8" />
+          <MaterialIcons name="how-to-vote" size={13} color="#B8B8B8" />
           <Text style={styles.pillText}>Group poll</Text>
         </View>
         <Text style={[styles.voteCount, nightMode && styles.lightSecondaryText]}>{totalVotes} {totalVotes === 1 ? "vote" : "votes"}</Text>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   accentText: { color: CHAT_NIGHT.accentText },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   pill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  pillText: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
+  pillText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
   voteCount: { color: "#E6EFF7", fontSize: 12, fontWeight: "650" as any },
   question: { color: "#EEF8FF", fontSize: 12.5, fontWeight: "700" },
   option: { borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
@@ -100,12 +100,12 @@ const styles = StyleSheet.create({
   barTrackNight: { backgroundColor: "rgba(0, 0, 0, 0.26)" },
   barTrack: { height: 4, borderRadius: 2, backgroundColor: "rgba(0, 0, 0, 0.16)", overflow: "hidden" },
   barFillNight: { backgroundColor: CHAT_NIGHT.accentText },
-  barFill: { height: 4, borderRadius: 2, backgroundColor: "#9EB2C6" },
+  barFill: { height: 4, borderRadius: 2, backgroundColor: "#B0B0B0" },
   barFillLeading: { backgroundColor: "#7FAE96" },
-  leadNote: { color: "#9EFACF", fontSize: 12, fontWeight: "700" },
+  leadNote: { color: "#E7E7E7", fontSize: 12, fontWeight: "700" },
   tieNote: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
   hint: { color: "#E6EFF7", fontSize: 12 },
-  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
   convertText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

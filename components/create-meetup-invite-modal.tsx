@@ -47,9 +47,9 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
     const selected = item.id === venueId;
     return (
       <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setVenueId(item.id)} style={({ pressed }) => [styles.venueRow, selected && styles.venueSelected, pressed && styles.pressed]}>
-        <View style={[styles.venueIcon, selected && styles.venueIconSelected]}><MaterialIcons name={item.icon} size={18} color={selected ? "#2B6C8F" : "#7E94A2"} /></View>
+        <View style={[styles.venueIcon, selected && styles.venueIconSelected]}><MaterialIcons name={item.icon} size={18} color={selected ? "#666666" : "#919191"} /></View>
         <View style={styles.venueCopy}><Text style={styles.venueName}>{item.name}</Text><Text style={styles.venueMeta}>{item.neighborhood} · {item.note}</Text></View>
-        <MaterialIcons name={selected ? "radio-button-checked" : "radio-button-unchecked"} size={18} color={selected ? "#2B6C8F" : "#c1bdab"} />
+        <MaterialIcons name={selected ? "radio-button-checked" : "radio-button-unchecked"} size={18} color={selected ? "#666666" : "#c1bdab"} />
       </Pressable>
     );
   };
@@ -59,7 +59,7 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
       <Text style={styles.sectionLabel}>WHEN WORKS FOR YOU?</Text>
       <View style={styles.timeOptions}>{timeOptions.map((item) => <Pressable key={item} onPress={() => setWhen(item)} style={[styles.timeChip, when === item && styles.timeChipSelected]}><Text style={[styles.timeText, when === item && styles.timeTextSelected]}>{item}</Text></Pressable>)}</View>
       <View style={styles.previewCard}>
-        <View style={styles.previewHeader}><MaterialIcons name="event-available" size={15} color="#7FC0E8" /><Text style={styles.previewEyebrow}>INVITE PREVIEW</Text></View>
+        <View style={styles.previewHeader}><MaterialIcons name="event-available" size={15} color="#B8B8B8" /><Text style={styles.previewEyebrow}>INVITE PREVIEW</Text></View>
         <Text style={styles.previewTitle}>{draft?.title || "Your plan"}</Text>
         <Text style={styles.previewDetails}>{venue.name} · {venue.neighborhood}</Text>
         <Text style={styles.previewDetails}>{when}</Text>
@@ -90,7 +90,7 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
                 style={styles.inviteList}
                 contentContainerStyle={styles.listContent}
                 keyboardShouldPersistTaps="handled"
-                ListHeaderComponent={<View style={styles.listHeader}><Text style={styles.sectionLabel}>SHARE WITH</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contactOptions}>{contacts.map((contact) => { const selected = contact.id === contactId; return <Pressable key={contact.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setContactId(contact.id)} style={[styles.contactChip, selected && styles.contactChipSelected]}><MaterialIcons name="person" size={13} color={selected ? "#2B6C8F" : "#96948d"} /><Text style={[styles.contactText, selected && styles.contactTextSelected]}>{contact.name}</Text></Pressable>; })}</ScrollView><Text style={[styles.sectionLabel, styles.titleHeading]}>WHAT ARE YOU PLANNING?</Text><TextInput value={title} onChangeText={setTitle} placeholder="Coffee and a slow start" placeholderTextColor="#a4a29d" style={styles.titleInput} maxLength={60} returnKeyType="done"/><Text style={[styles.sectionLabel, styles.placeHeading]}>CHOOSE A PUBLIC PLACE</Text><Text style={styles.helperText}>A familiar place, picked by you. No live location access.</Text></View>}
+                ListHeaderComponent={<View style={styles.listHeader}><Text style={styles.sectionLabel}>SHARE WITH</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contactOptions}>{contacts.map((contact) => { const selected = contact.id === contactId; return <Pressable key={contact.id} accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => setContactId(contact.id)} style={[styles.contactChip, selected && styles.contactChipSelected]}><MaterialIcons name="person" size={13} color={selected ? "#666666" : "#96948d"} /><Text style={[styles.contactText, selected && styles.contactTextSelected]}>{contact.name}</Text></Pressable>; })}</ScrollView><Text style={[styles.sectionLabel, styles.titleHeading]}>WHAT ARE YOU PLANNING?</Text><TextInput value={title} onChangeText={setTitle} placeholder="Coffee and a slow start" placeholderTextColor="#a4a29d" style={styles.titleInput} maxLength={60} returnKeyType="done"/><Text style={[styles.sectionLabel, styles.placeHeading]}>CHOOSE A PUBLIC PLACE</Text><Text style={styles.helperText}>A familiar place, picked by you. No live location access.</Text></View>}
                 ListFooterComponent={footer}
               />
             </View>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 18, paddingTop: 9, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.55)" },
   handle: { width: 34, height: 4, alignSelf: "center", borderRadius: 2, backgroundColor: "rgba(137, 125, 142, 0.38)", marginBottom: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerEyebrow: { color: "#7FC0E8", fontSize: 12, letterSpacing: 1, fontWeight: "700" },
+  headerEyebrow: { color: "#B8B8B8", fontSize: 12, letterSpacing: 1, fontWeight: "700" },
   headerTitle: { color: "#ECF6FE", fontSize: 18, fontWeight: "700", marginTop: 3 },
   closeButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#E0EAF1", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   inviteList: { flexGrow: 1, flexShrink: 1 },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   venueRow: { minHeight: 53, flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 8, borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), marginBottom: 5, shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   venueSelected: { borderColor: "#CED7DE", backgroundColor: "rgba(0, 0, 0, 0.16)" },
   venueIcon: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#575B5D" },
-  venueIconSelected: { backgroundColor: "#4C5966" },
+  venueIconSelected: { backgroundColor: "#575757" },
   venueCopy: { flex: 1, gap: 2 },
   venueName: { color: "#E8F2FA", fontSize: 12, fontWeight: "700" },
   venueMeta: { color: "#DFE9F0", fontSize: 12 },
@@ -138,12 +138,12 @@ const styles = StyleSheet.create({
   timeTextSelected: { color: "#DFE9F0", fontWeight: "700" },
   previewCard: { padding: 10, borderRadius: 14, marginTop: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 4 },
-  previewEyebrow: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 0.7 },
+  previewEyebrow: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 0.7 },
   previewTitle: { color: "#EAF4FB", fontSize: 12, fontWeight: "700", marginTop: 5 },
   previewDetails: { color: "#DFE9F0", fontSize: 12, marginTop: 3 },
   previewNote: { color: "#DFE9F0", fontSize: 12, marginTop: 6 },
-  errorText: { color: "#7FC0E8", fontSize: 12, marginTop: 6 },
-  shareButton: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 13, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), marginTop: 10, shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  errorText: { color: "#B8B8B8", fontSize: 12, marginTop: 6 },
+  shareButton: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 13, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), marginTop: 10, shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   shareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   cancelButton: { minHeight: 32, alignItems: "center", justifyContent: "center" },
   cancelText: { color: "#DFE9F0", fontSize: 12 },

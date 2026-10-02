@@ -212,7 +212,7 @@ export function WelcomeScreen({
             <Text style={styles.soundHint}>{soundUnavailable ? "Sound unavailable here" : soundOn ? "Ambient on" : "Ambient off"}</Text>
           </View>
           <View style={styles.guestPill}>
-            <MaterialIcons name="verified-user" size={13} color="#BAE3FE" />
+            <MaterialIcons name="verified-user" size={13} color="#DDDDDD" />
             <Text style={styles.guestPillText}>Verified friendships only</Text>
           </View>
         </View>
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2B6C8F",
+    backgroundColor: "#666666",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
     shadowColor: "#DFE8EF",
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#2B6C8F",
+    backgroundColor: "#666666",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
     shadowColor: "#DEE8EF",
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   slideBody: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.32)" },
-  dotActive: { width: 20, backgroundColor: "#2B6C8F" },
+  dotActive: { width: 20, backgroundColor: "#666666" },
   swipeHint: { color: "#DFE9F0", fontSize: 12, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  checkboxOn: { backgroundColor: "#2B6C8F", borderColor: "#CED7DE" },
+  checkboxOn: { backgroundColor: "#666666", borderColor: "#CED7DE" },
   termsText: { flex: 1, color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
   termsStrong: { color: "#E4EDF5", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },

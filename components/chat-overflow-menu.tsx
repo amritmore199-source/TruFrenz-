@@ -107,7 +107,7 @@ export function ChatOverflowMenu({
 
               {!isGroup ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`View ${first}'s profile`} onPress={() => { onClose(); onViewProfile(); }} style={styles.row}>
-                  <View style={styles.iconPink}><MaterialIcons name="person-outline" size={17} color="#7FC0E8" /></View>
+                  <View style={styles.iconPink}><MaterialIcons name="person-outline" size={17} color="#B8B8B8" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>View profile</Text><Text style={styles.rowSub}>Photos, interests, and verification</Text></View>
                   <MaterialIcons name="chevron-right" size={17} color="#CED6DD" />
                 </Pressable>
@@ -116,21 +116,21 @@ export function ChatOverflowMenu({
               <View style={styles.divider} />
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.muted }} accessibilityLabel={state.muted ? "Unmute notifications" : "Mute notifications"} onPress={onToggleMute} style={styles.row}>
-                <View style={styles.iconBlue}><MaterialIcons name={state.muted ? "notifications-active" : "notifications-off"} size={17} color="#ABDCFB" /></View>
+                <View style={styles.iconBlue}><MaterialIcons name={state.muted ? "notifications-active" : "notifications-off"} size={17} color="#D5D5D5" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.muted ? "Unmute this chat" : "Mute this chat"}</Text><Text style={styles.rowSub}>{state.muted ? "Notifications are paused" : "Stay quiet, keep the badge"}</Text></View>
-                <Switch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <Switch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#D6DBDE", true: "#666666" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.archived }} accessibilityLabel={state.archived ? "Unarchive conversation" : "Archive conversation"} onPress={onToggleArchive} style={styles.row}>
                 <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#DFE9F0" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.archived ? "Move back to inbox" : "Archive this chat"}</Text><Text style={styles.rowSub}>{state.archived ? "Returns to your main list" : "Hidden until a new message arrives"}</Text></View>
-                <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#D6DBDE", true: "#666666" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: shareReadReceipts }} accessibilityLabel="Show when I have read messages" onPress={() => onToggleReadReceipts(!shareReadReceipts)} style={styles.row}>
-                <View style={styles.iconBlue}><MaterialIcons name="done-all" size={17} color="#ABDCFB" /></View>
+                <View style={styles.iconBlue}><MaterialIcons name="done-all" size={17} color="#D5D5D5" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>Show when I&apos;ve read messages</Text><Text style={styles.rowSub}>{shareReadReceipts ? "Read receipts are on" : "Off by default · your friends see Delivered only"}</Text></View>
-                <Switch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <Switch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#D6DBDE", true: "#666666" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <View style={styles.divider} />
@@ -150,14 +150,14 @@ export function ChatOverflowMenu({
               ) : null}
 
               <Pressable accessibilityRole="button" accessibilityLabel={isGroup ? "Leave this group" : `Unfriend ${first}`} onPress={() => setPending(isGroup ? "delete" : "unfriend")} style={styles.row}>
-                <View style={styles.iconDanger}><MaterialIcons name={isGroup ? "logout" : "person-remove-alt-1"} size={17} color="#FF9FB4" /></View>
+                <View style={styles.iconDanger}><MaterialIcons name={isGroup ? "logout" : "person-remove-alt-1"} size={17} color="#D4B0B8" /></View>
                 <View style={styles.copy}><Text style={[styles.rowTitle, styles.dangerText]}>{isGroup ? "Leave group" : `Unfriend ${first}`}</Text><Text style={styles.rowSub}>{isGroup ? "You keep your copy of the history" : "Chat becomes archived and read-only"}</Text></View>
                 <MaterialIcons name="chevron-right" size={17} color="#CED6DD" />
               </Pressable>
 
               {state.archived ? (
                 <Pressable accessibilityRole="button" accessibilityLabel="Delete this conversation" onPress={() => setPending("delete")} style={styles.row}>
-                  <View style={styles.iconDanger}><MaterialIcons name="delete-outline" size={17} color="#FF9FB4" /></View>
+                  <View style={styles.iconDanger}><MaterialIcons name="delete-outline" size={17} color="#D4B0B8" /></View>
                   <View style={styles.copy}><Text style={[styles.rowTitle, styles.dangerText]}>Delete messages</Text><Text style={styles.rowSub}>Removes this conversation from your device</Text></View>
                   <MaterialIcons name="chevron-right" size={17} color="#CED6DD" />
                 </Pressable>
@@ -183,13 +183,13 @@ const styles = StyleSheet.create({
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
   eyebrow: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9 },
   title: { color: "#EEF8FF", fontSize: 13.5, fontWeight: "700", marginTop: 3 },
-  readOnlyNote: { color: "#7FC0E8", fontSize: 12, fontWeight: "650" as any, marginTop: 4 },
+  readOnlyNote: { color: "#B8B8B8", fontSize: 12, fontWeight: "650" as any, marginTop: 4 },
   confirmCard: { marginTop: 11, borderRadius: 15, borderWidth: 1, borderColor: "rgba(202, 178, 53, 0.5)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), padding: 12, gap: 6 },
   confirmTitle: { color: "#EAF5FC", fontSize: 12, fontWeight: "700" },
   confirmBody: { color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
   confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 4 },
   confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
-  confirmGhostText: { color: "#7FC0E8", fontSize: 12, fontWeight: "650" as any },
+  confirmGhostText: { color: "#B8B8B8", fontSize: 12, fontWeight: "650" as any },
   confirmDanger: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: "#A26572" },
   confirmDangerText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   iconDanger: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   copy: { flex: 1, minWidth: 0 },
   rowTitle: { color: "#EAF4FB", fontSize: 12, fontWeight: "650" as any },
-  dangerText: { color: "#FF90A7" },
+  dangerText: { color: "#CFA4AD" },
   rowSub: { color: "#E6EFF7", fontSize: 12, marginTop: 2 },
   divider: { height: 1, backgroundColor: "rgba(0, 0, 0, 0.17)", marginVertical: 6 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 4 },

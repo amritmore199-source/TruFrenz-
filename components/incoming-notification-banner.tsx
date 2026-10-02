@@ -125,7 +125,7 @@ export function IncomingNotificationBanner({
         <GlassBlur intensity={44} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
-            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#2B6C8F" : "#798FA0"} />
+            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#666666" : "#8C8C8C"} />
             <View style={styles.statusDot} />
           </View>
           <View style={styles.copy}>
@@ -153,10 +153,10 @@ const styles = StyleSheet.create({
   iconWell: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", position: "relative" },
   inviteIconWell: { backgroundColor: "rgba(255, 255, 255, 0.94)" },
   messageIconWell: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#2F7295", borderWidth: 1.5, borderColor: "#FFFFFF" },
+  statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#6B6B6B", borderWidth: 1.5, borderColor: "#FFFFFF" },
   copy: { flex: 1, minWidth: 0, paddingVertical: 10 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  kind: { color: "#7FC0E8", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
+  kind: { color: "#B8B8B8", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
   now: { color: "#DFE9F0", fontSize: 12, fontWeight: "600", letterSpacing: 0.6 },
   sender: { color: "#EBF5FD", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 2 },
   preview: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 1 },

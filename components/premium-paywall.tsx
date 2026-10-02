@@ -199,14 +199,14 @@ export function PremiumPaywall({
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
             {reason ? (
               <View style={[styles.reasonCard, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.19)"), glassOpacity) }]}>
-                <MaterialIcons name="info-outline" size={15} color="#7FC0E8" />
+                <MaterialIcons name="info-outline" size={15} color="#B8B8B8" />
                 <Text style={styles.reasonText}>{reason}</Text>
               </View>
             ) : null}
 
             {active ? (
               <View style={styles.activeCard}>
-                <MaterialIcons name="check-circle" size={17} color="#97EABC" />
+                <MaterialIcons name="check-circle" size={17} color="#D9D9D9" />
                 <View style={styles.activeText}>
                   <Text style={styles.activeTitle}>Premium is active</Text>
                   <Text style={styles.activeSub}>
@@ -318,7 +318,7 @@ export function PremiumPaywall({
                     <MaterialIcons name="check" size={16} color="#CED6DD" />
                   ) : (
                     <View style={styles.premiumCell}>
-                      <MaterialIcons name="check" size={16} color="#97EABC" />
+                      <MaterialIcons name="check" size={16} color="#D9D9D9" />
                       <Text style={styles.premiumCellText}>{row.premium}</Text>
                     </View>
                   )}
@@ -333,7 +333,7 @@ export function PremiumPaywall({
                 <Text style={styles.moreText}>
                   {showAllFeatures ? "Show only what changes" : "Show everything both plans include"}
                 </Text>
-                <MaterialIcons name={showAllFeatures ? "expand-less" : "expand-more"} size={17} color="#7FC0E8" />
+                <MaterialIcons name={showAllFeatures ? "expand-less" : "expand-more"} size={17} color="#B8B8B8" />
               </Pressable>
             </View>
 
@@ -341,7 +341,7 @@ export function PremiumPaywall({
             <View style={styles.offerList}>
               {LAUNCH_OFFERS.map((offer) => (
                 <View key={offer.id} style={[styles.offerRow, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.21)"), glassOpacity) }]}>
-                  <MaterialIcons name="star-outline" size={14} color="#7FC0E8" />
+                  <MaterialIcons name="star-outline" size={14} color="#B8B8B8" />
                   <View style={styles.offerRowText}>
                     <Text style={styles.offerTitle}>{offer.title}</Text>
                     <Text style={styles.offerDetail}>{offer.detail}</Text>
@@ -423,14 +423,14 @@ const styles = StyleSheet.create({
   adFreeName: { fontSize: 12, fontWeight: "700", color: "#EFFAFF" },
   adFreeCopy: { fontSize: 12, color: "#DFE9F0", marginTop: 1 },
   adFreeDismiss: { width: 22, height: 22, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(140, 138, 130, 0.3)") },
-  adFreeNote: { fontSize: 12, color: "#7FC0E8", fontWeight: "600" },
+  adFreeNote: { fontSize: 12, color: "#B8B8B8", fontWeight: "600" },
   reasonCard: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), borderRadius: 14, padding: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   reasonText: { flex: 1, fontSize: 12, color: "#EAF4FB", lineHeight: 17 },
   activeCard: { flexDirection: "row", gap: 9, alignItems: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderRadius: 14, padding: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   activeText: { flex: 1 },
-  activeTitle: { fontSize: 13.5, fontWeight: "700", color: "#BDFFD8" },
+  activeTitle: { fontSize: 13.5, fontWeight: "700", color: "#F0F0F0" },
   activeSub: { fontSize: 12, color: "#DFE9F0", marginTop: 2 },
-  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#7FC0E8", marginTop: 4 },
+  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#B8B8B8", marginTop: 4 },
   planRow: { flexDirection: "row", gap: 8 },
   planCard: { flex: 1, borderRadius: 16, paddingVertical: 11, paddingHorizontal: 9, alignItems: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
   planCardSelected: { backgroundColor: "rgba(255, 255, 255, 0.92)", borderColor: "#CED7DE" },
@@ -439,9 +439,9 @@ const styles = StyleSheet.create({
   planPrice: { fontSize: 19, fontWeight: "700", color: "#EFF9FF", marginTop: 4 },
   planPriceSelected: { color: "#EDF7FF" },
   planMeta: { fontSize: 12, color: "#DFE9F0", marginTop: 1 },
-  planMetaQuiet: { fontSize: 12, color: "#7FC0E8", marginTop: 3 },
+  planMetaQuiet: { fontSize: 12, color: "#B8B8B8", marginTop: 3 },
   savePill: { marginTop: 4, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  savePillSelected: { backgroundColor: "#A2B6CA" },
+  savePillSelected: { backgroundColor: "#B4B4B4" },
   savePillText: { fontSize: 12, fontWeight: "700", color: "#E2EBF3" },
   savePillTextSelected: { color: "#FFFFFF" },
   effectiveLine: { fontSize: 12, color: "#E0E9F0", textAlign: "center", marginTop: 1 },
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   featureBoth: { fontSize: 12, color: "#E6EFF7", marginTop: 1 },
   featureFree: { fontSize: 12, color: "#E6EFF7", marginTop: 1 },
   premiumCell: { alignItems: "flex-end", maxWidth: 128 },
-  premiumCellText: { fontSize: 12, color: "#B6F9D6", marginTop: 1, textAlign: "right" },
+  premiumCellText: { fontSize: 12, color: "#EAEAEA", marginTop: 1, textAlign: "right" },
   moreRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)" },
   moreText: { fontSize: 12, fontWeight: "600", color: "#E0E9F1" },
   offerList: { gap: 7 },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   paymentNote: { flexDirection: "row", gap: 7, alignItems: "flex-start", paddingHorizontal: 2, marginTop: 2 },
   paymentNoteText: { flex: 1, fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
   footer: { paddingHorizontal: 16, paddingTop: 9, paddingBottom: 14, gap: 7, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.24)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)") },
-  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 46, borderRadius: 16, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.21)"), shadowColor: "#E8F2FA", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 46, borderRadius: 16, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.21)"), shadowColor: "#E8F2FA", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
   primaryButtonBusy: { opacity: 0.8 },
   primaryButtonText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
   footerNote: { fontSize: 12, color: "#E6EFF7", textAlign: "center" },

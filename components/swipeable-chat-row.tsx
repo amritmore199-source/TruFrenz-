@@ -302,7 +302,7 @@ export function SwipeableChatRow({
                 <Text style={styles.name} numberOfLines={1}>
                   {chat.name}
                 </Text>
-                {chat.verified ? <MaterialIcons name="verified" size={13} color="#8BE7C3" /> : null}
+                {chat.verified ? <MaterialIcons name="verified" size={13} color="#D5D5D5" /> : null}
                 {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#CED7DE" /> : null}
                 {state.archived ? <MaterialIcons name="archive" size={12} color="#CED7DE" /> : null}
               </View>
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    backgroundColor: "#2B6C8F",
+    backgroundColor: "#666666",
   },
   archiveLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   actionsLayer: {
@@ -366,8 +366,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
   },
-  muteAction: { backgroundColor: "#8297A6" },
-  archiveAction: { backgroundColor: "#2B6C8F" },
+  muteAction: { backgroundColor: "#949494" },
+  archiveAction: { backgroundColor: "#666666" },
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
@@ -399,12 +399,12 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2F7295",
+    backgroundColor: "#6B6B6B",
     borderWidth: 2,
     borderColor: "#fbfaf4",
   },
   dot: { position: "absolute", right: -2, bottom: -2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: "#fbfaf4" },
-  dotAvailable: { backgroundColor: "#6FBF8F" },
+  dotAvailable: { backgroundColor: "#AFAFAF" },
   dotUnavailable: { backgroundColor: "#D98A8A" },
   dotPulse: { opacity: 0.96 },
   info: { flex: 1, minWidth: 0 },
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   timeUnread: { color: "#DFE8EF", fontWeight: "700" },
   lastRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
   preview: { flex: 1, color: "#E6EFF7", fontSize: 12 },
-  badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#2F7295" },
+  badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#6B6B6B" },
   badgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  status: { color: "#7FC0E8", fontSize: 12, fontWeight: "600", marginTop: 3 },
+  status: { color: "#B8B8B8", fontSize: 12, fontWeight: "600", marginTop: 3 },
 });

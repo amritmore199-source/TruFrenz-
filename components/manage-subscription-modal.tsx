@@ -141,10 +141,10 @@ function DetailRow({
   value: string;
   tone?: "default" | "positive" | "warning";
 }) {
-  const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#E8ECEF";
+  const color = tone === "positive" ? "#7A7A7A" : tone === "warning" ? "#A5763F" : "#E8ECEF";
   return (
     <View style={styles.detailRow}>
-      <MaterialIcons name={icon} size={15} color="#7FC0E8" />
+      <MaterialIcons name={icon} size={15} color="#B8B8B8" />
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={[styles.detailValue, { color }]}>{value}</Text>
     </View>
@@ -325,7 +325,7 @@ export function ManageSubscriptionModal({
                   </View>
                   {cancelled ? (
                     <View style={styles.noticeCard}>
-                      <MaterialIcons name="info-outline" size={14} color="#FFC473" />
+                      <MaterialIcons name="info-outline" size={14} color="#E2CAAA" />
                       <Text style={styles.noticeText}>
                         Auto-renew is off. Premium stays on until {subscription.renewsOn ? new Date(subscription.renewsOn).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "the period ends"}, then your account returns to the free plan.
                       </Text>
@@ -356,7 +356,7 @@ export function ManageSubscriptionModal({
                     <MaterialIcons
                       name={receiptChannelIcon(receipt.channel)}
                       size={15}
-                      color="#7FC0E8"
+                      color="#B8B8B8"
                     />
                     <View style={styles.receiptText}>
                       <Text style={styles.receiptTitle}>
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
   },
-  noticeText: { flex: 1, fontSize: 12, color: "#FFC77D", lineHeight: 17 },
+  noticeText: { flex: 1, fontSize: 12, color: "#E3CDAF", lineHeight: 17 },
   sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#E6EFF7", marginTop: 5, marginLeft: 2 },
   receiptCard: {
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
@@ -667,8 +667,8 @@ const styles = StyleSheet.create({
   statusActive: { backgroundColor: "rgba(0, 0, 0, 0.16)" },
   statusStopped: { backgroundColor: "rgba(0, 0, 0, 0.16)" },
   statusText: { fontSize: 12, fontWeight: "700" },
-  statusTextActive: { color: "#93FCC5" },
-  statusTextStopped: { color: "#FFB662" },
+  statusTextActive: { color: "#E7E7E7" },
+  statusTextStopped: { color: "#DCBF9D" },
   secondaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -682,8 +682,8 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: { fontSize: 13, fontWeight: "700", color: "#E2EBF3" },
   restoreNote: { fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
-  restoreNoteOk: { color: "#93FCC5", fontWeight: "600" },
-  restoreNoteBad: { color: "#FF9461" },
+  restoreNoteOk: { color: "#E7E7E7", fontWeight: "600" },
+  restoreNoteBad: { color: "#D3A690" },
   changeRow: { flexDirection: "row", gap: 8 },
   changeCard: {
     flex: 1,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 46,
     borderRadius: 15,
-    backgroundColor: "#2F7295",
+    backgroundColor: "#6B6B6B",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
   },

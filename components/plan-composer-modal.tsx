@@ -82,7 +82,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
           >
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.topLine}>
-                <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#7FC0E8" /></View>
+                <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#B8B8B8" /></View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Close plan composer" onPress={onClose} style={({ pressed }) => [styles.roundAction, pressed && styles.pressed]}>
                   <MaterialIcons name="close" size={18} color="#DEE8EF" />
                 </Pressable>
@@ -95,7 +95,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
               <View style={styles.chipWrap}>
                 {(["hangout", "meetup"] as PlanKind[]).map((option) => (
                   <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected: kind === option }} accessibilityLabel={PLAN_KIND_LABEL[option]} onPress={() => setKind(option)} style={[styles.chip, kind === option && styles.chipActive]}>
-                    <MaterialIcons name={option === "meetup" ? "event-available" : "local-cafe"} size={13} color={kind === option ? "#FFFFFF" : "#2B6C8F"} />
+                    <MaterialIcons name={option === "meetup" ? "event-available" : "local-cafe"} size={13} color={kind === option ? "#FFFFFF" : "#666666"} />
                     <Text style={[styles.chipText, kind === option && styles.chipTextActive]}>{PLAN_KIND_LABEL[option]}</Text>
                   </Pressable>
                 ))}
@@ -123,13 +123,13 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
               <View style={styles.chipWrap}>
                 {venues.map((item) => (
                   <Pressable key={item.name} accessibilityRole="radio" accessibilityState={{ selected: venue?.name === item.name }} accessibilityLabel={`Venue ${item.name} in ${item.area}`} onPress={() => setVenueName(item.name)} style={[styles.chip, venue?.name === item.name && styles.chipActive]}>
-                    <MaterialIcons name="place" size={12} color={venue?.name === item.name ? "#FFFFFF" : "#2B6C8F"} />
+                    <MaterialIcons name="place" size={12} color={venue?.name === item.name ? "#FFFFFF" : "#666666"} />
                     <Text style={[styles.chipText, venue?.name === item.name && styles.chipTextActive]}>{item.name}</Text>
                   </Pressable>
                 ))}
               </View>
               <View style={styles.mapRow}>
-                <MaterialIcons name="map" size={14} color="#7FC0E8" />
+                <MaterialIcons name="map" size={14} color="#B8B8B8" />
                 <Text style={styles.mapText}>Pinned from the venue picker · {venue?.area ?? "Nearby"} · exact addresses are never shared</Text>
               </View>
 
@@ -174,13 +174,13 @@ const styles = StyleSheet.create({
   sectionLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
   chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  chipActive: { backgroundColor: "#2B6C8F", borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
+  chipActive: { backgroundColor: "#666666", borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
   chipText: { color: "#E6EFF7", fontSize: 12, fontWeight: "650" as any },
   chipTextActive: { color: "#EEF8FF" },
   mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  mapText: { flex: 1, color: "#7FC0E8", fontSize: 12, fontWeight: "600" },
+  mapText: { flex: 1, color: "#B8B8B8", fontSize: 12, fontWeight: "600" },
   input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), paddingHorizontal: 12, paddingVertical: 9, color: "#EAF4FB", fontSize: 12, outlineStyle: "none" as any },
-  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   shareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 2 },
   cancelText: { color: "#E6EFF7", fontSize: 12, fontWeight: "600" },

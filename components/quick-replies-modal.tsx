@@ -46,7 +46,7 @@ export function QuickRepliesModal({
           <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.handle} />
           <View style={styles.headingRow}>
-            <View style={styles.headingIcon}><MaterialIcons name="quickreply" size={18} color="#7FC0E8" /></View>
+            <View style={styles.headingIcon}><MaterialIcons name="quickreply" size={18} color="#B8B8B8" /></View>
             <View style={styles.headingCopy}>
               <Text style={styles.eyebrow}>A FEW WORDS, READY WHEN YOU ARE</Text>
               <Text style={styles.title}>Quick replies</Text>
@@ -63,7 +63,7 @@ export function QuickRepliesModal({
                 <View key={reply.id} style={styles.replyRow}>
                   <Pressable onPress={() => onSelect(reply.text)} style={({ pressed }) => [styles.phraseButton, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`Use reply: ${reply.text}`}>
                     <Text style={styles.phraseText}>{reply.text}</Text>
-                    <MaterialIcons name="north-west" size={14} color="#7FC0E8" />
+                    <MaterialIcons name="north-west" size={14} color="#B8B8B8" />
                   </Pressable>
                   {custom ? <Pressable onPress={() => onRemove(reply.id)} style={styles.removeButton} accessibilityLabel={`Remove custom reply: ${reply.text}`}><MaterialIcons name="close" size={16} color="#CED7DE" /></Pressable> : null}
                 </View>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   headingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   headingIcon: { width: 36, height: 36, borderRadius: 13, backgroundColor: "#5D5948", alignItems: "center", justifyContent: "center" },
   headingCopy: { flex: 1 },
-  eyebrow: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 0.8 },
+  eyebrow: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 0.8 },
   title: { color: "#ECF6FE", fontSize: 18, fontWeight: "700", marginTop: 2 },
   close: { width: 32, height: 32, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center", shadowColor: "#E0EAF1", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   subtitle: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 10, marginBottom: 9 },
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
   fieldLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 0.8, marginTop: 12, marginBottom: 6 },
   addRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   input: { minHeight: 42, flex: 1, borderRadius: 12, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), color: "#ECF6FE", fontSize: 12, outlineStyle: "none" as any },
-  addButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), alignItems: "center", justifyContent: "center", shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  done: { minHeight: 39, borderRadius: 13, marginTop: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  addButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), alignItems: "center", justifyContent: "center", shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  done: { minHeight: 39, borderRadius: 13, marginTop: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   doneText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
 });

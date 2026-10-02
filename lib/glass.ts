@@ -37,7 +37,7 @@ export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" |
  * The card sits at 0.407 and the ceiling at 0.46. The ceiling is set by what still
  * reads as glass rather than by the text, because the text has a great deal of
  * room: the artwork is very pale (its darkest pixel is 226,225,230), so even at the
- * heaviest weight the card composites to roughly #A9C6DE and near-black ink clears
+ * heaviest weight the card composites to roughly #C2C2C2 and near-black ink clears
  * 11:1 on it. A surface has to keep enough of the wallpaper to be glass at all, and
  * that — not contrast — is the binding constraint here.
  */
@@ -130,7 +130,7 @@ const TINTS: Record<GlassTint, Rgb> = {
   /*
    * Sky - the optional cast: the same pane in a cool neutral, not a blue theme.
    *
-   * The reference's own blue (#72B0DF, chroma 110) carries white ink at 2.46:1, so it
+   * The reference's own blue (#AAAAAA, chroma 110) carries white ink at 2.46:1, so it
    * cannot be copied literally - and copying it "as close as possible" is what made
    * the member ask why blue was appearing everywhere. The honest reading of the
    * reference is that it is a *tinted* glass, not a coloured one: the blue is a cast
@@ -376,7 +376,7 @@ export function liveGlass(color: string | undefined | null): string | undefined 
    * This is what separates the app's accents from its glass without keeping a
    * register of them. A saturated fill was passed through the resolver untouched,
    * so no candidate cast can invert it back into a light neutral: solving the
-   * lemon button's `#2B6C8F` against any cast demands a channel above 255, which
+   * lemon button's `#666666` against any cast demands a channel above 255, which
    * is an impossible surface. Only a fill the resolver actually produced inverts
    * cleanly, so the guard is a consequence of the algebra rather than a threshold.
    *
@@ -1052,15 +1052,25 @@ export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; 
  * cover the whole screen.
  */
 const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
-  /* Inverted with the glass: these were dark inks solved against pale tiles, and on
-     dark tiles they become light inks solved against the same tiles' new depth. Each
-     keeps its section's hue so the accent still reads as *that* section rather than
-     as generic white. */
-  chats: { tile: "#14405E", eyebrow: "#1D4E6B" },
-  groups: { tile: "#0E443A", eyebrow: "#1B5A4E" },
-  hangouts: { tile: "#5E3C0E", eyebrow: "#6B4A14" },
-  bizz: { tile: "#544410", eyebrow: "#605013" },
-  profile: { tile: "#332A66", eyebrow: "#3C3272" },
+  /*
+   * Monochrome, and that is the design rather than an omission.
+   *
+   * These were five different hues - blue, teal, orange, gold, violet - carried by the
+   * empty-state tile and the page eyebrow. The member has now said it plainly: the
+   * default look is black and white, and blue is a switch they can turn on. Five hues
+   * on the default screens is exactly the colour that kept appearing everywhere.
+   *
+   * What replaces the hue is *value*: each section gets its own depth, so the five are
+   * still distinguishable from one another - which was the thing the hues were doing -
+   * without any of them introducing a colour. The ratings below are ordered by nothing
+   * in particular; they are five steps, chosen to be far enough apart to read as
+   * different sections and close enough to read as one family.
+   */
+  chats: { tile: "#2A2A2A", eyebrow: "#1C1B19" },
+  groups: { tile: "#232323", eyebrow: "#1C1B19" },
+  hangouts: { tile: "#333333", eyebrow: "#1C1B19" },
+  bizz: { tile: "#3A3A3A", eyebrow: "#1C1B19" },
+  profile: { tile: "#2E2E2E", eyebrow: "#1C1B19" },
 };
 /**
  * The accent for a section: the ink for its tinted tile and its header label.
@@ -1068,10 +1078,35 @@ const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> 
  * An unknown section falls back to Chats, so a caller without one gets a real
  * accent rather than a colour that belongs to nothing.
  */
+/**
+ * The section's accent, which follows the cast.
+ *
+ * The default cast is monochrome, so its accents are five *depths* - the sections stay
+ * distinguishable without any of them introducing a colour. The sky cast is the one the
+ * member switches on when they want colour, so it is the one that gets the five hues
+ * back. Splitting it this way is what makes "monochrome by default, sky blue on request"
+ * a property of the material rather than a promise: there is no path by which a
+ * saturated accent can reach a default screen, because the table it would come from is
+ * only read when the sky cast is active.
+ */
+const SKY_SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
+  chats: { tile: "#3D3D3D", eyebrow: "#4A4A4A" },
+  groups: { tile: "#0E443A", eyebrow: "#1B5A4E" },
+  hangouts: { tile: "#5E3C0E", eyebrow: "#6B4A14" },
+  bizz: { tile: "#544410", eyebrow: "#605013" },
+  profile: { tile: "#333333", eyebrow: "#3C3C3C" },
+};
+
 export function glassSectionAccent(
   section: AmbientSection | null | undefined,
+  tint: GlassTint = activeTint,
 ): { tile: string; eyebrow: string } {
-  return SECTION_ACCENT[section && SECTION_ACCENT[section] ? section : "chats"];
+  const key = section && SECTION_ACCENT[section] ? section : "chats";
+  if (tint === "sky") return SKY_SECTION_ACCENT[key];
+  // The eyebrow is the same ink on every section under the default cast: it is a page
+  // label, and a page label that changed depth per section would read as five labels
+  // rather than one kind of label. The tile is where the section is identifiable.
+  return SECTION_ACCENT[key];
 }
 export function glassEmptyAccent(
   section: AmbientSection | null | undefined,
@@ -1190,7 +1225,7 @@ export function glassAmbient(
    * drew the same blue pools and `ambientIntensityFor` scaled the alpha. That made
    * a screen quieter or richer but never actually distinguishable — measured, all
    * five sections resolved their empty-state tile to the identical colour
-   * `#96CDF5`, because the tile is the warm pool and the warm pool was one value.
+   * `#C6C6C6`, because the tile is the warm pool and the warm pool was one value.
    *
    * These are deliberately not five saturated brand colours. They are five nearby
    * points in one cool family, spaced enough to be told apart side by side and close

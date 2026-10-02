@@ -49,12 +49,12 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
       >
         <GlassBlur intensity={32} style={styles.glassCard}>
           <View style={styles.cardContent}>
-            <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#7FC0E8" /></View>
+            <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#B8B8B8" /></View>
             <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.body}>{slide.body}</Text>
             <View style={styles.ruleCard}>
-              <View style={styles.ruleIcon}><MaterialIcons name={index === 2 ? "shield" : "favorite-border"} size={17} color={index === 2 ? "#6F94A3" : "#2B6C8F"} /></View>
+              <View style={styles.ruleIcon}><MaterialIcons name={index === 2 ? "shield" : "favorite-border"} size={17} color={index === 2 ? "#8E8E8E" : "#666666"} /></View>
               <View style={styles.ruleCopy}><Text style={styles.ruleTitle}>{slide.ruleTitle}</Text><Text style={styles.ruleBody}>{slide.ruleBody}</Text></View>
             </View>
             <View style={styles.stepLabel}><Text style={styles.stepText}>A KINDER WAY TO CONNECT</Text><Text style={styles.stepNumber}>0{index + 1} / 0{ safetyOnboardingSlides.length }</Text></View>
@@ -77,12 +77,12 @@ const styles = StyleSheet.create({
   container: { width: "100%", paddingTop: 5 },
   progressRow: { flexDirection: "row", gap: 6, marginBottom: 14 },
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(255, 255, 255, 0.24)" },
-  progressTrackActive: { backgroundColor: "#2B6C8F" },
+  progressTrackActive: { backgroundColor: "#666666" },
   slideAnimated: { width: "100%" },
   glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
   iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  eyebrow: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
+  eyebrow: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
   title: { color: "#EDF8FF", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
   body: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 7 },
   ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
@@ -92,12 +92,12 @@ const styles = StyleSheet.create({
   ruleBody: { color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
   stepLabel: { flexDirection: "row", justifyContent: "space-between", marginTop: 13 },
   stepText: { color: "#DFE9F0", fontSize: 12, letterSpacing: 0.7, fontWeight: "700" },
-  stepNumber: { color: "#7FC0E8", fontSize: 12, fontWeight: "700" },
+  stepNumber: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
   controls: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, gap: 10 },
   backButton: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8 },
   backText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
   backPlaceholder: { width: 58 },
-  nextButton: { minHeight: 44, flex: 1, maxWidth: 220, borderRadius: 14, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: "#2B6C8F", paddingHorizontal: 13 },
+  nextButton: { minHeight: 44, flex: 1, maxWidth: 220, borderRadius: 14, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: "#666666", paddingHorizontal: 13 },
   nextText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
   swipeHint: { color: "#DFE9F0", fontSize: 12, textAlign: "center", marginTop: 10 },

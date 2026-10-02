@@ -60,7 +60,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           <MaterialIcons
             name={atLimit ? "lock-clock" : "auto-awesome"}
             size={16}
-            color={atLimit ? "#A5763F" : "#2B6C8F"}
+            color={atLimit ? "#A5763F" : "#666666"}
           />
         </View>
         <View style={styles.text}>
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  ctaAtLimit: { backgroundColor: "#2F7295", borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)") },
+  ctaAtLimit: { backgroundColor: "#6B6B6B", borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)") },
   ctaText: { fontSize: 12.5, fontWeight: "700", color: "#E2EBF3" },
   ctaTextAtLimit: { color: "#EEF8FF" },
   pressed: { opacity: 0.82 },
