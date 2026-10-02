@@ -295,9 +295,9 @@ export function signinCodeEmail(code: string): { subject: string; text: string; 
 <html>
   <body style="margin:0;padding:24px;background:#faf8f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#43423d;">
     <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:28px;border:1px solid #ece7d8;">
-      <p style="margin:0 0 6px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#83721f;font-weight:700;">Trufrenz</p>
+      <p style="margin:0 0 6px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#2B6C8F;font-weight:700;">Trufrenz</p>
       <p style="margin:0 0 18px;font-size:15px;line-height:1.5;">Here is your verification code.</p>
-      <p style="margin:0 0 18px;font-size:32px;font-weight:700;letter-spacing:0.18em;color:#4a4210;">${code}</p>
+      <p style="margin:0 0 18px;font-size:32px;font-weight:700;letter-spacing:0.18em;color:#FFFFFF;">${code}</p>
       <p style="margin:0 0 18px;font-size:14px;line-height:1.5;color:#6a6760;">It expires in 10 minutes.</p>
       <p style="margin:0;font-size:13px;line-height:1.5;color:#99968e;">If you did not ask for this, you can ignore this email — nobody can use the code without it.</p>
     </div>

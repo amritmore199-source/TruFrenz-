@@ -72,7 +72,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
           <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.topLine}>
-                <View style={styles.groupPhoto}><MaterialIcons name="groups" size={22} color="#4A4210" /></View>
+                <View style={styles.groupPhoto}><MaterialIcons name="groups" size={22} color="#FFFFFF" /></View>
                 <View style={styles.headCopy}>
                   {renaming ? (
                     <TextInput
@@ -90,18 +90,18 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
                   <Text style={styles.groupMeta}>{memberCountLabel(group)} · invite-only</Text>
                 </View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Close group info" onPress={onClose} style={({ pressed }) => [styles.roundAction, pressed && styles.pressed]}>
-                  <MaterialIcons name="close" size={18} color="#726e59" />
+                  <MaterialIcons name="close" size={18} color="#636F7B" />
                 </Pressable>
               </View>
 
               {viewerIsAdmin ? (
                 <View style={styles.adminActions}>
                   <Pressable accessibilityRole="button" accessibilityLabel="Rename this group" onPress={() => { setDraftName(group.settings.name); setRenaming((current) => !current); }} style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}>
-                    <MaterialIcons name="edit" size={14} color="#83721f" />
+                    <MaterialIcons name="edit" size={14} color="#2B6C8F" />
                     <Text style={styles.smallActionText}>{renaming ? "Cancel rename" : "Rename"}</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel="Change the group photo" onPress={() => apply(setGroupPhoto(group, group.settings.photoUri ? null : "local-group-photo", viewerId))} style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}>
-                    <MaterialIcons name="photo-camera" size={14} color="#83721f" />
+                    <MaterialIcons name="photo-camera" size={14} color="#2B6C8F" />
                     <Text style={styles.smallActionText}>{group.settings.photoUri ? "Remove photo" : "Change photo"}</Text>
                   </Pressable>
                 </View>
@@ -143,7 +143,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
                     <Pressable key={id} accessibilityRole="button" accessibilityLabel={`Add ${friend.name} to this group`} onPress={() => { const capacity = groupCapacityGate(tier, group.members.length); if (!capacity.allowed) { if (tier === "free") onUpgrade(capacity.message); else onFeedback(capacity.message); return; } apply(addMember(group, { id: friend.id, name: friend.name, role: "member", paidTier: friend.paidTier }, friendDirectory.map((item) => item.id))); }} style={styles.memberRow}>
                       <View style={styles.memberAvatar}><Text style={styles.memberInitial}>{friend.name.charAt(0).toUpperCase()}</Text></View>
                       <View style={styles.memberCopy}><Text style={styles.memberName} numberOfLines={1}>{friend.name}</Text><Text style={styles.memberRole}>Accepted friend</Text></View>
-                      <MaterialIcons name="person-add" size={16} color="#83721f" />
+                      <MaterialIcons name="person-add" size={16} color="#2B6C8F" />
                     </Pressable>
                   );
                 })
@@ -153,7 +153,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
               <View style={styles.settingRow}>
                 <MaterialIcons name="notifications-off" size={16} color="#6E6C67" />
                 <View style={styles.memberCopy}><Text style={styles.settingTitle}>Mute notifications</Text><Text style={styles.memberRole}>Your choice only — other members are unaffected</Text></View>
-                <Switch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" />
+                <Switch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" />
               </View>
 
               <Pressable accessibilityRole="button" accessibilityLabel="Start a group call" onPress={() => { onFeedback(callGate.message); if (callGate.allowed) onStartGroupCall(); }} style={({ pressed }) => [styles.callRow, pressed && styles.pressed]}>
@@ -176,12 +176,12 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#4B555E", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, overflow: "hidden" },
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
   topLine: { flexDirection: "row", alignItems: "center", gap: 10 },
-  groupPhoto: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#E9D177", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
+  groupPhoto: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#2F7295", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
   headCopy: { flex: 1, minWidth: 0 },
   groupName: { color: "#43423d", fontSize: 13.5, fontWeight: "700" },
   nameInput: { borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)"), paddingHorizontal: 9, paddingVertical: 6, color: "#53514C", fontSize: 12.5, outlineStyle: "none" as any },
@@ -189,17 +189,17 @@ const styles = StyleSheet.create({
   roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   adminActions: { flexDirection: "row", gap: 7, marginTop: 11, flexWrap: "wrap" },
   smallAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
-  smallActionText: { color: "#7C6C1D", fontSize: 12, fontWeight: "650" as any },
+  smallActionText: { color: "#2B6C8F", fontSize: 12, fontWeight: "650" as any },
   adminNote: { color: "#5F5D57", fontSize: 12, marginTop: 10 },
   sectionLabel: { color: "#5F5D57", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 14 },
   memberRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
   memberAvatar: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(245, 242, 223, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
-  memberInitial: { color: "#7C6C1D", fontSize: 13.5, fontWeight: "700" },
+  memberInitial: { color: "#2B6C8F", fontSize: 13.5, fontWeight: "700" },
   memberCopy: { flex: 1, minWidth: 0 },
   memberName: { color: "#53514C", fontSize: 12, fontWeight: "650" as any },
   memberRole: { color: "#5F5D57", fontSize: 12, marginTop: 2 },
   adminPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(246, 240, 209, 0.94)" },
-  adminPillText: { color: "#7C6C1D", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
+  adminPillText: { color: "#2B6C8F", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
   memberActions: { flexDirection: "row", alignItems: "center", gap: 4 },
   iconAction: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
   emptyNote: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 6 },

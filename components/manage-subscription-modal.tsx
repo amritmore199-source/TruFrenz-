@@ -144,7 +144,7 @@ function DetailRow({
   const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#E8ECEF";
   return (
     <View style={styles.detailRow}>
-      <MaterialIcons name={icon} size={15} color="#83721f" />
+      <MaterialIcons name={icon} size={15} color="#2B6C8F" />
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={[styles.detailValue, { color }]}>{value}</Text>
     </View>
@@ -243,7 +243,7 @@ export function ManageSubscriptionModal({
 
           <View style={styles.headerRow}>
             <View style={styles.headerBadge}>
-              <MaterialIcons name={premium ? "workspace-premium" : "card-giftcard"} size={18} color="#6f6741" />
+              <MaterialIcons name={premium ? "workspace-premium" : "card-giftcard"} size={18} color="#5C6874" />
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>Manage subscription</Text>
@@ -356,7 +356,7 @@ export function ManageSubscriptionModal({
                     <MaterialIcons
                       name={receiptChannelIcon(receipt.channel)}
                       size={15}
-                      color="#83721f"
+                      color="#2B6C8F"
                     />
                     <View style={styles.receiptText}>
                       <Text style={styles.receiptTitle}>
@@ -403,10 +403,10 @@ export function ManageSubscriptionModal({
                 style={({ pressed }) => [styles.secondaryButton, restoring && styles.buttonBusy, pressed && styles.pressed]}
               >
                 {restoring ? (
-                  <ActivityIndicator size="small" color="#6f6741" />
+                  <ActivityIndicator size="small" color="#5C6874" />
                 ) : (
                   <>
-                    <MaterialIcons name="restore" size={15} color="#6f6741" />
+                    <MaterialIcons name="restore" size={15} color="#5C6874" />
                     <Text style={styles.secondaryButtonText}>Restore purchases</Text>
                   </>
                 )}
@@ -549,7 +549,7 @@ export function ManageSubscriptionModal({
                 accessibilityLabel="Compare Premium plans"
                 style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
               >
-                <MaterialIcons name="workspace-premium" size={16} color="#4A4210" />
+                <MaterialIcons name="workspace-premium" size={16} color="#FFFFFF" />
                 <Text style={styles.primaryButtonText}>Compare Premium plans</Text>
               </Pressable>
             )}
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)"),
-    shadowColor: "#454023",
+    shadowColor: "#394048",
     shadowOpacity: 0.22,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 14 },
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
   },
   headerText: { flex: 1 },
-  title: { fontSize: 16, fontWeight: "700", color: "#3f3920" },
+  title: { fontSize: 16, fontWeight: "700", color: "#333A40" },
   subtitle: { fontSize: 12, color: "#5F5D57", marginTop: 2, lineHeight: 17 },
   close: {
     width: 30,
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
   },
   planCardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   planCardText: { flex: 1 },
-  planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#3f3920" },
+  planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#333A40" },
   planCardSub: { fontSize: 12, color: "#5F5D57", marginTop: 2 },
   tierPill: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 3 },
   tierPillPremium: { backgroundColor: "rgba(212, 187, 59, 0.9)" },
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   receiptRow: { flexDirection: "row", alignItems: "center", gap: 9 },
   receiptDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)", paddingTop: 9 },
   receiptText: { flex: 1 },
-  receiptTitle: { fontSize: 12.5, fontWeight: "600", color: "#494532" },
+  receiptTitle: { fontSize: 12.5, fontWeight: "600", color: "#3E464D" },
   receiptSub: { fontSize: 12, color: "#5F5D57", marginTop: 1 },
   statusPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
   statusActive: { backgroundColor: "rgba(214, 238, 224, 0.9)" },
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"),
   },
-  secondaryButtonText: { fontSize: 13, fontWeight: "700", color: "#6f6741" },
+  secondaryButtonText: { fontSize: 13, fontWeight: "700", color: "#5C6874" },
   restoreNote: { fontSize: 12, color: "#5F5D57", lineHeight: 17 },
   restoreNoteOk: { color: "#45765C", fontWeight: "600" },
   restoreNoteBad: { color: "#9D5B3C" },
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
     gap: 3,
   },
-  changeName: { fontSize: 13, fontWeight: "700", color: "#494532" },
+  changeName: { fontSize: 13, fontWeight: "700", color: "#3E464D" },
   changePrice: { fontSize: 12, color: "#5F5D57" },
   cancelCard: {
     backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"),
@@ -707,13 +707,13 @@ const styles = StyleSheet.create({
   },
   cancelBody: { fontSize: 12, color: "#53514C", lineHeight: 17 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storeHintText: { fontSize: 12, color: "#726D52", fontWeight: "700" },
+  storeHintText: { fontSize: 12, color: "#626E7A", fontWeight: "700" },
   /*
    * The store row is a link, and it previously looked like one without being
    * one — an open-in-new icon beside instruction text. The affordance now
    * matches the behaviour, so the label is underlined and slightly darker.
    */
-  storeHintTextLinked: { fontSize: 12, color: "#726D52", fontWeight: "700", textDecorationLine: "underline" },
+  storeHintTextLinked: { fontSize: 12, color: "#626E7A", fontWeight: "700", textDecorationLine: "underline" },
   storeStepsText: {
     fontSize: 12,
     lineHeight: 17,
@@ -754,11 +754,11 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 46,
     borderRadius: 15,
-    backgroundColor: "#E9D177",
+    backgroundColor: "#2F7295",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)"),
   },
-  primaryButtonText: { fontSize: 13.5, fontWeight: "700", color: "#4A4210" },
+  primaryButtonText: { fontSize: 13.5, fontWeight: "700", color: "#FFFFFF" },
   buttonBusy: { opacity: 0.7 },
   footerNote: { flexDirection: "row", gap: 6, alignItems: "flex-start", marginTop: 4 },
   footerNoteText: { flex: 1, fontSize: 12, color: "#5F5D57", lineHeight: 17 },

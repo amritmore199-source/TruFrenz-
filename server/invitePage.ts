@@ -152,7 +152,7 @@ export function invitePageHtml(options: {
   }
   .mark {
     width: 54px; height: 54px; margin: 0 auto 16px;
-    border-radius: 18px; background: #f1de55;
+    border-radius: 18px; background: #2B6C8F;
     display: flex; align-items: center; justify-content: center;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 16px rgba(58,76,98,0.14);
   }
@@ -164,14 +164,14 @@ export function invitePageHtml(options: {
     font-size: 15px; font-weight: 600; text-decoration: none;
     border: 1px solid transparent;
   }
-  .primary { background: #f1de55; color: #33322c; }
+  .primary { background: #2B6C8F; color: #33322c; }
   .ghost { background: rgba(255,255,255,0.55); color: #3f3e39; border-color: rgba(120,130,140,0.35); }
   .note { font-size: 13px; line-height: 1.5; color: #56544d; }
   .what { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(120,130,140,0.18); }
   .what h2 { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: #6f6d64; margin: 0 0 10px; }
   .what ul { list-style: none; margin: 0; padding: 0; text-align: left; }
   .what li { font-size: 13.5px; line-height: 1.6; color: #45443e; padding-left: 18px; position: relative; }
-  .what li::before { content: "•"; position: absolute; left: 4px; color: #b8a52f; }
+  .what li::before { content: "•"; position: absolute; left: 4px; color: #94A7B9; }
   footer { margin-top: 20px; font-size: 11px; line-height: 1.6; color: #7b7973; }
   footer a { color: #7b7973; }
 </style>

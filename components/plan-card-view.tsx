@@ -37,7 +37,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const checkedIn = Boolean(card.checkedInAt);
   const first = friendName.split(" ")[0] || friendName;
 
-  const accent = card.kind === "meetup" ? "#83721f" : "#7C94A5";
+  const accent = card.kind === "meetup" ? "#2B6C8F" : "#7C94A5";
   const accentSoft = card.kind === "meetup" ? "rgba(247, 241, 214, 0.9)" : glassNestedFill("rgba(238, 244, 248, 0.9)");
 
   return (
@@ -60,15 +60,15 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       <Text style={[styles.title, nightMode && styles.lightText]}>{card.title}</Text>
 
       <View style={styles.detailRow}>
-        <MaterialIcons name="schedule" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#83721f"} />
+        <MaterialIcons name="schedule" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]}>{card.proposal.date} · {card.proposal.time}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="place" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#83721f"} />
+        <MaterialIcons name="place" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]} numberOfLines={1}>{card.proposal.place}{card.proposal.area ? ` · ${card.proposal.area}` : ""}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="person-outline" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#83721f"} />
+        <MaterialIcons name="person-outline" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]}>{mine ? "You suggested this" : `${first} suggested this`}</Text>
       </View>
 
@@ -86,7 +86,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       ) : null}
       {card.status === "rescheduled" ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="update" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#83721f"} />
+          <MaterialIcons name="update" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#2B6C8F"} />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>New time suggested. {mine ? `${first} proposed the change` : "You proposed the change"}.</Text>
         </View>
       ) : null}
@@ -100,7 +100,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       {canRespond ? (
         <View style={styles.actions}>
           <Pressable accessibilityRole="button" accessibilityLabel={`Accept ${label.toLowerCase()}`} onPress={() => onRespond("accept")} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}>
-            <MaterialIcons name="check" size={15} color="#4A4210" />
+            <MaterialIcons name="check" size={15} color="#FFFFFF" />
             <Text style={styles.primaryActionText}>Accept</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`Propose a new time for this ${label.toLowerCase()}`} onPress={() => onRespond("propose-new-time")} style={({ pressed }) => [styles.ghostAction, nightMode && styles.ghostActionNight, pressed && styles.pressed]}>
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   kindPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   kindText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
-  timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(245, 242, 223, 0.86)" },
-  timingText: { color: "#7C6C1D", fontSize: 12, fontWeight: "700" },
-  timingToday: { color: "#7C6C1B" },
+  timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(214, 231, 241, 0.86)" },
+  timingText: { color: "#2B6C8F", fontSize: 12, fontWeight: "700" },
+  timingToday: { color: "#626E7A" },
   title: { color: "#43423d", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   detailText: { flex: 1, color: "#5F5D57", fontSize: 12, fontWeight: "600" },
@@ -147,15 +147,15 @@ const styles = StyleSheet.create({
   stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(246, 244, 229, 0.82)" },
   stateText: { flex: 1, color: "#5F5D57", fontSize: 12, lineHeight: 17 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
-  primaryActionText: { color: "#4A4210", fontSize: 12, fontWeight: "700" },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
+  primaryActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   checkInActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghostActionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },
   ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)") },
-  ghostActionText: { color: "#7C6C1D", fontSize: 12, fontWeight: "650" as any },
+  ghostActionText: { color: "#2B6C8F", fontSize: 12, fontWeight: "650" as any },
   checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
   linkText: { flex: 1, color: "#5F5D57", fontSize: 12 },
-  linkAction: { color: "#7C6C1D", fontSize: 12, fontWeight: "700" },
+  linkAction: { color: "#2B6C8F", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

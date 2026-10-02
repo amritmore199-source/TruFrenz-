@@ -60,7 +60,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           <MaterialIcons
             name={atLimit ? "lock-clock" : "auto-awesome"}
             size={16}
-            color={atLimit ? "#A5763F" : "#83721f"}
+            color={atLimit ? "#A5763F" : "#2B6C8F"}
           />
         </View>
         <View style={styles.text}>
@@ -88,7 +88,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
         accessibilityLabel={nudge.cta}
         style={({ pressed }) => [styles.cta, atLimit && styles.ctaAtLimit, pressed && styles.pressed]}
       >
-        <MaterialIcons name="workspace-premium" size={14} color={atLimit ? "#FFFFFF" : "#6f6741"} />
+        <MaterialIcons name="workspace-premium" size={14} color={atLimit ? "#FFFFFF" : "#5C6874"} />
         <Text style={[styles.ctaText, atLimit && styles.ctaTextAtLimit]}>{nudge.cta}</Text>
       </Pressable>
     </View>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.78)"),
-    shadowColor: "#454023",
+    shadowColor: "#394048",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   },
   badgeAtLimit: { backgroundColor: glassNestedFill("rgba(252, 244, 232, 0.95)"), borderColor: "rgba(226, 198, 158, 0.8)" },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: 13, fontWeight: "700", color: "#494532" },
+  title: { fontSize: 13, fontWeight: "700", color: "#3E464D" },
   body: { fontSize: 12, color: "#5F5D57", lineHeight: 17 },
   dismiss: {
     width: 26,
@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
   },
-  ctaAtLimit: { backgroundColor: "#E9D177", borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)") },
-  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#6f6741" },
+  ctaAtLimit: { backgroundColor: "#2F7295", borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)") },
+  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#5C6874" },
   ctaTextAtLimit: { color: "#43423d" },
   pressed: { opacity: 0.82 },
 });

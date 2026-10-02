@@ -128,7 +128,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
           <View style={styles.header}>
             <View style={styles.handle} />
             <Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close profile">
-              <MaterialIcons name="close" size={19} color="#726e59" />
+              <MaterialIcons name="close" size={19} color="#636F7B" />
             </Pressable>
           </View>
 
@@ -150,7 +150,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
               </ScrollView>
               {verified ? (
                 <View style={styles.trustBadge} accessibilityLabel="ID and selfie verified">
-                  <MaterialIcons name="check" size={13} color="#4A4210" />
+                  <MaterialIcons name="check" size={13} color="#FFFFFF" />
                 </View>
               ) : null}
               {slides.length > 1 ? (
@@ -183,7 +183,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
               </View>
               {distance ? (
                 <View style={styles.distanceRow}>
-                  <MaterialIcons name="near-me" size={14} color="#83721f" />
+                  <MaterialIcons name="near-me" size={14} color="#2B6C8F" />
                   <Text style={styles.distanceText}>{distance}</Text>
                 </View>
               ) : null}
@@ -191,7 +191,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
 
             {mutualLine ? (
               <View style={styles.mutualCard}>
-                <MaterialIcons name="auto-awesome" size={15} color="#83721f" />
+                <MaterialIcons name="auto-awesome" size={15} color="#2B6C8F" />
                 <Text style={styles.mutualText}>{mutualLine}</Text>
               </View>
             ) : null}
@@ -204,13 +204,13 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             <View style={styles.tags}>
               {shared.map((interest) => (
                 <View key={`shared-${interest}`} style={[styles.tag, styles.tagShared]}>
-                  <MaterialIcons name="favorite" size={12} color="#83721f" />
+                  <MaterialIcons name="favorite" size={12} color="#2B6C8F" />
                   <Text style={[styles.tagText, styles.tagTextShared]}>{interest}</Text>
                 </View>
               ))}
               {other.map((interest) => (
                 <View key={interest} style={styles.tag}>
-                  <MaterialIcons name="auto-awesome" size={12} color="#83721f" />
+                  <MaterialIcons name="auto-awesome" size={12} color="#2B6C8F" />
                   <Text style={styles.tagText}>{interest}</Text>
                 </View>
               ))}
@@ -241,7 +241,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             <View style={styles.actionGrid}>
               {viewerActions.map((action) => (
                 <Pressable key={action} onPress={() => handleAction(action)} accessibilityLabel={actionLabel(action)} style={({ pressed }) => [styles.actionButton, { backgroundColor: glassNestedSurfaceColor(isDestructive(action) ? "rgba(249, 244, 224, 0.9)" : "rgba(255, 255, 255, 0.72)", glassOpacity, glassTint), borderColor: glassNestedSurfaceColor("rgba(255, 255, 255, 0.98)", glassOpacity, glassTint) }, isPrimary(action) && styles.actionPrimary, pressed && styles.pressed]}>
-                  <MaterialIcons name={ACTION_ICONS[action]} size={16} color={isPrimary(action) ? "#FFFFFF" : isDestructive(action) ? "#83721f" : "#777259"} />
+                  <MaterialIcons name={ACTION_ICONS[action]} size={16} color={isPrimary(action) ? "#FFFFFF" : isDestructive(action) ? "#2B6C8F" : "#667380"} />
                   <Text style={[styles.actionText, isPrimary(action) && styles.actionTextPrimary, isDestructive(action) && styles.actionTextDanger]}>{actionLabel(action)}</Text>
                 </Pressable>
               ))}
@@ -283,7 +283,7 @@ function isDestructive(action: ViewerAction): boolean {
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(77, 71, 43, 0.20)" },
-  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#534c2e", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
+  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#444D55", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
   sheetScroll: { flexGrow: 0, flexShrink: 1 },
   sheetContent: { padding: 16, paddingTop: 4 },
   header: { height: 30, alignItems: "center", justifyContent: "center" },
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   gallery: { width: "100%", height: "100%" },
   gallerySlide: { height: "100%" },
   galleryImage: { width: "100%", height: "100%" },
-  trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: glassNestedFill("rgba(252, 250, 242, 0.96)"), backgroundColor: "#E9D177", alignItems: "center", justifyContent: "center", shadowColor: "#776b33", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: glassNestedFill("rgba(252, 250, 242, 0.96)"), backgroundColor: "#2F7295", alignItems: "center", justifyContent: "center", shadowColor: "#606C78", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   /*
    * The pill darkens whatever photo sits under it, so its label is white and
    * the pill is deep enough to hold it: a translucent brown at 0.42 over a
@@ -303,12 +303,12 @@ const styles = StyleSheet.create({
   counterText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   dots: { flexDirection: "row", justifyContent: "center", gap: 5, marginTop: 8 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(131, 114, 31, 0.38)" },
-  dotActive: { backgroundColor: "#F1DE55", width: 14 },
+  dotActive: { backgroundColor: "#2B6C8F", width: 14 },
   identity: { alignItems: "center", paddingTop: 11, paddingBottom: 12 },
   statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(247, 242, 218, 0.78)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#E9D177" },
-  statusChipText: { flexShrink: 1, color: "#6d6955", fontSize: 12, fontWeight: "650" as any },
-  name: { color: "#4a483a", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#2F7295" },
+  statusChipText: { flexShrink: 1, color: "#5E6A76", fontSize: 12, fontWeight: "650" as any },
+  name: { color: "#404951", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 },
   badge: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "#EAF4EF", marginTop: 7 },
   phoneBadge: { backgroundColor: glassNestedFill("#EDF1F4") },
   badgeText: { color: "#477463", fontSize: 12, fontWeight: "600" },
@@ -316,17 +316,17 @@ const styles = StyleSheet.create({
   locality: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 7 },
   localityText: { color: "#6E6C67", fontSize: 12 },
   distanceRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: "rgba(242, 236, 202, 0.88)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
-  distanceText: { color: "#7C6C1D", fontSize: 12, fontWeight: "700" },
+  distanceText: { color: "#2B6C8F", fontSize: 12, fontWeight: "700" },
   mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(244, 236, 200, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
-  mutualText: { flex: 1, color: "#716C54", fontSize: 12, fontWeight: "700" },
+  mutualText: { flex: 1, color: "#616D79", fontSize: 12, fontWeight: "700" },
   divider: { height: 1, backgroundColor: "rgba(219, 215, 192, 0.65)", marginTop: 14, marginBottom: 12 },
   sectionLabel: { color: "#5F5D57", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
   about: { color: "#63615c", fontSize: 12.5, lineHeight: 18, marginTop: 6, marginBottom: 9 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
   tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(244, 236, 200, 0.91)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.93)"), paddingHorizontal: 9, paddingVertical: 6 },
   tagShared: { backgroundColor: "rgba(243, 234, 194, 0.95)", borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)") },
-  tagText: { color: "#7C6C1D", fontSize: 12, fontWeight: "500" },
-  tagTextShared: { color: "#776c33", fontWeight: "700" },
+  tagText: { color: "#2B6C8F", fontSize: 12, fontWeight: "500" },
+  tagTextShared: { color: "#616D79", fontWeight: "700" },
   lookingTag: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(232, 241, 246, 0.85)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
   lookingText: { color: "#5C6F7B", fontSize: 12, fontWeight: "600" },
   languageTag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(236, 240, 243, 0.88)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
@@ -338,10 +338,10 @@ const styles = StyleSheet.create({
   // tinting it, and it ignored their glass setting. The declared alpha is kept there
   // as an ordering below the sheet, so a button is always lighter than its panel.
   actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), shadowColor: "#75736a", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  actionPrimary: { backgroundColor: "#F1DE55", borderColor: glassNestedFill("rgba(255, 255, 255, 0.64)"), shadowColor: "#5c5634", shadowOpacity: 0.14 },
+  actionPrimary: { backgroundColor: "#2B6C8F", borderColor: glassNestedFill("rgba(255, 255, 255, 0.64)"), shadowColor: "#4D5760", shadowOpacity: 0.14 },
   actionText: { color: "#5F5D57", fontSize: 12, fontWeight: "700" },
   actionTextPrimary: { color: "#43423d" },
-  actionTextDanger: { color: "#7C6C1D" },
+  actionTextDanger: { color: "#2B6C8F" },
   safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: glassNestedFill("rgba(232, 241, 246, 0.73)") },
   safetyText: { flex: 1, color: "#626E77", fontSize: 12, lineHeight: 17 },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },

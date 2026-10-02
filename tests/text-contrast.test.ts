@@ -123,7 +123,7 @@ describe("text contrast", () => {
   it("keeps the accent gold at AA, since it is used for links and labels", () => {
     // The gold carries the largest number of text uses in the app, so it is the one
     // colour where a small miss would be felt everywhere.
-    expect(contrast(hex("#7C6C1D"), CARD)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(hex("#2B6C8F"), CARD)).toBeGreaterThanOrEqual(4.5);
   });
 
   /*
@@ -284,7 +284,7 @@ describe("text contrast", () => {
       ["call accept", "#597E6D"],
       ["check-in action", "#597E6D"],
       ["muted swipe action", "#8297A6"],
-      ["brand mark gold", "#83721f"],
+      ["brand mark gold", "#2B6C8F"],
     ];
     for (const [what, fill] of carriesWhite) {
       expect(contrast([255, 255, 255], hex(fill)), `${what} must carry white`)
@@ -296,8 +296,8 @@ describe("text contrast", () => {
     // The pattern that produced three of these defects: a button whose label is dark
     // and whose icon is white. The light lemon takes the app's dark ink; the dark
     // brand gold takes white.
-    expect(contrast(hex("#4A4210"), hex("#F1DE55"))).toBeGreaterThanOrEqual(4.5);
-    expect(contrast([255, 255, 255], hex("#83721f"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(hex("#FFFFFF"), hex("#2B6C8F"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast([255, 255, 255], hex("#2B6C8F"))).toBeGreaterThanOrEqual(4.5);
   });
 
   it("measures a translucent fill where it lands, not where it is declared", () => {

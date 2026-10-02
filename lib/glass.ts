@@ -368,7 +368,7 @@ export function liveGlass(color: string | undefined | null): string | undefined 
    * This is what separates the app's accents from its glass without keeping a
    * register of them. A saturated fill was passed through the resolver untouched,
    * so no candidate cast can invert it back into a light neutral: solving the
-   * lemon button's `#F1DE55` against any cast demands a channel above 255, which
+   * lemon button's `#2B6C8F` against any cast demands a channel above 255, which
    * is an impossible surface. Only a fill the resolver actually produced inverts
    * cleanly, so the guard is a consequence of the algebra rather than a threshold.
    *
@@ -952,7 +952,7 @@ const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> 
   // Hangouts' apricot needs the warmest, darkest ink to clear its own pale tile.
   hangouts: { tile: "#4B3E2F", eyebrow: "#665440" },
   // Bizz' gold, the palest tile of the five, so its glyph goes deepest.
-  bizz: { tile: "#4B442C", eyebrow: "#605739" },
+  bizz: { tile: "#3D454D", eyebrow: "#4F5962" },
   // Profile's lilac.
   profile: { tile: "#3D3B4A", eyebrow: "#58546A" },
 };

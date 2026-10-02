@@ -181,7 +181,7 @@ export function PremiumPaywall({
 
           <View style={styles.headerRow}>
             <View style={[styles.crownBadge, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.72)"), glassOpacity) }]}>
-              <MaterialIcons name="workspace-premium" size={18} color="#796d32" />
+              <MaterialIcons name="workspace-premium" size={18} color="#626E7B" />
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>{active ? "You're on Trufrenz Premium" : "Trufrenz Premium"}</Text>
@@ -192,14 +192,14 @@ export function PremiumPaywall({
               </Text>
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close premium" style={({ pressed }) => [styles.close, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.7)"), glassOpacity) }, pressed && styles.pressed]}>
-              <MaterialIcons name="close" size={17} color="#6b664c" />
+              <MaterialIcons name="close" size={17} color="#5B6772" />
             </Pressable>
           </View>
 
           <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
             {reason ? (
               <View style={[styles.reasonCard, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.6)"), glassOpacity) }]}>
-                <MaterialIcons name="info-outline" size={15} color="#83721f" />
+                <MaterialIcons name="info-outline" size={15} color="#2B6C8F" />
                 <Text style={styles.reasonText}>{reason}</Text>
               </View>
             ) : null}
@@ -267,7 +267,7 @@ export function PremiumPaywall({
 
                 {discounted && showRupeeDiscount ? (
                   <View style={styles.offerCard}>
-                    <MaterialIcons name="local-offer" size={15} color="#796d32" />
+                    <MaterialIcons name="local-offer" size={15} color="#626E7B" />
                     <Text style={styles.offerText}>
                       Launch discount: {formatInr(discounted.launch)} for the first year instead of{" "}
                       <Text style={styles.offerStrike}>{formatInr(discounted.full)}</Text>, for the first 90 days after launch.
@@ -333,7 +333,7 @@ export function PremiumPaywall({
                 <Text style={styles.moreText}>
                   {showAllFeatures ? "Show only what changes" : "Show everything both plans include"}
                 </Text>
-                <MaterialIcons name={showAllFeatures ? "expand-less" : "expand-more"} size={17} color="#83721f" />
+                <MaterialIcons name={showAllFeatures ? "expand-less" : "expand-more"} size={17} color="#2B6C8F" />
               </Pressable>
             </View>
 
@@ -341,7 +341,7 @@ export function PremiumPaywall({
             <View style={styles.offerList}>
               {LAUNCH_OFFERS.map((offer) => (
                 <View key={offer.id} style={[styles.offerRow, { backgroundColor: glassNestedSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.5)"), glassOpacity) }]}>
-                  <MaterialIcons name="star-outline" size={14} color="#83721f" />
+                  <MaterialIcons name="star-outline" size={14} color="#2B6C8F" />
                   <View style={styles.offerRowText}>
                     <Text style={styles.offerTitle}>{offer.title}</Text>
                     <Text style={styles.offerDetail}>{offer.detail}</Text>
@@ -377,10 +377,10 @@ export function PremiumPaywall({
                   style={({ pressed }) => [styles.primaryButton, inFlight && styles.primaryButtonBusy, pressed && styles.pressed]}
                 >
                   {inFlight ? (
-                    <ActivityIndicator color="#4A4210" size="small" />
+                    <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <>
-                      <MaterialIcons name="workspace-premium" size={17} color="#4A4210" />
+                      <MaterialIcons name="workspace-premium" size={17} color="#FFFFFF" />
                       <Text style={styles.primaryButtonText}>
                         {purchaseButtonLabel(purchase, selected, launchWindowOpen)}
                       </Text>
@@ -401,12 +401,12 @@ export function PremiumPaywall({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(45, 42, 23, 0.34)" },
-  sheet: { width: "100%", borderRadius: 26, overflow: "hidden", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), shadowColor: "#454023", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 12 },
+  sheet: { width: "100%", borderRadius: 26, overflow: "hidden", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), shadowColor: "#394048", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 12 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(118, 113, 91, 0.28)", marginTop: 9 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
   crownBadge: { width: 34, height: 34, borderRadius: 12, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"), alignItems: "center", justifyContent: "center" },
   headerText: { flex: 1 },
-  title: { fontSize: 16, fontWeight: "700", color: "#3f3920" },
+  title: { fontSize: 16, fontWeight: "700", color: "#333A40" },
   subtitle: { fontSize: 12, color: "#5F5D57", marginTop: 2, lineHeight: 17 },
   close: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.8)") },
   body: { flexGrow: 0 },
@@ -423,53 +423,53 @@ const styles = StyleSheet.create({
   adFreeName: { fontSize: 12, fontWeight: "700", color: "#3F3D37" },
   adFreeCopy: { fontSize: 12, color: "#6E6C67", marginTop: 1 },
   adFreeDismiss: { width: 22, height: 22, borderRadius: 8, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(140, 138, 130, 0.3)") },
-  adFreeNote: { fontSize: 12, color: "#7C6C1D", fontWeight: "600" },
+  adFreeNote: { fontSize: 12, color: "#2B6C8F", fontWeight: "600" },
   reasonCard: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), borderRadius: 14, padding: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.75)") },
   reasonText: { flex: 1, fontSize: 12, color: "#53514C", lineHeight: 17 },
   activeCard: { flexDirection: "row", gap: 9, alignItems: "center", backgroundColor: glassNestedFill("rgba(233, 245, 238, 0.75)"), borderRadius: 14, padding: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.8)") },
   activeText: { flex: 1 },
   activeTitle: { fontSize: 13.5, fontWeight: "700", color: "#3F5548" },
   activeSub: { fontSize: 12, color: "#6E6C67", marginTop: 2 },
-  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#7C6C1D", marginTop: 4 },
+  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#2B6C8F", marginTop: 4 },
   planRow: { flexDirection: "row", gap: 8 },
   planCard: { flex: 1, borderRadius: 16, paddingVertical: 11, paddingHorizontal: 9, alignItems: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)") },
-  planCardSelected: { backgroundColor: "rgba(237, 225, 168, 0.92)", borderColor: "#968945" },
+  planCardSelected: { backgroundColor: "rgba(237, 225, 168, 0.92)", borderColor: "#7B8A9A" },
   planName: { fontSize: 12, fontWeight: "700", color: "#53514C" },
-  planNameSelected: { color: "#5e5529" },
-  planPrice: { fontSize: 19, fontWeight: "700", color: "#464026", marginTop: 4 },
-  planPriceSelected: { color: "#4c451d" },
+  planNameSelected: { color: "#4C5660" },
+  planPrice: { fontSize: 19, fontWeight: "700", color: "#3A4148", marginTop: 4 },
+  planPriceSelected: { color: "#3E464D" },
   planMeta: { fontSize: 12, color: "#6E6C67", marginTop: 1 },
-  planMetaQuiet: { fontSize: 12, color: "#7C6C1D", marginTop: 3 },
+  planMetaQuiet: { fontSize: 12, color: "#2B6C8F", marginTop: 3 },
   savePill: { marginTop: 4, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.75)") },
-  savePillSelected: { backgroundColor: "#c5b45b" },
-  savePillText: { fontSize: 12, fontWeight: "700", color: "#6f6741" },
-  savePillTextSelected: { color: "#4A4210" },
+  savePillSelected: { backgroundColor: "#A2B6CA" },
+  savePillText: { fontSize: 12, fontWeight: "700", color: "#5C6874" },
+  savePillTextSelected: { color: "#FFFFFF" },
   effectiveLine: { fontSize: 12, color: "#6d6b63", textAlign: "center", marginTop: 1 },
   offerCard: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: "rgba(246, 240, 209, 0.8)", borderRadius: 14, padding: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.8)") },
-  offerText: { flex: 1, fontSize: 12, color: "#575133", lineHeight: 17 },
+  offerText: { flex: 1, fontSize: 12, color: "#49525B", lineHeight: 17 },
   offerStrike: { textDecorationLine: "line-through", color: "#5F5D57" },
   featureCard: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"), borderRadius: 16, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), overflow: "hidden" },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9, paddingHorizontal: 12 },
   featureDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)" },
   featureLabelWrap: { flex: 1 },
-  featureLabel: { fontSize: 13, fontWeight: "600", color: "#494532" },
+  featureLabel: { fontSize: 13, fontWeight: "600", color: "#3E464D" },
   featureBoth: { fontSize: 12, color: "#5F5D57", marginTop: 1 },
   featureFree: { fontSize: 12, color: "#5F5D57", marginTop: 1 },
   premiumCell: { alignItems: "flex-end", maxWidth: 128 },
   premiumCellText: { fontSize: 12, color: "#4E6B5C", marginTop: 1, textAlign: "right" },
   moreRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)" },
-  moreText: { fontSize: 12, fontWeight: "600", color: "#736b41" },
+  moreText: { fontSize: 12, fontWeight: "600", color: "#606C78" },
   offerList: { gap: 7 },
   offerRow: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.5)"), borderRadius: 13, padding: 10, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
   offerRowText: { flex: 1 },
-  offerTitle: { fontSize: 12.5, fontWeight: "700", color: "#494532" },
+  offerTitle: { fontSize: 12.5, fontWeight: "700", color: "#3E464D" },
   offerDetail: { fontSize: 12, color: "#5F5D57", marginTop: 2, lineHeight: 17 },
   paymentNote: { flexDirection: "row", gap: 7, alignItems: "flex-start", paddingHorizontal: 2, marginTop: 2 },
   paymentNoteText: { flex: 1, fontSize: 12, color: "#5F5D57", lineHeight: 17 },
   footer: { paddingHorizontal: 16, paddingTop: 9, paddingBottom: 14, gap: 7, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.24)", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.34)") },
-  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 46, borderRadius: 16, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.5)"), shadowColor: "#5f5528", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 46, borderRadius: 16, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.5)"), shadowColor: "#4D5660", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
   primaryButtonBusy: { opacity: 0.8 },
-  primaryButtonText: { fontSize: 14, fontWeight: "700", color: "#4A4210" },
+  primaryButtonText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
   footerNote: { fontSize: 12, color: "#5F5D57", textAlign: "center" },
   pressed: { opacity: 0.82 },
 });

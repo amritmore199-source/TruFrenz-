@@ -41,7 +41,7 @@ const BUBBLES = [
 
 const SLIDE_TINTS: Record<string, string> = {
   sky: "#E4EFF5",
-  blush: "#f3ecc5",
+  blush: "#DCE9F2",
   sage: "#E7F1EA",
 };
 
@@ -207,7 +207,7 @@ export function WelcomeScreen({
               accessibilityLabel={soundOn ? "Turn ambient sound off" : "Turn ambient sound on"}
               style={({ pressed }) => [styles.soundToggle, pressed && styles.pressed]}
             >
-              <MaterialIcons name={soundOn ? "volume-up" : "volume-off"} size={18} color="#6d6952" />
+              <MaterialIcons name={soundOn ? "volume-up" : "volume-off"} size={18} color="#5E6A76" />
             </Pressable>
             <Text style={styles.soundHint}>{soundUnavailable ? "Sound unavailable here" : soundOn ? "Ambient on" : "Ambient off"}</Text>
           </View>
@@ -225,7 +225,7 @@ export function WelcomeScreen({
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
               <View style={styles.brandIcon}>
-                <MaterialIcons name="spa" size={22} color="#4A4210" />
+                <MaterialIcons name="spa" size={22} color="#FFFFFF" />
               </View>
             </View>
             <Text style={styles.brand}>Trufrenz</Text>
@@ -239,7 +239,7 @@ export function WelcomeScreen({
               style={({ pressed }) => [styles.primaryButton, !termsAccepted && styles.buttonMuted, pressed && styles.pressed]}
             >
               <Text style={styles.primaryButtonText}>Sign Up</Text>
-              <MaterialIcons name="arrow-forward" size={17} color="#4A4210" />
+              <MaterialIcons name="arrow-forward" size={17} color="#FFFFFF" />
             </Pressable>
 
             <Pressable
@@ -273,7 +273,7 @@ export function WelcomeScreen({
             {WELCOME_SLIDES.map((item) => (
               <View key={item.id} style={[styles.slide, { width: slideWidth }]}>
                 <View style={[styles.slideIllustration, { backgroundColor: SLIDE_TINTS[item.tint] ?? "#f0eacb" }]}>
-                  <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#777152" />
+                  <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#65727F" />
                 </View>
                 <Text style={styles.slideTitle}>{item.title}</Text>
                 <Text style={styles.slideBody}>{item.body}</Text>
@@ -310,7 +310,7 @@ export function WelcomeScreen({
               style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
             >
               <View style={[styles.checkbox, termsAccepted && styles.checkboxOn]}>
-                {termsAccepted ? <MaterialIcons name="check" size={14} color="#4A4210" /> : null}
+                {termsAccepted ? <MaterialIcons name="check" size={14} color="#FFFFFF" /> : null}
               </View>
               <Text style={styles.termsText}>
                 I agree to the Trufrenz Terms of Service and Privacy Policy, and I am {""}
@@ -342,7 +342,7 @@ export function WelcomeScreen({
               <View style={styles.termsHeader}>
                 <Text style={styles.termsTitle}>Terms &amp; Privacy</Text>
                 <Pressable onPress={() => setTermsOpen(false)} accessibilityLabel="Close terms" style={styles.termsClose}>
-                  <MaterialIcons name="close" size={18} color="#726e59" />
+                  <MaterialIcons name="close" size={18} color="#636F7B" />
                 </Pressable>
               </View>
               <Text style={styles.termsBodyTitle}>Friendship only</Text>
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"),
-    shadowColor: "#68634e",
+    shadowColor: "#59646F",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"),
-    shadowColor: "#57533d",
+    shadowColor: "#4A545D",
     shadowOpacity: 0.16,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 12 },
@@ -438,17 +438,17 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F1DE55",
+    backgroundColor: "#2B6C8F",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
-    shadowColor: "#746d45",
+    shadowColor: "#626E7A",
     shadowOpacity: 0.22,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
     elevation: 5,
   },
-  brand: { color: "#4c4936", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
-  tagline: { color: "#716D56", fontSize: 13.5, fontWeight: "600", marginTop: 6, textAlign: "center" },
+  brand: { color: "#414952", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
+  tagline: { color: "#626E7A", fontSize: 13.5, fontWeight: "600", marginTop: 6, textAlign: "center" },
   support: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
   primaryButton: {
     minHeight: 50,
@@ -459,16 +459,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#F1DE55",
+    backgroundColor: "#2B6C8F",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)"),
-    shadowColor: "#756e46",
+    shadowColor: "#626F7B",
     shadowOpacity: 0.24,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  primaryButtonText: { color: "#4A4210", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
+  primaryButtonText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   ghostButton: {
     minHeight: 48,
     width: "100%",
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(131, 114, 31, 0.5)",
   },
-  ghostButtonText: { color: "#756D43", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
+  ghostButtonText: { color: "#626E7A", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   buttonMuted: { opacity: 0.62 },
   guestLink: { marginTop: 14, paddingVertical: 4, paddingHorizontal: 10 },
   guestLinkText: { color: "#626D76", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
@@ -497,24 +497,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
-    shadowColor: "#6a664e",
+    shadowColor: "#5B6772",
     shadowOpacity: 0.09,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  slideTitle: { color: "#54513e", fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
+  slideTitle: { color: "#49525B", fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
   slideBody: { color: "#6E6C67", fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.32)" },
-  dotActive: { width: 20, backgroundColor: "#F1DE55" },
+  dotActive: { width: 20, backgroundColor: "#2B6C8F" },
   swipeHint: { color: "#6E6C67", fontSize: 12, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
-    shadowColor: "#5c5742",
+    shadowColor: "#4E5862",
     shadowOpacity: 0.1,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },
@@ -532,11 +532,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.8)"),
   },
-  checkboxOn: { backgroundColor: "#F1DE55", borderColor: "#958A35" },
+  checkboxOn: { backgroundColor: "#2B6C8F", borderColor: "#7B8A9A" },
   termsText: { flex: 1, color: "#6E6C67", fontSize: 12, lineHeight: 17 },
-  termsStrong: { color: "#686249", fontWeight: "700" },
+  termsStrong: { color: "#58636E", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },
-  termsLinkText: { color: "#756D43", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
+  termsLinkText: { color: "#626E7A", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
   companyLine: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   companyText: { color: "#6E6C67", fontSize: 12 },
   companyTextSmall: { color: "#6E6C67", fontSize: 12 },
@@ -552,16 +552,16 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"),
-    shadowColor: "#4f4b36",
+    shadowColor: "#434C54",
     shadowOpacity: 0.2,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
     elevation: 20,
   },
   termsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  termsTitle: { color: "#4c4936", fontSize: 17, fontWeight: "800" },
+  termsTitle: { color: "#414952", fontSize: 17, fontWeight: "800" },
   termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
-  termsBodyTitle: { color: "#5c5946", fontSize: 12, fontWeight: "700", marginTop: 10 },
+  termsBodyTitle: { color: "#505A64", fontSize: 12, fontWeight: "700", marginTop: 10 },
   termsBody: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 3 },
   termsFootnote: { color: "#6E6C67", fontSize: 12, marginTop: 10, textAlign: "center" },
   pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },

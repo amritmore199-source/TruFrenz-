@@ -21,7 +21,7 @@ import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage }
 const colors = {
   ink: "#43423d",
   muted: "#6E6C67",
-  purple: "#83721f",
+  purple: "#2B6C8F",
   glass: glassNestedFill("rgba(255, 255, 255, 0.82)"),
   stroke: glassNestedFill("rgba(255, 255, 255, 0.97)"),
   green: "#6AA082",
@@ -181,7 +181,7 @@ export function SelfieVerificationModal({
     return (
       <View style={styles.centeredContent}>
         <View style={styles.scanFrame}>
-          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#83721f" /></View>}
+          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#2B6C8F" /></View>}
           <View style={styles.scanTint} />
           <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanTranslate }] }]} />
           <View style={styles.scanCornerTop} /><View style={styles.scanCornerBottom} />
@@ -200,7 +200,7 @@ export function SelfieVerificationModal({
       <Text style={styles.kicker}>SELFIE CAPTURED</Text>
       <Text style={styles.title}>That’s a good first step.</Text>
       <Text style={styles.description}>Your photo was captured locally. Identity review is not connected in this prototype, so your profile won’t receive a verified badge yet.</Text>
-      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#83721f" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
+      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#2B6C8F" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
       <View style={styles.successButtons}><ActionButton onPress={finish} icon="check" title="Done" /><Pressable onPress={() => { setPhotoUri(null); setStage("capture"); }} style={styles.retakeButton}><Text style={styles.retakeText}>Retake</Text></Pressable></View>
     </Animated.View>
   );
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   centeredContent: { width: "100%", alignItems: "center", paddingVertical: 15 },
   heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(241, 232, 188, 0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
-  kicker: { color: "#7C6C1D", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
+  kicker: { color: "#2B6C8F", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
   title: { color: colors.ink, fontSize: 24, lineHeight: 30, letterSpacing: -0.65, fontWeight: "700", textAlign: "center", marginTop: 8, maxWidth: 330 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 8, maxWidth: 340 },
   promiseCard: { alignSelf: "stretch", minHeight: 65, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 9, marginTop: 17, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, overflow: "hidden" },
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   // module-scope constant is fixed at import, so it could not follow the setting.
   cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   cameraCloseSpacer: { width: 38, height: 38 },
-  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#958A35", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"), alignItems: "center", justifyContent: "center" },
+  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#7B8A9A", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"), alignItems: "center", justifyContent: "center" },
   shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   shutterPressed: { transform: [{ scale: 0.95 }] },
   deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#efebda", alignItems: "center", justifyContent: "center", marginBottom: 12 },
@@ -288,6 +288,6 @@ const styles = StyleSheet.create({
   pendingText: { color: "#6E6C67", fontSize: 12, fontWeight: "600" },
   successButtons: { width: "100%", alignItems: "center" },
   retakeButton: { padding: 11 },
-  retakeText: { color: "#7C6C1D", fontSize: 12, fontWeight: "700" },
+  retakeText: { color: "#2B6C8F", fontSize: 12, fontWeight: "700" },
   errorText: { color: "#955A68", textAlign: "center", fontSize: 12, marginHorizontal: 20, marginBottom: 9 },
 });

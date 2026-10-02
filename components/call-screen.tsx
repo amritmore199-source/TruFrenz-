@@ -43,11 +43,11 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
         <View style={[styles.panel, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 251, 244, 0.92)"), glassOpacity) }]}>
           <View style={styles.avatarWrap}>
             <View style={[styles.avatar, session.video && styles.avatarVideo]}>
-              <MaterialIcons name={groupLabel ? "groups" : "person"} size={30} color="#4A4210" />
+              <MaterialIcons name={groupLabel ? "groups" : "person"} size={30} color="#FFFFFF" />
             </View>
             {session.peerVerified ? (
               <View accessibilityLabel="Verified member" style={styles.verifiedBadge}>
-                <MaterialIcons name="verified" size={13} color="#4A4210" />
+                <MaterialIcons name="verified" size={13} color="#FFFFFF" />
               </View>
             ) : null}
             {ringing ? <View style={styles.ringHalo} /> : null}
@@ -91,16 +91,16 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
 const styles = StyleSheet.create({
   fill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
   backdrop: { ...StyleSheet.absoluteFillObject },
-  panel: { width: "100%", maxWidth: 340, borderRadius: 26, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"), paddingHorizontal: 20, paddingVertical: 24, alignItems: "center", shadowColor: "#58543e", shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  panel: { width: "100%", maxWidth: 340, borderRadius: 26, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"), paddingHorizontal: 20, paddingVertical: 24, alignItems: "center", shadowColor: "#4B555E", shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
   avatarWrap: { alignItems: "center", justifyContent: "center" },
-  avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#E9D177", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.75)") },
+  avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#2F7295", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.75)") },
   avatarVideo: { backgroundColor: "#8FA6B6" },
   ringHalo: { position: "absolute", width: 96, height: 96, borderRadius: 36, borderWidth: 2, borderColor: "rgba(233, 209, 119, 0.5)" },
   verifiedBadge: { position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#61A088", borderWidth: 2, borderColor: "#fbfaf4" },
   title: { color: "#43423d", fontSize: 17, fontWeight: "700", marginTop: 15 },
   subtitle: { color: "#5F5D57", fontSize: 12, marginTop: 4 },
-  state: { color: "#7C6C1D", fontSize: 12, fontWeight: "650" as any, marginTop: 6 },
-  warn: { color: "#7C6C1D", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 9 },
+  state: { color: "#2B6C8F", fontSize: 12, fontWeight: "650" as any, marginTop: 6 },
+  warn: { color: "#2B6C8F", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 9 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 20 },
   decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#9F6673", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
   accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },

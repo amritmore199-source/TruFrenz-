@@ -107,7 +107,7 @@ export function ChatOverflowMenu({
 
               {!isGroup ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`View ${first}'s profile`} onPress={() => { onClose(); onViewProfile(); }} style={styles.row}>
-                  <View style={styles.iconPink}><MaterialIcons name="person-outline" size={17} color="#83721f" /></View>
+                  <View style={styles.iconPink}><MaterialIcons name="person-outline" size={17} color="#2B6C8F" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>View profile</Text><Text style={styles.rowSub}>Photos, interests, and verification</Text></View>
                   <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
@@ -118,19 +118,19 @@ export function ChatOverflowMenu({
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.muted }} accessibilityLabel={state.muted ? "Unmute notifications" : "Mute notifications"} onPress={onToggleMute} style={styles.row}>
                 <View style={styles.iconBlue}><MaterialIcons name={state.muted ? "notifications-active" : "notifications-off"} size={17} color="#6E8DA1" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.muted ? "Unmute this chat" : "Mute this chat"}</Text><Text style={styles.rowSub}>{state.muted ? "Notifications are paused" : "Stay quiet, keep the badge"}</Text></View>
-                <Switch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <Switch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.archived }} accessibilityLabel={state.archived ? "Unarchive conversation" : "Archive conversation"} onPress={onToggleArchive} style={styles.row}>
                 <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#6E6C67" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.archived ? "Move back to inbox" : "Archive this chat"}</Text><Text style={styles.rowSub}>{state.archived ? "Returns to your main list" : "Hidden until a new message arrives"}</Text></View>
-                <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: shareReadReceipts }} accessibilityLabel="Show when I have read messages" onPress={() => onToggleReadReceipts(!shareReadReceipts)} style={styles.row}>
                 <View style={styles.iconBlue}><MaterialIcons name="done-all" size={17} color="#6E8DA1" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>Show when I&apos;ve read messages</Text><Text style={styles.rowSub}>{shareReadReceipts ? "Read receipts are on" : "Off by default · your friends see Delivered only"}</Text></View>
-                <Switch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#dddace", true: "#e3d075" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <Switch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#D6DBDE", true: "#2B6C8F" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <View style={styles.divider} />
@@ -176,20 +176,20 @@ export function ChatOverflowMenu({
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#4B555E", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, overflow: "hidden" },
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
   eyebrow: { color: "#5F5D57", fontSize: 12, fontWeight: "700", letterSpacing: 0.9 },
   title: { color: "#43423d", fontSize: 13.5, fontWeight: "700", marginTop: 3 },
-  readOnlyNote: { color: "#7C6C1D", fontSize: 12, fontWeight: "650" as any, marginTop: 4 },
+  readOnlyNote: { color: "#2B6C8F", fontSize: 12, fontWeight: "650" as any, marginTop: 4 },
   confirmCard: { marginTop: 11, borderRadius: 15, borderWidth: 1, borderColor: "rgba(202, 178, 53, 0.5)", backgroundColor: glassNestedFill("rgba(252, 244, 246, 0.92)"), padding: 12, gap: 6 },
-  confirmTitle: { color: "#544f3b", fontSize: 12, fontWeight: "700" },
+  confirmTitle: { color: "#475059", fontSize: 12, fontWeight: "700" },
   confirmBody: { color: "#6E6C67", fontSize: 12, lineHeight: 17 },
   confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 4 },
   confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)") },
-  confirmGhostText: { color: "#7C6C1D", fontSize: 12, fontWeight: "650" as any },
+  confirmGhostText: { color: "#2B6C8F", fontSize: 12, fontWeight: "650" as any },
   confirmDanger: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: "#A26572" },
   confirmDangerText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },

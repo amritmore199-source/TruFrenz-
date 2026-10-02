@@ -112,7 +112,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <Text style={styles.title}>Keep it light.</Text>
                 <View style={styles.grid}>
                   <Pressable accessibilityRole="button" accessibilityLabel="Send a photo" onPress={() => { onClose(); onPickPhoto(); }} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
-                    <View style={styles.tileIconPink}><MaterialIcons name="photo-camera" size={19} color="#83721f" /></View>
+                    <View style={styles.tileIconPink}><MaterialIcons name="photo-camera" size={19} color="#2B6C8F" /></View>
                     <Text style={styles.tileTitle}>Photo</Text>
                     <Text style={styles.tileSub}>From your library</Text>
                   </Pressable>
@@ -131,7 +131,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 <View style={styles.divider} />
                 <Text style={styles.eyebrow}>PLAN TOGETHER</Text>
                 <Pressable accessibilityRole="button" accessibilityLabel="Suggest a hangout card" onPress={() => { onClose(); onSuggestPlan("hangout"); }} style={styles.row}>
-                  <View style={styles.tileIconPink}><MaterialIcons name="local-cafe" size={17} color="#83721f" /></View>
+                  <View style={styles.tileIconPink}><MaterialIcons name="local-cafe" size={17} color="#2B6C8F" /></View>
                   <View style={styles.copy}><Text style={styles.rowTitle}>Suggest Hangout</Text><Text style={styles.rowSub}>A card with time and place, accept or decline</Text></View>
                   <MaterialIcons name="chevron-right" size={17} color="#848A8F" />
                 </Pressable>
@@ -158,11 +158,11 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
                 </View>
                 <View style={styles.actions}>
                   <Pressable accessibilityRole="button" accessibilityLabel={recording ? "Stop recording" : "Start recording"} onPress={recording ? stopRecording : startRecording} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-                    <MaterialIcons name={recording ? "stop" : "mic"} size={16} color="#4A4210" />
+                    <MaterialIcons name={recording ? "stop" : "mic"} size={16} color="#FFFFFF" />
                     <Text style={styles.primaryText}>{recording ? "Stop" : "Start"}</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={onReviewVoice ? "Review this voice note before sending" : "Send this voice note"} onPress={sendVoice} style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}>
-                    <MaterialIcons name="send" size={15} color="#83721f" />
+                    <MaterialIcons name="send" size={15} color="#2B6C8F" />
                     <Text style={styles.ghostText}>{onReviewVoice ? "Preview" : "Send"}</Text>
                   </Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel="Back to attachments" onPress={() => { stopRecording(); setMode("menu"); }} style={styles.ghost}>
@@ -203,7 +203,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#58543e", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#4B555E", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   card: { borderRadius: 22, padding: 14, paddingBottom: 16 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
   eyebrow: { color: "#5F5D57", fontSize: 12, fontWeight: "700", letterSpacing: 0.9 },
@@ -226,12 +226,12 @@ const styles = StyleSheet.create({
   recordTime: { color: "#5F5D57", fontSize: 12, fontWeight: "700" },
   waveRow: { flexDirection: "row", alignItems: "flex-end", gap: 3, height: 28, marginTop: 8 },
   waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
-  waveBarLive: { backgroundColor: "#E9D177" },
+  waveBarLive: { backgroundColor: "#2F7295" },
   actions: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13, flexWrap: "wrap" },
-  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#F1DE55", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
-  primaryText: { color: "#4A4210", fontSize: 12, fontWeight: "700" },
+  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)") },
+  primaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.68)") },
-  ghostText: { color: "#7C6C1D", fontSize: 12, fontWeight: "650" as any },
+  ghostText: { color: "#2B6C8F", fontSize: 12, fontWeight: "650" as any },
   note: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 9 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 3 },
   cancelText: { color: "#5F5D57", fontSize: 12, fontWeight: "600" },

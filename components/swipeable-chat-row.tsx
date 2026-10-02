@@ -193,7 +193,7 @@ export function SwipeableChatRow({
         ]}
         pointerEvents="none"
       >
-        <MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#4A4210" />
+        <MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#FFFFFF" />
         <Text style={styles.archiveLabel}>{archiveSwipeLabel(state.archived)}</Text>
       </Animated.View>
 
@@ -238,7 +238,7 @@ export function SwipeableChatRow({
           }}
           style={({ pressed }) => [styles.action, styles.archiveAction, pressed && styles.actionPressed]}
         >
-          <MaterialIcons name={state.archived ? "unarchive" : "archive"} size={16} color="#4A4210" />
+          <MaterialIcons name={state.archived ? "unarchive" : "archive"} size={16} color="#FFFFFF" />
         </Pressable>
       </Animated.View>
 
@@ -283,7 +283,7 @@ export function SwipeableChatRow({
             <Image source={chat.image} style={styles.avatar} />
             {chat.kind === "group" ? (
               <View style={styles.groupMini}>
-                <MaterialIcons name="groups" size={10} color="#4A4210" />
+                <MaterialIcons name="groups" size={10} color="#FFFFFF" />
               </View>
             ) : (
               <View
@@ -342,9 +342,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    backgroundColor: "#F1DE55",
+    backgroundColor: "#2B6C8F",
   },
-  archiveLabel: { color: "#4A4210", fontSize: 12, fontWeight: "700" },
+  archiveLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   actionsLayer: {
     position: "absolute",
     top: 0,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
   },
   muteAction: { backgroundColor: "#8297A6" },
-  archiveAction: { backgroundColor: "#F1DE55" },
+  archiveAction: { backgroundColor: "#2B6C8F" },
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E9D177",
+    backgroundColor: "#2F7295",
     borderWidth: 2,
     borderColor: "#fbfaf4",
   },
@@ -410,12 +410,12 @@ const styles = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   nameCluster: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
-  name: { color: "#464336", fontSize: 12.5, fontWeight: "650" as any, flexShrink: 1 },
+  name: { color: "#3C444B", fontSize: 12.5, fontWeight: "650" as any, flexShrink: 1 },
   time: { color: "#5F5D57", fontSize: 12 },
-  timeUnread: { color: "#7C6C1B", fontWeight: "700" },
+  timeUnread: { color: "#626E7A", fontWeight: "700" },
   lastRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
   preview: { flex: 1, color: "#5F5D57", fontSize: 12 },
-  badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#E9D177" },
-  badgeText: { color: "#4A4210", fontSize: 12, fontWeight: "700" },
-  status: { color: "#7C6C1D", fontSize: 12, fontWeight: "600", marginTop: 3 },
+  badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#2F7295" },
+  badgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  status: { color: "#2B6C8F", fontSize: 12, fontWeight: "600", marginTop: 3 },
 });
