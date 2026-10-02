@@ -149,6 +149,7 @@ import {
   chatRowRevealWidth,
   composerKeyboardLift,
   shouldShowBottomBar,
+  webKeyboardCoveredHeight,
 } from "@/lib/chat-layout";
 import { PremiumPaywall } from "@/components/premium-paywall";
 import { ManageSubscriptionModal, type ReceiptSummary } from "@/components/manage-subscription-modal";
@@ -305,7 +306,7 @@ import {
   type BizzOffer,
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
-import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -659,6 +660,19 @@ export default function TrufrenzApp() {
   // Drives the drag threshold. react-native's Dimensions is not reactive, so the
   // hook is used: a rotation or a split-screen resize has to move the threshold.
   const { height: windowHeight } = useWindowDimensions();
+  /*
+   * The viewport with the keyboard closed, remembered so the composer can tell a
+   * window that was resized out from under it from one that was not.
+   *
+   * Two Android configurations are possible for the same app and they need
+   * opposite handling. `adjustResize` shrinks the window by the keyboard's height,
+   * which moves the composer up on its own, so adding a lift on top of it throws
+   * the field a whole keyboard above the keys. Edge-to-edge does not resize at all,
+   * so the full lift is required. The keyboard event reports the same height in
+   * both cases; only the viewport tells them apart. Recorded while no keyboard is
+   * up, because that is the only time it is a resting measurement.
+   */
+  const [restingHeight, setRestingHeight] = useState(windowHeight);
   const [showSignup, setShowSignup] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -3237,11 +3251,61 @@ export default function TrufrenzApp() {
     const onHide = () => setKeyboardHeight(0);
     const showSub = Keyboard.addListener(showEvent, onShow);
     const hideSub = Keyboard.addListener(hideEvent, onHide);
+
+    /*
+     * On the web there is no keyboard for `Keyboard` to measure.
+     *
+     * `Keyboard.addListener` is a no-op in react-native-web: it returns a handle
+     * whose `remove` does nothing and which never fires. So every web render
+     * reported a height of zero and the composer sat under the on-screen keyboard.
+     * That is why this fault kept returning after native fixes - it was being
+     * checked in a browser, and the browser was the one case the native path could
+     * not reach at all.
+     *
+     * The visual viewport is the browser's own measure of what is actually
+     * visible. When an on-screen keyboard opens, the visual viewport shrinks by its
+     * height and fires `resize`; the difference between the layout viewport and the
+     * visual viewport is the space the keyboard covers. It reports in the same
+     * units as the native path, so the lift, the bar and the thread all take one
+     * route rather than two.
+     */
+    const viewport = Platform.OS === "web" ? (globalThis as { visualViewport?: VisualViewport }).visualViewport : undefined;
+    const onViewportChange = () => {
+      if (!viewport) return;
+      setKeyboardHeight(
+        webKeyboardCoveredHeight({
+          layoutHeight: window.innerHeight,
+          viewportHeight: viewport.height,
+          offsetTop: viewport.offsetTop,
+        }),
+      );
+    };
+    if (viewport) {
+      viewport.addEventListener("resize", onViewportChange);
+      viewport.addEventListener("scroll", onViewportChange);
+    }
+
     return () => {
       showSub.remove();
       hideSub.remove();
+      if (viewport) {
+        viewport.removeEventListener("resize", onViewportChange);
+        viewport.removeEventListener("scroll", onViewportChange);
+      }
     };
   }, []);
+
+  /*
+   * The resting viewport, recorded whenever the keyboard is down.
+   *
+   * The lift needs to know whether the platform already moved the composer. It
+   * cannot ask the keyboard event, which reports the same height whether the
+   * window resized or not; it asks the viewport instead, and this is the only
+   * moment the viewport's height is a resting measurement.
+   */
+  useEffect(() => {
+    if (keyboardHeight <= 0) setRestingHeight(windowHeight);
+  }, [keyboardHeight, windowHeight]);
 
   const openIncomingNotification = (notification: IncomingNotification) => {
     dismissIncomingNotification();
@@ -3869,7 +3933,7 @@ export default function TrufrenzApp() {
     if (selectedChat && currentThread) {
       const conversationMessages = chatMessages[selectedChat] ?? [];
       // Lift by the full keyboard height so the composer sits flush on the keys.
-      const composerLift = composerKeyboardLift(keyboardHeight);
+      const composerLift = composerKeyboardLift(keyboardHeight, { windowHeight, restingHeight });
       /*
        * Keyboard open: the list shrinks and pins its newest messages to the
        * bottom, then a small gap holds the composer clear of the last bubble.
@@ -4047,7 +4111,7 @@ export default function TrufrenzApp() {
         <View style={[styles.hangoutStrip, styles.hangoutStripNight]}><Icon name="event-available" size={16} color={CHAT_NIGHT.accentText} /><Text style={[styles.hangoutStripText, styles.threadSecondaryText]}>Want to meet? Send a gentle hangout invite.</Text><Pressable onPress={() => setPlanComposerKind("hangout")}><Text style={[styles.inviteLink, styles.threadAccentText]}>Hangout</Text></Pressable><Pressable onPress={() => setPlanComposerKind("meetup")}><Text style={[styles.inviteLink, styles.threadAccentText]}>Meetup</Text></Pressable>{currentThread?.kind === "group" ? <Pressable onPress={startPlanPoll}><Text style={[styles.inviteLink, styles.threadAccentText]}>Poll</Text></Pressable> : null}</View>
         {activeRowState.readOnly ? <View style={[styles.readOnlyBar, styles.readOnlyBarNight]}><Icon name="lock-outline" size={14} color={CHAT_NIGHT.accentText} /><Text style={[styles.readOnlyBarText, styles.threadSecondaryText]}>This conversation is read-only. Unarchive it to send new messages.</Text></View> : null}
         {pendingAttachment ? <AttachmentPreviewStrip pending={pendingAttachment} sizeBytes={pendingPhotoBytes} onRemove={clearPendingAttachment} /> : null}
-        <View style={[styles.composerRow, keyboardOpen && styles.composerRowRaised, styles.composerRowNight]}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={[styles.composerIcon, styles.composerIconNight]}><Icon name="add-circle-outline" size={24} color={CHAT_NIGHT.secondaryText} /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={[styles.quickReplyButton, styles.quickReplyButtonNight]}><Icon name="quickreply" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor={CHAT_NIGHT.subtleText} style={styles.composerInputNight} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, styles.sendButtonNight, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#4A4210" : CHAT_NIGHT.primaryText} /></Pressable></View>
+        <View style={[styles.composerRow, keyboardOpen && styles.composerRowRaised, styles.composerRowNight]}><Pressable onPress={() => setAttachmentSheetOpen(true)} accessibilityLabel="Open attachments" style={[styles.composerIcon, styles.composerIconNight]}><Icon name="add-circle-outline" size={24} color={CHAT_NIGHT.secondaryText} /></Pressable><Pressable onPress={() => setQuickRepliesOpen(true)} accessibilityLabel="Open quick replies" style={[styles.quickReplyButton, styles.quickReplyButtonNight]}><Icon name="quickreply" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><TextInput value={messageDraft} onChangeText={setMessageDraft} placeholder={pendingAttachment ? "Add a caption…" : "Write a message…"} placeholderTextColor={CHAT_NIGHT.subtleText} style={[styles.composerInput, styles.composerInputNight]} onSubmitEditing={sendComposerContent} returnKeyType="send" /><Pressable onPress={sendComposerContent} accessibilityLabel={pendingAttachment ? "Send with this attachment" : "Send message"} style={({ pressed }) => [styles.sendButton, styles.sendButtonNight, (messageDraft.trim() || pendingAttachment) && styles.sendButtonActive, pressed && styles.pressed]}><Icon name="arrow-upward" size={19} color={messageDraft.trim() || pendingAttachment ? "#4A4210" : CHAT_NIGHT.primaryText} /></Pressable></View>
         <AttachmentSheet visible={attachmentSheetOpen} onClose={() => setAttachmentSheetOpen(false)} onPickPhoto={sendPhoto} onSend={sendAttachment} onReviewVoice={reviewVoiceNote} onSuggestPlan={(kind) => setPlanComposerKind(kind)} />
         <ChatOverflowMenu
           visible={chatMenuOpen}
@@ -4433,7 +4497,7 @@ export default function TrufrenzApp() {
           the new one in both places only made the inbox say "Private group ·
           Invite friends to begin" for a row that is not a chat.
         */}
-        {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("chats") }]}><Icon name="forum" size={22} color="#83721f" /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
+        {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("chats") }]}><Icon name="forum" size={22} color={glassSectionAccent("chats").tile} /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
         <View style={styles.safeNote}><Icon name="lock-outline" size={13} color="#6E6C67" /><Text style={styles.safeNoteText}>Messages open after you both accept a friend request.</Text></View>
         {/*
           A closing card rather than a strip of dead space.
@@ -4529,11 +4593,18 @@ export default function TrufrenzApp() {
 
   const renderMeetups = () => <>
     {topBar()}
-    <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>EASY COMPANY, NEARBY</Text><Text style={styles.pageTitle}>A plan makes it easy.</Text><Text style={styles.pageSub}>Small, friendly gatherings you can join at your own pace.</Text></View>
+    <View style={styles.pageIntro}><Text style={[styles.pageEyebrow, { color: glassSectionAccent("hangouts").eyebrow }]}>EASY COMPANY, NEARBY</Text><Text style={styles.pageTitle}>A plan makes it easy.</Text><Text style={styles.pageSub}>Small, friendly gatherings you can join at your own pace.</Text></View>
     <Frosted style={styles.meetupIntroCard}><View style={styles.meetupIntroArt}><View style={styles.artBubblePink} /><View style={styles.artBubbleBlue} /><View style={styles.artCenter}><Icon name="diversity-3" size={22} color="#83721f" /></View></View><View style={{ flex: 1 }}><Text style={styles.meetupIntroTitle}>Better in good company.</Text><Text style={styles.meetupIntroCopy}>Meet in public, bring a friend, leave whenever you like.</Text></View><Icon name="verified-user" size={18} color="#67917E" /></Frosted>
     <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#83721f" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
     {sharedPlans.length ? <><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>YOUR PLANS</Text><Text style={styles.sectionTitle}>Follow-ups from chats</Text></View></View>
       <View style={styles.planFollowList}>{sharedPlans.map(({ chatId, chatName, card }) => { const timing = planTiming(card); return <Frosted key={card.id} style={styles.planFollowCard}><View style={styles.planFollowTop}><View style={styles.planFollowPill}><Text style={styles.planFollowPillText}>{PLAN_KIND_LABEL[card.kind].toUpperCase()}</Text></View><Text style={[styles.planFollowTiming, timing.emphasis === "today" && styles.planFollowTimingToday]}>{timing.label}</Text></View><Text style={styles.planFollowTitle} numberOfLines={1}>{card.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#6E6C67" /><Text style={styles.meetupPlaceText} numberOfLines={1}>{card.proposal.place}</Text></View><View style={styles.meetupPlace}><Icon name="schedule" size={13} color="#6E6C67" /><Text style={styles.meetupPlaceText}>{card.proposal.date} · {card.proposal.time}</Text></View><View style={styles.planFollowActions}><Pressable onPress={() => startThread(chatId)} style={styles.planFollowButton}><Text style={styles.planFollowButtonText}>Open chat</Text></Pressable><Pressable onPress={() => feedback(`Plan link copied: ${card.link}`)} style={styles.planFollowGhost}><Icon name="link" size={14} color="#6E6C67" /></Pressable>{canCheckIn(card) ? <Pressable onPress={() => feedback(checkInSafetyNote(chatName))} style={styles.planFollowCheckIn}><Text style={styles.planFollowCheckInText}>Check in</Text></Pressable> : null}</View><Text style={styles.planFollowWho} numberOfLines={1}>with {chatName.split(" ")[0]} · {card.status}</Text></Frosted>; })}</View></> : null}
+      {meetups.length === 0 ? (
+        <Frosted style={styles.groupEmptyCard}>
+          <View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("hangouts") }]}><Icon name="event" size={21} color={glassSectionAccent("hangouts").tile} /></View>
+          <Text style={styles.emptyTitle}>No plans yet</Text>
+          <Text style={styles.emptyCopy}>Create a meetup invite, or wait for a friend to suggest one in a chat.</Text>
+        </Frosted>
+      ) : null}
     <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#6E6C67" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#83721f" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { if (!going && !allowAction("join-meetups")) return; setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); if (!going) void runGuardedAction("meetup-join", { meetup: meetup.title }); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
       <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#83721f" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#83721f" /></Pressable>
     </View>
@@ -4759,20 +4830,30 @@ export default function TrufrenzApp() {
              */
             return <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={`Set frosted glass colour to ${GLASS_TINT_LABEL[option]}`} onPress={() => { setGlassTint(option); tap(); feedback(`Glass colour set to ${GLASS_TINT_LABEL[option].toLowerCase()}.`); }} style={({ pressed }) => [styles.tintOption, selected && styles.tintOptionActive, pressed && styles.pressed]}><GlassSurface surface="chip" radius={9} cast={option} style={[styles.tintSwatch, { borderColor: glassSwatchEdge(option) }]}>
               {/*
-                A miniature of the bar rather than a bare swatch. The cast shows up
-                most in the tab bar — that is where it is largest and where it is on
-                screen the whole time — so a plain colour chip was previewing the one
-                surface the member is least likely to judge it by.
-              */}
+                The whole bar, not three pills.
+                *
+                * A three-pill sketch showed the cast but not the bar, and the bar
+                * is the surface the cast is judged by: it is the largest, it is on
+                * screen the whole time, and it is where the section accents sit
+                * next to the member's own cast. This draws all five entries at the
+                * same proportions as the real bar — the active pill lifted, the
+                * inactive icons in the quiet ink — so the chip is a genuine
+                * preview rather than a hint at one.
+                */}
               <View style={styles.tintSwatchBar}>
-                {BOTTOM_SECTIONS.slice(0, 3).map((section, index) => {
+                {BOTTOM_SECTIONS.map((section, index) => {
                   const mini = glassTabAccent(section.accent, option);
                   const miniInk = glassQuietTabInk(option);
                   const isFirst = index === 0;
                   return (
                     <View
                       key={section.id}
-                      style={[styles.tintSwatchPill, isFirst ? { backgroundColor: mini.fill } : null]}
+                      style={[
+                        styles.tintSwatchPill,
+                        isFirst
+                          ? { backgroundColor: mini.fill, borderColor: "rgba(255, 255, 255, 0.95)", borderWidth: 0.5 }
+                          : null,
+                      ]}
                     >
                       <Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} size={5} color={isFirst ? mini.ink : miniInk.icon} />
                     </View>
@@ -4864,7 +4945,7 @@ export default function TrufrenzApp() {
     <>
       {topBar()}
       <View style={styles.pageIntro}>
-        <Text style={styles.pageEyebrow}>CIRCLES YOU BELONG TO</Text>
+        <Text style={[styles.pageEyebrow, { color: glassSectionAccent("groups").eyebrow }]}>CIRCLES YOU BELONG TO</Text>
         <Text style={styles.pageTitle}>Your groups.</Text>
         <Text style={styles.pageSub}>{groupSummary}</Text>
       </View>
@@ -4895,7 +4976,7 @@ export default function TrufrenzApp() {
         {groupLists.active.map(groupRow)}
         {groupLists.active.length === 0 ? (
           <Frosted style={styles.groupEmptyCard}>
-            <View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("groups") }]}><Icon name="groups" size={21} color="#83721f" /></View>
+            <View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("groups") }]}><Icon name="groups" size={21} color={glassSectionAccent("groups").tile} /></View>
             <Text style={styles.emptyTitle}>No active groups</Text>
             <Text style={styles.emptyCopy}>Start a circle with accepted friends, then plan together in one place.</Text>
           </Frosted>
@@ -4932,7 +5013,7 @@ export default function TrufrenzApp() {
     <>
       {topBar()}
       <View style={styles.pageIntro}>
-        <Text style={styles.pageEyebrow}>TRUFRENZ BIZZ</Text>
+        <Text style={[styles.pageEyebrow, { color: glassSectionAccent("bizz").eyebrow }]}>TRUFRENZ BIZZ</Text>
         <Text style={styles.pageTitle}>Friends first. Business next.</Text>
         <Text style={styles.pageSub}>
           {offers.length
@@ -5003,7 +5084,7 @@ export default function TrufrenzApp() {
         </Frosted>
       ) : (
         <Frosted style={styles.offerEmpty}>
-          <View style={[styles.emptyIcon, styles.offerEmptyIcon, { backgroundColor: glassEmptyAccent("bizz") }]}><Icon name="storefront" size={21} color="#83721f" /></View>
+          <View style={[styles.emptyIcon, styles.offerEmptyIcon, { backgroundColor: glassEmptyAccent("bizz") }]}><Icon name="storefront" size={21} color={glassSectionAccent("bizz").tile} /></View>
           <Text style={styles.offerEmptyTitle}>One line is enough to start.</Text>
           <Text style={styles.offerEmptyCopy}>
             &quot;Sourdough, Saturdays&quot;, &quot;Maths tutoring&quot;, &quot;Wedding photos&quot; — whatever you do, put a
@@ -5724,13 +5805,22 @@ const frozenStyles = StyleSheet.create({
   threadBody: { flex: 1 },
   threadContent: { paddingTop: 8, gap: 9 },
   /*
-   * Keyboard closed: the conversation starts directly under the safety line, so
-   * the date and the first messages ride up instead of being pushed to the
-   * bottom of a tall screen. Bottom-anchoring here was wrong twice over — it
-   * left the blank expanse above the messages that was reported, and it moved
-   * the date *down* rather than up.
+   * Keyboard closed: the conversation is bottom-anchored, so the newest message
+   * sits directly above the composer and the two read as one thing.
+   *
+   * This reverses an earlier decision, and the reason is worth recording rather
+   * than quietly flipping back. That decision was taken when a one-line safety
+   * reminder sat above the date: bottom-anchoring pushed the date down the screen
+   * and opened a gap between it and the reminder, so the date was moved up to sit
+   * under the reminder instead. The reminder has since been removed, and with it
+   * gone the same anchoring puts the leftover height *between the last message and
+   * the composer* - which separates the two things that have to read as a pair,
+   * and is the more disruptive of the two places for it to land. Every messaging
+   * app resolves this the other way for that reason: spare height belongs above
+   * the conversation, where it is simply the space the next message will arrive
+   * into, not between the conversation and the field being typed in.
    */
-  threadContentCompact: { paddingBottom: 6, flexGrow: 1 },
+  threadContentCompact: { paddingBottom: 6, flexGrow: 1, justifyContent: "flex-end" },
   /*
    * Keyboard open: the newest message must stay visible, so the list is
    * bottom-anchored and the composer takes the space above the keys.
@@ -5794,7 +5884,15 @@ const frozenStyles = StyleSheet.create({
   hangoutStripNight: { borderTopColor: "rgba(255, 255, 255, 0.30)" },
   hangoutStripText: { flex: 1, color: "#6E6C67", fontSize: 12 },
   inviteLink: { color: "#7C6C1D", fontSize: 12, fontWeight: "700" },
-  composerRow: { minHeight: 51, flexDirection: "row", alignItems: "center", gap: 7, paddingTop: 5, paddingBottom: 4 },
+  /*
+   * Sized to the field it holds rather than to the icons beside it.
+   *
+   * The row was 51pt and the field 39pt inside it, which left the member writing
+   * in a strip barely taller than the buttons either side of it. The field is the
+   * point of the row, so it now sets the height: 46pt of glass, a 55pt row, and
+   * the icons keep their own size and sit centred against it.
+   */
+  composerRow: { minHeight: 55, flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 5, paddingBottom: 4 },
   /*
    * While the keyboard is up the composer sits flush on it, so it needs its own
    * seam — otherwise the last message appears to run into the input field.
@@ -5805,7 +5903,27 @@ const frozenStyles = StyleSheet.create({
   composerIconNight: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: CHAT_NIGHT.controlSurface, borderWidth: 1, borderColor: CHAT_NIGHT.border },
   quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(245, 240, 210, 0.86)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), alignItems: "center", justifyContent: "center" },
   quickReplyButtonNight: { backgroundColor: glassNestedFill("rgba(240, 244, 249, 0.82)"), borderColor: "rgba(47, 58, 69, 0.26)" },
-  composerInput: { minHeight: 39, flex: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), color: "#53514C", fontSize: 12, outlineStyle: "none" as any },
+  /*
+   * The writing field.
+   *
+   * It was 12pt - the same size as the timestamps around it, so what the member
+   * typed was the smallest text on the screen - and 39pt tall inside a 51pt row,
+   * which left them writing in a strip. `paddingVertical` inside a `minHeight`
+   * also does nothing on Android, where a single-line TextInput ignores it, so the
+   * field's height was really set by the font's line box rather than by the 39pt
+   * it declared.
+   *
+   * Now: 15pt on a 20pt line box in a 46pt field on a 55pt row. The placeholder
+   * still fits at the narrowest phone the app supports - 151pt of text space at
+   * 320pt against the 141pt "Write a message..." needs, measured in a font wider
+   * than either platform's, so the margin is real rather than assumed - and
+   * `composerTextSpace` pins that in the tests.
+   *
+   * `flexGrow` and `flexShrink` with a zero basis so a long draft narrows the
+   * field rather than the row, and the icons keep fixed widths so the field is the
+   * only thing that gives.
+   */
+  composerInput: { minHeight: 46, flexGrow: 1, flexShrink: 1, flexBasis: 0, borderRadius: 15, paddingHorizontal: 11, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"), color: "#2B2A27", fontSize: 15, lineHeight: 20, outlineStyle: "none" as any },
   composerInputNight: { backgroundColor: glassNestedFill("rgba(243, 246, 250, 0.86)"), borderColor: "rgba(47, 58, 69, 0.32)", color: "#2F3A45" },
   sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#e7e5de", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), shadowColor: "#737068", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
   sendButtonNight: { backgroundColor: glassNestedFill("rgba(240, 244, 249, 0.82)"), borderColor: "rgba(47, 58, 69, 0.26)" },
@@ -6004,9 +6122,9 @@ const frozenStyles = StyleSheet.create({
   tintOptions: { flexDirection: "row", gap: 7 },
   tintOption: { alignItems: "center", gap: 4, paddingVertical: 5, paddingHorizontal: 7, borderRadius: 11, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.2)" },
   tintOptionActive: { borderColor: "#83721f", backgroundColor: "rgba(241, 222, 85, 0.28)" },
-  tintSwatch: { width: 34, height: 24, borderRadius: 9, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
-  tintSwatchBar: { flexDirection: "row", alignItems: "center", gap: 2 },
-  tintSwatchPill: { width: 8, height: 11, borderRadius: 4, alignItems: "center", justifyContent: "center" },
+  tintSwatch: { width: 46, height: 26, borderRadius: 9, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
+  tintSwatchBar: { flexDirection: "row", alignItems: "center", gap: 1.5 },
+  tintSwatchPill: { width: 7, height: 12, borderRadius: 3.5, alignItems: "center", justifyContent: "center" },
   presetRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   presetButton: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.18)", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.35)") },
   presetButtonActive: { backgroundColor: "rgba(232, 214, 120, 0.55)", borderColor: "rgba(131, 114, 31, 0.45)" },

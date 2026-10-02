@@ -34,16 +34,26 @@ export type GlassSurface = "card" | "panel" | "row" | "chip" | "tab" | "field" |
 /**
  * The brightest glass weight for any surface. Beyond this it stops being glass.
  *
- * The card sits at 0.367 and the ceiling at 0.46. Walking the artwork wallpaper
- * through the whole band, dark ink holds at least 5.47:1 at every setting, so the
- * ceiling is set by what still reads as glass rather than by the text: the
- * reference sheet's own card measured a light fill and a bright rim, and a
- * surface has to keep enough of the wallpaper to be glass at all.
+ * The card sits at 0.407 and the ceiling at 0.46. The ceiling is set by what still
+ * reads as glass rather than by the text, because the text has a great deal of
+ * room: the artwork is very pale (its darkest pixel is 226,225,230), so even at the
+ * heaviest weight the card composites to roughly #A9C6DE and near-black ink clears
+ * 11:1 on it. A surface has to keep enough of the wallpaper to be glass at all, and
+ * that — not contrast — is the binding constraint here.
  */
 export const MAX_GLASS_ALPHA = 0.46;
 
-/** Every surface starts here, then the tint weight and the setting adjust it. */
-const BASE_ALPHA = 0.24;
+/**
+ * Every surface starts here, then the tint weight and the setting adjust it.
+ *
+ * Raised from 0.24 so a card is visibly a distinct plane against the artwork
+ * rather than a faint haze on it. The reference sheet's card sits clearly above its
+ * ground — it measures 199 against 251, a 1.61:1 separation — and at 0.24 the app's
+ * cards were landing under that, which is why they read as washed rather than as
+ * glass. This one step moves every surface class at once, which is the point: the
+ * complaint was never about one card.
+ */
+const BASE_ALPHA = 0.28;
 
 /** How much a surface's own declared alpha can add, at most. */
 const MAX_DECLARED_WEIGHT = 0.11;
@@ -507,7 +517,20 @@ const SURFACE_WEIGHT: Record<GlassSurface, number> = {
   panel: 0.08,
   row: 0.02,
   chip: 0,
-  tab: 0.05,
+  /*
+   * The bar is the one surface that deliberately did *not* follow BASE_ALPHA up.
+   *
+   * Its weights were calibrated as offsets from the base, and the bar carries the
+   * app's only two-state control: an active pill with dark ink on it and an inactive
+   * icon in a mid-grey. That pair only works while the bar stays light. Measured at
+   * the raised base, the bar composite dropped to #A3A3A2, where a quiet icon needs
+   * near-black to clear 3:1 — which is the same ink the active pill uses, so the
+   * active and inactive states would have become indistinguishable.
+   *
+   * Absorbing the 0.04 here keeps the bar exactly where it was calibrated while every
+   * card, panel, field and row gains the depth the member asked for.
+   */
+  tab: 0.01,
   field: 0.07,
   // A surface that floats over another surface rather than over the wallpaper.
   // Slightly lighter than a card so a nested panel reads as inset rather than as
@@ -816,21 +839,31 @@ export function ambientIntensityFor(section: AmbientSection | null | undefined):
  */
 const TAB_INK: Record<AmbientSection, string> = {
   /*
-   * Each is the lightest neutral that still clears 4.5:1 on that section's own
-   * pill over the darkest wallpaper pixel, solved against both casts. The pills
-   * are palest in the calmest sections, so Chats needs the darkest ink of the
-   * five; measured 4.61:1 to 4.65:1 across the matrix.
+   * One ink for all five sections, and it is black.
    *
-   * They are neutrals rather than the old per-section hues. The pill's own fill
-   * already carries the section, and a coloured ink on top of a coloured pill was
-   * two hues arguing; near-black on a pale pill is the "white glass, black ink"
-   * combination the member asked for.
+   * The previous table held five solved greys, each the lightest neutral that
+   * cleared 4.5:1 on that section's own pill. That approach had a shelf life: it
+   * was solved against pills that all shared one blue, so the moment the fields
+   * became per-section the two palest pills moved out from under their inks and
+   * the label fell to 4.43:1. Every change to a field would have needed this table
+   * re-solved to keep up, and nothing would have failed loudly if it was not.
+   *
+   * Black cannot go stale. Measured across all five sections and both casts on the
+   * darkest backdrop a pill can sit over, black lands between 4.92:1 and 6.34:1 on
+   * the white cast and between 4.43:1 and 5.07:1 on sky - and the pill's own alpha,
+   * which is at least 0.447 everywhere, has far more headroom than black needs:
+   * black clears 4.5:1 from an alpha of 0.225, so the fill is never the binding
+   * constraint. The label is legible by construction rather than by a value that
+   * has to be maintained.
+   *
+   * It is also simply the combination the member asked for: white glass, black ink.
+   * A coloured ink on a coloured pill was two hues arguing.
    */
-  chats: "#222222",
-  groups: "#282828",
-  hangouts: "#333333",
-  bizz: "#373737",
-  profile: "#2D2D2D",
+  chats: "#000000",
+  groups: "#000000",
+  hangouts: "#000000",
+  bizz: "#000000",
+  profile: "#000000",
 };
 
 export function glassTabAccent(
@@ -892,17 +925,130 @@ export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; 
   };
 }
 
+/**
+ * The ink for a surface carrying a section's own hue.
+ *
+ * Two different jobs, two different floors, so they are two different values:
+ *
+ *   tile    the glyph on an empty-state tile. A graphical object, so 3:1 is the
+ *           floor, but an icon is the only thing on an otherwise empty screen and
+ *           has to look deliberate rather than merely legal, so each is solved to
+ *           6:1 against the tile it actually sits on.
+ *   eyebrow the small caps label above a section's list. Text, so 4.5:1 is the
+ *           floor, solved to 5.5:1 because it is set at 12px with wide letter
+ *           spacing — the least forgiving combination in the app.
+ *
+ * Each is a darkened point on the section's own hue rather than a neutral, so the
+ * accent reads as the section's colour and not as generic grey. They are solved
+ * against the darkest ground each can land on — for the eyebrow that is the
+ * artwork's own line work, not its paper field, because the page wash does not
+ * cover the whole screen.
+ */
+const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
+  // Chats keeps the coolest ink of the five, matching its blue field.
+  chats: { tile: "#2D3E4A", eyebrow: "#425A6C" },
+  // Groups' teal reads greenest of the five.
+  groups: { tile: "#2D4240", eyebrow: "#405D59" },
+  // Hangouts' apricot needs the warmest, darkest ink to clear its own pale tile.
+  hangouts: { tile: "#4B3E2F", eyebrow: "#665440" },
+  // Bizz' gold, the palest tile of the five, so its glyph goes deepest.
+  bizz: { tile: "#4B442C", eyebrow: "#605739" },
+  // Profile's lilac.
+  profile: { tile: "#3D3B4A", eyebrow: "#58546A" },
+};
+/**
+ * The accent for a section: the ink for its tinted tile and its header label.
+ *
+ * An unknown section falls back to Chats, so a caller without one gets a real
+ * accent rather than a colour that belongs to nothing.
+ */
+export function glassSectionAccent(
+  section: AmbientSection | null | undefined,
+): { tile: string; eyebrow: string } {
+  return SECTION_ACCENT[section && SECTION_ACCENT[section] ? section : "chats"];
+}
 export function glassEmptyAccent(
   section: AmbientSection | null | undefined,
   tint: GlassTint = activeTint,
 ): string {
-  const field = glassAmbient(tint, ambientIntensityFor(section));
+  const field = glassAmbient(tint, ambientIntensityFor(section), section);
   const nums = field.warm.match(/[\d.]+/g) ?? [];
   if (nums.length < 4) return "rgba(239, 233, 205, 1)";
   const [r, g, b, a] = nums.map(Number);
   return `rgba(${r}, ${g}, ${b}, ${Math.min(EMPTY_TILE_ALPHA_CAP, a * EMPTY_TILE_LIFT).toFixed(3)})`;
 }
 
+/**
+ * The backdrop field, keyed by section.
+ *
+ * Each section gets its own hue so the sections are actually distinguishable, which
+ * strength alone could not do. Chats stays the original cool blue; the others sit
+ * nearby in the same family rather than becoming five unrelated brand colours.
+ */
+const AMBIENT_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: string }> = {
+  // The coolest and calmest, closest to the original blue. A dense column of small
+  // rows, so the field stays quiet behind it.
+  chats: {
+    warm: "rgba(150, 205, 245, 0.22)",
+    cool: "rgba(96, 170, 232, 0.20)",
+    soft: "rgba(186, 224, 250, 0.18)",
+  },
+  // A soft green-teal, the colour of a circle that is growing.
+  groups: {
+    warm: "rgba(146, 214, 205, 0.23)",
+    cool: "rgba(96, 182, 172, 0.21)",
+    soft: "rgba(184, 228, 220, 0.19)",
+  },
+  // A warm apricot, matching the plans screen's daylight mood.
+  hangouts: {
+    warm: "rgba(240, 199, 150, 0.24)",
+    cool: "rgba(226, 164, 108, 0.22)",
+    soft: "rgba(248, 220, 186, 0.20)",
+  },
+  // A muted gold, tying the section to the app's own lemon accent.
+  bizz: {
+    warm: "rgba(236, 214, 140, 0.24)",
+    cool: "rgba(220, 188, 96, 0.22)",
+    soft: "rgba(246, 230, 180, 0.20)",
+  },
+  // A soft lilac, the calmest of the five, for the settings screens.
+  profile: {
+    warm: "rgba(198, 190, 240, 0.22)",
+    cool: "rgba(158, 148, 224, 0.20)",
+    soft: "rgba(220, 214, 246, 0.18)",
+  },
+};
+/**
+ * How the sky cast shifts a section's own hue.
+ *
+ * The cast must still mean something once the section owns the colour, so sky is
+ * derived from each section's hue rather than replacing it: red is pulled down and
+ * green slightly, blue held. These three factors reproduce the original sky values
+ * exactly when applied to Chats' original blue, so the shipped sky look is unchanged
+ * and every other section simply gains the same treatment.
+ */
+const SKY_SHIFT = { r: 0.787, g: 0.907, b: 0.988 };
+/**
+ * The field for a cast and a section.
+ *
+ * An unknown or missing section falls back to Chats rather than to an arbitrary
+ * entry, so a caller without a section gets a real field instead of nothing.
+ */
+function ambientFieldFor(
+  tint: GlassTint,
+  section: AmbientSection | null | undefined,
+): { warm: string; cool: string; soft: string } {
+  const key: AmbientSection = section && AMBIENT_FIELD[section] ? section : "chats";
+  const base = AMBIENT_FIELD[key];
+  if (tint !== "sky") return base;
+  const shift = (color: string) => {
+    const nums = color.match(/[\d.]+/g) ?? [];
+    if (nums.length < 4) return color;
+    const [r, g, b, a] = nums.map(Number);
+    return `rgba(${Math.round(r * SKY_SHIFT.r)}, ${Math.round(g * SKY_SHIFT.g)}, ${Math.round(b * SKY_SHIFT.b)}, ${a})`;
+  };
+  return { warm: shift(base.warm), cool: shift(base.cool), soft: shift(base.soft) };
+}
 /**
  * The soft pools of colour the glass sits over, for a cast and a section.
  *
@@ -914,46 +1060,29 @@ export function glassEmptyAccent(
 export function glassAmbient(
   tint: GlassTint = activeTint,
   intensity = 1,
+  section: AmbientSection | null | undefined = null,
 ): {
   warm: string;
   cool: string;
   soft: string;
 } {
-  const field: Record<GlassTint, { warm: string; cool: string; soft: string }> = {
-    /*
-     * A neutral cast keeps a cool field rather than going grey.
-     *
-     * The field is the only colour the backdrop has, and a grey field over a grey
-     * cast would leave the blur nothing to pick up - a flat panel again. This is
-     * also the layer that makes the glass legible at all: a frosted surface is
-     * only visible as the thing it is diffusing, so the colour behind it is doing
-     * as much work as the surface itself.
-     *
-     * The base alphas are bounded by the cap below *and* by contrast. Measured
-     * against the darkest artwork under the strongest pool, the body ink still
-     * clears 7.4:1 and the secondary 5.2:1 at the heaviest glass weight. They are
-     * set so the richest section (1.25) still fits under the cap, because a base
-     * that does not fit is a base the clamp silently discards.
-     */
-    white: {
-      warm: "rgba(150, 205, 245, 0.22)",
-      cool: "rgba(96, 170, 232, 0.20)",
-      soft: "rgba(186, 224, 250, 0.18)",
-    },
-    /*
-     * The sky cast gets its own, bluer pools. It previously reused the neutral's
-     * RGB values and differed only in alpha, so choosing "sky blue" changed the
-     * strength of the backdrop but never its hue - the one thing the choice is
-     * supposed to change. Red is pulled down and blue held, so the cast reads as
-     * blue in the field and in every tile derived from it.
-     */
-    sky: {
-      warm: "rgba(118, 186, 242, 0.24)",
-      cool: "rgba(72, 150, 224, 0.22)",
-      soft: "rgba(158, 208, 248, 0.20)",
-    },
-  };
-  const chosen = field[tint] ?? field.sky;
+  /*
+   * The field's own hue, per section.
+   *
+   * Until now the field varied between sections only in *strength*: every section
+   * drew the same blue pools and `ambientIntensityFor` scaled the alpha. That made
+   * a screen quieter or richer but never actually distinguishable — measured, all
+   * five sections resolved their empty-state tile to the identical colour
+   * `#96CDF5`, because the tile is the warm pool and the warm pool was one value.
+   *
+   * These are deliberately not five saturated brand colours. They are five nearby
+   * points in one cool family, spaced enough to be told apart side by side and close
+   * enough that no screen looks like a different app. A section's identity should be
+   * something the member notices after using it for a while, not the first thing
+   * they see.
+   */
+  const chosen = ambientFieldFor(tint, section);
+  if (intensity === 1) return chosen;
   if (intensity === 1) return chosen;
   const scale = (color: string) => {
     const nums = color.match(/[\d.]+/g) ?? [];

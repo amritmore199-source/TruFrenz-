@@ -241,3 +241,102 @@ in a sibling layer underneath, **composites identically**. The filtered backdrop
 composited over the fill either way, so the result is `fill over blur(scene)`
 regardless of paint order. Both orderings diffuse the scene; neither one puts the
 fill below the blur.
+
+---
+
+## The composer behind the keyboard, and the pill ink that went stale
+
+### Why the composer kept going under the keyboard after being "fixed"
+
+The native lift was correct. It was being checked in a browser, and a browser was
+the one environment the lift could not reach.
+
+`Keyboard.addListener` is a **no-op in react-native-web**. It returns a handle whose
+`remove` does nothing and which never fires, so every web render measured the
+keyboard as zero and the composer sat under the on-screen keyboard. That is the
+whole reason the fault kept returning: the fix was real, the check was blind.
+
+The composer now has two paths into the same state, so the lift, the tab bar and the
+thread padding all take one route rather than two:
+
+| environment | source of the height |
+|---|---|
+| iOS / Android | `keyboardWillShow` / `keyboardDidShow` (unchanged) |
+| web | `visualViewport` `resize`/`scroll`; covered height = `innerHeight − vv.height − vv.offsetTop`, floored at 120pt so a collapsing toolbar is not read as a keyboard |
+
+### The second failure mode: lifting twice
+
+Android can be configured to shrink the window (`adjustResize`) or leave it alone
+(edge-to-edge, which this app enables). Both report the *same* keyboard height, so a
+lift that only knows the height cannot serve both — on a resized window it adds a
+second keyboard's worth of movement and throws the field into the middle of the
+screen. `composerKeyboardLift` now takes optional `{windowHeight, restingHeight}` and
+returns only the seam when the viewport has already given up at least half the
+keyboard's height. The fraction is not a fixed number of points because a real
+resize is not always the full height: on Android the keyboard overlaps the navigation
+bar, so the window gives up rather less than the event reports.
+
+The fallback when the geometry is unknown is the **full** lift, because that is the
+safe direction to be wrong in: a composer slightly too high is readable, one under
+the keys is not.
+
+### The active pill's label, and why the five-grey table had to go
+
+The five solved greys were solved against pills that all shared one blue. Making the
+backdrop fields per-section moved two pills out from under their inks and dropped the
+label to **4.43:1**. That is a maintenance trap rather than a bug: every future change
+to a field would need the ink table re-solved, and nothing would fail loudly if it was
+not.
+
+Black cannot go stale. Measured across five sections × two casts on the darkest
+backdrop a pill can sit over: **4.92–6.34:1** on white, **4.43–5.07:1** on sky. The
+pill's own alpha is ≥ 0.447 everywhere, and black clears 4.5:1 from an alpha of
+0.225, so the fill is never the binding constraint. The label is legible by
+construction, and it is the "white glass, black ink" combination that was asked for.
+
+### The composer's size
+
+The field was 12pt — the same size as the timestamps around it, so what the member
+typed was the smallest text on the screen — and it carried a 1pt border and 12pt of
+horizontal padding inside a row that already had gaps and two 30pt controls. At 360pt
+of screen width the text had roughly 220pt and "Write a message…" was clipped by the
+field describing it. `paddingVertical` inside a `minHeight` does nothing on Android,
+where a single-line `TextInput` ignores it.
+
+Now 15pt on a 20pt line box in a 46pt field, on a 55pt row; `flexGrow`/`flexShrink`
+with a zero basis so a long draft narrows the field rather than the row, and the
+icons keep fixed widths so the field is the only thing that gives.
+
+### The composer's size, the second cause: its style was never applied
+
+The style table was not the problem. The field was declared `style={styles.composerInputNight}`
+— the *night* override only. The base style, `composerInput`, which carries every
+sizing property, was never passed to the element at all, so the field fell back to the
+browser's default input: measured in the running app, **16pt tall, 14px text, zero
+padding**, inside a 55pt row.
+
+This is why raising the numbers in the table changed nothing on screen. It is also the
+same shape as the earlier defects: the declaration was correct and the wiring was not.
+
+Measured before and after, in the running app at the same viewport:
+
+| | before | after |
+|---|---|---|
+| field height | 16pt | 46pt |
+| font | 14px | 15px / 20px line |
+| horizontal padding | 0 | 11pt |
+| flex basis | auto | 0, grow 1 |
+
+### The dead band above the composer
+
+With the field fixed, the space between the last message and the composer was visible
+for what it was: the message list was top-aligned, so the leftover height landed
+*between the conversation and the field* rather than above the conversation. The list is
+now bottom-anchored, which is what every messaging app does and what makes the newest
+message and the composer read as one thing.
+
+This reverses an earlier decision, and the reason it reverses is recorded in the style
+comment rather than left implicit: that decision was taken while a one-line safety
+reminder sat above the date, and bottom-anchoring then pushed the date away from the
+reminder. The reminder has since been removed, so the same anchoring now separates the
+two elements that most need to touch.

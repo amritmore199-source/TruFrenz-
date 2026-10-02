@@ -364,6 +364,39 @@ describe("the active tab pill", () => {
     }
   });
 
+  it("uses one black label rather than five solved greys", () => {
+    /*
+     * The five-grey table was a maintenance trap: it was solved against pills that
+     * all shared one blue, so making the fields per-section moved two pills out
+     * from under their inks and dropped the label to 4.43:1. Black cannot go stale,
+     * and it is the "white glass, black ink" combination that was asked for.
+     */
+    for (const cast of ["white", "sky"] as const) {
+      for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
+        expect(glassTabAccent(section, cast).ink).toBe("#000000");
+      }
+    }
+  });
+
+  it("carries enough fill that black is legible by construction", () => {
+    /*
+     * The stronger claim behind the black label: the pill's own alpha is well past
+     * the point where black clears 4.5:1, so the label is not relying on a solved
+     * value that a future change to a field could invalidate. Black clears the
+     * floor once the pill's luminance reaches 0.175; each of these clears it.
+     */
+    const over3 = (fg: number[], alpha: number, bg: number[]) =>
+      fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
+    const backdrop = over3([96, 170, 232], 0.24, [80, 80, 80]);
+    for (const cast of ["white", "sky"] as const) {
+      for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
+        const [r, g, b, a] = glassTabAccent(section, cast).fill.match(/[\d.]+/g)!.map(Number);
+        expect(a).toBeGreaterThan(0.225);
+        expect(luminance(over3([r, g, b], a, backdrop) as [number, number, number])).toBeGreaterThan(0.175);
+      }
+    }
+  });
+
   it("falls back to the neutral pill for an unknown section", () => {
     // A bar with no section keeps a neutral glass rather than claiming a colour.
     expect(glassTabAccent(null).ink).toBe("#383838");

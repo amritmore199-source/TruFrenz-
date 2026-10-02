@@ -3,14 +3,19 @@ import { describe, expect, it } from "vitest";
 import {
   CHAT_ROW_ACTION_SIZE,
   CHAT_ROW_ARCHIVE_REVEAL,
+  COMPOSER_CONTROL_WIDTHS,
   KEYBOARD_CLEARANCE,
+  NARROWEST_PHONE,
+  WEB_KEYBOARD_MIN_HEIGHT,
   archiveSwipeLabel,
   chatRowArchiveThreshold,
   chatRowRevealWidth,
   chatRowSwipeThreshold,
   composerKeyboardLift,
+  composerTextSpace,
   resolveChatRowSwipe,
   shouldShowBottomBar,
+  webKeyboardCoveredHeight,
 } from "../lib/chat-layout";
 
 /*
@@ -55,6 +60,45 @@ describe("composer keyboard lift", () => {
     expect(composerKeyboardLift(Number.NaN)).toBe(0);
     expect(composerKeyboardLift(-50)).toBe(0);
     expect(composerKeyboardLift(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  /*
+   * The resize check.
+   *
+   * Android can be configured to shrink the window when the keyboard opens
+   * (`adjustResize`) or to leave it alone (edge-to-edge). Both report the same
+   * keyboard height, so a lift that only knows the height cannot serve both: on a
+   * resized window it adds a second keyboard's worth of movement and throws the
+   * field into the middle of the screen. These pin the two cases apart.
+   */
+  it("adds nothing when the platform already resized the window", () => {
+    // A 320pt keyboard on a 780pt screen that shrank to 460pt: the composer has
+    // already been carried up by the full height, so only the seam is left.
+    expect(composerKeyboardLift(320, { windowHeight: 460, restingHeight: 780 })).toBe(KEYBOARD_CLEARANCE);
+  });
+
+  it("adds the full height when the window did not move", () => {
+    // Edge-to-edge: the viewport is the same as it was with the keyboard closed.
+    expect(composerKeyboardLift(320, { windowHeight: 780, restingHeight: 780 })).toBe(320 + KEYBOARD_CLEARANCE);
+  });
+
+  it("still lifts fully when the geometry is unknown", () => {
+    // Being wrong in this direction leaves a composer a little high but readable;
+    // the other leaves it under the keys. So the fallback is the full lift.
+    expect(composerKeyboardLift(300, {})).toBe(300 + KEYBOARD_CLEARANCE);
+    expect(composerKeyboardLift(300, { windowHeight: 780 })).toBe(300 + KEYBOARD_CLEARANCE);
+    expect(composerKeyboardLift(300, { windowHeight: Number.NaN, restingHeight: 780 })).toBe(300 + KEYBOARD_CLEARANCE);
+  });
+
+  it("does not mistake rounding drift for a resize", () => {
+    // A point or two of difference is normal between platforms and is not a resize.
+    expect(composerKeyboardLift(300, { windowHeight: 779, restingHeight: 780 })).toBe(300 + KEYBOARD_CLEARANCE);
+  });
+
+  it("accepts a partial resize as a resize", () => {
+    // Some platforms shrink by slightly less than the keyboard's reported height,
+    // because the keyboard overlaps the navigation bar. That is still a resize.
+    expect(composerKeyboardLift(300, { windowHeight: 500, restingHeight: 780 })).toBe(KEYBOARD_CLEARANCE);
   });
 });
 
@@ -171,7 +215,77 @@ describe("composer resting position", () => {
   });
 
   it("does not cancel the inset while the keyboard is closed", () => {
-    // Closed, the inset must stay so the composer clears the home indicator.
-    expect(composerKeyboardLift(0)).toBe(0);
+   // Closed, the inset must stay so the composer clears the home indicator.
+   expect(composerKeyboardLift(0)).toBe(0);
+ });
+});
+
+/*
+ * The composer's size, which is a fit question rather than a taste one.
+ *
+ * The placeholder was being clipped by the field describing it, so the space has
+ * to be measured rather than assumed. The width used here is the widest the string
+ * can possibly be: DejaVu Sans, which is broader than both Roboto and SF, so a
+ * string that fits here fits on the device.
+ */
+describe("composer text space", () => {
+  /** Width of the placeholder at a given size, in a font wider than the platforms'. */
+  const PLACEHOLDER_PT_AT_15 = 141;
+  const PLACEHOLDER_PT_AT_12 = 113;
+
+  it("leaves the placeholder room on the narrowest phone the app supports", () => {
+    const space = composerTextSpace(NARROWEST_PHONE);
+    expect(space).toBeGreaterThan(PLACEHOLDER_PT_AT_15);
+    expect(space).toBeGreaterThan(PLACEHOLDER_PT_AT_12);
+  });
+
+  it("is the room the field actually has, not a guess", () => {
+    // Recomputed from the declared widths, so the helper cannot drift from the
+    // styles it mirrors without this failing.
+    const { attachment, quickReply, send, gap, fieldChrome, threadPadding } = COMPOSER_CONTROL_WIDTHS;
+    expect(composerTextSpace(NARROWEST_PHONE)).toBe(
+      NARROWEST_PHONE - threadPadding * 2 - attachment - quickReply - send - gap * 3 - fieldChrome,
+    );
+  });
+
+  it("gives more room on every larger phone", () => {
+    expect(composerTextSpace(390)).toBeGreaterThan(composerTextSpace(360));
+    expect(composerTextSpace(360)).toBeGreaterThan(composerTextSpace(NARROWEST_PHONE));
+  });
+});
+
+/*
+ * The browser's keyboard, which React Native cannot see.
+ *
+ * `Keyboard.addListener` is a no-op in react-native-web, so the native path never
+ * fires there and the composer sat under the on-screen keyboard on every web
+ * render. This is the measurement that replaces it.
+ */
+describe("the web keyboard height", () => {
+  it("reports what the on-screen keyboard covers", () => {
+    // A 780pt page with the keyboard up: the visible part is 480pt at the top.
+    expect(webKeyboardCoveredHeight({ layoutHeight: 780, viewportHeight: 480, offsetTop: 0 })).toBe(300);
+  });
+
+  it("accounts for a viewport that has also scrolled", () => {
+    // The keyboard pushes the visual viewport up as well as shrinking it, so the
+    // offset is part of what is hidden and must not be counted as visible.
+    expect(webKeyboardCoveredHeight({ layoutHeight: 780, viewportHeight: 480, offsetTop: 60 })).toBe(240);
+  });
+
+  it("ignores browser chrome collapsing", () => {
+    // An address bar hiding changes the viewport by a few dozen points and fires
+    // the same event. Lifting the composer for that would be a visible jump.
+    expect(webKeyboardCoveredHeight({ layoutHeight: 780, viewportHeight: 740, offsetTop: 0 })).toBe(0);
+    expect(WEB_KEYBOARD_MIN_HEIGHT).toBeGreaterThan(40);
+  });
+
+  it("reports nothing when the viewport is whole", () => {
+    expect(webKeyboardCoveredHeight({ layoutHeight: 780, viewportHeight: 780, offsetTop: 0 })).toBe(0);
+  });
+
+  it("ignores a malformed measurement rather than lifting on it", () => {
+    expect(webKeyboardCoveredHeight({ layoutHeight: Number.NaN, viewportHeight: 480, offsetTop: 0 })).toBe(0);
+    expect(webKeyboardCoveredHeight({ layoutHeight: 780, viewportHeight: Number.NaN, offsetTop: 0 })).toBe(0);
   });
 });
