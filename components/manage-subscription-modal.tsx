@@ -238,7 +238,7 @@ export function ManageSubscriptionModal({
             },
           ]}
         >
-          <GlassBlur intensity={46} style={StyleSheet.absoluteFill} />
+          <GlassBlur intensity={46} style={StyleSheet.absoluteFill} glow />
           <View style={styles.handle} />
 
           <View style={styles.headerRow}>

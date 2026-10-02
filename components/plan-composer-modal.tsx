@@ -78,8 +78,8 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
           <GlassBlur intensity={34} style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
-            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
-          >
+            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} glow
+>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.topLine}>
                 <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#666070" /></View>

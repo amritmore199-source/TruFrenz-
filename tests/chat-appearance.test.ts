@@ -52,23 +52,28 @@ describe("the open conversation's palette", () => {
    * paper manages about 1.1:1. The ink is dark and the surfaces are light, and
    * the assertion below is what stops the two drifting apart again.
    */
-  it("carries white ink at AA on its own translucent surfaces", () => {
+  it("carries the app's ink at AA on its own translucent surfaces", () => {
     /*
-     * Each bubble is composited over the dark backdrop and the ink is measured where
-     * it lands. The bubbles are translucent by design - that is what makes them glass
-     * rather than paint - so the alpha is held in a band rather than pinned: too low
-     * and the ink loses its surface, too high and the blur behind it stops showing.
+     * Each bubble is composited over the *card* - the lightest surface a bubble can sit
+     * on, and therefore the worst case for dark ink - and the ink is measured where it
+     * lands. The bubbles are translucent by design, because that is what makes them glass
+     * rather than paint, so the alpha is held in a band rather than pinned: too low and
+     * the ink loses its surface, too high and the blur behind it stops showing.
+     *
+     * The ink is dark because the app is light. This assertion previously demanded white
+     * ink over a near-black backdrop, which is what let the palette stay inverted after
+     * the casts were restored - so a member who chose White still got a blue bubble.
      */
-    const BACKDROP: [number, number, number] = [30, 33, 38];
+    const CARD: [number, number, number] = [221, 221, 221];
     for (const surface of [CHAT_NIGHT.incomingBubble, CHAT_NIGHT.outgoingBubble, CHAT_NIGHT.composerSurface]) {
       expect(surface).toMatch(/^rgba\(/);
       const alpha = parseRgba(surface)[3];
       expect(alpha).toBeGreaterThanOrEqual(0.1);
       expect(alpha).toBeLessThanOrEqual(0.95);
-      expect(contrastInkOn(surface, BACKDROP, CHAT_NIGHT.primaryText)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastInkOn(surface, CARD, CHAT_NIGHT.primaryText)).toBeGreaterThanOrEqual(4.5);
     }
-    // The ink is light, and it is the same ink the rest of the app uses.
-    expect(parseRgba(`rgba(${darkRgb(CHAT_NIGHT.primaryText)}, 1)`)[0]).toBeGreaterThan(200);
+    // The ink is dark, and it is the same ink the rest of the app uses.
+    expect(parseRgba(`rgba(${darkRgb(CHAT_NIGHT.primaryText)}, 1)`)[0]).toBeLessThan(120);
   });
 
   it("is applied only while rendering an open conversation, not the chat inbox", () => {

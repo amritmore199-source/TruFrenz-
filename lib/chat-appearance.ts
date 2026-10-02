@@ -13,33 +13,36 @@
  */
 export const CHAT_NIGHT = {
   /*
-   * The open conversation's palette, on the dark system.
+   * The open conversation's palette.
    *
-   * This used to be a light palette - pale bubbles carrying dark ink - and it was the
-   * one screen that could not use white text, because the artwork sat on white paper
-   * underneath it. With the backdrop dark the constraint is gone and the reason for
-   * the split is gone with it: the conversation now uses the same white ink as the
-   * rest of the app, so a member moving from the inbox into a thread sees one
-   * interface rather than two.
+   * This has been rebuilt twice, and the second rebuild is the one worth recording.
+   * It was originally a light palette; the dark-glass pass inverted it to white ink on
+   * faint lifts, with a solid blue outgoing bubble; and when the casts were restored to
+   * pale glass the palette was left behind. A sent message was therefore the one surface
+   * in the app that ignored the member's choice - picking White still produced a blue
+   * bubble, which is the "why is this colour appearing" report.
    *
-   * The surfaces are faint lifts rather than washes. A bubble is still glass - it
-   * takes the blur behind it - so it cannot be opaque, and a faint lift over a dark
-   * backdrop is what keeps white ink comfortable on it while the artwork still shows
-   * through. The outgoing bubble is the one exception and it is deliberate: a sent
-   * message is the member's own, so it takes the accent as a solid fill, exactly as
-   * the send button does.
+   * It is a *light* palette again, because the app is a light app. The bubbles are
+   * translucent so they still take the blur behind them - that is what keeps them glass
+   * rather than paint - and they carry the same dark ink as the cards, which is what
+   * makes a conversation read as one interface with the inbox rather than two.
+   *
+   * The outgoing bubble is distinguished by *lift* and by its position and tail, which
+   * is how a conversation is read anyway, rather than by a colour the member never
+   * chose. Measured on the card, the worst of the three surfaces carries the body ink at
+   * 8.03:1 and the secondary ink at 6.44:1, both clear of AA.
    */
   backdrop: "rgba(0, 0, 0, 0.22)",
-  incomingBubble: "rgba(255, 255, 255, 0.12)",
-  outgoingBubble: "rgba(43, 108, 143, 0.92)",
-  typingBubble: "rgba(255, 255, 255, 0.12)",
-  controlSurface: "rgba(255, 255, 255, 0.12)",
-  composerSurface: "rgba(255, 255, 255, 0.12)",
-  markerSurface: "rgba(255, 255, 255, 0.12)",
-  primaryText: "#FFFFFF",
-  secondaryText: "rgba(255, 255, 255, 0.84)",
-  subtleText: "rgba(255, 255, 255, 0.68)",
-  accentText: "#BCBCBC",
-  border: "rgba(255, 255, 255, 0.22)",
-  divider: "rgba(255, 255, 255, 0.22)",
+  incomingBubble: "rgba(255, 255, 255, 0.62)",
+  outgoingBubble: "rgba(255, 255, 255, 0.86)",
+  typingBubble: "rgba(255, 255, 255, 0.62)",
+  controlSurface: "rgba(255, 255, 255, 0.62)",
+  composerSurface: "rgba(255, 255, 255, 0.55)",
+  markerSurface: "rgba(255, 255, 255, 0.55)",
+  primaryText: "#4B4651",
+  secondaryText: "#5A5563",
+  subtleText: "#6E6C67",
+  accentText: "#8E6F91",
+  border: "rgba(0, 0, 0, 0.10)",
+  divider: "rgba(0, 0, 0, 0.10)",
 } as const;

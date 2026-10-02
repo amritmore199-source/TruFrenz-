@@ -422,3 +422,31 @@ describe("every large surface is built from the whole recipe", () => {
     expect(screen).toMatch(/<GlassSurface surface="field"/);
   });
 });
+
+describe("the appearance picker shows the edge it is describing", () => {
+  /*
+   * The two rim lines are the most misread part of this material. A card whose outer
+   * rim and inner hairline are both near-white has one edge drawn twice, not a double
+   * rim - and that defect has been reported more than once, because at card scale the
+   * pair is two hairlines a pixel or two apart and cannot be judged from a screen.
+   *
+   * The picker therefore shows the corner enlarged, built from the same two resolvers
+   * the real surfaces use so it cannot drift out of step with what it describes. This
+   * guards that it keeps doing so: a hand-picked colour here would look right and be
+   * wrong, which is exactly the failure the sample exists to prevent.
+   */
+  const screen = readFileSync(join(process.cwd(), "app/(tabs)/index.tsx"), "utf8");
+
+  it("builds the sample from the live resolvers rather than fixed colours", () => {
+    expect(screen).toContain("rimSampleOuter");
+    expect(screen).toContain("rimSampleInner");
+    expect(screen).toMatch(/glassEdge\("card", glassTintChoice\)/);
+    expect(screen).toMatch(/glassInnerRim\(glassTintChoice\)/);
+  });
+
+  it("insets the sample by the same constant the real surfaces use", () => {
+    // The gap shown has to be the gap they get, or the sample teaches the wrong thing.
+    expect(screen).toContain("GLASS_RIM_INNER_INSET");
+    expect(screen).toMatch(/rimSampleInner:[^}]*GLASS_RIM_INNER_INSET/);
+  });
+});

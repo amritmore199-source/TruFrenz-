@@ -71,8 +71,8 @@ export function ChatOverflowMenu({
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={closeAll}>
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <GlassBlur intensity={35} style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
-        >
+          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} glow
+>
           <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.handle} />

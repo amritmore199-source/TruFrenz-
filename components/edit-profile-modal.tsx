@@ -100,7 +100,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
           <GlassBlur intensity={56} style={StyleSheet.absoluteFill} />
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close edit profile" onPress={onClose} />
           <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
-            <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} />
+            <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
             <View style={styles.header}>
               <View style={styles.headerText}>
                 <Text style={styles.eyebrow}>EDIT PROFILE</Text>

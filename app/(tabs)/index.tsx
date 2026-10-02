@@ -306,7 +306,8 @@ import {
   type BizzOffer,
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
-import { GLASS_PRESETS, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+import { GLASS_PRESETS,
+  GLASS_RIM_INNER_INSET, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -4033,8 +4034,23 @@ export default function TrufrenzApp() {
                       accessibilityLabel={`${mine ? "You" : currentThread.name.split(" ")[0]} said ${message.text}. Long press to react.`}
                       onLongPress={() => setReactionTarget(message.id)}
                       delayLongPress={280}
-                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, styles.threadBubbleBorder, { backgroundColor: mine ? CHAT_NIGHT.outgoingBubble : CHAT_NIGHT.incomingBubble }]}
+                      style={[styles.messageBubble, mine ? styles.myBubble : styles.theirBubble, styles.threadBubbleBorder]}
                     >
+                      {/*
+                        The bubbles were the last painted surfaces in the app, and the
+                        most repeated: every line of every conversation. They now carry
+                        the same recipe as the cards - blur, cast, glow, rim - so a
+                        conversation is made of the same material as everything else
+                        rather than of flat rectangles laid on top of it. The fill comes
+                        from the chat palette, which already resolves the incoming and
+                        outgoing tones for the current cast.
+                      */}
+                      <GlassBlur
+                        intensity={glassBlur("chip")}
+                        fill={mine ? CHAT_NIGHT.outgoingBubble : CHAT_NIGHT.incomingBubble}
+                        glow={{ radius: 16, heightRatio: 0.62 }}
+                        style={StyleSheet.absoluteFill}
+                      />
                       {message.kind === "voice" ? (
                         <View style={styles.voiceRow}>
                           <View style={[styles.voicePlay, styles.voicePlayNight]}><Icon name="play-arrow" size={16} color={CHAT_NIGHT.primaryText} /></View>
@@ -4873,6 +4889,30 @@ export default function TrufrenzApp() {
       </View>
       <View style={styles.settingDivider} />
       <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the crew artwork behind the glass. Its tone follows your glass colour.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      {/*
+        The double rim, at the size it actually appears.
+        *
+        * The two rim lines are the single most misread part of this material: a card
+        * whose outer rim and inner hairline are both near-white has one edge drawn
+        * twice, not a double rim, and that is a defect the member has reported more
+        * than once. In the reference the hairline carries the accent - it is 91 units
+        * more saturated than the face behind it - and at card scale the pair is two
+        * hairlines a pixel or two apart, which is too small to judge from a whole
+        * screen. Showing the corner at four times life size makes the pair, the gap
+        * and the accent legible before the member commits to a cast.
+        *
+        * It is built from the same resolvers the real surfaces use, so it cannot
+        * drift out of step with what it is describing.
+        */}
+      <View style={styles.rimSample}>
+        <View style={[styles.rimSampleOuter, { borderColor: glassEdge("card", glassTintChoice) }]}>
+          <View style={[styles.rimSampleInner, { borderColor: glassInnerRim(glassTintChoice) }]} />
+        </View>
+        <View style={styles.rimSampleCopy}>
+          <Text style={styles.settingTitle}>The edge, four times life size</Text>
+          <Text style={styles.settingSub}>The outer line catches the light; the inner line carries the colour.</Text>
+        </View>
+      </View>
     </Frosted>
     <Text style={styles.settingsLabel}>ACCOUNT</Text>
     <Frosted style={styles.settingsPanel}>
@@ -5914,7 +5954,12 @@ const frozenStyles = StyleSheet.create({
   myReactionPicker: { alignSelf: "flex-end" },
   reactionChoice: { paddingHorizontal: 4, paddingVertical: 2 },
   reactionChoiceEmoji: { fontSize: 17 },
-  messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16 },
+  /*
+   * `overflow: "hidden"` clips the blur to the bubble's own shape, tail corner and
+   * all. Without it the blur is a rectangle behind a rounded bubble and the corners
+   * show the blur sticking out past the fill.
+   */
+  messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16, overflow: "hidden" },
   theirBubble: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderBottomLeftRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   myBubble: { backgroundColor: "rgba(255, 255, 255, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderBottomRightRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   threadBubbleBorder: { borderColor: "rgba(47, 58, 69, 0.26)" },
@@ -6224,6 +6269,15 @@ const frozenStyles = StyleSheet.create({
   quietHoursControls: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 7 },
   quietHourButton: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.42)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
   quietHourValue: { color: "#4B4651", fontSize: 12, fontWeight: "700", marginRight: 3 },
+  /*
+   * The rim sample. The outer box carries the cast's edge and the inner one its
+   * hairline, inset by the same constant the real surfaces use so the gap shown is
+   * the gap they get.
+   */
+  rimSample: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12 },
+  rimSampleOuter: { width: 74, height: 74, borderRadius: 18, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
+  rimSampleInner: { position: "absolute", left: GLASS_RIM_INNER_INSET, right: GLASS_RIM_INNER_INSET, top: GLASS_RIM_INNER_INSET, bottom: GLASS_RIM_INNER_INSET, borderRadius: 14, borderWidth: 1.5 },
+  rimSampleCopy: { flex: 1 },
   settingDivider: { height: 1, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#CFD0D0", alignItems: "center", justifyContent: "center" },
   footerNote: { color: "#4B4651", fontSize: 12, textAlign: "center", marginTop: 15 },

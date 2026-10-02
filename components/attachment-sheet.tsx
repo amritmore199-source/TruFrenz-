@@ -101,8 +101,8 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <GlassBlur intensity={35} style={[styles.sheet, { maxWidth: modalLayout.maxWidth}]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
-        >
+          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} glow
+>
           <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
             <View style={styles.handle} />
 

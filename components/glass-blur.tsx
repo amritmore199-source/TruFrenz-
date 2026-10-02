@@ -2,6 +2,9 @@ import { BlurView } from "expo-blur";
 import React from "react";
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
+import { GlassGlow } from "@/components/glass-glow";
+import { activeGlassTint, glassTopGlow } from "@/lib/glass";
+
 /**
  * The blur layer of a glass surface.
  *
@@ -58,6 +61,21 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   pointerEvents?: "none" | "auto" | "box-none" | "box-only";
   /**
+   * Lay the top glow over the blur.
+   *
+   * The glow is what stops a large surface reading as a flat field, and it was
+   * being drawn by hand at each call site — so every sheet written before the
+   * recipe settled simply did not have one, and a sheet is the largest surface in
+   * the app. Offering it here is what lets those sheets get it without each one
+   * re-implementing the gradient.
+   *
+   * Only set this on a call site that is the *top* glass layer of its surface. A
+   * scrim passes nothing, because a scrim is not a pane and has no edge to catch
+   * light; a call site that passes `children` and renders its content over the
+   * blur passes `true`, because it is the sheet itself.
+   */
+  glow?: boolean | { radius?: number; heightRatio?: number };
+  /**
    * Content to lay over the blur. Only used by call sites that render a sheet's
    * contents *inside* the blur element; most surfaces place the blur as a sibling
    * and pass nothing.
@@ -71,6 +89,7 @@ export function GlassBlur({
   radius,
   style,
   pointerEvents = "none",
+  glow,
   children,
 }: Props) {
   const shape = radius !== undefined ? { borderRadius: radius } : null;
@@ -105,18 +124,38 @@ export function GlassBlur({
     );
 
   /*
+   * The glow reads the member's live cast rather than taking one as a prop. A sheet
+   * is never previewing a cast the member is not using, and threading the cast
+   * through twenty call sites to say so would be twenty chances to pass the wrong
+   * one.
+   */
+  const glowLayer = glow ? (
+    <GlassGlow
+      color={glassTopGlow(activeGlassTint())}
+      radius={(typeof glow === "object" ? glow.radius : undefined) ?? radius ?? 18}
+      heightRatio={typeof glow === "object" ? glow.heightRatio : undefined}
+    />
+  ) : null;
+
+  /*
    * A call site that passes children is using this as the sheet element itself, so
    * the blur fills it and the content sits on top. One that passes none is placing
    * the blur as a sibling layer, so the outer element must stay out of the layout
    * — `absoluteFillObject` is what makes it cover the surface it belongs to.
    */
   if (!children) {
-    return <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape, style]}>{blur}</View>;
+    return (
+      <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape, style]}>
+        {blur}
+        {glowLayer}
+      </View>
+    );
   }
 
   return (
     <View style={style}>
       {blur}
+      {glowLayer}
       {children}
     </View>
   );
