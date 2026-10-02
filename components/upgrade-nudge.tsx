@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
   },
   badgeAtLimit: { backgroundColor: glassNestedFill("rgba(252, 244, 232, 0.95)"), borderColor: "rgba(226, 198, 158, 0.8)" },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: 12.5, fontWeight: "700", color: "#494532" },
-  body: { fontSize: 11, color: "#5F5D57", lineHeight: 15.5 },
+  title: { fontSize: 13, fontWeight: "700", color: "#494532" },
+  body: { fontSize: 12, color: "#5F5D57", lineHeight: 17 },
   dismiss: {
     width: 26,
     height: 26,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
   },
   ctaAtLimit: { backgroundColor: "#E9D177", borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)") },
-  ctaText: { fontSize: 12, fontWeight: "700", color: "#6f6741" },
+  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#6f6741" },
   ctaTextAtLimit: { color: "#43423d" },
   pressed: { opacity: 0.82 },
 });

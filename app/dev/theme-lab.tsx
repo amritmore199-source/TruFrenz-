@@ -236,6 +236,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   schemeToggleSubtitle: {
-    fontSize: 12,
+    fontSize: 12.5,
   },
 });

@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
   thumb: { width: "100%", height: "100%" },
   voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(236, 242, 247, 0.94)") },
   copy: { flex: 1, minWidth: 0 },
-  title: { color: "#43423d", fontSize: 11, fontWeight: "650" as any },
-  meta: { color: "#6E6C67", fontSize: 9, marginTop: 2 },
+  title: { color: "#43423d", fontSize: 12, fontWeight: "650" as any },
+  meta: { color: "#6E6C67", fontSize: 12, marginTop: 2 },
   remove: {
     width: 26,
     height: 26,
