@@ -1072,12 +1072,31 @@ export default function TrufrenzApp() {
 
   useEffect(() => {
     if (!transitionBusy) return;
+    /*
+     * A failsafe, not a second timer for its own sake.
+     *
+     * The overlay is normally dismissed from the animation's completion callback,
+     * which means a single interrupted animation - a large state change mid-flight,
+     * a re-render that swaps the driver - can strand it on screen with the member
+     * unable to reach anything behind it. The overlay reports nothing while it is
+     * up, so a stuck one is indistinguishable from a frozen app.
+     *
+     * The normal handoff finishes in about 520ms (340ms of motion plus a 180ms
+     * beat). This fires at 1200ms, so it is never reached in ordinary use and only
+     * ever covers the case where the callback did not run at all. It is cleared on
+     * the same dependency change that would have dismissed the overlay anyway, so
+     * it cannot cut a later transition short.
+     */
+    const failsafe = setTimeout(() => setTransitionBusy(false), 1200);
     const pulse = Animated.loop(Animated.sequence([
       Animated.timing(loaderPulse, { toValue: 1, duration: 470, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       Animated.timing(loaderPulse, { toValue: 0.52, duration: 470, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
     ]));
     pulse.start();
-    return () => pulse.stop();
+    return () => {
+      pulse.stop();
+      clearTimeout(failsafe);
+    };
   }, [transitionBusy, loaderPulse]);
 
   useEffect(() => {
@@ -2137,6 +2156,20 @@ export default function TrufrenzApp() {
   }, []);
   const signOut = () => {
     if (joined) void signOutRemote();
+    /*
+     * The transition overlay is cleared here, synchronously, rather than being left
+     * to the section-change effect.
+     *
+     * That effect only dismisses the overlay from an animation-completion callback,
+     * so if the animation is interrupted - and a state change this large during the
+     * animation is exactly how that happens - the callback can run with
+     * `finished === false` and neither branch clears the flag. The member is then
+     * left looking at "Back to your conversations / A little closer, one moment."
+     * over the welcome screen with no way forward. Clearing it here removes the
+     * dependency entirely: signing out cannot leave a spinner behind, whatever the
+     * animation does.
+     */
+    setTransitionBusy(false);
     setSession(null);
     setJoined(false);
     setRemoteAccount(null);
@@ -5487,7 +5520,7 @@ export default function TrufrenzApp() {
         differs a little per section, because the content behind the bar ranges
         from dense chat rows to an almost empty screen.
       */}
-      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><GlassBlur intensity={glassBlur("tab")} style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><GlassBlur intensity={glassBlur("tab")} style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
         /*
          * The active pill takes its own section's colour rather than one shared
          * lemon, so the bar says *what* is selected and not merely *that* something
@@ -6450,8 +6483,15 @@ const frozenStyles = StyleSheet.create({
    * The bar is the widest glass surface in the app, so it carries the same
    * double rim as a card: a bright top edge, then a hairline just inside it.
    */
-  barInnerRim: { position: "absolute", left: 10, right: 10, top: 4, height: 0, borderTopWidth: 1, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(0, 0, 0, 0.10)", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
+  /*
+   * The bar is rounded at the top and only at the top.
+   *
+   * It was square, which the member read as a rectangle sitting on the bottom of the
+   * screen rather than as the floating pane the rest of the app is made of. Rounding
+   * the top corners alone is what makes it read as a pane the content slides under,
+   * rather than as a slab with a lid.
+   */
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: "hidden", backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(0, 0, 0, 0.10)", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   /*
    * Each entry takes an equal share of the bar rather than a fixed percentage.
    * This was `width: "25%"` from when the bar had four entries; five at 25% is

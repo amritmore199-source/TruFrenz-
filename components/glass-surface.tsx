@@ -1,16 +1,15 @@
 import React from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
+import { GlassTexture } from "@/components/glass-texture";
 import { GlassTopGlow } from "@/components/glass-glow";
 
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
-  GLASS_RIM_INNER_INSET,
   GLASS_SHADOW,
   GLASS_SHADOW_OPACITY,
   glassBlur,
   glassEdge,
-  glassInnerRim,
   glassTint,
   glassVeil,
   type GlassTint,
@@ -50,12 +49,15 @@ type Props = {
  * The samples were measured rather than eyeballed, and two things in them turned
  * out to matter more than the fill colour:
  *
- *   1. **The double rim.** Each card has a bright outer edge — pure white in two
- *      of the three samples — and then, a few pixels in, a thin inner hairline
- *      carrying the card's own cast: bright blue in the sky sample, bright yellow
- *      in the lemon one. The pair reads as the ground edge of a real sheet of
- *      glass. A single border does not; this app had one at half opacity, which
- *      is why its cards looked drawn rather than lit.
+ *   1. **The rim.** Each card has a bright outer edge — pure white in two of the
+ *      three samples. It was briefly built as a *pair*, with a second hairline a
+ *      few pixels inside carrying the cast, because that is what the samples show.
+ *      At these card sizes the pair measured as two hairlines a pixel or two apart,
+ *      which the eye reads as a slightly muddy single edge — or, on small surfaces,
+ *      as a double outline. The member asked for the inner line to go, so the outer
+ *      rim now carries the whole edge and is correspondingly stronger. The two-line
+ *      form is still shown, enlarged, in the appearance picker, which is the one
+ *      place it is legible and worth seeing.
  *
  *   2. **The top glow.** A soft light halo pools just inside the upper rim in
  *      every sample, so the surface has a falloff across it. Without it a large
@@ -67,7 +69,7 @@ type Props = {
  *   1. the blur, which diffuses the wallpaper behind the surface
  *   2. the cast, the only colour the glass has of its own
  *   3. the sheen, light across the whole face, and the glow along the top edge
- *   4. the outer rim, the inner hairline, and a soft shadow for depth
+ *   4. the outer rim and a soft shadow for depth
  */
 export function GlassSurface({
   children,
@@ -122,20 +124,12 @@ export function GlassSurface({
       */}
       <GlassTopGlow cast={cast} radius={typeof radius === "number" ? radius : 18} />
       {/*
-        The inner hairline. Absolute rather than a second nested View, so it can
-        be inset a few pixels from the outer rim without changing the layout of
-        anything the caller puts inside the surface.
+        The grain, over the glow and under the content. Order matters: the glow is
+        light falling on the surface and the grain is the surface itself breaking
+        that light up, so the grain has to be the layer nearest the eye of the two -
+        otherwise the glow washes it out and the card flattens again.
       */}
-      <View
-        pointerEvents="none"
-        style={[
-          styles.innerRim,
-          {
-            borderRadius: typeof radius === "number" ? Math.max(0, radius - GLASS_RIM_INNER_INSET) : radius,
-            borderColor: glassInnerRim(cast),
-          },
-        ]}
-      />
+      <GlassTexture cast={cast} radius={typeof radius === "number" ? radius : 18} />
       {children}
     </View>
   );
@@ -192,14 +186,6 @@ const styles = StyleSheet.create({
   },
   /* The face light covers the whole card in the samples, not just the top half. */
   sheen: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
-  innerRim: {
-    position: "absolute",
-    left: GLASS_RIM_INNER_INSET,
-    right: GLASS_RIM_INNER_INSET,
-    top: GLASS_RIM_INNER_INSET,
-    bottom: GLASS_RIM_INNER_INSET,
-    borderWidth: 1,
-  },
   noninteractive: { pointerEvents: "none" },
   pressed: { opacity: 0.85 },
 });

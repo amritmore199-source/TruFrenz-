@@ -22,17 +22,17 @@ import { glassSurfaceColor,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
 import {
-  GLASS_RIM_INNER_INSET,
   GLASS_SHADOW,
   GLASS_SHADOW_OPACITY,
+  ambientIntensityFor,
+  glassAmbient,
   glassEdge,
-  glassInnerRim,
   glassVeil,
 } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { AmbientField } from "@/components/ambient-field";
 import { GlassTopGlow } from "@/components/glass-glow";
-import { ambientIntensityFor, glassAmbient } from "@/lib/glass";
+import { GlassTexture } from "@/components/glass-texture";
 
 const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
 
@@ -262,12 +262,12 @@ export function WelcomeScreen({
           {/* A pool of light along the top edge, so the surface has a falloff. A real
               gradient: a solid band ends in a visible step across the card. */}
           <GlassTopGlow cast={cast} radius={28} heightRatio={0.34} />
-          {/* The inner hairline, a few pixels in from the outer rim. Together the two
-              read as the ground edge of a sheet of glass rather than as a drawn border. */}
-          <View
-            pointerEvents="none"
-            style={[styles.glassInnerRim, { borderColor: glassInnerRim(cast) }]}
-          />
+          {/*
+            The grain, over the glow and under the content. The panel is the largest
+            surface in the app and the first one a member ever sees, so it is where the
+            tooth matters most.
+          */}
+          <GlassTexture cast={cast} radius={28} />
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
               <View style={styles.brandIcon}>
@@ -477,17 +477,6 @@ const styles = StyleSheet.create({
   },
   /* Clips the blur and the sheen to the panel's own shape. */
   glassShape: { borderRadius: 28 },
-  /* The hairline, inset from the outer rim by the same amount every other surface
-     uses, so the two edges read as one construction across the whole app. */
-  glassInnerRim: {
-    position: "absolute",
-    left: GLASS_RIM_INNER_INSET,
-    right: GLASS_RIM_INNER_INSET,
-    top: GLASS_RIM_INNER_INSET,
-    bottom: GLASS_RIM_INNER_INSET,
-    borderWidth: 1,
-    borderRadius: 28 - GLASS_RIM_INNER_INSET,
-  },
   glassInner: { paddingHorizontal: 20, paddingTop: 26, paddingBottom: 22, alignItems: "center" },
   brandMark: { alignItems: "center" },
   brandIcon: {

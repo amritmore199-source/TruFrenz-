@@ -549,3 +549,118 @@ frozen and the live-resolved fill**: the worst white-ink contrast anywhere is **
 and no combination falls below AA. TypeScript clean; 1032 tests pass with 1 pre-existing
 skip; lint 0 errors and the same 28 pre-existing warnings; `git diff --check` clean;
 bundle HTTP 200.
+
+## The pass that removed the inner rim, lifted the outer one, and gave the surfaces a grain
+
+### The inner rim was removed, and the outer one had to be lifted to compensate
+
+The member asked for the inner hairline to go from everywhere it appeared. It had been
+built deliberately, because the reference samples genuinely show *two* lines — a bright
+outer edge with a cast-coloured hairline a few pixels inside it — and the reasoning that
+the pair reads as the ground edge of a sheet of glass is sound. The measurement was not:
+at this app's card sizes the two lines land a pixel or two apart, which the eye reads as
+one slightly muddy edge, or on a small surface as a double outline.
+
+**Removing it is not a one-line deletion, and this is the part worth recording.** The
+outer rim's strengths were tuned to sit *under* the inner hairline, which was the
+stronger of the two. Deleting the hairline and leaving the rim as it was would have left
+the app with no visible edge at all. Every strength was therefore lifted by roughly the
+third the removed line was contributing — card and bar to full opacity, and the smaller
+surfaces to within a tenth of them — so a card reads at the same edge strength as before
+with one line instead of two.
+
+Four sites carried a hairline, not one: the shared `GlassSurface`, the welcome panel, the
+chat rows, **and the bottom bar**, which had its own copy rather than going through
+`GlassSurface`. The bar's was the one that would have been missed by reading the
+component and assuming it covered everything, and a test now walks every file that paints
+a glass surface to catch exactly that class of second implementation.
+
+The pair survives in one place: the appearance picker's edge sample, where it is drawn at
+four times life size and the two lines are far enough apart to read as thickness. That is
+the only scale at which the original reasoning holds.
+
+### The outer rim sits elevated because the shadow was raised, not because the line changed
+
+The member asked for the outer rim to be "little elevated". A single line cannot express
+height on its own — what says *this surface is above that one* is the shadow it drops.
+`GLASS_SHADOW_OPACITY` moved 0.30 → 0.42, which is the point where the lift is legible
+over the artwork without the card appearing to float free of the page.
+
+### The grain: the layer that was actually missing
+
+A frosted pane rendered as a single flat fill reads as a painted rectangle however good
+its colour is. Real frosted glass has *tooth* — a fine surface texture that catches light
+unevenly — and that tooth is most of what tells the eye it is looking at a material
+rather than at a tint. The reference samples have it. This app's surfaces did not, which
+is the difference between "translucent card" and "frosted glass" that the member kept
+pointing at across many passes.
+
+`components/glass-texture.tsx` is that layer, and it is built from **real vector geometry
+rather than a raster tile**: a raster PNG would need one asset per density, would blur
+when scaled, and would sit at a fixed pixel size on a 3x screen. It is a cross-hatch of
+two hairlines at 45° and 135°, which tiles seamlessly, costs nothing, and gives the same
+fine tooth at the scale a card is read at. `feTurbulence` would have been the obvious
+alternative and is not implemented on every platform this app runs on.
+
+The ink is a hairline of the member's own cast rather than black or white, so the grain
+belongs to the glass rather than sitting on top of it. Its alpha is bounded on both sides
+by test: enough to register as tooth, never enough to compete with a label.
+
+**Measured on the rendered screen**, adjacent-pixel step (the high-frequency content):
+
+| surface | adjacent-pixel step, mean | p95 |
+|---|---|---|
+| the glass panel | **3.807** | 8.67 |
+| the page beside it | 0.228 | 1.33 |
+
+That is **17× the page's high-frequency content** on the glass and almost none on the
+page — the tooth is unambiguously present on the surfaces and absent from the backdrop,
+which is exactly what the layer exists to do. It is within the alpha ceiling, so it reads
+as material rather than as a visible grid.
+
+### The palette was dull because an exactly neutral grey has no light in it
+
+The neutral cast went through a strictly-neutral phase at `rgb(221,221,221)`, on the
+argument that the word "White" should mean an achromatic pane. On the device that
+argument lost: an exactly neutral grey over a warm off-white page reads as *dull*, because
+there is no colour in it for the light to have come from. That is a property of the
+material rather than a preference.
+
+It is now `rgb(226,222,216)` — a spread of 6, amber over blue — which is the least that
+reads as light rather than as grey while still reading as "White" beside the sky cast. It
+is at the **same luminance** as the neutral it replaces, so the depth every other value
+was calibrated against is untouched and only the temperature moves.
+
+### Two square-cornered surfaces, found by scanning the render rather than by reading the code
+
+Scanning the live DOM for surfaces with a zero top-left radius found two, and neither was
+where reading the styles would have suggested:
+
+- **The swipe actions** (mute and archive). `borderRadius: 11` on a 44pt-tall target
+  measures as a square at the size these render, and they are the two controls the member
+  reaches for most often inside a row. They are now pills — the radius is half the height,
+  so the shape is round by construction rather than by a number that can drift out of step
+  with the size.
+- **The bottom bar**, which was square at the top and read as a slab with a lid rather
+  than as the floating pane the rest of the app is made of. It is now rounded at the top
+  corners only, which is what makes the content look like it slides under it.
+
+### The log-out hang
+
+Signing out left the member looking at "Back to your conversations / A little closer, one
+moment." over the welcome screen, with no way forward.
+
+The overlay is dismissed from the section-change animation's completion callback, and that
+callback only clears the flag when the animation reports `finished`. A state change as
+large as a sign-out interrupts the animation, so the callback runs with `finished ===
+false`, neither branch fires, and the flag stays set over a screen that has nothing to do
+with it. Two fixes, because the flag should not depend on an animation at all:
+
+1. `signOut` clears the flag **synchronously**, so signing out cannot leave a spinner
+   behind whatever the animation does.
+2. A **1200ms failsafe** clears it regardless. The normal handoff finishes in about 520ms
+   (340ms of motion plus a 180ms beat), so it is never reached in ordinary use and only
+   covers the case where the callback did not run at all.
+
+Verified on the rendered app: after signing out, the overlay text is absent and the
+welcome controls are present.

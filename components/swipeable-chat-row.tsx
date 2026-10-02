@@ -14,14 +14,13 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { GlassBlur } from "@/components/glass-blur";
 import { GlassTopGlow } from "@/components/glass-glow";
+import { GlassTexture } from "@/components/glass-texture";
 
 import {
-  GLASS_RIM_INNER_INSET,
   GLASS_SHADOW,
   GLASS_SHADOW_OPACITY,
   glassBlur,
   glassEdge,
-  glassInnerRim,
   glassTint,
   glassVeil,
 } from "@/lib/glass";
@@ -302,11 +301,7 @@ export function SwipeableChatRow({
           />
           {/* A pool of light along the top edge, as a real gradient. */}
           <GlassTopGlow cast={cast} radius={16} heightRatio={0.46} />
-          {/* The inner hairline, inset from the rim exactly as the cards' is. */}
-          <View
-            pointerEvents="none"
-            style={[styles.rowInnerRim, { borderColor: glassInnerRim(cast) }]}
-          />
+          <GlassTexture cast={cast} radius={16} />
           <View style={styles.avatarWrap}>
             <Image source={chat.image} style={styles.avatar} />
             {chat.kind === "group" ? (
@@ -385,10 +380,25 @@ const styles = StyleSheet.create({
     paddingRight: 7,
     gap: 6,
   },
+  /*
+   * The mute and archive buttons. They measured 11pt on a 44pt target, which reads as
+   * a square at that size - and they are the two controls the member reaches for most
+   * often inside a row. They are pills now: the radius is half the height, so the shape
+   * is rounded by construction rather than by a value that can drift out of step with
+   * the size.
+   */
   action: {
     width: CHAT_ROW_ACTION_SIZE,
     height: Math.round(CHAT_ROW_ACTION_SIZE * 0.62),
-    borderRadius: 11,
+    /*
+     * A pill: the radius is half the height, so the shape is round by construction
+     * rather than by a number that can drift out of step with the size.
+     *
+     * The previous 11pt on a 44pt-tall target measured as a square at the size these
+     * actually render, and these are the two controls the member reaches for most
+     * often inside a row.
+     */
+    borderRadius: Math.round(CHAT_ROW_ACTION_SIZE * 0.31),
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -399,15 +409,6 @@ const styles = StyleSheet.create({
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
-  rowInnerRim: {
-    position: "absolute",
-    left: GLASS_RIM_INNER_INSET,
-    right: GLASS_RIM_INNER_INSET,
-    top: GLASS_RIM_INNER_INSET,
-    bottom: GLASS_RIM_INNER_INSET,
-    borderWidth: 1,
-    borderRadius: 16 - GLASS_RIM_INNER_INSET,
-  },
   row: {
     minHeight: 69,
     flexDirection: "row",

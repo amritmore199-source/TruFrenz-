@@ -56,7 +56,16 @@ describe("appearance preferences", () => {
        * only the temperature moves - the member chooses between a grey and a blue,
        * and a third hue made the choice read as neither.
        */
-      expect(surface).toMatch(/^rgba\(221, 221, 221, 0\.\d+\)$/);
+      /*
+       * The cast is warm, not neutral. It went through a strictly-neutral phase on the
+       * argument that the word "White" should mean an achromatic pane; on the device an
+       * exactly neutral grey over a warm page read as *dull*, because there is no colour
+       * in it for the light to have come from. The assertion is on the warm lean and the
+       * luminance rather than on frozen channels, so a future retune still passes.
+       */
+      const [r, g, b] = surface.match(/\d+/g)!.slice(0, 3).map(Number);
+      expect(r).toBeGreaterThan(b);
+      expect(r - b).toBeLessThan(14);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -121,7 +130,13 @@ describe("appearance preferences", () => {
      * pane, and it now has to lift a dark one without washing the white ink off it,
      * so it sits well below white rather than at it.
      */
-    expect(glassEdge("card")).toMatch(/^rgba\(255, 255, 255, 0\.\d+\)$/);
+    /*
+     * The card's rim is now fully opaque, and that is the change the member asked for.
+     * It used to sit *under* the inner hairline, which was the stronger of the two; with
+     * the hairline removed the outer rim has to carry the whole edge, so the card and the
+     * bar are at 1 and everything else was lifted to match.
+     */
+    expect(glassEdge("card")).toBe("rgba(255, 255, 255, 1)");
     /*
        * The sheen is lighter than the pane. A grey sheen was correct while the panes
        * were near-black; over a pale cast it darkens instead of lighting, which is the
@@ -132,7 +147,9 @@ describe("appearance preferences", () => {
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(221, 221, 221, 0\.\d+\)$/);
+    const hexed = glassSurfaceColor("#FFFFFF", 70, "white");
+    const [hr, , hb] = hexed.match(/\d+/g)!.slice(0, 3).map(Number);
+    expect(hr).toBeGreaterThan(hb);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });

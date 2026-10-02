@@ -10,6 +10,7 @@ import {
   glassEdge,
   glassFieldBorder,
   glassInnerRim,
+  glassTextureInk,
   glassSwitchTrack,
 } from "../lib/glass";
 
@@ -87,41 +88,44 @@ describe("the glass structure", () => {
   });
 });
 
-describe("the double rim and the colour field", () => {
+describe("the rim and the colour field", () => {
   /*
-   * Measured off the supplied samples, and this is what separates glass from a
-   * drawn outline: a bright outer edge with a thin cast-coloured hairline just
-   * inside it, like the ground edge of a real sheet.
+   * The rim is now a single line, and the member asked for that.
+   *
+   * It was built as a *pair* - a bright outer edge with a thin cast-coloured hairline
+   * just inside it - because that is genuinely what the reference samples show. The
+   * reasoning was sound and the measurement was not: at this app's card sizes the two
+   * lines land a pixel or two apart, which the eye reads as one slightly muddy edge, or
+   * on a small surface as a double outline. The pair survives in exactly one place, the
+   * appearance picker, where it is shown at four times life size and the two lines are
+   * far enough apart to read as the ground edge of a sheet of glass.
+   *
+   * With the hairline gone the outer rim carries the whole edge, so it is opaque on the
+   * surfaces that define a card and lifted everywhere else. The values here are the ones
+   * that make a single line read as an edge rather than as a faint suggestion.
    */
-  it("gives every cast both an outer rim and an inner hairline", () => {
+  it("carries a rim strong enough to stand alone on every cast", () => {
     for (const cast of ["white", "sky"] as const) {
       const outer = glassEdge("card", cast);
-      const inner = glassInnerRim(cast);
       expect(outer).toMatch(/^rgba\(/);
-      expect(inner).toMatch(/^rgba\(/);
-      // The outer edge is near-opaque in every sample.
-      expect(Number(outer.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.8);
-      /*
-       * The inner line is a real stroke, not a tint. The samples draw it as a
-       * saturated line and it is what makes the pair read as a glass edge; the bound
-       * is set where the shipped values sit rather than at full opacity, because a
-       * hairline at 1.0 reads as a second border rather than as a refraction.
-       */
-      expect(Number(inner.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.8);
-      expect(inner).not.toBe(outer);
+      // The outer edge is opaque now: it is the whole edge, not half of a pair.
+      expect(Number(outer.match(/([\d.]+)\)$/)![1])).toBe(1);
+      // Every smaller surface is lifted to within a tenth of it, so none reads as
+      // edgeless next to a card.
+      for (const surface of ["row", "chip", "panel", "field", "floater"] as const) {
+        const alpha = Number(glassEdge(surface, cast).match(/([\d.]+)\)$/)![1]);
+        expect(alpha).toBeGreaterThanOrEqual(0.75);
+      }
     }
   });
 
-  it("carries the accent in the inner hairline on every cast", () => {
+  it("still renders the two-line form in the appearance sample", () => {
     /*
-     * The samples' inner line carries the accent - saturated blue in the sky sample,
-     * bright yellow in the warm one - while the outer rim stays near-white in both.
-     * That contrast between the two lines is the effect.
-     *
-     * The neutral cast used to have a near-white hairline, which made both of its
-     * lines the same near-white and collapsed the double rim into a single edge. It
-     * carries the brand's mauve now, so the test reads each line for *its own*
-     * accent rather than requiring one of them to be a plain grey.
+     * The sample is the one place the pair is legible, so it keeps both lines - and it
+     * has to keep the *accent* in the inner one, which is the reading that makes the
+     * pair worth showing at all. The samples' inner line carries the accent - saturated
+     * blue in the sky sample, bright yellow in the warm one - while the outer rim stays
+     * near-white in both.
      */
     const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
     const [sr, sg, sb] = channels(glassInnerRim("sky"));
@@ -133,6 +137,13 @@ describe("the double rim and the colour field", () => {
     expect(nb).toBeGreaterThan(ng);
     // And the two casts must not produce the same line.
     expect(glassInnerRim("white")).not.toBe(glassInnerRim("sky"));
+
+    // The outer rim it pairs with stays achromatic, which is what makes the pair read
+    // as light plus colour rather than as two colours.
+    for (const cast of ["white", "sky"] as const) {
+      const [r, g, b] = channels(glassEdge("card", cast));
+      expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(30);
+    }
   });
 
   /*
@@ -373,10 +384,17 @@ describe("every large surface is built from the whole recipe", () => {
 
   /* The four layers that make a surface read as glass rather than as a tinted block. */
   /*
+     * The layers that make a surface read as glass rather than as a tinted block.
+     *
+     * The inner hairline is no longer one of them: the member asked for it removed from
+     * everywhere, because two hairlines a pixel or two apart read as a double outline at
+     * these card sizes rather than as the thickness of a sheet. The grain replaced it as
+     * the third layer, and it is the one that actually gives the surface its tooth.
+     *
      * The glow is produced by `GlassTopGlow`, which resolves its own colour, so the
      * surfaces name the component rather than the resolver.
      */
-  const LAYERS = ["glassVeil", "GlassTopGlow", "glassInnerRim"] as const;
+  const LAYERS = ["glassVeil", "GlassTopGlow", "GlassTexture"] as const;
 
   const SURFACES = [
     "components/glass-glow.tsx",
@@ -448,5 +466,100 @@ describe("the appearance picker shows the edge it is describing", () => {
     // The gap shown has to be the gap they get, or the sample teaches the wrong thing.
     expect(screen).toContain("GLASS_RIM_INNER_INSET");
     expect(screen).toMatch(/rimSampleInner:[^}]*GLASS_RIM_INNER_INSET/);
+  });
+});
+
+describe("the single rim, the grain and the rounded corners", () => {
+  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
+
+  it("has no inner hairline anywhere but the appearance sample", () => {
+    /*
+     * The member asked for the second hairline to go from everywhere it appeared. It is
+     * a real defect rather than a preference: two hairlines a pixel or two apart do not
+     * read as the thickness of a sheet of glass at these card sizes, they read as a
+     * double outline - and the appearance picker is the one place where the pair is
+     * enlarged enough to be legible, so it is the one place it stays.
+     *
+     * The screen is checked too, because the bottom bar carried its own copy of the
+     * hairline rather than going through GlassSurface, and that is exactly the kind of
+     * second implementation this guard exists to catch.
+     */
+    const files = [
+      "app/(tabs)/index.tsx",
+      "components/glass-surface.tsx",
+      "components/welcome-screen.tsx",
+      "components/swipeable-chat-row.tsx",
+    ];
+    for (const file of files) {
+      const source = read(file);
+      // the sample is named rimSample*; anything else rendering a hairline is a leftover
+      const offenders = source
+        .split("\n")
+        .filter((line) => line.includes("glassInnerRim(") && !line.includes("rimSample"));
+      expect({ file, offenders }).toEqual({ file, offenders: [] });
+    }
+  });
+
+  it("keeps the outer rim strong enough to carry the edge alone", () => {
+    /*
+     * With the hairline gone the outer rim is the whole edge, so it cannot be the
+     * fainter half of a pair any more. The card and the bar are opaque; every other
+     * surface is lifted to match. A rim that faded back to the old values would leave
+     * the app with no visible edge at all, which is the failure this pins.
+     */
+    expect(glassEdge("card")).toBe("rgba(255, 255, 255, 1)");
+    expect(glassEdge("tab")).toBe("rgba(255, 255, 255, 1)");
+    for (const surface of ["row", "chip", "panel", "field", "floater"] as const) {
+      const alpha = Number(glassEdge(surface).match(/, ([\d.]+)\)$/)![1]);
+      expect(alpha).toBeGreaterThanOrEqual(0.75);
+    }
+  });
+
+  it("lays a grain over the surface without it reading as content", () => {
+    /*
+     * The grain is the second dimension of the material - the fine tooth that separates
+     * frosted glass from a translucent rectangle - but it is a *hairline*, and a hairline
+     * with too much presence becomes a pattern the member can see through the text on
+     * top of it. The alpha is therefore bounded on both sides: enough to register as
+     * tooth, never enough to compete with a label.
+     */
+    for (const cast of ["white", "sky"] as const) {
+      const ink = glassTextureInk(cast);
+      expect(ink).toMatch(/^rgba\(/);
+      const alpha = Number(ink.match(/, ([\d.]+)\)$/)![1]);
+      expect(alpha).toBeGreaterThan(0.04);
+      expect(alpha).toBeLessThanOrEqual(0.12);
+    }
+    // The grain belongs to the cast rather than being a fixed grey.
+    expect(glassTextureInk("white")).not.toBe(glassTextureInk("sky"));
+  });
+
+  it("builds the grain from real geometry rather than a raster tile", () => {
+    /*
+     * A raster tile would need one asset per density, would blur when scaled, and would
+     * sit at a fixed pixel size on a 3x screen. A pattern in an SVG is one definition at
+     * every density - and it is what lets the grain be clipped to the surface's own
+     * radius on native as well as on web.
+     */
+    const source = read("components/glass-texture.tsx");
+    expect(source).toContain("Pattern");
+    expect(source).toContain("patternUnits");
+    expect(source).toContain("glassTextureInk");
+    // Two diagonals, so the grain is a weave rather than a set of parallel lines.
+    expect(source.match(/<Path /g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  });
+
+  it("rounds the bottom bar at the top and leaves no square surface", () => {
+    /*
+     * The bar was square, which reads as a slab with a lid rather than as the floating
+     * pane the rest of the app is made of. Rounding the top corners only is what makes
+     * the content look like it slides under it.
+     */
+    const screen = read("app/(tabs)/index.tsx");
+    expect(screen).toMatch(/bottomBar:[^}]*borderTopLeftRadius/);
+    expect(screen).toMatch(/bottomBar:[^}]*borderTopRightRadius/);
+    // and the swipe actions are pills, sized from the constant rather than a literal
+    const row = read("components/swipeable-chat-row.tsx");
+    expect(row).toMatch(/borderRadius: Math\.round\(CHAT_ROW_ACTION_SIZE/);
   });
 });

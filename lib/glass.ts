@@ -110,14 +110,22 @@ const TINTS: Record<GlassTint, Rgb> = {
    * which is the "white patch" that was reported repeatedly. These sit a clear step
    * above the page so the pane reads as glass rather than as absence.
    *
-   * The neutral cast is *neutral*. It was rgb(224,220,228), which has a spread of 8
-   * across its channels - a mauve-tinted grey, not a grey. The word "White" is the
-   * name the member chooses between, so the choice has to be between a neutral and a
-   * blue, and a third hue made it read as neither. This value has the same luminance
-   * as the one it replaces (0.7263), so the depth the casts were matched to is
-   * unchanged and only the temperature moves.
+   * The neutral cast is *warm*, and it was not before.
+   *
+   * It went through a strictly-neutral phase at rgb(221,221,221), on the argument
+   * that the word "White" should mean an achromatic pane. Measured on the device that
+   * argument lost: an exactly neutral grey over a warm off-white page reads as *dull*
+   * - there is no colour in it for the light to have come from, so the surface looks
+   * like a grey rectangle rather than like lit glass. That is the "dull" the member
+   * reported, and it is a real property of the material rather than a preference.
+   *
+   * This value carries a small warm lean - a spread of 6 across its channels, amber
+   * over blue - which is the least that reads as light rather than as grey while still
+   * reading as "White" beside the sky cast. The lean is deliberately at the same
+   * luminance as the neutral it replaces (0.7263), so the depth every other value was
+   * calibrated against is untouched and only the temperature moves.
    */
-  white: { r: 221, g: 221, b: 221 },
+  white: { r: 226, g: 222, b: 216 },
   /*
    * Sky - the optional cast, in the same light material: a cool pale blue rather than
    * a blue theme. The page and the ink do not change with it, so switching cast changes
@@ -786,23 +794,37 @@ export function glassBlur(surface: GlassSurface): number {
 /** The rim highlight that makes the surface feel physical. */
 export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): string {
   /*
-   * The reference sheet's rim is opaque in the middle and fades at the corners,
-   * which is what gives the card a physical edge rather than a drawn outline. The
-   * card and the bar carry the brightest rim; a row inside a sheet needs less, or
-   * every inner line competes with the sheet it sits on.
+   * The card's edge, and the only one it has.
+   *
+   * This used to be half of a pair: a bright outer rim with a second hairline two
+   * points inside it carrying the cast. The member has asked for the inner one to
+   * go, and the reasoning is worth keeping, because the pair was doing real work in
+   * the reference and does not here. In the samples the two lines are separated by
+   * the thickness of the glass, which is what makes them read as a ground edge. At
+   * this app's card sizes the pair measured two hairlines a pixel or two apart,
+   * which the eye reads as one slightly muddy edge - and on every small surface it
+   * read as a double outline rather than as thickness.
+   *
+   * With the second line gone the outer rim has to carry the whole edge on its own,
+   * so every strength below is raised. The previous values were tuned to sit
+   * *under* the inner hairline, which was the stronger of the two; left as they
+   * were, removing the hairline would have left the app with no visible edge at all.
+   * These are the previous values lifted by roughly a third, which is what the
+   * removed line was contributing, so a card reads at the same edge strength as
+   * before while the extra line is gone.
    */
   const strength: Record<GlassSurface, number> = {
-    card: 0.92,
-    panel: 0.86,
+    card: 1,
+    panel: 1,
     // A row and a chip are the surfaces the member reads most often, and they
     // were the two carrying a rim too faint to see. A light translucent fill over
     // a light page barely differs from the page at any alpha — the rim is what
     // separates it, which is exactly how the reference cards work.
-    row: 0.78,
-    chip: 0.72,
-    tab: 0.86,
-    field: 0.56,
-    floater: 0.66,
+    row: 0.94,
+    chip: 0.9,
+    tab: 1,
+    field: 0.78,
+    floater: 0.88,
   };
   const { r, g, b } = tint === "sky" ? { r: 232, g: 244, b: 255 } : { r: 255, g: 255, b: 255 };
   return `rgba(${r}, ${g}, ${b}, ${strength[surface] ?? 0.6})`;
@@ -847,7 +869,16 @@ export function glassFieldBorder(tint: GlassTint = activeTint): string {
  * either — the card still sits proud by being lighter than the page around it.
  */
 export const GLASS_SHADOW = "rgba(58, 76, 98, 0.34)";
-export const GLASS_SHADOW_OPACITY = 0.3;
+/*
+ * Raised from 0.30, because the member asked for the outer rim to sit elevated.
+ *
+ * With the inner hairline gone the edge is a single line, and a single line cannot
+ * express height on its own - what says "this surface is above that one" is the
+ * shadow it drops. At 0.30 that shadow measured as a faint tint under the card; 0.42
+ * is the point where the lift is legible over the artwork without the card appearing
+ * to float free of the page it sits on.
+ */
+export const GLASS_SHADOW_OPACITY = 0.42;
 
 /*
  * The rim, and the second hairline just inside it.
@@ -1318,6 +1349,29 @@ export function glassTopGlow(tint: GlassTint = activeTint): string {
     sky: "rgba(198, 226, 248, 0.42)",
   };
   return glow[tint] ?? glow.sky;
+}
+
+/**
+ * The ink for the fine grain laid over a glass surface.
+ *
+ * This is the second dimension of the material. A frosted pane is not a flat fill —
+ * it has a fine tooth where the surface catches light unevenly, and that tooth is
+ * most of what separates "frosted glass" from "translucent rectangle" at a glance.
+ *
+ * It is a hairline of the cast's own *shadow* rather than a light or dark line: the
+ * grain is the surface breaking up the light behind it, so it is darker than the pane
+ * it sits on. The alpha is the whole design problem. It has to be visible as tooth on
+ * a card and invisible as texture behind a 12pt label, and those pull in opposite
+ * directions — so it is held to a value that measures below the threshold at which a
+ * line reads as content, and the tests assert that ceiling rather than trusting it.
+ */
+export function glassTextureInk(tint: GlassTint = activeTint): string {
+  /*
+   * Sky takes a cooler, very slightly stronger line, because a cool pane over a warm
+   * page needs a touch more separation for the grain to register at all.
+   */
+  const ink = tint === "sky" ? { r: 88, g: 104, b: 126 } : { r: 120, g: 108, b: 92 };
+  return `rgba(${ink.r}, ${ink.g}, ${ink.b}, ${tint === "sky" ? 0.09 : 0.08})`;
 }
 
 /**

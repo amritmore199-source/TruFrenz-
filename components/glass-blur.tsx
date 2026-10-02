@@ -3,6 +3,7 @@ import React from "react";
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { GlassGlow } from "@/components/glass-glow";
+import { GlassTexture } from "@/components/glass-texture";
 import { activeGlassTint, glassTopGlow } from "@/lib/glass";
 
 /**
@@ -138,6 +139,18 @@ export function GlassBlur({
   ) : null;
 
   /*
+   * A sheet that opts into the glow is a pane, so it takes the grain as well — the two
+   * are what make it a surface rather than a tint, and every modal in the app was
+   * missing both until now. A scrim passes neither, because a scrim is not a pane.
+   */
+  const textureLayer = glow ? (
+    <GlassTexture
+      cast={activeGlassTint()}
+      radius={(typeof glow === "object" ? glow.radius : undefined) ?? radius ?? 18}
+    />
+  ) : null;
+
+  /*
    * A call site that passes children is using this as the sheet element itself, so
    * the blur fills it and the content sits on top. One that passes none is placing
    * the blur as a sibling layer, so the outer element must stay out of the layout
@@ -148,6 +161,7 @@ export function GlassBlur({
       <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape, style]}>
         {blur}
         {glowLayer}
+        {textureLayer}
       </View>
     );
   }
@@ -156,6 +170,7 @@ export function GlassBlur({
     <View style={style}>
       {blur}
       {glowLayer}
+      {textureLayer}
       {children}
     </View>
   );
