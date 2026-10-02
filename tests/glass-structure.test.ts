@@ -592,4 +592,32 @@ describe("the surface layers that were measured wrong", () => {
     // A mesh is lines; grain is points. The tooth must not be built from diagonals.
     expect(tex).not.toContain("Line");
   });
+
+  it("keeps the sign-in sheet transparent and the demo code on the screen", () => {
+    /*
+     * Two defects this pass fixed, both of which made signing in impossible rather than
+     * merely ugly, so both are pinned here.
+     *
+     * The sheet was an opaque slab (`modalSafe: backgroundColor: "#C6C4C1"`) carrying the
+     * light pane ink at roughly 1.5:1 - every label in the flow was effectively invisible.
+     * And the demo code was only ever shown in a transient notice, so with no provider
+     * connected a member who missed it could not finish signing in and could not ask for
+     * the code again: the resend button only produced another unreadable one.
+     */
+    const screen = readFileSync("app/(tabs)/index.tsx", "utf8");
+
+    expect(screen).toContain("modalSafe: { flex: 1, backgroundColor: \"transparent\" }");
+    expect(screen).not.toContain('modalSafe: { flex: 1, backgroundColor: "#C6C4C1" }');
+
+    // The card carries the glass recipe: blur, sheen, tooth and the cast's own rim.
+    const card = screen.slice(screen.indexOf("styles.modalCard,"), screen.indexOf("styles.modalCardInner"));
+    expect(card).toContain("GlassBlur");
+    expect(card).toContain("glassVeil(");
+    expect(card).toContain("GlassTexture");
+    expect(card).toContain('glassEdge("card"');
+
+    // The code is rendered, not just announced.
+    expect(screen).toContain("{demoCode ? <View style={styles.demoCodeBox}>");
+    expect(screen).toContain("{demoCode}");
+  });
 });

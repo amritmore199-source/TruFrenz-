@@ -307,12 +307,13 @@ import {
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
 import { GLASS_PRESETS,
-  GLASS_RIM_INNER_INSET, GLASS_SHADOW, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+  GLASS_RIM_INNER_INSET, GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassTextureInk, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { AmbientField } from "@/components/ambient-field";
 import { GlassSurface } from "@/components/glass-surface";
+import { GlassTexture } from "@/components/glass-texture";
 import { liveGlass } from "@/lib/glass";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
@@ -1974,6 +1975,14 @@ export default function TrufrenzApp() {
     setSelectedChat(null);
     setTab("Profile");
   };
+  /*
+   * The code is deliberately *not* cleared here.
+   *
+   * It used to be, and that was a dead end rather than tidiness: with no SMS or mail
+   * provider connected the demo code is the only code that exists, so discarding it on
+   * the way in means the member is asked for six digits that nothing on the screen can
+   * give them. It is cleared when the sign-in actually ends (see `closeSignup`).
+   */
   const openSignup = () => { setAuthIntent("signup"); setAuthStep("phone"); setProfileErrors({}); setDemoCode(null); setChallengeToken(null); setPasscode(""); setShowSignup(true); tap(); };
 
   const discoverDeviceContacts = async () => {
@@ -5566,77 +5575,95 @@ export default function TrufrenzApp() {
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : `STEP 1 OF 4 · ${authChannel === "email" ? "EMAIL" : "PHONE"}`) : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
-              <Text style={styles.modalSubtitle}>{authStep === "phone" ? authChannel === "email" ? "Email verification is required. Your address is used for account recovery, never shown on your profile." : "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so your code is ${demoCode}. A live build sends this by ${authChannel === "email" ? "email" : "SMS"}.`  : authChannel === "email" ? `We emailed a 6-digit code to ${otpDestination || email || "your address"}. It expires in 10 minutes.` : `We sent a 6-digit code to ${otpDestination || phone || "your phone"}${sentTransport === "whatsapp" ? " on WhatsApp" : ""}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
-              {authStep === "phone" ? <><View style={styles.channelRow}>
-                <Pressable onPress={() => { setAuthChannel("phone"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "phone" && styles.channelButtonActive]}>
-                  <Icon name="smartphone" size={15} color={authChannel === "phone" ? "#FFFFFF" : "#8C8C8C"} />
-                  <Text style={[styles.channelButtonText, authChannel === "phone" && styles.channelButtonTextActive]}>Phone</Text>
-                </Pressable>
-                <Pressable onPress={() => { setAuthChannel("email"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "email" && styles.channelButtonActive]}>
-                  <Icon name="mail-outline" size={15} color={authChannel === "email" ? "#FFFFFF" : "#8C8C8C"} />
-                  <Text style={[styles.channelButtonText, authChannel === "email" && styles.channelButtonTextActive]}>Email</Text>
-                </Pressable>
-              </View>
-              {authChannel === "email" ? <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL ADDRESS · REQUIRED</Text><TextInput value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View>}<Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#F5F5F7" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
-              {authStep === "code" ? <>
-                <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#a7a6a1" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View>
-                {/*
-                  The way out of a missing code.
+<View style={[styles.modalCard, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity), borderColor: glassEdge("card", glassTintChoice) }]}>
+                <GlassBlur
+                  intensity={42}
+                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFillObject, styles.modalCardShape]}
+                />
+                {/* The sheen, so the pane is lit rather than flat. */}
+                <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, styles.modalCardShape, { backgroundColor: glassVeil("card", glassOpacity, glassTintChoice) }]} />
+                {/* The tooth, over the blur and under the content. */}
+                <GlassTexture color={glassTextureInk(glassTintChoice)} radius={26} />
+                <View style={styles.modalCardInner}>
+                              <Text style={styles.modalSubtitle}>{authStep === "phone" ? authChannel === "email" ? "Email verification is required. Your address is used for account recovery, never shown on your profile." : "Phone OTP verification is required. Your number is used for safety, never shown on your profile." : authStep === "code" ? (demoCode ? `No ${authChannel === "email" ? "email" : "SMS"} provider is connected yet, so your code is ${demoCode}. A live build sends this by ${authChannel === "email" ? "email" : "SMS"}.`  : authChannel === "email" ? `We emailed a 6-digit code to ${otpDestination || email || "your address"}. It expires in 10 minutes.` : `We sent a 6-digit code to ${otpDestination || phone || "your phone"}${sentTransport === "whatsapp" ? " on WhatsApp" : ""}. It expires in 10 minutes.`) : authStep === "profile" ? "Your name, date of birth, and neighborhood help nearby friends find you. Nothing here is public beyond your circle." : authStep === "photo" ? "A real photo helps people recognize you at a meetup. You can add or change it later." : "Here's what your neighbors will see. You can update everything from your profile."}</Text>
+                              {authStep === "phone" ? <><View style={styles.channelRow}>
+                                <Pressable onPress={() => { setAuthChannel("phone"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "phone" && styles.channelButtonActive]}>
+                                  <Icon name="smartphone" size={15} color={authChannel === "phone" ? "#FFFFFF" : "#8C8C8C"} />
+                                  <Text style={[styles.channelButtonText, authChannel === "phone" && styles.channelButtonTextActive]}>Phone</Text>
+                                </Pressable>
+                                <Pressable onPress={() => { setAuthChannel("email"); setDemoCode(null); }} style={[styles.channelButton, authChannel === "email" && styles.channelButtonActive]}>
+                                  <Icon name="mail-outline" size={15} color={authChannel === "email" ? "#FFFFFF" : "#8C8C8C"} />
+                                  <Text style={[styles.channelButtonText, authChannel === "email" && styles.channelButtonTextActive]}>Email</Text>
+                                </Pressable>
+                              </View>
+                              {authChannel === "email" ? <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL ADDRESS · REQUIRED</Text><TextInput value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View>}<Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#F5F5F7" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
+                              {authStep === "code" ? <>
+                                <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#a7a6a1" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View>
+                                {demoCode ? <View style={styles.demoCodeBox}>
+                                  <Text style={styles.demoCodeLabel}>NO PROVIDER CONNECTED YET · USE THIS CODE</Text>
+                                  <Text style={styles.demoCodeValue}>{demoCode}</Text>
+                                  <Text style={styles.demoCodeHint}>It also appeared in the notice above. This build has no SMS or mail provider, so this is the only code that will work.</Text>
+                                </View> : null}
+                                {/*
+                                  The way out of a missing code.
 
-                  Without this the only recourse was to go back and re-enter the
-                  address, which spends the challenge and makes a member feel
-                  they have broken something. Twenty seconds is a normal wait on
-                  a slow SMS; a screen with no way forward is what causes people
-                  to give up.
-                */}
-                <View style={styles.resendRow}>
-                  <Text style={styles.resendPrompt}>{resendState.canResend ? "Didn't get it?" : "New code ready in"}</Text>
-                  <Pressable onPress={requestNewCode} disabled={!resendState.canResend || authBusy} accessibilityRole="button" accessibilityLabel={resendLabel(resendState)} accessibilityState={{ disabled: !resendState.canResend }} style={({ pressed }) => [styles.resendButton, !resendState.canResend && styles.resendButtonDisabled, pressed && resendState.canResend && styles.pressed]}>
-                    <Icon name={resendState.canResend ? "refresh" : "schedule"} size={13} color={resendState.canResend ? "#A78FA9" : "#8D9AA5"} />
-                    <Text style={[styles.resendButtonText, !resendState.canResend && styles.resendButtonTextDisabled]}>{resendLabel(resendState)}</Text>
-                  </Pressable>
+                                  Without this the only recourse was to go back and re-enter the
+                                  address, which spends the challenge and makes a member feel
+                                  they have broken something. Twenty seconds is a normal wait on
+                                  a slow SMS; a screen with no way forward is what causes people
+                                  to give up.
+                                */}
+                                <View style={styles.resendRow}>
+                                  <Text style={styles.resendPrompt}>{resendState.canResend ? "Didn't get it?" : "New code ready in"}</Text>
+                                  <Pressable onPress={requestNewCode} disabled={!resendState.canResend || authBusy} accessibilityRole="button" accessibilityLabel={resendLabel(resendState)} accessibilityState={{ disabled: !resendState.canResend }} style={({ pressed }) => [styles.resendButton, !resendState.canResend && styles.resendButtonDisabled, pressed && resendState.canResend && styles.pressed]}>
+                                    <Icon name={resendState.canResend ? "refresh" : "schedule"} size={13} color={resendState.canResend ? "#A78FA9" : "#8D9AA5"} />
+                                    <Text style={[styles.resendButtonText, !resendState.canResend && styles.resendButtonTextDisabled]}>{resendLabel(resendState)}</Text>
+                                  </Pressable>
+                                </View>
+                                <Text style={styles.resendHint}>Only the newest code works. Codes expire 10 minutes after they are sent.</Text>
+                              </> : null}
+                              {authStep === "profile" ? <>
+                                <View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={(value) => { setFullName(value); setProfileErrors((current) => ({ ...current, name: undefined })); }} placeholder="What do people call you?" placeholderTextColor="#a7a6a1" style={styles.fieldInput} returnKeyType="done" /></View>
+                                {profileErrors.name ? <Text style={styles.fieldError}>{profileErrors.name}</Text> : null}
+                                <View style={styles.formField}><Text style={styles.fieldLabel}>DATE OF BIRTH · ADULTS ONLY</Text><TextInput value={dateOfBirth} onChangeText={(value) => { setDateOfBirth(value); setProfileErrors((current) => ({ ...current, dateOfBirth: undefined })); }} placeholder="1996-04-18 or 04/18/1996" placeholderTextColor="#a7a6a1" keyboardType={Platform.OS === "web" ? "default" : "numbers-and-punctuation"} style={styles.fieldInput} returnKeyType="done" /></View>
+                                {profileErrors.dateOfBirth ? <Text style={styles.fieldError}>{profileErrors.dateOfBirth}</Text> : <Text style={styles.fieldHint}>{dateOfBirth && parseDateOfBirth(dateOfBirth) ? `Age ${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} · shown as an age, never your birth date.` : "We show your age, never your exact birth date."}</Text>}
+                                <View style={styles.formField}><Text style={styles.fieldLabel}>LOCALITY</Text><TextInput value={locality} onChangeText={(value) => { setLocality(value); setProfileErrors((current) => ({ ...current, locality: undefined })); }} placeholder="Your neighborhood" placeholderTextColor="#a7a6a1" style={styles.fieldInput} returnKeyType="done" /></View>
+                                {profileErrors.locality ? <Text style={styles.fieldError}>{profileErrors.locality}</Text> : null}
+                                <View style={styles.suggestionRow}>{LOCALITY_SUGGESTIONS.slice(0, 4).map((item) => <Pressable key={item} onPress={() => { setLocality(item); setProfileErrors((current) => ({ ...current, locality: undefined })); tap(); }} style={[styles.suggestionChip, locality === item && styles.suggestionChipActive]}><Text style={[styles.suggestionChipText, locality === item && styles.suggestionChipTextActive]}>{item}</Text></Pressable>)}</View>
+                                <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL FOR RECOVERY · OPTIONAL</Text><TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} style={styles.fieldInput} /></View>
+                                <Text style={styles.fieldLabel}>THINGS YOU ENJOY · PICK UP TO 4</Text>
+                                <View style={styles.interestOptions}>{INTEREST_SUGGESTIONS.map((item) => { const selected = profileInterests.includes(item); return <Pressable key={item} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`Interest ${item}`} onPress={() => { setProfileInterests((current) => toggleProfileInterest(current, item)); setProfileErrors((current) => ({ ...current, interests: undefined })); tap(); }} style={[styles.interestOption, selected && styles.interestOptionActive]}><Text style={[styles.interestOptionText, selected && styles.interestOptionTextActive]}>{item}</Text></Pressable>; })}</View>
+                                {profileErrors.interests ? <Text style={styles.fieldError}>{profileErrors.interests}</Text> : null}
+                                <View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#F5F5F7" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View>
+                              </> : null}
+                              {authStep === "photo" ? <>
+                                <Pressable onPress={pickProfilePhoto} accessibilityRole="button" accessibilityLabel="Choose a profile photo" style={({ pressed }) => [styles.photoPicker, pressed && styles.pressed]}>
+                                  {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.photoPreview} /> : <View style={styles.photoPlaceholder}><Icon name="add-a-photo" size={26} color="#F5F5F7" /></View>}
+                                  <Text style={styles.photoPickerText}>{profilePhoto ? "Change photo" : "Choose from your library"}</Text>
+                                  <Text style={styles.photoPickerHint}>Square photos look best. Nothing is shared until you accept a friend.</Text>
+                                </Pressable>
+                                <View style={styles.photoSafety}><Icon name="visibility" size={15} color="#F5F5F7" /><Text style={styles.photoSafetyText}>Only accepted friends see your photo. You can hide it from suggestions any time.</Text></View>
+                              </> : null}
+                              {authStep === "about" ? <>
+                                <Frosted style={styles.summaryCard}>
+                                  <View style={styles.summaryHeader}>
+                                    {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.summaryAvatar} /> : <View style={styles.summaryAvatarFallback}><Text style={styles.summaryAvatarText}>{(fullName.trim().charAt(0) || "T").toUpperCase()}</Text></View>}
+                                    <View style={{ flex: 1 }}><Text style={styles.summaryName}>{fullName.trim() || "Your name"}</Text><Text style={styles.summaryMeta}>{locality.trim() || "Your neighborhood"} · {dateOfBirth && parseDateOfBirth(dateOfBirth) ? `${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} yrs` : "Age hidden"}</Text></View>
+                                    <View style={styles.verificationPill}><Icon name="phone-iphone" size={12} color="#F5F5F7" /><Text style={styles.verificationText}>Phone verified</Text></View>
+                                  </View>
+                                  <View style={styles.summaryTags}>{profileInterests.map((item) => <View key={item} style={styles.summaryTag}><Text style={styles.summaryTagText}>{item}</Text></View>)}</View>
+                                </Frosted>
+                                <View style={styles.summaryRow}><Icon name="lock-outline" size={15} color="#F5F5F7" /><Text style={styles.summaryRowText}>Your number and birth date stay private. Friends see your age and broad area only.</Text></View>
+                                <View style={styles.summaryRow}><Icon name="groups" size={15} color="#F5F5F7" /><Text style={styles.summaryRowText}>Chats open after a mutual yes. Meetups are always in public places.</Text></View>
+                                <Text style={styles.fieldLabel}>BEFORE YOU JOIN · HOW TRUFRENZ STAYS KIND</Text>
+                                <SafetyOnboardingCarousel onComplete={finishSignup} />
+                              </> : null}
+                              <ActionButton onPress={continueAuth} disabled={authBusy} style={styles.authContinue}><Text style={styles.actionText}>{authBusy ? "Please wait…" : authStep === "phone" ? (authIntent === "login" ? `Send my login code by ${authChannel === "email" ? "email" : "SMS"}` : `Send my code by ${authChannel === "email" ? "email" : "SMS"}`) : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
+                              <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#F5F5F7" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
+                              <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#F5F5F7" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
                 </View>
-                <Text style={styles.resendHint}>Only the newest code works. Codes expire 10 minutes after they are sent.</Text>
-              </> : null}
-              {authStep === "profile" ? <>
-                <View style={styles.formField}><Text style={styles.fieldLabel}>NAME OR NICKNAME</Text><TextInput value={fullName} onChangeText={(value) => { setFullName(value); setProfileErrors((current) => ({ ...current, name: undefined })); }} placeholder="What do people call you?" placeholderTextColor="#a7a6a1" style={styles.fieldInput} returnKeyType="done" /></View>
-                {profileErrors.name ? <Text style={styles.fieldError}>{profileErrors.name}</Text> : null}
-                <View style={styles.formField}><Text style={styles.fieldLabel}>DATE OF BIRTH · ADULTS ONLY</Text><TextInput value={dateOfBirth} onChangeText={(value) => { setDateOfBirth(value); setProfileErrors((current) => ({ ...current, dateOfBirth: undefined })); }} placeholder="1996-04-18 or 04/18/1996" placeholderTextColor="#a7a6a1" keyboardType={Platform.OS === "web" ? "default" : "numbers-and-punctuation"} style={styles.fieldInput} returnKeyType="done" /></View>
-                {profileErrors.dateOfBirth ? <Text style={styles.fieldError}>{profileErrors.dateOfBirth}</Text> : <Text style={styles.fieldHint}>{dateOfBirth && parseDateOfBirth(dateOfBirth) ? `Age ${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} · shown as an age, never your birth date.` : "We show your age, never your exact birth date."}</Text>}
-                <View style={styles.formField}><Text style={styles.fieldLabel}>LOCALITY</Text><TextInput value={locality} onChangeText={(value) => { setLocality(value); setProfileErrors((current) => ({ ...current, locality: undefined })); }} placeholder="Your neighborhood" placeholderTextColor="#a7a6a1" style={styles.fieldInput} returnKeyType="done" /></View>
-                {profileErrors.locality ? <Text style={styles.fieldError}>{profileErrors.locality}</Text> : null}
-                <View style={styles.suggestionRow}>{LOCALITY_SUGGESTIONS.slice(0, 4).map((item) => <Pressable key={item} onPress={() => { setLocality(item); setProfileErrors((current) => ({ ...current, locality: undefined })); tap(); }} style={[styles.suggestionChip, locality === item && styles.suggestionChipActive]}><Text style={[styles.suggestionChipText, locality === item && styles.suggestionChipTextActive]}>{item}</Text></Pressable>)}</View>
-                <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL FOR RECOVERY · OPTIONAL</Text><TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} style={styles.fieldInput} /></View>
-                <Text style={styles.fieldLabel}>THINGS YOU ENJOY · PICK UP TO 4</Text>
-                <View style={styles.interestOptions}>{INTEREST_SUGGESTIONS.map((item) => { const selected = profileInterests.includes(item); return <Pressable key={item} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`Interest ${item}`} onPress={() => { setProfileInterests((current) => toggleProfileInterest(current, item)); setProfileErrors((current) => ({ ...current, interests: undefined })); tap(); }} style={[styles.interestOption, selected && styles.interestOptionActive]}><Text style={[styles.interestOptionText, selected && styles.interestOptionTextActive]}>{item}</Text></Pressable>; })}</View>
-                {profileErrors.interests ? <Text style={styles.fieldError}>{profileErrors.interests}</Text> : null}
-                <View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#F5F5F7" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View>
-              </> : null}
-              {authStep === "photo" ? <>
-                <Pressable onPress={pickProfilePhoto} accessibilityRole="button" accessibilityLabel="Choose a profile photo" style={({ pressed }) => [styles.photoPicker, pressed && styles.pressed]}>
-                  {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.photoPreview} /> : <View style={styles.photoPlaceholder}><Icon name="add-a-photo" size={26} color="#F5F5F7" /></View>}
-                  <Text style={styles.photoPickerText}>{profilePhoto ? "Change photo" : "Choose from your library"}</Text>
-                  <Text style={styles.photoPickerHint}>Square photos look best. Nothing is shared until you accept a friend.</Text>
-                </Pressable>
-                <View style={styles.photoSafety}><Icon name="visibility" size={15} color="#F5F5F7" /><Text style={styles.photoSafetyText}>Only accepted friends see your photo. You can hide it from suggestions any time.</Text></View>
-              </> : null}
-              {authStep === "about" ? <>
-                <Frosted style={styles.summaryCard}>
-                  <View style={styles.summaryHeader}>
-                    {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.summaryAvatar} /> : <View style={styles.summaryAvatarFallback}><Text style={styles.summaryAvatarText}>{(fullName.trim().charAt(0) || "T").toUpperCase()}</Text></View>}
-                    <View style={{ flex: 1 }}><Text style={styles.summaryName}>{fullName.trim() || "Your name"}</Text><Text style={styles.summaryMeta}>{locality.trim() || "Your neighborhood"} · {dateOfBirth && parseDateOfBirth(dateOfBirth) ? `${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} yrs` : "Age hidden"}</Text></View>
-                    <View style={styles.verificationPill}><Icon name="phone-iphone" size={12} color="#F5F5F7" /><Text style={styles.verificationText}>Phone verified</Text></View>
-                  </View>
-                  <View style={styles.summaryTags}>{profileInterests.map((item) => <View key={item} style={styles.summaryTag}><Text style={styles.summaryTagText}>{item}</Text></View>)}</View>
-                </Frosted>
-                <View style={styles.summaryRow}><Icon name="lock-outline" size={15} color="#F5F5F7" /><Text style={styles.summaryRowText}>Your number and birth date stay private. Friends see your age and broad area only.</Text></View>
-                <View style={styles.summaryRow}><Icon name="groups" size={15} color="#F5F5F7" /><Text style={styles.summaryRowText}>Chats open after a mutual yes. Meetups are always in public places.</Text></View>
-                <Text style={styles.fieldLabel}>BEFORE YOU JOIN · HOW TRUFRENZ STAYS KIND</Text>
-                <SafetyOnboardingCarousel onComplete={finishSignup} />
-              </> : null}
-              <ActionButton onPress={continueAuth} disabled={authBusy} style={styles.authContinue}><Text style={styles.actionText}>{authBusy ? "Please wait…" : authStep === "phone" ? (authIntent === "login" ? `Send my login code by ${authChannel === "email" ? "email" : "SMS"}` : `Send my code by ${authChannel === "email" ? "email" : "SMS"}`) : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
-              <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#F5F5F7" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
-              <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#F5F5F7" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
+              </View>
               <Text style={styles.prototypeNote}>Prototype only: phone codes and identity checks are not connected to a live verification service.</Text>
             </ScrollView>
           </KeyboardAvoidingView>
@@ -5762,7 +5789,7 @@ const frozenStyles = StyleSheet.create({
    */
   brandMark: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 9 },
   brandIcon: { width: 31, height: 31, borderRadius: 12, backgroundColor: "#A78FA9", alignItems: "center", justifyContent: "center" },
-  brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#F5F5F7" },
+  brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#141310" },
   /*
    * The greeting shares the app name's line.
    *
@@ -6571,12 +6598,46 @@ const frozenStyles = StyleSheet.create({
   refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center", shadowColor: "#D7E0E7", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
   refreshGlassContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   refreshGlassText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
-  modalSafe: { flex: 1, backgroundColor: "#C6C4C1" },
+  /*
+   * The auth sheet is transparent; the artwork shows through it.
+   *
+   * It was an opaque #C6C4C1 slab, and that single value is why the whole sign-in flow
+   * was unreadable: every ink inside it is the light pane ink (#F5F5F7), so white text
+   * sat on a near-white field at about 1.5:1. The slab also meant the sheet had no blur,
+   * no rim and no sheen, so the largest surface in the app was the one place the glass
+   * recipe was not applied - while the welcome panel, one tap away, was built properly.
+   *
+   * The fill moved to the card (see `modalCard`) so the sheet's own ink can differ from
+   * the card's: the header floats over the artwork, where light ink is right, and the
+   * card is a dark pane, where light ink is also right. That is why the two can share an
+   * ink while having different grounds - the header's ink was simply never on the page.
+   */
+  modalSafe: { flex: 1, backgroundColor: "transparent" },
+  modalCard: {
+    marginHorizontal: 15,
+    marginBottom: 15,
+    borderRadius: 26,
+    borderWidth: 1,
+    overflow: "hidden",
+    shadowColor: GLASS_SHADOW,
+    shadowOpacity: GLASS_SHADOW_OPACITY,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+  modalCardShape: { borderRadius: 26 },
+  modalCardInner: { paddingHorizontal: 23, paddingTop: 22, paddingBottom: 25 },
   modalKeyboard: { flex: 1 },
   modalHeader: { height: 51, paddingHorizontal: 21, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   modalBody: { paddingHorizontal: 23, paddingTop: 22, paddingBottom: 25 },
-  modalTitle: { color: "#F5F5F7", fontSize: 27, lineHeight: 32, letterSpacing: -0.8, fontWeight: "700" },
-  modalSubtitle: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 9, marginBottom: 17, maxWidth: 330 },
+  /*
+   * The photo and about steps are plain screens, not panes: they are the onboarding form,
+   * and they were laid out against an opaque sheet. They keep an opaque ground so their
+   * own ink stays legible; only the sign-in flow sits on the transparent artwork.
+   */
+  modalBodyCard: { backgroundColor: "#C6C4C1" },
+  modalTitle: { color: "#141310", fontSize: 27, lineHeight: 32, letterSpacing: -0.8, fontWeight: "700" },
+  modalSubtitle: { color: "#2B2A27", fontSize: 12, lineHeight: 17, marginTop: 9, marginBottom: 17, maxWidth: 330 },
   authPromise: { padding: 11, borderRadius: 15, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20 },
   authPromiseIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#575B5D", alignItems: "center", justifyContent: "center" },
   authPromiseTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
@@ -6602,6 +6663,19 @@ const frozenStyles = StyleSheet.create({
   resendButtonTextDisabled: { color: "#F5F5F7" },
   resendHint: { fontSize: 12, lineHeight: 17, color: "#F5F5F7", marginTop: -2 },
   codeInput: { letterSpacing: 9, fontSize: 19, fontWeight: "700", textAlign: "center" },
+  /*
+   * The demo code, on the screen rather than only in a notice.
+   *
+   * The notice is transient and the code is the one thing this screen exists to collect,
+   * so a member who looked away for four seconds had no way to finish signing in and no
+   * way to ask for the code again - the resend button only ever produces another one they
+   * cannot read. It is a pane like every other surface, and the digits are set large
+   * because they are meant to be copied across by eye.
+   */
+  demoCodeBox: { marginTop: -6, marginBottom: 12, padding: 11, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  demoCodeLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.7 },
+  demoCodeValue: { color: "#FFFFFF", fontSize: 24, fontWeight: "700", letterSpacing: 6, marginTop: 4 },
+  demoCodeHint: { color: "#F5F5F7", fontSize: 12, lineHeight: 16, marginTop: 5 },
   interestOptions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
   interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   interestOptionActive: { backgroundColor: "#D0D0D0", borderColor: "#93959C" },

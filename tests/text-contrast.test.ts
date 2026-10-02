@@ -68,6 +68,18 @@ const PAGE_LEVEL_STYLES = new Set([
   "groupCreateNote",
   "emptyTitle",
   "sectionLink",
+  /*
+   * The sign-in sheet's own header.
+   *
+   * These three are the only part of the auth flow that does not sit on the card: the
+   * sheet is transparent now, so the eyebrow, the title and the subtitle are painted
+   * straight onto the artwork above it. Measuring them against the card would demand
+   * light ink for a ground they are never on - which is exactly the mistake that made
+   * the whole flow unreadable in the first place.
+   */
+  "brandWord",
+  "modalTitle",
+  "modalSubtitle",
 ]);
 
 function lin(v: number): number {

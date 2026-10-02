@@ -793,3 +793,35 @@ link sits on a pane or on the page, and inherit is exactly that.
 Validation: TypeScript clean; 1041 tests pass with 1 pre-existing skip across 69 files; lint 0
 errors and the 28 pre-existing warnings; `git diff --check` clean; the Metro bundle serves HTTP
 200 with the tooth compiled in.
+
+## The sign-in flow: why it was unreadable, and why OTP appeared to stop working
+
+Two defects, both of which made signing in impossible rather than merely ugly.
+
+**The sheet was an opaque slab.** `modalSafe` declared `backgroundColor: "#C6C4C1"`, and
+every ink inside the flow is the light pane ink `#F5F5F7` — so the title, the labels, the
+field values and the footer all sat at roughly **1.5:1**. Measured in the running app, the
+title was `rgb(245,245,247)` on a ground of `rgb(198,196,193)`. The slab also carried no
+blur, no rim and no sheen, so the largest surface in the app was the one place the glass
+recipe had never been applied — while the welcome panel one tap away was built properly.
+
+The fix moves the fill onto a card (`modalCard`) and leaves the sheet transparent, so the
+artwork shows through. The header takes the page ink ramp (`#141310` / `#2B2A27`) because it
+now genuinely sits on the artwork, and the card takes the same light pane ink as before
+because it is a dark pane. That is why two different grounds can share an ink.
+
+The one part that is *not* the sign-in flow — the photo and about steps — keeps an opaque
+ground (`modalBodyCard`), because it was laid out as a form screen and its own inks were
+solved against a slab. Only the sign-in flow is a pane.
+
+**The demo code was announced but never shown.** `demoCode` was set from the response and
+then only interpolated into a transient notice; it was rendered nowhere on the code screen
+(`grep -c demoCode` over the code step returned 0). With no SMS or mail provider connected
+that code is the *only* code that exists, so a member who looked away for four seconds could
+not finish signing in — and could not ask for it again, because the resend button only
+produces another code they also cannot read. It is now rendered in the pane, large, with the
+reason stated. `openSignup` still clears it, so a fresh sign-in does not show a stale code.
+
+Verified end to end rather than by inspection: the full email path was driven in the browser
+from the welcome screen through the code step to landing on Chats, with the code read off the
+screen (`042100`) and accepted.
