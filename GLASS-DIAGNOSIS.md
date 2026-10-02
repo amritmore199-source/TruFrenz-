@@ -188,3 +188,56 @@ that can actually occur:
 TypeScript clean; **1014 tests pass**, 1 pre-existing skip across 69 files; lint 0 errors
 (28 pre-existing warnings, none new); `git diff --check` clean; the Metro bundle
 compiles at HTTP 200 and carries the new palette.
+
+---
+
+# The actual root cause — found after all of the above
+
+Everything above was real work on real defects, and none of it could be seen,
+because of one line in a dependency.
+
+**`expo-blur`'s web build ignores the colour a caller passes.** It computes its own
+and appends it *after* the caller's style, so the caller's fill never reaches the
+screen:
+
+```js
+// node_modules/expo-blur/build/BlurView.web.js
+return (<View {...props} style={[style, blurStyle]} .../>);
+
+// node_modules/expo-blur/build/getBackgroundColor.js
+case 'light':
+  return `rgba(249,249,249,${opacity * 0.78})`;
+```
+
+Every surface in the app rendered a `rgba(249,249,249,0.33)` film instead of the
+tint `lib/glass.ts` had resolved for it. All 40 `BlurView` call sites passed
+`tint="light"`.
+
+This is the single explanation for the whole history of the complaint:
+
+- **The "white patch" was never a surface's own fill.** It was the blur layer's. It
+  appeared on every card, tab, toggle and sheet at once, which is why patching fills
+  one at a time never removed it and why it kept being reported as "everywhere".
+- **"It doesn't feel like frosted glass"** was the same film: a near-white overlay
+  raises local luminance and flattens contrast, which is what "flat" looks like.
+- **Changing the cast did nothing visible** because the layer doing the visible
+  compositing was not reading the cast at all.
+
+Measured in the browser, member's setting `{glassOpacity: 80, glassTint: "white"}`:
+
+| | before | after |
+|---|---|---|
+| surface fill | `rgba(249,249,249,0.33)` | `rgba(86,86,86,0.31)` |
+
+`249` is expo-blur's constant. Our resolver returns the second value. The fix:
+`components/glass-blur.tsx` owns the blur layer — a plain `View` with
+`backdropFilter` plus our resolved fill on web, `BlurView` on native where `style`
+really is honoured. All 40 sites migrated; two structural tests pin it, including a
+guard that no screen may reach for expo-blur's `BlurView` directly again.
+
+Two ordering variants that survive unchanged are worth recording so they are not
+"fixed" later: putting the fill on the same element as the filter, versus painting it
+in a sibling layer underneath, **composites identically**. The filtered backdrop is
+composited over the fill either way, so the result is `fill over blur(scene)`
+regardless of paint order. Both orderings diffuse the scene; neither one puts the
+fill below the blur.

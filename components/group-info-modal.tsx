@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
@@ -65,8 +65,10 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassBlur intensity={35} style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
+          fill={glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity)}
+        >
           <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.topLine}>
@@ -166,7 +168,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
               </Pressable>
             </ScrollView>
           </Pressable>
-        </BlurView>
+        </GlassBlur>
       </Pressable>
     </Modal>
   );

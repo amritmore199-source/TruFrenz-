@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { GlassSurface } from "@/components/glass-surface";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
@@ -168,13 +168,13 @@ export function PremiumPaywall({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close premium" />
         <View
           style={[styles.sheet, { maxWidth: layout.maxWidth, maxHeight: layout.maxHeight }]}
           accessibilityViewIsModal
         >
-          <BlurView intensity={46} tint="light" style={StyleSheet.absoluteFill} />
+          <GlassBlur intensity={46} style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.92)"), glassOpacity) }]} />
 
           <View style={styles.handle} />

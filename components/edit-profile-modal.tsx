@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
@@ -96,11 +96,11 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fill}>
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-          <BlurView intensity={56} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+          <GlassBlur intensity={56} style={StyleSheet.absoluteFill} />
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close edit profile" onPress={onClose} />
           <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.94)"), glassOpacity) }]}>
-            <BlurView intensity={64} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
+            <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} />
             <View style={styles.header}>
               <View style={styles.headerText}>
                 <Text style={styles.eyebrow}>EDIT PROFILE</Text>

@@ -27,7 +27,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import * as Contacts from "expo-contacts";
 import * as Crypto from "expo-crypto";
 import Constants from "expo-constants";
@@ -4145,7 +4145,7 @@ export default function TrufrenzApp() {
           take the history with it.
         */}
         <Modal visible={closingGroupId !== null} transparent animationType="fade" onRequestClose={() => setClosingGroupId(null)}>
-          <BlurView intensity={glassBlur("panel")} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.closeSheetScrim}>
+          <GlassBlur intensity={glassBlur("panel")} style={styles.closeSheetScrim}>
             <View style={styles.closeSheetCard}>
               <Text style={styles.closeSheetTitle}>
                 Close {groupDirectory.find((entry) => entry.id === closingGroupId)?.name ?? "this circle"}?
@@ -4176,7 +4176,7 @@ export default function TrufrenzApp() {
                 </Pressable>
               </View>
             </View>
-          </BlurView>
+          </GlassBlur>
         </Modal>
         {/*
           The offer composer.
@@ -4186,7 +4186,7 @@ export default function TrufrenzApp() {
           film reads as a system dialogue rather than part of the app.
         */}
         <Modal visible={offerComposerOpen} transparent animationType="fade" onRequestClose={() => setOfferComposerOpen(false)}>
-          <BlurView intensity={glassBlur("panel")} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.closeSheetScrim}>
+          <GlassBlur intensity={glassBlur("panel")} style={styles.closeSheetScrim}>
               <View style={styles.offerSheet}>
                 <Text style={styles.offerSheetEyebrow}>TRUFRENZ BIZZ</Text>
                 <Text style={styles.offerSheetTitle}>What do you offer?</Text>
@@ -4246,7 +4246,7 @@ export default function TrufrenzApp() {
                   </Pressable>
                 </View>
               </View>
-          </BlurView>
+          </GlassBlur>
         </Modal>
         {/*
           Choosing who to send an offer to.
@@ -4256,7 +4256,7 @@ export default function TrufrenzApp() {
           circle into a shop.
         */}
         <Modal visible={offerShareId !== null} transparent animationType="fade" onRequestClose={() => setOfferShareId(null)}>
-          <BlurView intensity={glassBlur("panel")} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.closeSheetScrim}>
+          <GlassBlur intensity={glassBlur("panel")} style={styles.closeSheetScrim}>
               <View style={styles.offerSheet}>
                 <Text style={styles.offerSheetEyebrow}>SHARE THIS OFFER</Text>
                 <Text style={styles.offerSheetTitle}>Send it to a friend</Text>
@@ -4291,7 +4291,7 @@ export default function TrufrenzApp() {
                   <Text style={styles.offerSheetGhostText}>Not now</Text>
                 </Pressable>
               </View>
-          </BlurView>
+          </GlassBlur>
         </Modal>
       </View>;
     }
@@ -5282,7 +5282,7 @@ export default function TrufrenzApp() {
         onReportCancelled={reportCancellation}
       />
       {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Chats" || tab === "Hangouts" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#83721f" colors={["#83721f", "#87AEBF"]} progressBackgroundColor="#fcfaf2" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
-      {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#83721f" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
+      {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><GlassBlur intensity={34} style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#83721f" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       <PremiumPaywall
         visible={paywallOpen}
         subscription={subscription}
@@ -5297,7 +5297,7 @@ export default function TrufrenzApp() {
         purchase={purchase}
         storePrices={storePrices}
       />
-      {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><BlurView intensity={25} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#83721f" /><Text style={styles.handoffTitle}>{tab === "Hangouts" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></BlurView></View> : null}
+      {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><GlassBlur intensity={25} style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#83721f" /><Text style={styles.handoffTitle}>{tab === "Hangouts" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></GlassBlur></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#4A4210" /><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/*
         Account status notice.
@@ -5359,7 +5359,7 @@ export default function TrufrenzApp() {
         differs a little per section, because the content behind the bar ranges
         from dense chat rows to an almost empty screen.
       */}
-      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><BlurView intensity={glassBlur("tab")} tint="light" experimentalBlurMethod="dimezisBlurView" style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><GlassBlur intensity={glassBlur("tab")} style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{/* The inner hairline, a few pixels below the top rim, as in the samples. */}<View pointerEvents="none" style={[styles.barInnerRim, { borderColor: glassInnerRim(glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
         /*
          * The active pill takes its own section's colour rather than one shared
          * lemon, so the bar says *what* is selected and not merely *that* something
@@ -5380,7 +5380,9 @@ export default function TrufrenzApp() {
         return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive, active && { backgroundColor: tabAccentStyle.fill, borderColor: "rgba(255, 255, 255, 0.95)" }]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? tabAccentStyle.ink : quietInk.icon} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive, { color: active ? tabAccentStyle.ink : quietInk.label }]} numberOfLines={1} ellipsizeMode="middle">{section.label}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
-          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+          <GlassBlur intensity={34} style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
+            fill={glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity)}
+          >
             <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.87)"), glassOpacity) }]}>
               <ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}>
               <View style={styles.actionMenuHandle} />
@@ -5394,7 +5396,7 @@ export default function TrufrenzApp() {
               <Text style={styles.navigationMenuHint}>Your phone’s Back button also closes sheets, returns from a chat, and takes you back to Conversations.</Text>
               </ScrollView>
             </Pressable>
-          </BlurView>
+          </GlassBlur>
         </Pressable>
       </Modal>
       <Modal visible={showSignup} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeSignup}>
@@ -5487,7 +5489,9 @@ export default function TrufrenzApp() {
         <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.verificationModalIcon}><Icon name="verified-user" size={19} color="#64937D" /></View><Pressable onPress={() => setVerificationPrompt(false)} style={styles.roundAction}><Icon name="close" size={18} color="#726e59" /></Pressable></View><Text style={styles.groupModalTitle}>A little extra trust, first.</Text><Text style={styles.groupModalCopy}>Your phone is verified. To send friend requests, add a live-selfie match or ID check for the stronger badge. You can keep browsing until then.</Text><View style={styles.verificationStep}><Icon name="phone-iphone" size={16} color="#758B9B" /><Text style={styles.verificationStepText}>Phone verification · complete</Text><Icon name="check-circle" size={15} color="#65937C" /></View><View style={styles.verificationStep}><Icon name="face" size={16} color="#83721f" /><Text style={styles.verificationStepText}>Selfie match or ID check · optional</Text><Icon name="lock-outline" size={14} color="#8B8985" /></View><ActionButton onPress={() => { setVerificationPrompt(false); setSelfieModalVisible(true); }} style={styles.groupCreateButton}><Text style={styles.actionText}>Start selfie check</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setVerificationPrompt(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Maybe later</Text></Pressable></Frosted></View>
       </Modal>
       <Modal visible={actionMenuOpen} transparent animationType="fade" onRequestClose={() => setActionMenuOpen(false)}>
-        <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.88)"), glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#6E8DA1" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#848A8F" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#83721f" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#848A8F" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#7A8B98" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></BlurView></Pressable>
+        <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><GlassBlur intensity={35} style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
+          fill={glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity)}
+        ><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.88)"), glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#6E8DA1" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#848A8F" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#83721f" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#848A8F" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#7A8B98" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></GlassBlur></Pressable>
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />

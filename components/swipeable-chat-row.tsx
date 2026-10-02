@@ -12,7 +12,7 @@ import {
   type ImageSourcePropType,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 
 import { glassBlur, glassTint } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
@@ -266,10 +266,8 @@ export function SwipeableChatRow({
         >
           {/* Blur first, then the tint: the wallpaper's bright areas would
               otherwise read as hard white patches across the row. */}
-          <BlurView
+          <GlassBlur
             intensity={glassBlur("row")}
-            tint="light"
-            experimentalBlurMethod="dimezisBlurView"
             style={[StyleSheet.absoluteFillObject, styles.rowBlur]}
             pointerEvents="none"
           />

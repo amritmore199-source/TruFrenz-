@@ -1,7 +1,7 @@
 import { glassNestedFill } from "@/lib/appearance-preferences";
 import React, { useRef, useState } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { nextSafetySlide, previousSafetySlide, safetyOnboardingSlides } from "@/lib/onboarding-carousel";
 
@@ -47,7 +47,7 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
           if (delta > 55 && index > 0) goBack();
         }}
       >
-        <BlurView intensity={32} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.glassCard}>
+        <GlassBlur intensity={32} style={styles.glassCard}>
           <View style={styles.cardContent}>
             <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#83721f" /></View>
             <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
@@ -59,7 +59,7 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
             </View>
             <View style={styles.stepLabel}><Text style={styles.stepText}>A KINDER WAY TO CONNECT</Text><Text style={styles.stepNumber}>0{index + 1} / 0{ safetyOnboardingSlides.length }</Text></View>
           </View>
-        </BlurView>
+        </GlassBlur>
       </Animated.View>
       <View style={styles.controls}>
         {index > 0 ? <Pressable onPress={goBack} accessibilityRole="button" style={styles.backButton}><MaterialIcons name="arrow-back" size={16} color="#827e75" /><Text style={styles.backText}>Back</Text></Pressable> : <View style={styles.backPlaceholder} />}

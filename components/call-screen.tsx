@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { glassSurfaceColor,
@@ -39,7 +39,7 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={ringing && incoming ? onDecline : onEnd}>
       <View style={styles.fill}>
-        <BlurView intensity={48} tint="light" experimentalBlurMethod="dimezisBlurView" style={styles.backdrop} />
+        <GlassBlur intensity={48} style={styles.backdrop} />
         <View style={[styles.panel, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 251, 244, 0.92)"), glassOpacity) }]}>
           <View style={styles.avatarWrap}>
             <View style={[styles.avatar, session.video && styles.avatarVideo]}>

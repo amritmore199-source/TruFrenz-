@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
@@ -120,11 +120,11 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={58} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassBlur intensity={58} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close profile" onPress={onClose} />
         <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.92)"), glassOpacity) }]}>
-          <BlurView intensity={64} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
+          <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} />
           <View style={styles.header}>
             <View style={styles.handle} />
             <Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close profile">

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import type { QuickReply } from "@/lib/quick-replies";
@@ -38,11 +38,11 @@ export function QuickRepliesModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.shade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassBlur intensity={34} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close quick replies" onPress={onClose} />
         <Pressable style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.92)"), glassOpacity) }]} onPress={(event) => event.stopPropagation()}>
-          <BlurView intensity={39} tint="light" experimentalBlurMethod="dimezisBlurView" pointerEvents="none" style={StyleSheet.absoluteFill} />
+          <GlassBlur intensity={39} pointerEvents="none" style={StyleSheet.absoluteFill} />
           <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.handle} />
           <View style={styles.headingRow}>

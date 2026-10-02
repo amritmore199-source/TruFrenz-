@@ -19,7 +19,7 @@
 
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
 
@@ -54,7 +54,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
       accessibilityRole="summary"
       accessibilityLabel={`${nudge.title}. ${nudge.body}`}
     >
-      <BlurView intensity={38} tint="light" style={StyleSheet.absoluteFill} />
+      <GlassBlur intensity={38} style={StyleSheet.absoluteFill} />
       <View style={styles.row}>
         <View style={[styles.badge, atLimit && styles.badgeAtLimit]}>
           <MaterialIcons

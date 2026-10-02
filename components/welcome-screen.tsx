@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
@@ -217,11 +217,10 @@ export function WelcomeScreen({
           </View>
         </View>
 
-        <BlurView
+        <GlassBlur
           intensity={42}
-          tint="light"
-          experimentalBlurMethod="dimezisBlurView"
-          style={[styles.glass, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.72)"), glassOpacity) }]}
+          style={[styles.glass]}
+          fill={glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.72)"), glassOpacity)}
         >
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
@@ -257,7 +256,7 @@ export function WelcomeScreen({
             </Pressable>
             <Text style={styles.guestNote}>Browse-only preview · no chatting until you join</Text>
           </View>
-        </BlurView>
+        </GlassBlur>
 
         <View style={styles.carouselBlock}>
           <View style={styles.carouselFrame} onLayout={(event) => setCarouselWidth(Math.round(event.nativeEvent.layout.width))}>
@@ -297,11 +296,10 @@ export function WelcomeScreen({
           <Text style={styles.swipeHint}>Swipe gently, or tap a dot to move through the intro.</Text>
         </View>
 
-        <BlurView
+        <GlassBlur
           intensity={30}
-          tint="light"
-          experimentalBlurMethod="dimezisBlurView"
-          style={[styles.companyGlass, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.66)"), glassOpacity) }]}
+          style={[styles.companyGlass]}
+          fill={glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.66)"), glassOpacity)}
         >
           <View style={styles.companyInner}>
             <Pressable
@@ -332,12 +330,14 @@ export function WelcomeScreen({
               © {new Date().getFullYear()} {COMPANY_DETAILS.name} · {COMPANY_DETAILS.supportEmail}
             </Text>
           </View>
-        </BlurView>
+        </GlassBlur>
       </ScrollView>
 
       <Modal visible={termsOpen} transparent animationType="fade" onRequestClose={() => setTermsOpen(false)}>
         <View style={styles.termsShade}>
-          <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.termsSheet, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.93)"), glassOpacity) }]}>
+          <GlassBlur intensity={38} style={[styles.termsSheet]}
+            fill={glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.93)"), glassOpacity)}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.termsHeader}>
                 <Text style={styles.termsTitle}>Terms &amp; Privacy</Text>
@@ -373,7 +373,7 @@ export function WelcomeScreen({
               </Pressable>
               <Text style={styles.termsFootnote}>Prototype build: these summaries stand in for the full published policy.</Text>
             </ScrollView>
-          </BlurView>
+          </GlassBlur>
         </View>
       </Modal>
     </View>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
@@ -99,8 +99,10 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={onClose}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={35} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { maxWidth: modalLayout.maxWidth, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity) }]}>
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassBlur intensity={35} style={[styles.sheet, { maxWidth: modalLayout.maxWidth}]}
+          fill={glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.92)"), glassOpacity)}
+        >
           <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
             <View style={styles.handle} />
 
@@ -193,7 +195,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
               <Text style={styles.cancelText}>Close</Text>
             </Pressable>
           </Pressable>
-        </BlurView>
+        </GlassBlur>
       </Pressable>
     </Modal>
   );

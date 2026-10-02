@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, PanResponder, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { IncomingNotification } from "@/lib/incoming-notifications";
 import { shouldDismissIncomingNotificationSwipe } from "@/lib/incoming-notifications";
@@ -122,7 +122,7 @@ export function IncomingNotificationBanner({
       style={[styles.position, { opacity, pointerEvents: notification ? "auto" : "none", transform: [{ translateX }, { translateY }, { scale }] }]}
     >
       <View style={[styles.surface, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.92)"), glassOpacity) }]}>
-        <BlurView intensity={44} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+        <GlassBlur intensity={44} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
             <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#83721f" : "#798FA0"} />

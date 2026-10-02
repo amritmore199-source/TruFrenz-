@@ -27,7 +27,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import Constants from "expo-constants";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
@@ -238,7 +238,7 @@ export function ManageSubscriptionModal({
             },
           ]}
         >
-          <BlurView intensity={46} tint="light" style={StyleSheet.absoluteFill} />
+          <GlassBlur intensity={46} style={StyleSheet.absoluteFill} />
           <View style={styles.handle} />
 
           <View style={styles.headerRow}>

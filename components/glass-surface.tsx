@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 
 import { useAppAppearance } from "@/lib/appearance-context";
 import {
@@ -106,10 +106,8 @@ export function GlassSurface({
         style,
       ]}
     >
-      <BlurView
+      <GlassBlur
         intensity={glassBlur(surface)}
-        tint="light"
-        experimentalBlurMethod="dimezisBlurView"
         pointerEvents="none"
         style={[StyleSheet.absoluteFillObject, styles.noninteractive, shape]}
       />

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -22,7 +22,7 @@ describe("the glass structure", () => {
    */
   it("paints glass with a blur, a cast, a sheen and a rim", () => {
     const source = read("components/glass-surface.tsx");
-    expect(source).toContain("<BlurView");
+    expect(source).toContain("<GlassBlur");
     expect(source).toContain("glassTint(surface");
     expect(source).toContain("glassVeil(surface");
     expect(source).toContain("glassEdge(surface");
@@ -31,7 +31,7 @@ describe("the glass structure", () => {
 
   /*
    * A translucent fill is not frost. Frost is a blur of whatever sits behind the
-   * surface, so a card without a BlurView has nothing to diffuse and reads as a
+   * surface, so a card without a blur layer has nothing to diffuse and reads as a
    * flat coloured panel however pale its colour is. This is the check that keeps
    * a screen from going back to paint.
    */
@@ -47,7 +47,7 @@ describe("the glass structure", () => {
     ]) {
       const source = read(file);
       // Either it layers its own blur, or it delegates to the shared surface.
-      expect(source.includes("BlurView") || source.includes("GlassSurface")).toBe(true);
+      expect(source.includes("GlassBlur") || source.includes("GlassSurface")).toBe(true);
     }
   });
 
@@ -268,5 +268,48 @@ describe("the field outline", () => {
       const drawn = page.map((channel, i) => parts[i]! * parts[3]! + channel * (1 - parts[3]!));
       expect(ratio(drawn, page)).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe("the blur layer cannot be overridden", () => {
+  /*
+   * `expo-blur`'s web build appends its own background colour *after* the
+   * caller's style, so the fill every surface resolved was discarded and a
+   * `rgba(249,249,249,0.33)` film painted instead. That film was the "white
+   * patch" reported on every card, tab, toggle and sheet, and it is why changing
+   * the cast appeared to do nothing.
+   *
+   * These two checks pin the fix: the app must not reach for expo-blur's
+   * BlurView directly, and the shared layer must own the backdrop filter itself.
+   */
+  it("never uses expo-blur's BlurView directly", () => {
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) {
+          walk(path);
+          continue;
+        }
+        if (!entry.name.endsWith(".tsx")) continue;
+        const source = readFileSync(path, "utf8");
+        // The layer itself is allowed to import it; it is the only place that may.
+        if (source.includes("<BlurView") && !path.endsWith("glass-blur.tsx")) {
+          offenders.push(path);
+        }
+      }
+    };
+    walk(`${process.cwd()}/app`);
+    walk(`${process.cwd()}/components`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("paints the fill on the same element as the backdrop filter", () => {
+    const source = read("components/glass-blur.tsx");
+    // The fill must be a sibling of the backdrop filter inside one style array,
+    // not a separate layer underneath it: a filter samples what is behind its own
+    // element, so a fill painted below would be the thing it blurs.
+    expect(source).toContain("backdropFilter");
+    expect(source).toMatch(/backdropFilter[\s\S]{0,400}tint,/);
   });
 });

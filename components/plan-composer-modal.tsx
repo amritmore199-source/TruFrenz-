@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useResponsiveModalLayout } from "@/hooks/use-responsive-modal-layout";
@@ -76,8 +76,10 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.fill}>
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-          <BlurView intensity={34} tint="light" experimentalBlurMethod="dimezisBlurView" style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity) }]}>
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+          <GlassBlur intensity={34} style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
+            fill={glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity)}
+          >
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.topLine}>
                 <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#83721f" /></View>
@@ -151,7 +153,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
                 <Text style={styles.cancelText}>Not now</Text>
               </Pressable>
             </ScrollView>
-          </BlurView>
+          </GlassBlur>
         </View>
       </KeyboardAvoidingView>
     </Modal>

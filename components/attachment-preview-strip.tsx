@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { glassSurfaceColor,
@@ -52,10 +52,8 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
       accessibilityLabel={`${attachmentPreviewTitle(pending.kind)}. ${attachmentPreviewLabel(pending, { sizeBytes })}. ${attachmentPreviewNote(pending.kind)}`}
       style={[styles.shell, { opacity: enter, transform: [{ translateY }] }]}
     >
-      <BlurView
+      <GlassBlur
         intensity={40}
-        tint="light"
-        experimentalBlurMethod="dimezisBlurView"
         pointerEvents="none"
         style={[StyleSheet.absoluteFillObject, styles.blur]}
       />

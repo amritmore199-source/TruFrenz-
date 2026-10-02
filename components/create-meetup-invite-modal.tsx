@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { GlassBlur } from "@/components/glass-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { buildMeetupInviteDraft, publicMeetupVenues, type MeetupInviteDraft, type PublicMeetupVenue } from "@/lib/meetup-invite";
 import { glassSurfaceColor,
@@ -74,8 +74,8 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
-        <BlurView intensity={28} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <BlurView intensity={38} tint="light" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFillObject} />
+        <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <GlassBlur intensity={38} style={StyleSheet.absoluteFillObject} />
         <Pressable accessibilityLabel="Close meetup invite" style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.keyboard, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>
             <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(249, 249, 244, 0.93)"), glassOpacity) }]}>
