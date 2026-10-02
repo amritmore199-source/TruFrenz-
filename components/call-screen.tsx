@@ -40,7 +40,7 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
     <Modal visible transparent animationType="fade" onRequestClose={ringing && incoming ? onDecline : onEnd}>
       <View style={styles.fill}>
         <GlassBlur intensity={48} style={styles.backdrop} />
-        <View style={[styles.panel, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) }]}>
+        <View style={[styles.panel, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
           <View style={styles.avatarWrap}>
             <View style={[styles.avatar, session.video && styles.avatarVideo]}>
               <MaterialIcons name={groupLabel ? "groups" : "person"} size={30} color="#FFFFFF" />
@@ -79,7 +79,7 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
           )}
 
           <View style={styles.noteRow}>
-            <MaterialIcons name="lock-outline" size={13} color="#DFE9F0" />
+            <MaterialIcons name="lock-outline" size={13} color="#4B4651" />
             <Text style={styles.note}>Calls are end-to-end encrypted and only reachable by accepted friends. Declining never sends a pushy notification.</Text>
           </View>
         </View>
@@ -91,21 +91,21 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
 const styles = StyleSheet.create({
   fill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
   backdrop: { ...StyleSheet.absoluteFillObject },
-  panel: { width: "100%", maxWidth: 340, borderRadius: 26, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), paddingHorizontal: 20, paddingVertical: 24, alignItems: "center", shadowColor: "#E9F3FA", shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  panel: { width: "100%", maxWidth: 340, borderRadius: 26, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 20, paddingVertical: 24, alignItems: "center", shadowColor: "#E9F3FA", shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
   avatarWrap: { alignItems: "center", justifyContent: "center" },
-  avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   avatarVideo: { backgroundColor: "#A3A3A3" },
   ringHalo: { position: "absolute", width: 96, height: 96, borderRadius: 36, borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.5)" },
-  verifiedBadge: { position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#949494", borderWidth: 2, borderColor: "#fbfaf4" },
-  title: { color: "#EEF8FF", fontSize: 17, fontWeight: "700", marginTop: 15 },
-  subtitle: { color: "#E6EFF7", fontSize: 12, marginTop: 4 },
-  state: { color: "#B8B8B8", fontSize: 12, fontWeight: "650" as any, marginTop: 6 },
-  warn: { color: "#B8B8B8", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 9 },
+  verifiedBadge: { position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#949494", borderWidth: 2, borderColor: "#868386" },
+  title: { color: "#4B4651", fontSize: 17, fontWeight: "700", marginTop: 15 },
+  subtitle: { color: "#4B4651", fontSize: 12, marginTop: 4 },
+  state: { color: "#666070", fontSize: 12, fontWeight: "650" as any, marginTop: 6 },
+  warn: { color: "#666070", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 9 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 20 },
-  decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#9F6673", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
-  accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#9F6673", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   actionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  noteRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 20, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  note: { flex: 1, color: "#E6EFF7", fontSize: 12, lineHeight: 17 },
+  noteRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 20, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "rgba(0, 0, 0, 0.10)" },
+  note: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   pressed: { opacity: 0.88, transform: [{ scale: 0.97 }] },
 });

@@ -99,47 +99,24 @@ const TAB_PILL_ALPHA_CAP = 0.84;
 
 const TINTS: Record<GlassTint, Rgb> = {
   /*
-   * White - the default cast, which despite its name is the *dark* one.
+   * Light frosted glass, which is what this app shipped as before the lemon pass.
    *
-   * This is variant B of the member's references: matte charcoal glass carrying
-   * solid white ink. The cast value is dark because of what the resolver does with
-   * it - a neutral surface declares a near-opaque white, and the resolver mixes that
-   * 62% toward the cast, so the value that reaches the screen is
-   * mix(255, cast, 0.62). A dark cast is therefore what turns a declared-white
-   * surface into a dark pane.
+   * The pane is a *pale* value here, and it composites over the warm off-white page
+   * (250,248,247) to a soft frosted panel that carries dark mauve ink. The previous
+   * values were near-black and were paired with white ink - that inversion was one of
+   * the reference-chasing passes, and the member has asked for the original look back.
    *
-   * WHY THE CAST DARKENED RATHER THAN THE ALPHA RISING. A card renders at
-   * `alpha * fill + (1 - alpha) * backdrop`. Over the old pale page, white ink did
-   * not clear 4.5:1 until the card was 118 or darker, which needed an alpha of 0.86
-   * on the previous cast - at which point the wallpaper contributes 14% of the
-   * surface and the blur has nothing to act on, so the result is opaque paint
-   * wearing a glass label. The lever that works is the one underneath: darken the
-   * *backdrop*, leave the alpha alone. At the shipped alpha of 0.28 a card over the
-   * dark field resolves to roughly 46, where white ink clears 15:1, and the surface
-   * is still 72% backdrop - genuinely translucent, genuinely blurred.
+   * Neither value is white: a pure-white fill resolves to the page at every alpha,
+   * which is the "white patch" that was reported repeatedly. These sit a clear step
+   * above the page so the pane reads as glass rather than as absence.
    */
+  white: { r: 224, g: 220, b: 228 },
   /*
-   * A true neutral, and genuinely achromatic - equal channels, not nearly equal.
-   *
-   * This is the shipped cast and the member's "black and white" instruction, so the
-   * glass must carry no colour of its own at all. A three-point cool bias is the kind
-   * of thing that reads as a deliberate tint at card size and as a mistake on a bar.
-   * Depth 40 gives white ink 5.8:1 over the artwork's paper.
+   * Sky - the optional cast, in the same light material: a cool pale blue rather than
+   * a blue theme. The page and the ink do not change with it, so switching cast changes
+   * the temperature of the glass and nothing else.
    */
-  white: { r: 40, g: 40, b: 40 },
-  /*
-   * Sky - the optional cast: the same pane in a cool neutral, not a blue theme.
-   *
-   * The reference's own blue (#AAAAAA, chroma 110) carries white ink at 2.46:1, so it
-   * cannot be copied literally - and copying it "as close as possible" is what made
-   * the member ask why blue was appearing everywhere. The honest reading of the
-   * reference is that it is a *tinted* glass, not a coloured one: the blue is a cast
-   * over the scene, it does not replace it. This is therefore a greyer, quieter blue -
-   * the card lands at chroma 46 against 73 before - which reads as glass with a cool
-   * light through it. Blue still leads and red is still lowest, so it reads as sky
-   * rather than drifting toward violet, and white ink keeps a comfortable margin.
-   */
-  sky: { r: 20, g: 46, b: 74 },
+  sky: { r: 205, g: 219, b: 234 },
 };
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
@@ -198,9 +175,9 @@ const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
  * buttons keep the separate darker ink that makes them readable.
  */
 export const TEXT_ON_GLASS = {
-  heading: "#FFFFFF",
-  body: "#F2F3F5",
-  secondary: "#B9BEC4",
+  heading: "#4B4651",
+  body: "#5A5560",
+  secondary: "#666070",
 } as const;
 
 /** The mix for a cast, falling back to the pale wash for an unknown one. */
@@ -615,7 +592,18 @@ function surfaceLuminance(c: Rgb): number {
  * exact crossing: 4.5:1 sits at 0.184, and 0.175 measures 4.71:1, which leaves room
  * for a channel rounding the wrong way without any surface falling back under AA.
  */
-const INK_FLOOR_LUMINANCE = 0.175;
+/**
+ * The luminance every surface must reach for its own ink to be legible.
+ *
+ * This was 0.175 and was a *floor*: the app painted dark panes, so a surface had to be
+ * darker than 0.175 for white type on it to clear AA. The app now paints light panes
+ * with dark mauve ink, so the same constraint reads the other way - the surface must be
+ * *lighter* than 0.52. That number is not a guess: the shipped ink #4B4651 has a
+ * luminance of 0.065, so 4.5:1 needs the surface at 0.467, and 0.52 carries the margin
+ * that stops a channel rounding the wrong way from dropping it back under.
+ */
+const INK_CEILING_LUMINANCE = 0.52;
+const INK_FLOOR_LUMINANCE = INK_CEILING_LUMINANCE;
 
 /**
  * The colour a translucent surface actually shows over the page.
@@ -625,7 +613,7 @@ const INK_FLOOR_LUMINANCE = 0.175;
  * a low alpha that is very close to the page. Measuring the declared value was the
  * hole in the first version of this guard, and it let a tinted fill through at 2.78:1.
  */
-const PAGE_GROUND: Rgb = { r: 250, g: 250, b: 251 };
+const PAGE_GROUND: Rgb = { r: 250, g: 248, b: 247 };
 function landed(c: Rgb, alpha: number): Rgb {
   return {
     r: Math.round(c.r * alpha + PAGE_GROUND.r * (1 - alpha)),
@@ -641,21 +629,39 @@ function landed(c: Rgb, alpha: number): Rgb {
  * so a high-alpha surface and a low-alpha one are held to the same result rather than
  * to the same number.
  */
-function darkenToInkFloor(c: Rgb, alpha: number): Rgb {
-  if (surfaceLuminance(landed(c, alpha)) <= INK_FLOOR_LUMINANCE) return c;
+function lightenToInkFloor(c: Rgb, alpha: number): Rgb {
+  /*
+   * The guard, inverted for dark ink.
+   *
+   * The app now paints a *light* frosted pane carrying dark mauve ink, so the failure
+   * mode is the opposite of the one this guard was written for: a surface that is too
+   * **dark** for its own label. The mechanism is unchanged - solve the landed colour,
+   * not the declared one, because a translucent fill only has a contrast ratio once it
+   * has composited over the page - but the direction is now toward white.
+   *
+   * Mixing toward white rather than scaling the channels is what keeps the hue: a
+   * multiply would drive a tinted surface to black, while a mix washes it toward the
+   * ground evenly, so a mauve stays mauve and a sky-blue stays cool.
+   */
+  if (surfaceLuminance(landed(c, alpha)) >= INK_CEILING_LUMINANCE) return c;
   let lo = 0;
   let hi = 1;
   for (let i = 0; i < 24; i += 1) {
     const mid = (lo + hi) / 2;
-    const scaled: Rgb = {
-      r: Math.round(c.r * mid),
-      g: Math.round(c.g * mid),
-      b: Math.round(c.b * mid),
+    const lifted: Rgb = {
+      r: Math.round(c.r + (255 - c.r) * mid),
+      g: Math.round(c.g + (255 - c.g) * mid),
+      b: Math.round(c.b + (255 - c.b) * mid),
     };
-    if (surfaceLuminance(landed(scaled, alpha)) > INK_FLOOR_LUMINANCE) hi = mid;
+    if (surfaceLuminance(landed(lifted, alpha)) >= INK_CEILING_LUMINANCE) hi = mid;
     else lo = mid;
   }
-  return { r: Math.round(c.r * lo), g: Math.round(c.g * lo), b: Math.round(c.b * lo) };
+  const t = hi;
+  return {
+    r: Math.round(c.r + (255 - c.r) * t),
+    g: Math.round(c.g + (255 - c.g) * t),
+    b: Math.round(c.b + (255 - c.b) * t),
+  };
 }
 
 function mix(a: Rgb, b: Rgb, amount: number): Rgb {
@@ -930,60 +936,51 @@ export function ambientIntensityFor(section: AmbientSection | null | undefined):
  * label actually renders under.
  */
 const TAB_INK: Record<AmbientSection, string> = {
-  /* One ink for all five sections, and it is white.
+  /*
+   * One ink for all five sections, and it is dark mauve.
    *
-   * The five-grey table was a maintenance trap - solved against pills that all shared
-   * one blue, so making the fields per-section moved two pills out from under their
-   * inks. White cannot go stale for the same reason black could not: the pill's own
-   * alpha is past the point where the floor is met, so the label does not depend on a
-   * solved value a future change to a field could invalidate. The dark glass is what
-   * forced the direction - the mono variant carries solid white type on charcoal. */
-  chats: "#FFFFFF",
-  groups: "#FFFFFF",
-  hangouts: "#FFFFFF",
-  bizz: "#FFFFFF",
-  profile: "#FFFFFF",
+   * The pill is a light mauve pane now, so its label has to be an ink rather than a
+   * highlight - white on this surface would be the light-on-light that made the bar
+   * unreadable. One value for all five because the five pills share a depth: a
+   * five-way table is a maintenance trap, and it only existed when the pills had been
+   * given five different hues.
+   */
+  chats: "#3A3440",
+  groups: "#3A3440",
+  hangouts: "#3A3440",
+  bizz: "#3A3440",
+  profile: "#3A3440",
 };
 
 export function glassTabAccent(
   section: AmbientSection | null | undefined,
   tint: GlassTint = activeTint,
 ): { fill: string; ink: string } {
-  /*
-   * A caller with no section keeps the shipped lemon rather than silently taking
-   * Chats' colour, which would claim a selection that does not exist.
-   */
-  if (!section || !(section in TAB_INK)) return { fill: "rgba(38, 40, 44, 0.55)", ink: "#FFFFFF" };
+  /* A caller with no section gets the shipped mauve rather than silently taking
+     Chats' colour, which would claim a selection that does not exist. */
+  if (!section || !(section in TAB_INK)) return { fill: "rgba(169, 150, 172, 0.72)", ink: "#3A3440" };
   const key = section as AmbientSection;
+
   /*
-   * Built from the section's *field* rather than from its empty-state tile.
+   * The pill is a light pane of the section's own colour.
    *
-   * It used to derive from the tile, which was right while the tile was a saturated
-   * wash on a light page. The field inverted with the glass, so the tile is now a
-   * pale wash - and a pill derived from a pale wash over a bright page comes out pale,
-   * which is the one thing an active control must not be. Reading the field instead
-   * keeps the pill tied to the section's own colour while its alpha is set by what the
-   * control needs: a saturated pane that reads as the selection at a glance and
-   * carries white ink without the ink having to be solved per section.
+   * It used to be a dark chip carrying white type, which belonged to the dark system.
+   * On a light page the active control is the *more present* one, and presence here
+   * means saturation rather than depth - so the pill is the page mixed toward the
+   * section's accent, which keeps the section identifiable and keeps the bar calm.
    */
-  const nums = glassAmbient(tint, 1, key).warm.match(/[\d.]+/g) ?? [];
-  if (nums.length < 4) return { fill: "rgba(34, 38, 44, 0.72)", ink: "#FFFFFF" };
-  const [r, g, b] = nums.map(Number);
+  const accent = (tint === "sky" ? SKY_SECTION_ACCENT : SECTION_ACCENT)[key].tile;
+  const h = accent.replace('#', '');
+  const a = [0, 2, 4].map((k) => parseInt(h.slice(k, k + 2), 16));
   /*
-   * Deepened, because a field pool is a light *source* meant to sit under glass and
-   * this is the glass itself. Each channel travels toward its own floor rather than
-   * being scaled, so a pool that is already dark cannot invert into a bright pill.
+   * Mixed by measurement, not by eye. At 0.34 toward the accent over the warm page the
+   * pill lands near 0.62 luminance, and the ink below (#3A3440, luminance 0.045) clears
+   * 5.0:1 on it while the pill still reads clearly as a tinted pane against the page.
    */
-  /*
-   * Solved for white ink rather than guessed. The landed pill is
-   * `alpha * deep + (1 - alpha) * page`, and at 0.84 over the artwork's paper a
-   * factor of 0.40 puts the pill at luminance 0.143 - white on it clears 5.4:1,
-   * comfortably past AA, while the pill still reads as a pane of its section's
-   * colour rather than as a black chip.
-   */
-  const deep = (c: number, floor: number) => Math.round(Math.max(floor, c * 0.40));
+  const PILL_MIX = 0.34;
+  const mixTo = (c: number, ground: number) => Math.round(ground + (c - ground) * PILL_MIX);
   return {
-    fill: `rgba(${deep(r, 12)}, ${deep(g, 22)}, ${deep(b, 46)}, ${TAB_PILL_ALPHA_CAP.toFixed(3)})`,
+    fill: `rgba(${mixTo(a[0], PAGE_GROUND.r)}, ${mixTo(a[1], PAGE_GROUND.g)}, ${mixTo(a[2], PAGE_GROUND.b)}, 0.92)`,
     ink: TAB_INK[key],
   };
 }
@@ -1008,23 +1005,18 @@ export function glassTabAccent(
  * solved to its own floor: the icon to 3:1, the label to 4.5:1.
  */
 const QUIET_ICON_INK: Record<GlassTint, string> = {
-  /* A dimmed white, and genuinely achromatic: the neutral cast carries no colour of
-     its own, so its quiet ink must not introduce one. It steps down from the active
-     label rather than matching it, which is what keeps an inactive icon reading as
-     inactive. */
-  white: "#C8C8C8",
-  /* The sky ink leans cool, matching the cast, and is lifted because the sky bar
-     composites to a deeper blue than the neutral one - the same value that cleared
-     4.5:1 on the grey bar measured 4.23:1 on the blue. */
-  sky: "#C9D5E1",
+  /* Dark, because the bar is a light glass surface now. The values are the mirror of
+     the light inks these replaced - solved to 3:1 for a graphical object against the
+     lightest bar each cast can produce, which is the worst case for dark ink. */
+  white: "#5A5560",
+  sky: "#4A5666",
 };
 const QUIET_LABEL_INK: Record<GlassTint, string> = {
-  /* Solved to 4.5:1 against the *lightest* bar either cast can produce, which is the
-     bar at its heaviest weight over the brightest part of the field. */
-  white: "#C8C8C8",
-  /* Cooler, to follow the cast, and lifted for the same reason as the icon. */
-  sky: "#C9D5E1",
+  /* The label is text, so it takes the stricter 4.5:1 floor on the same surface. */
+  white: "#4B4651",
+  sky: "#3E4A5A",
 };
+
 export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; label: string } {
   return {
     icon: QUIET_ICON_INK[tint] ?? QUIET_ICON_INK.white,
@@ -1053,24 +1045,18 @@ export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; 
  */
 const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
   /*
-   * Monochrome, and that is the design rather than an omission.
+   * The original dusty mauve family, one tone per section.
    *
-   * These were five different hues - blue, teal, orange, gold, violet - carried by the
-   * empty-state tile and the page eyebrow. The member has now said it plainly: the
-   * default look is black and white, and blue is a switch they can turn on. Five hues
-   * on the default screens is exactly the colour that kept appearing everywhere.
-   *
-   * What replaces the hue is *value*: each section gets its own depth, so the five are
-   * still distinguishable from one another - which was the thing the hues were doing -
-   * without any of them introducing a colour. The ratings below are ordered by nothing
-   * in particular; they are five steps, chosen to be far enough apart to read as
-   * different sections and close enough to read as one family.
+   * These are the values the app shipped with before the lemon pass replaced them, and
+   * before a later pass took the hue out entirely. Each is the ink for a tinted tile
+   * and for that section's header label on the light page, so they are dark enough to
+   * read on the warm off-white ground.
    */
-  chats: { tile: "#2A2A2A", eyebrow: "#1C1B19" },
-  groups: { tile: "#232323", eyebrow: "#1C1B19" },
-  hangouts: { tile: "#333333", eyebrow: "#1C1B19" },
-  bizz: { tile: "#3A3A3A", eyebrow: "#1C1B19" },
-  profile: { tile: "#2E2E2E", eyebrow: "#1C1B19" },
+  chats: { tile: "#8E6F91", eyebrow: "#785F7C" },
+  groups: { tile: "#7393A9", eyebrow: "#5A697B" },
+  hangouts: { tile: "#7A8FA0", eyebrow: "#5F6877" },
+  bizz: { tile: "#987998", eyebrow: "#776079" },
+  profile: { tile: "#766B82", eyebrow: "#6E6379" },
 };
 /**
  * The accent for a section: the ink for its tinted tile and its header label.
@@ -1090,11 +1076,13 @@ const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> 
  * only read when the sky cast is active.
  */
 const SKY_SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
-  chats: { tile: "#3D3D3D", eyebrow: "#4A4A4A" },
-  groups: { tile: "#0E443A", eyebrow: "#1B5A4E" },
-  hangouts: { tile: "#5E3C0E", eyebrow: "#6B4A14" },
-  bizz: { tile: "#544410", eyebrow: "#605013" },
-  profile: { tile: "#333333", eyebrow: "#3C3C3C" },
+  /* The same five sections in their warm tones, for when the member has the distinct
+     cast on. The default set above is the cool mauve; these are the counterparts. */
+  chats: { tile: "#987998", eyebrow: "#776079" },
+  groups: { tile: "#588B79", eyebrow: "#4E6D66" },
+  hangouts: { tile: "#8E7894", eyebrow: "#726278" },
+  bizz: { tile: "#9D7E9E", eyebrow: "#756078" },
+  profile: { tile: "#715C78", eyebrow: "#715C78" },
 };
 
 export function glassSectionAccent(
@@ -1407,7 +1395,7 @@ export function glassSurfaceColor(
    */
   const neutralDeclared = isNeutral(parsed.rgb);
   const base = neutralDeclared ? mix(parsed.rgb, TINTS[tint], 1) : parsed.rgb;
-  const rgb = darkenToInkFloor(base, finalAlpha);
+  const rgb = lightenToInkFloor(base, finalAlpha);
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${finalAlpha.toFixed(3)})`;
 }
@@ -1463,7 +1451,7 @@ export function glassNestedSurfaceColor(
   // The same unconditional ink floor as the card resolver. A nested surface is not
   // darkened *because* it is nested - the band above already places it, and taking it
   // further would invert the hierarchy the band exists to create.
-  const rgb = darkenToInkFloor(base, alpha);
+  const rgb = lightenToInkFloor(base, alpha);
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }

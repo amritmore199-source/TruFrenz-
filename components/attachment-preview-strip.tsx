@@ -62,7 +62,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
         style={[
           StyleSheet.absoluteFillObject,
           styles.tint,
-          { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) },
+          { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) },
         ]}
       />
 
@@ -71,7 +71,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
           <Image source={{ uri: pending.uri }} style={styles.thumb} />
         ) : (
           <View style={styles.voiceThumb}>
-            <MaterialIcons name="graphic-eq" size={18} color="#D5D5D5" />
+            <MaterialIcons name="graphic-eq" size={18} color="#4B4651" />
           </View>
         )}
       </View>
@@ -93,7 +93,7 @@ export function AttachmentPreviewStrip({ pending, sizeBytes, onRemove }: Props) 
         onPress={onRemove}
         style={({ pressed }) => [styles.remove, pressed && styles.removePressed]}
       >
-        <MaterialIcons name="close" size={15} color="#D2DBE2" />
+        <MaterialIcons name="close" size={15} color="#4B4651" />
       </Pressable>
     </Animated.View>
   );
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     paddingHorizontal: 9,
     paddingVertical: 8,
     overflow: "hidden",
@@ -120,12 +120,12 @@ const styles = StyleSheet.create({
   },
   blur: { borderRadius: 15, overflow: "hidden" },
   tint: { borderRadius: 15 },
-  thumbFrame: { width: 40, height: 40, borderRadius: 12, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  thumbFrame: { width: 40, height: 40, borderRadius: 12, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   thumb: { width: "100%", height: "100%" },
-  voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  voiceThumb: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   copy: { flex: 1, minWidth: 0 },
-  title: { color: "#EEF8FF", fontSize: 12, fontWeight: "650" as any },
-  meta: { color: "#DFE9F0", fontSize: 12, marginTop: 2 },
+  title: { color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
+  meta: { color: "#4B4651", fontSize: 12, marginTop: 2 },
   remove: {
     width: 26,
     height: 26,
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   removePressed: { opacity: 0.75 },
 });

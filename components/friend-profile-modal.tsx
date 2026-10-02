@@ -123,12 +123,12 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <GlassBlur intensity={58} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close profile" onPress={onClose} />
-        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) }]}>
+        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
           <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} />
           <View style={styles.header}>
             <View style={styles.handle} />
             <Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close profile">
-              <MaterialIcons name="close" size={19} color="#DEE8EF" />
+              <MaterialIcons name="close" size={19} color="#4B4651" />
             </Pressable>
           </View>
 
@@ -178,12 +178,12 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
                 <Text style={[styles.badgeText, !verified && styles.phoneText]}>{profile.verification}</Text>
               </View>
               <View style={styles.locality}>
-                <MaterialIcons name="place" size={15} color="#CED7DE" />
+                <MaterialIcons name="place" size={15} color="#4B4651" />
                 <Text style={styles.localityText}>{profile.locality} · broad area only</Text>
               </View>
               {distance ? (
                 <View style={styles.distanceRow}>
-                  <MaterialIcons name="near-me" size={14} color="#B8B8B8" />
+                  <MaterialIcons name="near-me" size={14} color="#666070" />
                   <Text style={styles.distanceText}>{distance}</Text>
                 </View>
               ) : null}
@@ -191,7 +191,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
 
             {mutualLine ? (
               <View style={styles.mutualCard}>
-                <MaterialIcons name="auto-awesome" size={15} color="#B8B8B8" />
+                <MaterialIcons name="auto-awesome" size={15} color="#666070" />
                 <Text style={styles.mutualText}>{mutualLine}</Text>
               </View>
             ) : null}
@@ -204,13 +204,13 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             <View style={styles.tags}>
               {shared.map((interest) => (
                 <View key={`shared-${interest}`} style={[styles.tag, styles.tagShared]}>
-                  <MaterialIcons name="favorite" size={12} color="#B8B8B8" />
+                  <MaterialIcons name="favorite" size={12} color="#666070" />
                   <Text style={[styles.tagText, styles.tagTextShared]}>{interest}</Text>
                 </View>
               ))}
               {other.map((interest) => (
                 <View key={interest} style={styles.tag}>
-                  <MaterialIcons name="auto-awesome" size={12} color="#B8B8B8" />
+                  <MaterialIcons name="auto-awesome" size={12} color="#666070" />
                   <Text style={styles.tagText}>{interest}</Text>
                 </View>
               ))}
@@ -232,7 +232,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
                 <Text style={styles.sectionLabel}>SPEAKS</Text>
                 <View style={styles.tags}>
                   {profile.languages.map((item) => (
-                    <View key={item} style={styles.languageTag}><MaterialIcons name="translate" size={12} color="#CED7DD" /><Text style={styles.languageText}>{item}</Text></View>
+                    <View key={item} style={styles.languageTag}><MaterialIcons name="translate" size={12} color="#4B4651" /><Text style={styles.languageText}>{item}</Text></View>
                   ))}
                 </View>
               </>
@@ -240,7 +240,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
 
             <View style={styles.actionGrid}>
               {viewerActions.map((action) => (
-                <Pressable key={action} onPress={() => handleAction(action)} accessibilityLabel={actionLabel(action)} style={({ pressed }) => [styles.actionButton, { backgroundColor: glassNestedSurfaceColor(isDestructive(action) ? "rgba(0, 0, 0, 0.16)" : "rgba(0, 0, 0, 0.17)", glassOpacity, glassTint), borderColor: glassNestedSurfaceColor("rgba(0, 0, 0, 0.16)", glassOpacity, glassTint) }, isPrimary(action) && styles.actionPrimary, pressed && styles.pressed]}>
+                <Pressable key={action} onPress={() => handleAction(action)} accessibilityLabel={actionLabel(action)} style={({ pressed }) => [styles.actionButton, { backgroundColor: glassNestedSurfaceColor(isDestructive(action) ? "rgba(0, 0, 0, 0.10)" : "rgba(0, 0, 0, 0.10)", glassOpacity, glassTint), borderColor: glassNestedSurfaceColor("rgba(0, 0, 0, 0.10)", glassOpacity, glassTint) }, isPrimary(action) && styles.actionPrimary, pressed && styles.pressed]}>
                   <MaterialIcons name={ACTION_ICONS[action]} size={16} color={isPrimary(action) ? "#FFFFFF" : isDestructive(action) ? "#666666" : "#717171"} />
                   <Text style={[styles.actionText, isPrimary(action) && styles.actionTextPrimary, isDestructive(action) && styles.actionTextDanger]}>{actionLabel(action)}</Text>
                 </Pressable>
@@ -248,7 +248,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             </View>
 
             <View style={styles.safetyNote}>
-              <MaterialIcons name="lock-outline" size={15} color="#D5D5D5" />
+              <MaterialIcons name="lock-outline" size={15} color="#4B4651" />
               <Text style={styles.safetyText}>
                 {/*
                   The notice has to match who asked whom. A request that arrived
@@ -283,17 +283,17 @@ function isDestructive(action: ViewerAction): boolean {
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(77, 71, 43, 0.20)" },
-  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#EBF5FD", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
+  sheet: { flexShrink: 1, overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#EBF5FD", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 16 },
   sheetScroll: { flexGrow: 0, flexShrink: 1 },
   sheetContent: { padding: 16, paddingTop: 4 },
   header: { height: 30, alignItems: "center", justifyContent: "center" },
   handle: { width: 34, height: 4, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.35)" },
-  close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center" },
-  galleryFrame: { width: "100%", height: 208, borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  galleryFrame: { width: "100%", height: 208, borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   gallery: { width: "100%", height: "100%" },
   gallerySlide: { height: "100%" },
   galleryImage: { width: "100%", height: "100%" },
-  trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: "#6B6B6B", alignItems: "center", justifyContent: "center", shadowColor: "#E0E9F1", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  trustBadge: { position: "absolute", right: 9, top: 9, width: 24, height: 24, borderRadius: 10, borderWidth: 2, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: "#6B6B6B", alignItems: "center", justifyContent: "center", shadowColor: "#E0E9F1", shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   /*
    * The pill darkens whatever photo sits under it, so its label is white and
    * the pill is deep enough to hold it: a translucent brown at 0.42 over a
@@ -305,44 +305,44 @@ const styles = StyleSheet.create({
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(131, 114, 31, 0.38)" },
   dotActive: { backgroundColor: "#666666", width: 14 },
   identity: { alignItems: "center", paddingTop: 11, paddingBottom: 12 },
-  statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#6B6B6B" },
-  statusChipText: { flexShrink: 1, color: "#E1EAF2", fontSize: 12, fontWeight: "650" as any },
-  name: { color: "#ECF7FE", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 },
+  statusChipText: { flexShrink: 1, color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
+  name: { color: "#4B4651", fontSize: 18, fontWeight: "700", letterSpacing: -0.4 },
   badge: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: "#575C59", marginTop: 7 },
   phoneBadge: { backgroundColor: glassNestedFill("#EDF1F4") },
-  badgeText: { color: "#E8E8E8", fontSize: 12, fontWeight: "600" },
-  phoneText: { color: "#E2E2E2" },
+  badgeText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  phoneText: { color: "#4B4651" },
   locality: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 7 },
-  localityText: { color: "#DFE9F0", fontSize: 12 },
-  distanceRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  distanceText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
-  mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  mutualText: { flex: 1, color: "#DFE9F0", fontSize: 12, fontWeight: "700" },
+  localityText: { color: "#4B4651", fontSize: 12 },
+  distanceRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  distanceText: { color: "#666070", fontSize: 12, fontWeight: "700" },
+  mutualCard: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 11, paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  mutualText: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "700" },
   divider: { height: 1, backgroundColor: "rgba(255, 255, 255, 0.65)", marginTop: 14, marginBottom: 12 },
-  sectionLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
-  about: { color: "#E4EEF5", fontSize: 12.5, lineHeight: 18, marginTop: 6, marginBottom: 9 },
+  sectionLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 6 },
+  about: { color: "#4B4651", fontSize: 12.5, lineHeight: 18, marginTop: 6, marginBottom: 9 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
-  tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), paddingHorizontal: 9, paddingVertical: 6 },
-  tagShared: { backgroundColor: "rgba(255, 255, 255, 0.95)", borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  tagText: { color: "#B8B8B8", fontSize: 12, fontWeight: "500" },
-  tagTextShared: { color: "#DFE9F0", fontWeight: "700" },
-  lookingTag: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  lookingText: { color: "#E0E0E0", fontSize: 12, fontWeight: "600" },
-  languageTag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  languageText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
+  tag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 9, paddingVertical: 6 },
+  tagShared: { backgroundColor: "rgba(255, 255, 255, 0.95)", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  tagText: { color: "#666070", fontSize: 12, fontWeight: "500" },
+  tagTextShared: { color: "#4B4651", fontWeight: "700" },
+  lookingTag: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  lookingText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  languageTag: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  languageText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
   actionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 },
   // No backgroundColor on purpose: the fill is resolved at the render site through
   // glassNestedSurfaceColor. A hardcoded near-opaque white is exactly the patch the
   // member saw — it sits on a translucent sheet and hides the wallpaper instead of
   // tinting it, and it ignored their glass setting. The declared alpha is kept there
   // as an ordering below the sheet, so a button is always lighter than its panel.
-  actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  actionPrimary: { backgroundColor: "#666666", borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), shadowColor: "#E8F2FA", shadowOpacity: 0.14 },
-  actionText: { color: "#E6EFF7", fontSize: 12, fontWeight: "700" },
-  actionTextPrimary: { color: "#EEF8FF" },
-  actionTextDanger: { color: "#B8B8B8" },
-  safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
-  safetyText: { flex: 1, color: "#DFE8F0", fontSize: 12, lineHeight: 17 },
+  actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  actionPrimary: { backgroundColor: "#666666", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.14 },
+  actionText: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  actionTextPrimary: { color: "#4B4651" },
+  actionTextDanger: { color: "#666070" },
+  safetyNote: { flexDirection: "row", alignItems: "center", gap: 7, padding: 10, marginTop: 14, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  safetyText: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
 });

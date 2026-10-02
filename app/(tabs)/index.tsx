@@ -549,7 +549,7 @@ const meetupSeeds: Meetup[] = [
   { id: "books", day: "SUNDAY · 11:00 AM", title: "Bookshop & tea afternoon", place: "Green Apple Books · 1.2 mi", people: "Hosted by Noah", image: require("../../assets/images/people/noah.jpg"), tag: "3 places left" },
 ];
 
-const Icon = ({ name, color = "#E4EEF5", size = 20 }: { name: keyof typeof MaterialIcons.glyphMap; color?: string; size?: number }) => (
+const Icon = ({ name, color = "#4B4651", size = 20 }: { name: keyof typeof MaterialIcons.glyphMap; color?: string; size?: number }) => (
   <MaterialIcons name={name} color={color} size={size} />
 );
 
@@ -563,9 +563,9 @@ const Icon = ({ name, color = "#E4EEF5", size = 20 }: { name: keyof typeof Mater
  * happened to be imported with.
  */
 const cardStyles = StyleSheet.create({
-  frosted: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.16)", borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
-  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), paddingHorizontal: 14, shadowColor: "#B8B8B8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9, elevation: 2 },
-  actionButtonSecondary: { backgroundColor: "#5C594C" },
+  frosted: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.10)", borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15, elevation: 3 },
+  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 14, shadowColor: "#B8B8B8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9, elevation: 2 },
+  actionButtonSecondary: { backgroundColor: "#D0D0CE" },
   actionButtonDisabled: { opacity: 0.62 },
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
 });
@@ -3872,7 +3872,7 @@ export default function TrufrenzApp() {
         ) : <View style={styles.brandIcon}><Icon name="spa" size={17} color="#FFFFFF" /></View>}
         {thread ? <View style={styles.threadHeading}><Pressable onPress={() => (currentThread?.kind === "group" ? openGroupInfo() : openChatProfile())} style={({ pressed }) => [styles.threadAvatarButton, pressed && styles.rowPressed]} accessibilityRole="button" accessibilityLabel={`View ${currentThread?.name ?? "friend"} profile`}><Image source={currentThread?.image} style={styles.threadAvatar} /></Pressable><View style={styles.threadHeadingCopy}><Pressable onPress={() => currentThread?.kind === "group" && openGroupInfo()} accessibilityRole={currentThread?.kind === "group" ? "button" : undefined} accessibilityLabel={currentThread?.kind === "group" ? `Open ${currentThread.name} group info` : undefined}><Text style={[styles.threadTitle, styles.threadPrimaryText]} numberOfLines={1}>{currentThread?.name ?? "Conversation"}</Text></Pressable><Text style={[styles.topBarSub, styles.threadSecondaryText]} numberOfLines={1}>{currentThread?.kind === "group" ? `${group.members.length} members · invite-only` : currentThread?.verified ? "ID + selfie verified" : "Accepted friend"}</Text><View style={styles.threadStatusRow}>{currentThread?.verified ? <Icon name="verified" size={11} color={CHAT_NIGHT.accentText} /> : null}<Text style={[styles.threadStatus, styles.threadSecondaryText]} numberOfLines={1}>{[threadAvailabilityLabel, threadFriendStatus].filter(Boolean).join(" · ")}</Text></View></View></View> : <View style={styles.brandNameRow}><Text style={styles.brandWord}>Trufrenz</Text><Text style={styles.brandGreeting} numberOfLines={1}>{joined ? `· Hello, ${fullName.split(" ")[0] || "friend"}` : "· A little closer."}</Text></View>}
       </View>
-      {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="call" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="videocam" size={19} color={CHAT_NIGHT.primaryText} /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="more-vert" size={21} color={CHAT_NIGHT.primaryText} /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#DDE7EE" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#DCE6ED" />}</Pressable></View>}
+      {thread ? <View style={[styles.topActions, styles.topActionsThread]}>{currentThread?.kind === "friend" ? <><Pressable onPress={() => startCall(false)} accessibilityRole="button" accessibilityLabel={`Call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="call" size={18} color={CHAT_NIGHT.primaryText} /></Pressable><Pressable onPress={() => startCall(true)} accessibilityRole="button" accessibilityLabel={`Video call ${currentThread?.name ?? "friend"}`} style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="videocam" size={19} color={CHAT_NIGHT.primaryText} /></Pressable></> : null}<Pressable onPress={() => setChatMenuOpen(true)} accessibilityRole="button" accessibilityLabel="Open conversation options" style={[styles.roundAction, styles.threadRoundActionNight]}><Icon name="more-vert" size={21} color={CHAT_NIGHT.primaryText} /></Pressable></View> : <View style={styles.topActions}><Pressable onPress={previewIncomingNotification} onLongPress={() => setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" }))} accessibilityRole="button" accessibilityLabel="Show sample incoming notification, long press for a sample incoming call" style={styles.roundAction}><Icon name="notifications-none" size={20} color="#4B4651" /><View style={styles.notificationDot} /></Pressable><Pressable onPress={openAccountFromHeader} accessibilityRole="button" accessibilityLabel={joined ? "Open your profile, edit, and settings" : "Log in or sign up"} style={styles.userAvatar}>{joined ? <Text style={styles.userInitial}>{fullName.charAt(0).toUpperCase()}</Text> : <Icon name="person-outline" size={18} color="#4B4651" />}</Pressable></View>}
     </View>
   );
 
@@ -4341,7 +4341,7 @@ export default function TrufrenzApp() {
                       >
                         <Image source={chat.image} style={styles.offerPickerAvatar} />
                         <Text style={styles.offerPickerName} numberOfLines={1}>{chat.name}</Text>
-                        <Icon name="send" size={15} color="#B8B8B8" />
+                        <Icon name="send" size={15} color="#666070" />
                       </Pressable>
                     );
                   })}
@@ -4373,13 +4373,13 @@ export default function TrufrenzApp() {
         first thing under the header and the list starts a full row higher.
       */}
       <View style={styles.chatHeading}><Text style={styles.chatTitle}>Conversations</Text><Pressable onPress={() => setComposerOpen(true)} accessibilityRole="button" accessibilityLabel="Start a new group" style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={18} color="#FFFFFF" /></Pressable></View>
-      <View style={[styles.searchBar, { borderColor: glassFieldBorder(glassTintChoice) }]}><Icon name="search" size={18} color="#CED6DD" /><TextInput value={search} onChangeText={setSearch} placeholder="Search friends, chats or your contacts" placeholderTextColor="#8f9aa3" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#B8B8B8" /></Pressable></View>
+      <View style={[styles.searchBar, { borderColor: glassFieldBorder(glassTintChoice) }]}><Icon name="search" size={18} color="#4B4651" /><TextInput value={search} onChangeText={setSearch} placeholder="Search friends, chats or your contacts" placeholderTextColor="#8f9aa3" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#666070" /></Pressable></View>
       {renderContactLookup()}
       <View style={styles.filterRow}>{filters.map((filter) => <Pressable key={filter} onPress={() => setChatFilter(filter)} ><GlassSurface surface="chip" radius={15} style={[styles.filterChip, chatFilter === filter && styles.filterChipActive]}><Text style={[styles.filterChipText, chatFilter === filter && styles.filterChipTextActive]}>{filter}{filter === "Unread" ? "  2" : ""}</Text></GlassSurface></Pressable>)}</View>
-      {chatFilter === "All" && !search ? <View style={styles.circlesSection}><View style={styles.sectionHeaderLine}><Text style={styles.sectionEyebrow}>YOUR PEOPLE</Text><Pressable onPress={() => { openContactLookup(); tap(); }} accessibilityRole="button" accessibilityLabel="See everyone from your phone contacts"><Text style={styles.sectionLink}>See all <Icon name="chevron-right" size={12} color="#B8B8B8" /></Text></Pressable></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circlesRow}>
-        {joined ? <Pressable onPress={() => setTab("Profile")} style={styles.circleItem}><View style={styles.myCircle}><Text style={styles.myCircleInitial}>{fullName.charAt(0).toUpperCase()}</Text><View style={styles.addSmall}><Icon name="add" size={11} color="#FFFFFF" /></View></View><Text style={styles.circleName}>Your note</Text></Pressable> : <Pressable onPress={openSignup} style={styles.circleItem}><View style={styles.addCircle}><Icon name="add" size={22} color="#B8B8B8" /></View><Text style={styles.circleName}>Set up</Text></Pressable>}
+      {chatFilter === "All" && !search ? <View style={styles.circlesSection}><View style={styles.sectionHeaderLine}><Text style={styles.sectionEyebrow}>YOUR PEOPLE</Text><Pressable onPress={() => { openContactLookup(); tap(); }} accessibilityRole="button" accessibilityLabel="See everyone from your phone contacts"><Text style={styles.sectionLink}>See all <Icon name="chevron-right" size={12} color="#666070" /></Text></Pressable></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circlesRow}>
+        {joined ? <Pressable onPress={() => setTab("Profile")} style={styles.circleItem}><View style={styles.myCircle}><Text style={styles.myCircleInitial}>{fullName.charAt(0).toUpperCase()}</Text><View style={styles.addSmall}><Icon name="add" size={11} color="#FFFFFF" /></View></View><Text style={styles.circleName}>Your note</Text></Pressable> : <Pressable onPress={openSignup} style={styles.circleItem}><View style={styles.addCircle}><Icon name="add" size={22} color="#666070" /></View><Text style={styles.circleName}>Set up</Text></Pressable>}
         {friendCircles.map((chat) => <Pressable key={chat.id} onPress={() => startThread(chat.id)} style={styles.circleItem}><View style={styles.circleImageWrap}><Image source={chat.image} style={styles.circleImage} /><View style={[styles.circleStatus, chat.online && styles.circleStatusOnline]} /></View><Text style={styles.circleName} numberOfLines={1}>{chat.name.split(" ")[0]}</Text></Pressable>)}
-        <Pressable onPress={() => { openContactLookup(); tap(); }} accessibilityRole="button" accessibilityLabel="Find friends from your phone contacts" style={styles.circleItem}><View style={styles.addCircle}><Icon name="group-add" size={18} color="#B8B8B8" /></View><Text style={styles.circleName}>Add friend</Text></Pressable>
+        <Pressable onPress={() => { openContactLookup(); tap(); }} accessibilityRole="button" accessibilityLabel="Find friends from your phone contacts" style={styles.circleItem}><View style={styles.addCircle}><Icon name="group-add" size={18} color="#666070" /></View><Text style={styles.circleName}>Add friend</Text></Pressable>
       </ScrollView></View> : null}
       {/*
         One box, two kinds of answer.
@@ -4402,7 +4402,7 @@ export default function TrufrenzApp() {
         >
           {chatSearchIsEmpty(chatSearchGroups) ? (
             <View style={styles.emptyChats}>
-              <View style={styles.emptyIcon}><Icon name="search-off" size={22} color="#B8B8B8" /></View>
+              <View style={styles.emptyIcon}><Icon name="search-off" size={22} color="#666070" /></View>
               <Text style={styles.emptyTitle}>Nothing matches that yet</Text>
               <Text style={styles.emptyCopy}>{chatSearchEmptyCopy({ contactsScanned: deviceContacts.length > 0 }).body}</Text>
             </View>
@@ -4425,14 +4425,14 @@ export default function TrufrenzApp() {
                     <Icon
                       name={row.group === "conversations" ? "forum" : row.group === "friends" ? "person" : row.group === "on-trufrenz" ? "person-add-alt-1" : "forward-to-inbox"}
                       size={16}
-                      color="#B8B8B8"
+                      color="#666070"
                     />
                   </View>
                   <View style={styles.searchResultCopy}>
                     <Text style={styles.searchResultName} numberOfLines={1}>{row.title}</Text>
                     <Text style={styles.searchResultNote} numberOfLines={1}>{row.note}</Text>
                   </View>
-                  <Icon name="chevron-right" size={16} color="#DFE9F0" />
+                  <Icon name="chevron-right" size={16} color="#4B4651" />
                 </Pressable>
               ))}
             </View>
@@ -4449,12 +4449,12 @@ export default function TrufrenzApp() {
               onPress={() => void discoverDeviceContacts()}
               style={({ pressed }) => [styles.searchScanCard, pressed && styles.pressed]}
             >
-              <View style={styles.searchResultIcon}><Icon name="contacts" size={16} color="#D5D5D5" /></View>
+              <View style={styles.searchResultIcon}><Icon name="contacts" size={16} color="#4B4651" /></View>
               <View style={styles.searchResultCopy}>
                 <Text style={styles.searchResultName}>Search your phone&apos;s contacts too</Text>
                 <Text style={styles.searchResultNote}>Numbers are matched as hashes on this device. Names never leave it.</Text>
               </View>
-              <Icon name="arrow-forward" size={15} color="#D5D5D5" />
+              <Icon name="arrow-forward" size={15} color="#4B4651" />
             </Pressable>
           ) : null}
         </ScrollView>
@@ -4498,7 +4498,7 @@ export default function TrufrenzApp() {
           Invite friends to begin" for a row that is not a chat.
         */}
         {visibleChats.length === 0 ? <View style={styles.emptyChats}><View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("chats") }]}><Icon name="forum" size={22} color={glassSectionAccent("chats").tile} /></View><Text style={styles.emptyTitle}>{chatEmptyCopy.title}</Text><Text style={styles.emptyCopy}>{chatEmptyCopy.body}</Text>{!joined ? <ActionButton onPress={() => { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); }} style={styles.emptyAction}><Text style={styles.actionText}>Create your account</Text><Icon name="arrow-forward" color="#FFFFFF" size={15} /></ActionButton> : null}</View> : null}
-        <View style={styles.safeNote}><Icon name="lock-outline" size={13} color="#DFE9F0" /><Text style={styles.safeNoteText}>Messages open after you both accept a friend request.</Text></View>
+        <View style={styles.safeNote}><Icon name="lock-outline" size={13} color="#4B4651" /><Text style={styles.safeNoteText}>Messages open after you both accept a friend request.</Text></View>
         {/*
           A closing card rather than a strip of dead space.
 
@@ -4515,7 +4515,7 @@ export default function TrufrenzApp() {
             onPress={() => { openContactLookup(); feedback("Numbers are hashed on this device before anything is compared."); }}
             style={({ pressed }) => [styles.quietInboxCard, pressed && styles.pressed]}
           >
-            <View style={styles.quietInboxIcon}><Icon name="contacts" size={17} color="#D5D5D5" /></View>
+            <View style={styles.quietInboxIcon}><Icon name="contacts" size={17} color="#4B4651" /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.quietInboxTitle}>
                 {deviceContacts.length ? "A few of your contacts are already here" : "Check who is already here"}
@@ -4526,7 +4526,7 @@ export default function TrufrenzApp() {
                   : "Compare your contacts privately, then invite whoever is missing."}
               </Text>
             </View>
-            <Icon name="arrow-forward" size={15} color="#D5D5D5" />
+            <Icon name="arrow-forward" size={15} color="#4B4651" />
           </Pressable>
         ) : null}
       </ScrollView>
@@ -4558,10 +4558,10 @@ export default function TrufrenzApp() {
           <Text style={styles.contactInviteNote}>Each draft is addressed to one person to protect everyone&apos;s number. Trufrenz never sends texts automatically; review and send in your messaging app. Invite link: {process.env.EXPO_PUBLIC_INVITE_URL?.trim() || "https://trufrenz.net"}</Text>
         </View>
       ) : null}
-      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#B8B8B8" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#CED7DE" /></Pressable></View></View>; })}</View> : null}
+      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#666070" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#4B4651" /></Pressable></View></View>; })}</View> : null}
 
-      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#B8B8B8" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#CED7DE" /></Pressable></View></View>; })}</View> : null}
-      {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#D5D5D5" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>{describeRequestWait(requestSentAt[person.id]).text}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
+      {incomingRequests.length > 0 ? <View style={styles.requestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING FOR YOU</Text><Text style={styles.requestHeading}>Friend requests <View style={styles.requestCount}><Text style={styles.requestCountText}>{incomingRequests.length}</Text></View></Text></View><Icon name="people-alt" size={20} color="#666070" /></View>{incomingRequests.map((id) => { const person = suggestions.find((item) => item.id === id)!; return <View key={id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>You both enjoy {person.interests[0].toLowerCase()}</Text>{verificationBadge(person, true)}</View><View style={styles.requestButtons}><Pressable accessibilityRole="button" accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(id)} style={styles.acceptButton}><Icon name="check" size={17} color="#FFFFFF" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Decline ${person.name}'s friend request`} onPress={() => { applyConnectionChange(id, "declined"); feedback("Request quietly dismissed. They will not be shown again."); }} style={styles.declineButton}><Icon name="close" size={16} color="#4B4651" /></Pressable></View></View>; })}</View> : null}
+      {outgoingRequests.length > 0 ? <View style={styles.outgoingRequestPanel}><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>WAITING ON THEM</Text><Text style={styles.outgoingRequestHeading}>Requests you sent <View style={styles.outgoingRequestCount}><Text style={styles.outgoingRequestCountText}>{outgoingRequests.length}</Text></View></Text></View><Icon name="schedule" size={19} color="#4B4651" /></View><Text style={styles.outgoingRequestCopy}>They can answer in their own time. Nothing is lost if you change your mind — you can take a request back.</Text>{outgoingRequests.map((person) => <View key={person.id} style={styles.requestRow}><Image source={person.image} style={styles.requestAvatar} /><View style={styles.requestDetails}><Text style={styles.requestName}>{person.name}</Text><Text style={styles.requestMutual}>{describeRequestWait(requestSentAt[person.id]).text}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={`Withdraw friend request to ${person.name}`} onPress={() => { withdrawSentRequest(person.id); feedback(`${person.name} will not be notified. Request withdrawn.`); }} style={styles.withdrawRequestButton}><Text style={styles.withdrawRequestText}>Withdraw</Text></Pressable></View>)}</View> : null}
       {/*
         The interest filter came across with the suggestions when the Friends
         section closed. It is what turns a list of nearby members into a list of
@@ -4582,10 +4582,10 @@ export default function TrufrenzApp() {
           </Pressable>
         ))}
       </ScrollView>
-      <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#B8B8B8" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
-      {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#D6D6D6" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
-      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const personRelationship = relationshipFor(friendships, person.id); const sent = personRelationship !== "stranger"; const sharedInterests = findCommonInterests(joined && profileInterests.length ? profileInterests : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Pressable accessibilityRole="button" accessibilityLabel={`View ${person.name} profile`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborTapArea, pressed && styles.pressed]}><Image source={person.image} style={styles.neighborAvatar} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Open ${person.name} details`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborInfo, pressed && styles.pressed]}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#D6D6D6" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text>{visibleStatus(person.status) ? <Text style={styles.neighborStatus} numberOfLines={1}>{statusLabel(visibleStatus(person.status))}</Text> : null}<View style={styles.neighborMeta}><Icon name="place" size={11} color="#DFE9F0" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#B8B8B8" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></Pressable>{personRelationship === "request-received" ? <Pressable accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(person.id)} style={styles.compactRequestButton}><Icon name="check" size={13} color="#DBDBDB" /><Text style={[styles.compactRequestText, styles.requestSentText]}>Accept</Text></Pressable> : <Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#808080" : "#666666"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable>}</Frosted>; })}
-      {discoverable && filteredSuggestions.length === 0 ? <View style={styles.noMatches}><Icon name="search-off" size={17} color="#B8B8B8" /><Text style={styles.noMatchesText}>No neighbors match those filters yet.</Text></View> : null}</View>
+      <View style={styles.suggestHeading}><View><Text style={styles.sectionEyebrow}>GENTLY INTRODUCED · NO SWIPES</Text><Text style={styles.sectionTitle}>A few neighbors nearby</Text></View><View style={styles.sortChip}><Icon name="auto-awesome" size={13} color="#666070" /><Text style={styles.sortChipText}>Shared interests</Text></View></View>
+      {!discoverable ? <Frosted style={styles.discoveryPaused}><Icon name="visibility-off" size={17} color="#4B4651" /><View style={{ flex: 1 }}><Text style={styles.discoveryPausedTitle}>You&apos;re out of suggestions for now.</Text><Text style={styles.noPressureText}>Turn discovery back on from You → Appear in suggestions.</Text></View></Frosted> : null}
+      <View style={styles.friendConnectionList}>{filteredSuggestions.map((person) => { const personRelationship = relationshipFor(friendships, person.id); const sent = personRelationship !== "stranger"; const sharedInterests = findCommonInterests(joined && profileInterests.length ? profileInterests : ["Coffee walks", "Bookshops", "Park hangs"], person.interests); return <Frosted key={person.id} style={styles.neighborRow}><Pressable accessibilityRole="button" accessibilityLabel={`View ${person.name} profile`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborTapArea, pressed && styles.pressed]}><Image source={person.image} style={styles.neighborAvatar} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Open ${person.name} details`} onPress={() => { setProfilePerson(person); tap(); }} style={({ pressed }) => [styles.neighborInfo, pressed && styles.pressed]}><View style={styles.neighborNameRow}><Text style={styles.neighborName} numberOfLines={1}>{person.name}</Text><Text style={styles.suggestAge}>{person.age}</Text>{person.verification === "ID + selfie verified" ? <Icon name="verified" size={13} color="#4B4651" /> : null}</View><Text style={styles.neighborAbout} numberOfLines={1}>{person.about}</Text>{visibleStatus(person.status) ? <Text style={styles.neighborStatus} numberOfLines={1}>{statusLabel(visibleStatus(person.status))}</Text> : null}<View style={styles.neighborMeta}><Icon name="place" size={11} color="#4B4651" /><Text style={styles.neighborMetaText}>{person.locality}</Text>{person.verification === "Phone verified" ? <Text style={styles.phoneOnlyLabel}>Phone</Text> : null}</View><View style={styles.commonInterestTags}>{sharedInterests.slice(0, 2).map((tag) => <View key={tag} style={styles.commonInterestTag}><Icon name="auto-awesome" size={9} color="#666070" /><Text style={styles.commonInterestTagText}>{tag}</Text></View>)}</View></Pressable>{personRelationship === "request-received" ? <Pressable accessibilityLabel={`Accept ${person.name}'s friend request`} onPress={() => acceptRequest(person.id)} style={styles.compactRequestButton}><Icon name="check" size={13} color="#4B4651" /><Text style={[styles.compactRequestText, styles.requestSentText]}>Accept</Text></Pressable> : <Pressable accessibilityLabel={sent ? "Friend request sent" : `Ask ${person.name} for friendship`} onPress={() => sendFriendRequest(person)} style={[styles.compactRequestButton, sent && styles.requestSentButton]}><Icon name={sent ? "check" : "person-add-alt-1"} size={13} color={sent ? "#808080" : "#666666"} /><Text style={[styles.compactRequestText, sent && styles.requestSentText]}>{sent ? "Sent" : "Request"}</Text></Pressable>}</Frosted>; })}
+      {discoverable && filteredSuggestions.length === 0 ? <View style={styles.noMatches}><Icon name="search-off" size={17} color="#666070" /><Text style={styles.noMatchesText}>No neighbors match those filters yet.</Text></View> : null}</View>
       </>
       )}
     </>;
@@ -4594,10 +4594,10 @@ export default function TrufrenzApp() {
   const renderMeetups = () => <>
     {topBar()}
     <View style={styles.pageIntro}><Text style={[styles.pageEyebrow, { color: glassSectionAccent("hangouts").eyebrow }]}>EASY COMPANY, NEARBY</Text><Text style={styles.pageTitle}>A plan makes it easy.</Text><Text style={styles.pageSub}>Small, friendly gatherings you can join at your own pace.</Text></View>
-    <Frosted style={styles.meetupIntroCard}><View style={styles.meetupIntroArt}><View style={styles.artBubblePink} /><View style={styles.artBubbleBlue} /><View style={styles.artCenter}><Icon name="diversity-3" size={22} color="#B8B8B8" /></View></View><View style={{ flex: 1 }}><Text style={styles.meetupIntroTitle}>Better in good company.</Text><Text style={styles.meetupIntroCopy}>Meet in public, bring a friend, leave whenever you like.</Text></View><Icon name="verified-user" size={18} color="#D6D6D6" /></Frosted>
-    <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#B8B8B8" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
+    <Frosted style={styles.meetupIntroCard}><View style={styles.meetupIntroArt}><View style={styles.artBubblePink} /><View style={styles.artBubbleBlue} /><View style={styles.artCenter}><Icon name="diversity-3" size={22} color="#666070" /></View></View><View style={{ flex: 1 }}><Text style={styles.meetupIntroTitle}>Better in good company.</Text><Text style={styles.meetupIntroCopy}>Meet in public, bring a friend, leave whenever you like.</Text></View><Icon name="verified-user" size={18} color="#4B4651" /></Frosted>
+    <View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>COMING UP</Text><Text style={styles.sectionTitle}>Plans near you</Text></View><Pressable onPress={() => feedback("Meetups are shown by your saved home locality.")} style={styles.locationChip}><Icon name="place" size={13} color="#666070" /><Text style={styles.locationChipText}>Pacific Heights</Text></Pressable></View>
     {sharedPlans.length ? <><View style={styles.sectionHeaderLine}><View><Text style={styles.sectionEyebrow}>YOUR PLANS</Text><Text style={styles.sectionTitle}>Follow-ups from chats</Text></View></View>
-      <View style={styles.planFollowList}>{sharedPlans.map(({ chatId, chatName, card }) => { const timing = planTiming(card); return <Frosted key={card.id} style={styles.planFollowCard}><View style={styles.planFollowTop}><View style={styles.planFollowPill}><Text style={styles.planFollowPillText}>{PLAN_KIND_LABEL[card.kind].toUpperCase()}</Text></View><Text style={[styles.planFollowTiming, timing.emphasis === "today" && styles.planFollowTimingToday]}>{timing.label}</Text></View><Text style={styles.planFollowTitle} numberOfLines={1}>{card.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#DFE9F0" /><Text style={styles.meetupPlaceText} numberOfLines={1}>{card.proposal.place}</Text></View><View style={styles.meetupPlace}><Icon name="schedule" size={13} color="#DFE9F0" /><Text style={styles.meetupPlaceText}>{card.proposal.date} · {card.proposal.time}</Text></View><View style={styles.planFollowActions}><Pressable onPress={() => startThread(chatId)} style={styles.planFollowButton}><Text style={styles.planFollowButtonText}>Open chat</Text></Pressable><Pressable onPress={() => feedback(`Plan link copied: ${card.link}`)} style={styles.planFollowGhost}><Icon name="link" size={14} color="#DFE9F0" /></Pressable>{canCheckIn(card) ? <Pressable onPress={() => feedback(checkInSafetyNote(chatName))} style={styles.planFollowCheckIn}><Text style={styles.planFollowCheckInText}>Check in</Text></Pressable> : null}</View><Text style={styles.planFollowWho} numberOfLines={1}>with {chatName.split(" ")[0]} · {card.status}</Text></Frosted>; })}</View></> : null}
+      <View style={styles.planFollowList}>{sharedPlans.map(({ chatId, chatName, card }) => { const timing = planTiming(card); return <Frosted key={card.id} style={styles.planFollowCard}><View style={styles.planFollowTop}><View style={styles.planFollowPill}><Text style={styles.planFollowPillText}>{PLAN_KIND_LABEL[card.kind].toUpperCase()}</Text></View><Text style={[styles.planFollowTiming, timing.emphasis === "today" && styles.planFollowTimingToday]}>{timing.label}</Text></View><Text style={styles.planFollowTitle} numberOfLines={1}>{card.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#4B4651" /><Text style={styles.meetupPlaceText} numberOfLines={1}>{card.proposal.place}</Text></View><View style={styles.meetupPlace}><Icon name="schedule" size={13} color="#4B4651" /><Text style={styles.meetupPlaceText}>{card.proposal.date} · {card.proposal.time}</Text></View><View style={styles.planFollowActions}><Pressable onPress={() => startThread(chatId)} style={styles.planFollowButton}><Text style={styles.planFollowButtonText}>Open chat</Text></Pressable><Pressable onPress={() => feedback(`Plan link copied: ${card.link}`)} style={styles.planFollowGhost}><Icon name="link" size={14} color="#4B4651" /></Pressable>{canCheckIn(card) ? <Pressable onPress={() => feedback(checkInSafetyNote(chatName))} style={styles.planFollowCheckIn}><Text style={styles.planFollowCheckInText}>Check in</Text></Pressable> : null}</View><Text style={styles.planFollowWho} numberOfLines={1}>with {chatName.split(" ")[0]} · {card.status}</Text></Frosted>; })}</View></> : null}
       {meetups.length === 0 ? (
         <Frosted style={styles.groupEmptyCard}>
           <View style={[styles.emptyIcon, { backgroundColor: glassEmptyAccent("hangouts") }]}><Icon name="event" size={21} color={glassSectionAccent("hangouts").tile} /></View>
@@ -4605,30 +4605,30 @@ export default function TrufrenzApp() {
           <Text style={styles.emptyCopy}>Create a meetup invite, or wait for a friend to suggest one in a chat.</Text>
         </Frosted>
       ) : null}
-    <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#DFE9F0" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#B8B8B8" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { if (!going && !allowAction("join-meetups")) return; setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); if (!going) void runGuardedAction("meetup-join", { meetup: meetup.title }); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
-      <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#B8B8B8" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#B8B8B8" /></Pressable>
+    <View style={styles.meetupList}>{meetups.map((meetup) => { const going = joinedMeetups.includes(meetup.id); return <Frosted key={meetup.id} style={styles.meetupCard}><Image source={meetup.image} style={styles.meetupPhoto} resizeMode="cover" /><View style={styles.meetupCopy}><Text style={styles.meetupDay}>{meetup.day}</Text><Text style={styles.meetupTitle}>{meetup.title}</Text><View style={styles.meetupPlace}><Icon name="place" size={13} color="#4B4651" /><Text style={styles.meetupPlaceText}>{meetup.place}</Text></View><View style={styles.meetupMeta}><Icon name="groups" size={13} color="#666070" /><Text style={styles.meetupMetaText}>{meetup.people}</Text><View style={styles.metaDivider} /><Text style={styles.meetupTag}>{going ? "You're on the list" : meetup.tag}</Text></View></View><Pressable onPress={() => { if (!going && !allowAction("join-meetups")) return; setJoinedMeetups((current) => going ? current.filter((id) => id !== meetup.id) : [...current, meetup.id]); if (!going) void runGuardedAction("meetup-join", { meetup: meetup.title }); feedback(going ? "RSVP removed quietly." : "You are on the list. Keep it easy."); }} style={[styles.rsvpButton, going && styles.rsvpJoined]}><Text style={[styles.rsvpText, going && styles.rsvpTextJoined]}>{going ? "Going" : "Join"}</Text></Pressable></Frosted>; })}
+      <Pressable onPress={prepareMeetupInvite} style={styles.createPlanLink}><Icon name="add-circle-outline" size={18} color="#666070" /><Text style={styles.createPlanText}>Create a meetup invite</Text><Icon name="arrow-forward" size={15} color="#666070" /></Pressable>
     </View>
   </>;
 
   const renderProfileSection = () => <>
     {topBar()}
     <View style={styles.pageIntro}><Text style={styles.pageEyebrow}>YOUR PLACE IN THE CIRCLE</Text><Text style={styles.pageTitle}>{joined ? `A little more you, ${fullName.split(" ")[0]}.` : "Settle in, when you're ready."}</Text><Text style={styles.pageSub}>You decide when you&apos;re around, and what you share.</Text></View>
-    {joined ? <Frosted style={styles.profileCard}><View style={styles.profileAvatarFrame}>{myProfile.photos.length ? <Image source={{ uri: myProfile.photos.find((photo) => photo.id === myProfile.primaryPhotoId)?.uri ?? myProfile.photos[0].uri }} style={styles.profileAvatarPhoto} /> : <View style={styles.profileAvatar}><Text style={styles.profileInitial}>{(myProfile.name || fullName).charAt(0).toUpperCase()}</Text></View>}{myProfile.verification === "id-selfie" ? <View style={styles.profileVerifiedDot}><Icon name="check" size={11} color="#FFFFFF" /></View> : null}</View><Text style={styles.profileName}>{myProfile.name || fullName}{myProfile.age ? `, ${myProfile.age}` : ""}</Text>{visibleStatus(myProfile.status) ? <View style={styles.profileStatusChip}><View style={styles.profileStatusDot} /><Text style={styles.profileStatusText} numberOfLines={1}>{statusLabel(visibleStatus(myProfile.status))}</Text></View> : null}<View style={styles.profilePhoneBadge}><Icon name={myProfile.verification === "id-selfie" ? "verified-user" : "phone-iphone"} size={12} color={myProfile.verification === "id-selfie" ? "#898989" : "#898989"} /><Text style={styles.profilePhoneText}>{myProfile.verification === "id-selfie" ? "ID + selfie verified" : "Phone verified"}</Text></View><Text style={styles.profileLocality}><Icon name="place" size={14} color="#B8B8B8" />  {myProfile.locality.trim() || locality.trim() || "Nearby"} · {myProfile.privacy.hideExactLocality ? "distance kept soft" : "exact locality shared"}</Text>{myProfile.bio ? <Text style={styles.profileBio}>{myProfile.bio}</Text> : null}<View style={styles.profileInterests}>{(myProfile.interests.length ? myProfile.interests : profileInterests).slice(0, 4).map((item) => <View key={item} style={styles.profileInterest}><Text style={styles.profileInterestText}>{item}</Text></View>)}</View><View style={styles.profileMetaRow}><View style={styles.profileMetaPill}><Icon name={myProfile.available ? "check-circle" : "pause-circle-outline"} size={12} color={myProfile.available ? "#898989" : "#DFE6EB"} /><Text style={styles.profileMetaText}>{myProfile.available ? "Available for a hello" : "Not available"}</Text></View><View style={styles.profileMetaPill}><Icon name="photo-library" size={12} color="#DFE9F0" /><Text style={styles.profileMetaText}>{myProfile.photos.length}/6 photos</Text></View><View style={styles.profileMetaPill}><Icon name="group-add" size={12} color="#DFE9F0" /><Text style={styles.profileMetaText}>{REQUEST_AUDIENCE_LABEL[myProfile.privacy.requestAudience]}</Text></View></View>{myProfile.verification !== "id-selfie" ? <Pressable onPress={startProfileVerification} style={styles.getVerifiedButton}><Icon name="badge" size={14} color="#FFFFFF" /><Text style={styles.getVerifiedText}>Get Verified</Text></Pressable> : null}<Pressable onPress={openProfileEditor} style={styles.editProfileButton}><Text style={styles.editProfileText}>Edit profile</Text><Icon name="arrow-forward" size={15} color="#B8B8B8" /></Pressable></Frosted> : <Frosted style={styles.signupCard}><View style={styles.signupIcon}><Icon name="mark-chat-unread" size={23} color="#B8B8B8" /></View><Text style={styles.signupTitle}>A circle that feels like yours.</Text><Text style={styles.signupCopy}>Create a standalone account with phone verification. New conversations begin only after a mutual yes.</Text><ActionButton onPress={openSignup} style={styles.signupCta}><Text style={styles.actionText}>Sign up</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => { setAuthIntent("login"); setAuthStep("phone"); setShowSignup(true); tap(); }} accessibilityRole="button" accessibilityLabel="Log in with your phone number" style={({ pressed }) => [styles.guestLoginButton, pressed && styles.pressed]}><Text style={styles.guestLoginText}>Log in</Text></Pressable><View style={styles.phoneRequired}><Icon name="lock-outline" size={14} color="#CED7DD" /><Text style={styles.phoneRequiredText}>Phone verification is required; your number stays private.</Text></View></Frosted>}
-    {joined ? <Pressable onPress={() => setSelfieModalVisible(true)} style={({ pressed }) => [styles.selfieEntry, pressed && styles.pressed]}><View style={styles.selfieEntryIcon}><Icon name="face-retouching-natural" size={17} color="#B8B8B8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Optional selfie identity check</Text><Text style={styles.settingSub}>Capture locally · verified badge only after provider review.</Text></View><Icon name="chevron-right" size={18} color="#CED6DD" /></Pressable> : null}
+    {joined ? <Frosted style={styles.profileCard}><View style={styles.profileAvatarFrame}>{myProfile.photos.length ? <Image source={{ uri: myProfile.photos.find((photo) => photo.id === myProfile.primaryPhotoId)?.uri ?? myProfile.photos[0].uri }} style={styles.profileAvatarPhoto} /> : <View style={styles.profileAvatar}><Text style={styles.profileInitial}>{(myProfile.name || fullName).charAt(0).toUpperCase()}</Text></View>}{myProfile.verification === "id-selfie" ? <View style={styles.profileVerifiedDot}><Icon name="check" size={11} color="#FFFFFF" /></View> : null}</View><Text style={styles.profileName}>{myProfile.name || fullName}{myProfile.age ? `, ${myProfile.age}` : ""}</Text>{visibleStatus(myProfile.status) ? <View style={styles.profileStatusChip}><View style={styles.profileStatusDot} /><Text style={styles.profileStatusText} numberOfLines={1}>{statusLabel(visibleStatus(myProfile.status))}</Text></View> : null}<View style={styles.profilePhoneBadge}><Icon name={myProfile.verification === "id-selfie" ? "verified-user" : "phone-iphone"} size={12} color={myProfile.verification === "id-selfie" ? "#898989" : "#898989"} /><Text style={styles.profilePhoneText}>{myProfile.verification === "id-selfie" ? "ID + selfie verified" : "Phone verified"}</Text></View><Text style={styles.profileLocality}><Icon name="place" size={14} color="#666070" />  {myProfile.locality.trim() || locality.trim() || "Nearby"} · {myProfile.privacy.hideExactLocality ? "distance kept soft" : "exact locality shared"}</Text>{myProfile.bio ? <Text style={styles.profileBio}>{myProfile.bio}</Text> : null}<View style={styles.profileInterests}>{(myProfile.interests.length ? myProfile.interests : profileInterests).slice(0, 4).map((item) => <View key={item} style={styles.profileInterest}><Text style={styles.profileInterestText}>{item}</Text></View>)}</View><View style={styles.profileMetaRow}><View style={styles.profileMetaPill}><Icon name={myProfile.available ? "check-circle" : "pause-circle-outline"} size={12} color={myProfile.available ? "#898989" : "#DFE6EB"} /><Text style={styles.profileMetaText}>{myProfile.available ? "Available for a hello" : "Not available"}</Text></View><View style={styles.profileMetaPill}><Icon name="photo-library" size={12} color="#4B4651" /><Text style={styles.profileMetaText}>{myProfile.photos.length}/6 photos</Text></View><View style={styles.profileMetaPill}><Icon name="group-add" size={12} color="#4B4651" /><Text style={styles.profileMetaText}>{REQUEST_AUDIENCE_LABEL[myProfile.privacy.requestAudience]}</Text></View></View>{myProfile.verification !== "id-selfie" ? <Pressable onPress={startProfileVerification} style={styles.getVerifiedButton}><Icon name="badge" size={14} color="#FFFFFF" /><Text style={styles.getVerifiedText}>Get Verified</Text></Pressable> : null}<Pressable onPress={openProfileEditor} style={styles.editProfileButton}><Text style={styles.editProfileText}>Edit profile</Text><Icon name="arrow-forward" size={15} color="#666070" /></Pressable></Frosted> : <Frosted style={styles.signupCard}><View style={styles.signupIcon}><Icon name="mark-chat-unread" size={23} color="#666070" /></View><Text style={styles.signupTitle}>A circle that feels like yours.</Text><Text style={styles.signupCopy}>Create a standalone account with phone verification. New conversations begin only after a mutual yes.</Text><ActionButton onPress={openSignup} style={styles.signupCta}><Text style={styles.actionText}>Sign up</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => { setAuthIntent("login"); setAuthStep("phone"); setShowSignup(true); tap(); }} accessibilityRole="button" accessibilityLabel="Log in with your phone number" style={({ pressed }) => [styles.guestLoginButton, pressed && styles.pressed]}><Text style={styles.guestLoginText}>Log in</Text></Pressable><View style={styles.phoneRequired}><Icon name="lock-outline" size={14} color="#4B4651" /><Text style={styles.phoneRequiredText}>Phone verification is required; your number stays private.</Text></View></Frosted>}
+    {joined ? <Pressable onPress={() => setSelfieModalVisible(true)} style={({ pressed }) => [styles.selfieEntry, pressed && styles.pressed]}><View style={styles.selfieEntryIcon}><Icon name="face-retouching-natural" size={17} color="#666070" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Optional selfie identity check</Text><Text style={styles.settingSub}>Capture locally · verified badge only after provider review.</Text></View><Icon name="chevron-right" size={18} color="#4B4651" /></Pressable> : null}
     <Text style={styles.settingsLabel}>HOW YOU SHOW UP</Text>
     <Frosted style={styles.settingsPanel}>
-      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="circle" size={16} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Available for a hello</Text><Text style={styles.settingSub}>Let accepted friends know you&apos;re around.</Text></View><View style={styles.toggleFrame}><Switch value={available} onValueChange={(value) => { setAvailable(value); tap(); feedback(value ? "You're showing as available." : "Available status paused."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="circle" size={16} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Available for a hello</Text><Text style={styles.settingSub}>Let accepted friends know you&apos;re around.</Text></View><View style={styles.toggleFrame}><Switch value={available} onValueChange={(value) => { setAvailable(value); tap(); feedback(value ? "You're showing as available." : "Available status paused."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="visibility-off" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Appear in suggestions</Text><Text style={styles.settingSub}>You can pause discovery any time.</Text></View><View style={styles.toggleFrame}><Switch value={discoverable} onValueChange={(value) => { setDiscoverable(value); tap(); feedback(value ? "You&apos;re back in suggestions." : "You&apos;ve been hidden from suggestions."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="visibility-off" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Appear in suggestions</Text><Text style={styles.settingSub}>You can pause discovery any time.</Text></View><View style={styles.toggleFrame}><Switch value={discoverable} onValueChange={(value) => { setDiscoverable(value); tap(); feedback(value ? "You&apos;re back in suggestions." : "You&apos;ve been hidden from suggestions."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       {/* Exact distance is a Premium feature, so turning the softening off offers the upgrade. */}
-      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="my-location" size={17} color="#B8B8B8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Soften my distance</Text><Text style={styles.settingSub}>Show a broad area, never an exact pin.</Text></View><View style={styles.toggleFrame}><Switch value={blurDistance} onValueChange={(value) => { if (!value) { const mapPermission = liveMapGate(tier); if (!mapPermission.allowed) { openPaywall(mapPermission.message, "quarterly"); return; } } setBlurDistance(value); tap(); feedback(value ? "Approximate distance is on." : "Exact distance is visible now."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="my-location" size={17} color="#666070" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Soften my distance</Text><Text style={styles.settingSub}>Show a broad area, never an exact pin.</Text></View><View style={styles.toggleFrame}><Switch value={blurDistance} onValueChange={(value) => { if (!value) { const mapPermission = liveMapGate(tier); if (!mapPermission.allowed) { openPaywall(mapPermission.message, "quarterly"); return; } } setBlurDistance(value); tap(); feedback(value ? "Approximate distance is on." : "Exact distance is visible now."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
     <Text style={styles.settingsLabel}>PRIVACY & LITTLE EXTRAS</Text>
     <Frosted style={styles.settingsPanel}>
-      <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#CED6DD" /></Pressable>
+      <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#4B4651" /></Pressable>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="contacts" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Let people find me by phone</Text><Text style={styles.settingSub}>{joined ? "Only members who choose to check contacts can find you. Off until you opt in." : "Log in to choose whether contacts can find you."}</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Allow other Trufrenz members to find me by phone contact" value={joined ? contactDiscoveryEnabled : false} disabled={!joined || contactPreferenceBusy} onValueChange={(value) => void updateContactDiscoveryPreference(value)} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="contacts" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Let people find me by phone</Text><Text style={styles.settingSub}>{joined ? "Only members who choose to check contacts can find you. Off until you opt in." : "Log in to choose whether contacts can find you."}</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Allow other Trufrenz members to find me by phone contact" value={joined ? contactDiscoveryEnabled : false} disabled={!joined || contactPreferenceBusy} onValueChange={(value) => void updateContactDiscoveryPreference(value)} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       {/*
         Quiet hours, above the subscription row because it applies to everyone
@@ -4636,9 +4636,9 @@ export default function TrufrenzApp() {
         hours underneath only appear once it is on, so the row stays one line for
         the members who never want it.
       */}
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="bedtime" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Quiet hours</Text><Text style={styles.settingSub}>{describeQuietHours(quietHours)}</Text>{quietHours.enabled ? <View style={styles.quietHoursControls}><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(quietHours.startHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#D1D1D1" /></Pressable><Text style={styles.quietHourValue}>Starts {hourLabel(quietHours.startHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(shiftHour(quietHours.startHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#D1D1D1" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(quietHours.endHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#D1D1D1" /></Pressable><Text style={styles.quietHourValue}>Ends {hourLabel(quietHours.endHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(shiftHour(quietHours.endHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#D1D1D1" /></Pressable></View> : null}</View><View style={styles.toggleFrame}><Switch value={quietHours.enabled} onValueChange={(value) => { setQuietHours((current) => ({ ...current, enabled: value })); tap(); feedback(value ? `Quiet from ${hourLabel(quietHours.startHour)} to ${hourLabel(quietHours.endHour)}.` : "Quiet hours off. Notifications can reach you again."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="bedtime" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Quiet hours</Text><Text style={styles.settingSub}>{describeQuietHours(quietHours)}</Text>{quietHours.enabled ? <View style={styles.quietHoursControls}><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(quietHours.startHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#5A5560" /></Pressable><Text style={styles.quietHourValue}>Starts {hourLabel(quietHours.startHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(shiftHour(quietHours.startHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#5A5560" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(quietHours.endHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#5A5560" /></Pressable><Text style={styles.quietHourValue}>Ends {hourLabel(quietHours.endHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(shiftHour(quietHours.endHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#5A5560" /></Pressable></View> : null}</View><View style={styles.toggleFrame}><Switch value={quietHours.enabled} onValueChange={(value) => { setQuietHours((current) => ({ ...current, enabled: value })); tap(); feedback(value ? `Quiet from ${hourLabel(quietHours.startHour)} to ${hourLabel(quietHours.endHour)}.` : "Quiet hours off. Notifications can reach you again."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => { tap(); if (paidTier) { setManageOpen(true); } else { openPaywall(undefined, subscription.planId); } }} accessibilityRole="button" accessibilityLabel={paidTier ? `Manage Trufrenz Premium, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#B8B8B8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? `${activePlanLine(subscription)} · manage` : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#CED6DD" /></Pressable>
+      <Pressable onPress={() => { tap(); if (paidTier) { setManageOpen(true); } else { openPaywall(undefined, subscription.planId); } }} accessibilityRole="button" accessibilityLabel={paidTier ? `Manage Trufrenz Premium, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#666070" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? `${activePlanLine(subscription)} · manage` : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#4B4651" /></Pressable>
     </Frosted>
     <Text style={styles.settingsLabel}>APPEARANCE</Text>
     {/*
@@ -4651,7 +4651,7 @@ export default function TrufrenzApp() {
     {memberNotices.length > 0 ? (
       <Frosted style={styles.appearancePanel}>
         <View style={styles.appearanceHeadingRow}>
-          <View style={styles.settingIconPink}><Icon name="campaign" size={17} color="#B8B8B8" /></View>
+          <View style={styles.settingIconPink}><Icon name="campaign" size={17} color="#666070" /></View>
           <View style={styles.settingContent}>
             <Text style={styles.settingTitle}>Notices for you</Text>
             <Text style={styles.settingSub}>
@@ -4701,7 +4701,7 @@ export default function TrufrenzApp() {
                   accessibilityLabel={storeManageActionLabel(Platform.OS)}
                   style={({ pressed }) => [styles.noticeStoreAction, pressed && styles.pressed]}
                 >
-                  <MaterialIcons name="open-in-new" size={13} color="#B8B8B8" />
+                  <MaterialIcons name="open-in-new" size={13} color="#666070" />
                   <Text style={styles.noticeStoreActionText}>{storeManageActionLabel(Platform.OS)}</Text>
                 </Pressable>
               ) : null}
@@ -4712,7 +4712,7 @@ export default function TrufrenzApp() {
     ) : null}
 
     <Frosted style={styles.appearancePanel}>
-      <View style={styles.appearanceHeadingRow}><View style={styles.settingIconPink}><Icon name="blur-on" size={17} color="#B8B8B8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Frosted glass opacity</Text><Text style={styles.settingSub}>Choose how much of the wallpaper shows through.</Text></View><Text style={styles.opacityReadout}>{glassOpacity}%</Text></View>
+      <View style={styles.appearanceHeadingRow}><View style={styles.settingIconPink}><Icon name="blur-on" size={17} color="#666070" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Frosted glass opacity</Text><Text style={styles.settingSub}>Choose how much of the wallpaper shows through.</Text></View><Text style={styles.opacityReadout}>{glassOpacity}%</Text></View>
       <View accessibilityLabel="Glass presets" style={styles.presetRow}>
         {GLASS_PRESETS.map((preset) => {
           const selected = matchGlassPreset(glassOpacity, glassTintChoice) === preset.id;
@@ -4763,8 +4763,8 @@ export default function TrufrenzApp() {
         row in the settings of a member who has not changed anything.
       */}
       {appearanceResetUndo ? (
-        <View accessibilityLabel="Appearance reset, with an option to undo" style={[styles.resetConfirm, { backgroundColor: liveGlass("rgba(0, 0, 0, 0.16)") }]}>
-          <Icon name="check-circle" size={14} color="#D9D9D9" />
+        <View accessibilityLabel="Appearance reset, with an option to undo" style={[styles.resetConfirm, { backgroundColor: liveGlass("rgba(0, 0, 0, 0.10)") }]}>
+          <Icon name="check-circle" size={14} color="#4B4651" />
           <Text style={styles.resetConfirmText}>Appearance reset to the default.</Text>
           <Pressable
             onPress={() => {
@@ -4803,7 +4803,7 @@ export default function TrufrenzApp() {
           accessibilityLabel="Reset the frosted glass and wallpaper to the default appearance"
           style={({ pressed }) => [styles.resetAppearance, pressed && styles.pressed]}
         >
-          <Icon name="restart-alt" size={14} color="#DFE8EF" />
+          <Icon name="restart-alt" size={14} color="#4B4651" />
           <Text style={styles.resetAppearanceText}>Reset to default look</Text>
         </Pressable>
       )}
@@ -4851,7 +4851,7 @@ export default function TrufrenzApp() {
                       style={[
                         styles.tintSwatchPill,
                         isFirst
-                          ? { backgroundColor: mini.fill, borderColor: "rgba(0, 0, 0, 0.16)", borderWidth: 0.5 }
+                          ? { backgroundColor: mini.fill, borderColor: "rgba(0, 0, 0, 0.10)", borderWidth: 0.5 }
                           : null,
                       ]}
                     >
@@ -4865,13 +4865,13 @@ export default function TrufrenzApp() {
         </View>
       </View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the crew artwork behind the glass. Its tone follows your glass colour.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the crew artwork behind the glass. Its tone follows your glass colour.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
     <Text style={styles.settingsLabel}>ACCOUNT</Text>
     <Frosted style={styles.settingsPanel}>
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="person-outline" size={17} color="#D5D5D5" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{isGuestSession(session) ? "Guest preview" : "Signed in"}</Text><Text style={styles.settingSub}>{isGuestSession(session) ? "Browse-only mode · join any time to chat and meet up." : `Phone verified${fullName.trim() ? ` · ${fullName.trim()}` : ""}`}</Text></View><View style={styles.verificationPill}><Icon name={isGuestSession(session) ? "visibility" : "verified"} size={12} color="#DBDBDB" /><Text style={styles.verificationText}>{isGuestSession(session) ? "Guest" : "Member"}</Text></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="person-outline" size={17} color="#4B4651" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{isGuestSession(session) ? "Guest preview" : "Signed in"}</Text><Text style={styles.settingSub}>{isGuestSession(session) ? "Browse-only mode · join any time to chat and meet up." : `Phone verified${fullName.trim() ? ` · ${fullName.trim()}` : ""}`}</Text></View><View style={styles.verificationPill}><Icon name={isGuestSession(session) ? "visibility" : "verified"} size={12} color="#4B4651" /><Text style={styles.verificationText}>{isGuestSession(session) ? "Guest" : "Member"}</Text></View></View>
       <View style={styles.settingDivider} />
-      <Pressable onPress={() => { if (isGuestSession(session)) { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); } else { signOut(); } }} accessibilityRole="button" accessibilityLabel={isGuestSession(session) ? "Create an account" : "Sign out"} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.settingIconPink}><Icon name={isGuestSession(session) ? "person-add" : "logout"} size={17} color="#B8B8B8" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{isGuestSession(session) ? "Create your account" : "Sign out"}</Text><Text style={styles.settingSub}>{isGuestSession(session) ? "Sign up to chat, request friends, and join meetups." : "Return to the welcome screen on this device."}</Text></View><Icon name="chevron-right" size={18} color="#CED6DD" /></Pressable>
+      <Pressable onPress={() => { if (isGuestSession(session)) { setAuthIntent("signup"); setAuthStep("phone"); setShowSignup(true); } else { signOut(); } }} accessibilityRole="button" accessibilityLabel={isGuestSession(session) ? "Create an account" : "Sign out"} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.settingIconPink}><Icon name={isGuestSession(session) ? "person-add" : "logout"} size={17} color="#666070" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{isGuestSession(session) ? "Create your account" : "Sign out"}</Text><Text style={styles.settingSub}>{isGuestSession(session) ? "Sign up to chat, request friends, and join meetups." : "Return to the welcome screen on this device."}</Text></View><Icon name="chevron-right" size={18} color="#4B4651" /></Pressable>
     </Frosted>
     <Text style={styles.footerNote}>Your space. Your pace. Always friends first.</Text>
   </>;
@@ -4935,7 +4935,7 @@ export default function TrufrenzApp() {
           onPress={() => (acceptsMessages ? askCloseGroup(entry) : reopenGroup(entry))}
           style={({ pressed }) => [styles.groupStateButton, pressed && styles.pressed]}
         >
-          <Icon name={acceptsMessages ? "pause-circle-outline" : "play-circle-outline"} size={17} color="#CED7DE" />
+          <Icon name={acceptsMessages ? "pause-circle-outline" : "play-circle-outline"} size={17} color="#4B4651" />
         </Pressable>
       </Frosted>
     );
@@ -4970,7 +4970,7 @@ export default function TrufrenzApp() {
             {groupLists.active.length === 1 ? "1 group is live" : `${groupLists.active.length} groups are live`}
           </Text>
         </View>
-        <Icon name="bolt" size={19} color="#B8B8B8" />
+        <Icon name="bolt" size={19} color="#666070" />
       </View>
       <View style={styles.groupList}>
         {groupLists.active.map(groupRow)}
@@ -4992,7 +4992,7 @@ export default function TrufrenzApp() {
                 {groupLists.closed.length === 1 ? "1 paused group" : `${groupLists.closed.length} paused groups`}
               </Text>
             </View>
-            <Icon name="history" size={19} color="#CDD6DD" />
+            <Icon name="history" size={19} color="#4B4651" />
           </View>
           <Text style={styles.groupClosedNote}>{groupLifecycleNote("closed")}</Text>
           <View style={styles.groupList}>{groupLists.closed.map(groupRow)}</View>
@@ -5025,7 +5025,7 @@ export default function TrufrenzApp() {
         <View style={styles.bizzHeroArt}>
           <View style={styles.artBubblePink} />
           <View style={styles.artBubbleBlue} />
-          <View style={styles.artCenter}><Icon name="storefront" size={22} color="#B8B8B8" /></View>
+          <View style={styles.artCenter}><Icon name="storefront" size={22} color="#666070" /></View>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.bizzHeroTitle}>A calm place for the things you make or do.</Text>
@@ -5049,7 +5049,7 @@ export default function TrufrenzApp() {
             {offers.length === 1 ? "1 offer ready to share" : offers.length ? `${offers.length} offers ready to share` : "Nothing written yet"}
           </Text>
         </View>
-        <Icon name="storefront" size={19} color="#B8B8B8" />
+        <Icon name="storefront" size={19} color="#666070" />
       </View>
       {offers.length ? (
         <Frosted style={styles.bizzList}>
@@ -5076,7 +5076,7 @@ export default function TrufrenzApp() {
                   onPress={() => { setOffers((current) => removeOffer(current, offer.id)); tap(); }}
                   style={({ pressed }) => [styles.offerRemove, pressed && styles.pressed]}
                 >
-                  <Icon name="close" size={14} color="#CED7DE" />
+                  <Icon name="close" size={14} color="#4B4651" />
                 </Pressable>
               </View>
             </View>
@@ -5098,7 +5098,7 @@ export default function TrufrenzApp() {
         onPress={() => { setOfferDraft(EMPTY_OFFER_DRAFT); setOfferComposerOpen(true); tap(); }}
         style={({ pressed }) => [styles.offerComposeButton, pressed && styles.pressed]}
       >
-        <Icon name="add" size={16} color="#F2FCFF" />
+        <Icon name="add" size={16} color="#4B4651" />
         <Text style={styles.offerComposeButtonText}>{offers.length ? "Write another offer" : "Write your first offer"}</Text>
       </Pressable>
       <Text style={styles.offerBoundary}>
@@ -5115,7 +5115,7 @@ export default function TrufrenzApp() {
           <View key={item.title}>
             {index > 0 ? <View style={styles.settingDivider} /> : null}
             <View style={styles.bizzRow}>
-              <View style={styles.settingIconPink}><Icon name={item.icon as keyof typeof MaterialIcons.glyphMap} size={17} color="#B8B8B8" /></View>
+              <View style={styles.settingIconPink}><Icon name={item.icon as keyof typeof MaterialIcons.glyphMap} size={17} color="#666070" /></View>
               <View style={styles.settingContent}>
                 <Text style={styles.bizzRowTitle}>{item.title}</Text>
                 <Text style={styles.bizzRowSub}>{item.sub}</Text>
@@ -5131,12 +5131,12 @@ export default function TrufrenzApp() {
         onPress={() => { tap(); feedback("Noted. Tell us what you would use Bizz for and it will shape what we build first."); }}
         style={({ pressed }) => [styles.bizzAskRow, pressed && styles.pressed]}
       >
-        <Icon name="forum" size={16} color="#B8B8B8" />
+        <Icon name="forum" size={16} color="#666070" />
         <Text style={styles.bizzAskText}>Tell us what you would use it for</Text>
-        <Icon name="arrow-forward" size={15} color="#B8B8B8" />
+        <Icon name="arrow-forward" size={15} color="#666070" />
       </Pressable>
       <View style={styles.safeNote}>
-        <Icon name="lock-outline" size={13} color="#DFE9F0" />
+        <Icon name="lock-outline" size={13} color="#4B4651" />
         <Text style={styles.safeNoteText}>Nothing here changes your friendships, your privacy, or who can reach you.</Text>
       </View>
     </>
@@ -5181,17 +5181,17 @@ export default function TrufrenzApp() {
     !contactLookupOpen ? null : (
       <View style={styles.contactLookupPanel}>
         <View style={styles.contactLookupHeader}>
-          <View style={styles.contactIcon}><Icon name="contacts" size={17} color="#D5D5D5" /></View>
+          <View style={styles.contactIcon}><Icon name="contacts" size={17} color="#4B4651" /></View>
           <View style={styles.contactHeaderCopy}>
             <Text style={styles.contactLookupTitle}>Your phone&apos;s contacts</Text>
             <Text style={styles.contactLookupSub}>Check locally hashed numbers, then invite the ones who are not here yet.</Text>
           </View>
-          <Pressable onPress={() => { setContactLookupOpen(false); setContactLookupQuery(""); }} accessibilityRole="button" accessibilityLabel="Close contact search" style={styles.roundAction}><Icon name="close" size={17} color="#CED7DE" /></Pressable>
+          <Pressable onPress={() => { setContactLookupOpen(false); setContactLookupQuery(""); }} accessibilityRole="button" accessibilityLabel="Close contact search" style={styles.roundAction}><Icon name="close" size={17} color="#4B4651" /></Pressable>
         </View>
         <View style={styles.contactLookupInput}>
-          <Icon name="search" size={15} color="#DFE9F0" />
+          <Icon name="search" size={15} color="#4B4651" />
           <TextInput value={contactLookupQuery} onChangeText={setContactLookupQuery} placeholder="Find a contact by name" placeholderTextColor="#C2CBD2" style={styles.contactLookupField} returnKeyType="search" />
-          {contactLookupQuery ? <Pressable onPress={() => setContactLookupQuery("")} accessibilityRole="button" accessibilityLabel="Clear the contact search"><Icon name="close" size={14} color="#DFE9F0" /></Pressable> : null}
+          {contactLookupQuery ? <Pressable onPress={() => setContactLookupQuery("")} accessibilityRole="button" accessibilityLabel="Clear the contact search"><Icon name="close" size={14} color="#4B4651" /></Pressable> : null}
         </View>
         {contactLookupResults.length === 0 ? (
           <View style={styles.contactLookupEmpty}>
@@ -5199,7 +5199,7 @@ export default function TrufrenzApp() {
             <Text style={styles.contactLookupEmptyBody}>{contactLookupCopy.body}</Text>
             {!deviceContacts.length && !contactsLoading ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Check my contacts" onPress={() => void discoverDeviceContacts()} style={({ pressed }) => [styles.contactScanButton, pressed && styles.pressed]}>
-                <Icon name="manage-search" size={15} color="#D1D1D1" />
+                <Icon name="manage-search" size={15} color="#5A5560" />
                 <Text style={styles.contactScanText}>Check my contacts</Text>
               </Pressable>
             ) : null}
@@ -5227,7 +5227,7 @@ export default function TrufrenzApp() {
                     <Text style={styles.contactName} numberOfLines={1}>{contact.name}</Text>
                     <Text style={styles.contactMatchLabel} numberOfLines={1}>{contactRowNote(contact)}</Text>
                   </View>
-                  {contact.matchName ? <Icon name="verified-user" size={15} color="#D5D5D5" /> : null}
+                  {contact.matchName ? <Icon name="verified-user" size={15} color="#4B4651" /> : null}
                 </Pressable>
               );
             })}
@@ -5363,7 +5363,7 @@ export default function TrufrenzApp() {
         onReportCancelled={reportCancellation}
       />
       {showWelcome ? null : <Animated.View style={[styles.screenContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>{tab === "Chats" && selectedChat ? renderContent() : <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} refreshControl={tab === "Chats" || tab === "Hangouts" ? <RefreshControl refreshing={isRefreshing} onRefresh={refreshNearbyFeed} tintColor="#B8B8B8" colors={["#666666", "#A8A8A8"]} progressBackgroundColor="#fcfaf2" /> : undefined}>{renderContent()}</ScrollView>}</Animated.View>}
-      {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><GlassBlur intensity={34} style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#B8B8B8" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
+      {isRefreshing ? <View style={styles.refreshGlass} pointerEvents="none"><GlassBlur intensity={34} style={StyleSheet.absoluteFill} /><View style={styles.refreshGlassContent}><ActivityIndicator size="small" color="#666070" /><Text style={styles.refreshGlassText}>Refreshing your nearby circle</Text></View></View> : null}
       <PremiumPaywall
         visible={paywallOpen}
         subscription={subscription}
@@ -5378,7 +5378,7 @@ export default function TrufrenzApp() {
         purchase={purchase}
         storePrices={storePrices}
       />
-      {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><GlassBlur intensity={25} style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#B8B8B8" /><Text style={styles.handoffTitle}>{tab === "Hangouts" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></GlassBlur></View> : null}
+      {transitionBusy ? <View style={styles.handoffOverlay} pointerEvents="none"><GlassBlur intensity={25} style={styles.handoffBlur}><View style={styles.handoffCard}><View style={styles.handoffHeadline}><ActivityIndicator size="small" color="#666070" /><Text style={styles.handoffTitle}>{tab === "Hangouts" ? "Finding a plan nearby" : "Back to your conversations"}</Text></View><Animated.View style={[styles.handoffSkeleton, { opacity: loaderPulse }]}><View style={styles.skeletonAvatar} /><View style={styles.skeletonTextGroup}><View style={styles.skeletonLineLong} /><View style={styles.skeletonLineShort} /></View></Animated.View><Text style={styles.handoffCaption}>A little closer, one moment.</Text></View></GlassBlur></View> : null}
       {toast ? <View style={styles.toast}><Icon name="check-circle" size={16} color="#FFFFFF" /><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/*
         Account status notice.
@@ -5392,7 +5392,7 @@ export default function TrufrenzApp() {
         <View style={styles.accountNotice} accessibilityRole="alert" accessibilityLabel={`Account status: ${restriction.title}`}>
           <View style={styles.accountNoticeHeader}>
             <View style={styles.accountNoticeIcon}>
-              <Icon name="shield-moon" size={18} color="#B8B8B8" />
+              <Icon name="shield-moon" size={18} color="#666070" />
             </View>
             <Text style={styles.accountNoticeTitle}>{restriction.title}</Text>
           </View>
@@ -5416,19 +5416,19 @@ export default function TrufrenzApp() {
             <Text style={styles.accountNoticeActionText}>
               {unreadNotices.length > 0 ? `Read ${unreadNotices.length} notice${unreadNotices.length > 1 ? "s" : ""}` : "Review my account"}
             </Text>
-            <Icon name="chevron-right" size={16} color="#B8B8B8" />
+            <Icon name="chevron-right" size={16} color="#666070" />
           </Pressable>
         </View>
       ) : null}
       {showWelcome || adDismissed || !entitlements.ads || !bottomBarVisible ? null : (
         <View style={styles.adBanner}>
-          <Icon name="workspace-premium" size={15} color="#B8B8B8" />
+          <Icon name="workspace-premium" size={15} color="#666070" />
           <Text style={styles.adBannerText} numberOfLines={2}>{BANNER_AD_COPY}</Text>
           <Pressable onPress={() => { tap(); openPaywall(undefined, "quarterly"); }} accessibilityRole="button" accessibilityLabel="See Trufrenz Premium plans" style={({ pressed }) => [styles.adBannerCta, pressed && styles.pressed]}>
             <Text style={styles.adBannerCtaText}>See plans</Text>
           </Pressable>
           <Pressable onPress={() => { setAdDismissed(true); tap(); }} accessibilityRole="button" accessibilityLabel="Dismiss advertisement" hitSlop={8} style={({ pressed }) => [styles.adBannerClose, pressed && styles.pressed]}>
-            <Icon name="close" size={14} color="#B8B8B8" />
+            <Icon name="close" size={14} color="#666070" />
           </Pressable>
         </View>
       )}
@@ -5458,16 +5458,16 @@ export default function TrufrenzApp() {
          * carries it even where nothing is selected.
          */
         const quietInk = glassQuietTabInk(glassTintChoice);
-        return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive, active && { backgroundColor: tabAccentStyle.fill, borderColor: "rgba(0, 0, 0, 0.16)" }]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? tabAccentStyle.ink : quietInk.icon} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive, { color: active ? tabAccentStyle.ink : quietInk.label }]} numberOfLines={1} ellipsizeMode="middle">{section.label}</Text></Pressable>; })}</View>}
+        return <Pressable key={section.id} onPress={() => selectSection(section.id)} accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`${section.title}. ${section.purpose}`} style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}><GlassSurface surface="chip" radius={15} style={[styles.tabIconWrap, active && styles.tabIconActive, active && { backgroundColor: tabAccentStyle.fill, borderColor: "rgba(0, 0, 0, 0.10)" }]}><Icon name={section.icon as keyof typeof MaterialIcons.glyphMap} color={active ? tabAccentStyle.ink : quietInk.icon} size={19} /></GlassSurface><Text style={[styles.tabLabel, active && styles.tabLabelActive, { color: active ? tabAccentStyle.ink : quietInk.label }]} numberOfLines={1} ellipsizeMode="middle">{section.label}</Text></Pressable>; })}</View>}
       <Modal visible={navigationMenuOpen} transparent animationType="fade" onRequestClose={() => setNavigationMenuOpen(false)}>
         <Pressable style={[styles.navigationMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setNavigationMenuOpen(false)}>
           <GlassBlur intensity={34} style={[styles.navigationMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
-            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity)}
+            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
           >
-            <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) }]}>
+            <Pressable onPress={(event) => event.stopPropagation()} style={[styles.navigationMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
               <ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}>
               <View style={styles.actionMenuHandle} />
-              <View style={styles.navigationMenuHeader}><View><Text style={styles.actionMenuEyebrow}>MOVE AROUND</Text><Text style={styles.navigationMenuTitle}>Where would you like to go?</Text></View><Pressable onPress={() => setNavigationMenuOpen(false)} accessibilityLabel="Close navigation options" style={styles.roundAction}><Icon name="close" size={18} color="#DEE8EF" /></Pressable></View>
+              <View style={styles.navigationMenuHeader}><View><Text style={styles.actionMenuEyebrow}>MOVE AROUND</Text><Text style={styles.navigationMenuTitle}>Where would you like to go?</Text></View><Pressable onPress={() => setNavigationMenuOpen(false)} accessibilityLabel="Close navigation options" style={styles.roundAction}><Icon name="close" size={18} color="#4B4651" /></Pressable></View>
               {/*
                 Everything reachable, including the two that left the bar.
                 Meetups and the profile still have to be somewhere, and this is
@@ -5483,7 +5483,7 @@ export default function TrufrenzApp() {
       <Modal visible={showSignup} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeSignup}>
         <SafeAreaView style={styles.modalSafe} edges={["top", "bottom", "left", "right"]}>
           <KeyboardAvoidingView style={styles.modalKeyboard} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={styles.modalHeader}><View style={styles.brandMark}><View style={styles.brandIcon}><Icon name="spa" size={16} color="#FFFFFF" /></View><Text style={styles.brandWord}>Trufrenz</Text></View><Pressable onPress={closeSignup} accessibilityLabel="Close signup" style={styles.roundAction}><Icon name="close" size={19} color="#DEE8EF" /></Pressable></View>
+            <View style={styles.modalHeader}><View style={styles.brandMark}><View style={styles.brandIcon}><Icon name="spa" size={16} color="#FFFFFF" /></View><Text style={styles.brandWord}>Trufrenz</Text></View><Pressable onPress={closeSignup} accessibilityLabel="Close signup" style={styles.roundAction}><Icon name="close" size={19} color="#4B4651" /></Pressable></View>
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : `STEP 1 OF 4 · ${authChannel === "email" ? "EMAIL" : "PHONE"}`) : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
@@ -5498,7 +5498,7 @@ export default function TrufrenzApp() {
                   <Text style={[styles.channelButtonText, authChannel === "email" && styles.channelButtonTextActive]}>Email</Text>
                 </Pressable>
               </View>
-              {authChannel === "email" ? <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL ADDRESS · REQUIRED</Text><TextInput value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View>}<Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#D5D5D5" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
+              {authChannel === "email" ? <View style={styles.formField}><Text style={styles.fieldLabel}>EMAIL ADDRESS · REQUIRED</Text><TextInput value={email} onChangeText={setEmail} placeholder="name@example.com" placeholderTextColor="#a7a6a1" keyboardType="email-address" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View> : <View style={styles.formField}><Text style={styles.fieldLabel}>PHONE NUMBER · REQUIRED</Text><TextInput value={phone} onChangeText={setPhone} placeholder="+1 (415) 555-0142" placeholderTextColor="#a7a6a1" keyboardType="phone-pad" autoCapitalize="none" style={styles.fieldInput} returnKeyType="done" /></View>}<Frosted style={styles.authPromise}><View style={styles.authPromiseIcon}><Icon name="lock-outline" size={18} color="#4B4651" /></View><View style={{ flex: 1 }}><Text style={styles.authPromiseTitle}>The chat comes after the yes.</Text><Text style={styles.authPromiseCopy}>Verified members · quiet friend requests · no open DMs</Text></View></Frosted></> : null}
               {authStep === "code" ? <>
                 <View style={styles.formField}><Text style={styles.fieldLabel}>6-DIGIT OTP</Text><TextInput value={passcode} onChangeText={(value) => setPasscode(value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="••••••" placeholderTextColor="#a7a6a1" keyboardType="number-pad" style={[styles.fieldInput, styles.codeInput]} /></View>
                 {/*
@@ -5531,48 +5531,48 @@ export default function TrufrenzApp() {
                 <Text style={styles.fieldLabel}>THINGS YOU ENJOY · PICK UP TO 4</Text>
                 <View style={styles.interestOptions}>{INTEREST_SUGGESTIONS.map((item) => { const selected = profileInterests.includes(item); return <Pressable key={item} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} accessibilityLabel={`Interest ${item}`} onPress={() => { setProfileInterests((current) => toggleProfileInterest(current, item)); setProfileErrors((current) => ({ ...current, interests: undefined })); tap(); }} style={[styles.interestOption, selected && styles.interestOptionActive]}><Text style={[styles.interestOptionText, selected && styles.interestOptionTextActive]}>{item}</Text></Pressable>; })}</View>
                 {profileErrors.interests ? <Text style={styles.fieldError}>{profileErrors.interests}</Text> : null}
-                <View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#D5D5D5" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View>
+                <View style={styles.verifiedNote}><Icon name="phone-iphone" size={15} color="#4B4651" /><Text style={styles.verifiedNoteText}>Phone verified. Add a selfie or ID later for a stronger badge.</Text></View>
               </> : null}
               {authStep === "photo" ? <>
                 <Pressable onPress={pickProfilePhoto} accessibilityRole="button" accessibilityLabel="Choose a profile photo" style={({ pressed }) => [styles.photoPicker, pressed && styles.pressed]}>
-                  {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.photoPreview} /> : <View style={styles.photoPlaceholder}><Icon name="add-a-photo" size={26} color="#B8B8B8" /></View>}
+                  {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.photoPreview} /> : <View style={styles.photoPlaceholder}><Icon name="add-a-photo" size={26} color="#666070" /></View>}
                   <Text style={styles.photoPickerText}>{profilePhoto ? "Change photo" : "Choose from your library"}</Text>
                   <Text style={styles.photoPickerHint}>Square photos look best. Nothing is shared until you accept a friend.</Text>
                 </Pressable>
-                <View style={styles.photoSafety}><Icon name="visibility" size={15} color="#D5D5D5" /><Text style={styles.photoSafetyText}>Only accepted friends see your photo. You can hide it from suggestions any time.</Text></View>
+                <View style={styles.photoSafety}><Icon name="visibility" size={15} color="#4B4651" /><Text style={styles.photoSafetyText}>Only accepted friends see your photo. You can hide it from suggestions any time.</Text></View>
               </> : null}
               {authStep === "about" ? <>
                 <Frosted style={styles.summaryCard}>
                   <View style={styles.summaryHeader}>
                     {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.summaryAvatar} /> : <View style={styles.summaryAvatarFallback}><Text style={styles.summaryAvatarText}>{(fullName.trim().charAt(0) || "T").toUpperCase()}</Text></View>}
                     <View style={{ flex: 1 }}><Text style={styles.summaryName}>{fullName.trim() || "Your name"}</Text><Text style={styles.summaryMeta}>{locality.trim() || "Your neighborhood"} · {dateOfBirth && parseDateOfBirth(dateOfBirth) ? `${ageFromDateOfBirth(parseDateOfBirth(dateOfBirth)!)} yrs` : "Age hidden"}</Text></View>
-                    <View style={styles.verificationPill}><Icon name="phone-iphone" size={12} color="#DBDBDB" /><Text style={styles.verificationText}>Phone verified</Text></View>
+                    <View style={styles.verificationPill}><Icon name="phone-iphone" size={12} color="#4B4651" /><Text style={styles.verificationText}>Phone verified</Text></View>
                   </View>
                   <View style={styles.summaryTags}>{profileInterests.map((item) => <View key={item} style={styles.summaryTag}><Text style={styles.summaryTagText}>{item}</Text></View>)}</View>
                 </Frosted>
-                <View style={styles.summaryRow}><Icon name="lock-outline" size={15} color="#D5D5D5" /><Text style={styles.summaryRowText}>Your number and birth date stay private. Friends see your age and broad area only.</Text></View>
-                <View style={styles.summaryRow}><Icon name="groups" size={15} color="#B8B8B8" /><Text style={styles.summaryRowText}>Chats open after a mutual yes. Meetups are always in public places.</Text></View>
+                <View style={styles.summaryRow}><Icon name="lock-outline" size={15} color="#4B4651" /><Text style={styles.summaryRowText}>Your number and birth date stay private. Friends see your age and broad area only.</Text></View>
+                <View style={styles.summaryRow}><Icon name="groups" size={15} color="#666070" /><Text style={styles.summaryRowText}>Chats open after a mutual yes. Meetups are always in public places.</Text></View>
                 <Text style={styles.fieldLabel}>BEFORE YOU JOIN · HOW TRUFRENZ STAYS KIND</Text>
                 <SafetyOnboardingCarousel onComplete={finishSignup} />
               </> : null}
               <ActionButton onPress={continueAuth} disabled={authBusy} style={styles.authContinue}><Text style={styles.actionText}>{authBusy ? "Please wait…" : authStep === "phone" ? (authIntent === "login" ? `Send my login code by ${authChannel === "email" ? "email" : "SMS"}` : `Send my code by ${authChannel === "email" ? "email" : "SMS"}`) : authStep === "code" ? (authIntent === "login" ? "Log in" : "Verify & continue") : authStep === "profile" ? "Continue" : authStep === "photo" ? (profilePhoto ? "Use this photo" : "Skip for now") : "Join the circle"}</Text><Icon name="arrow-forward" size={16} color="#FFFFFF" /></ActionButton>
-              <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#B8B8B8" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
-              <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#CDD6DD" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
+              <Pressable onPress={backAuth} style={styles.backLink}><Icon name="arrow-back" size={14} color="#666070" /><Text style={styles.backLinkText}>{authStep === "phone" ? "Back to welcome" : "Back"}</Text></Pressable>
+              <View style={styles.modalPrivacy}><Icon name="lock-outline" size={13} color="#4B4651" /><Text style={styles.modalPrivacyText}>Your number stays private and never appears on your profile.</Text></View>
               <Text style={styles.prototypeNote}>Prototype only: phone codes and identity checks are not connected to a live verification service.</Text>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
       <Modal visible={composerOpen} animationType="fade" transparent onRequestClose={() => setComposerOpen(false)}>
-        <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.groupModalIcon}><Icon name="groups" size={19} color="#B8B8B8" /></View><Pressable onPress={() => setComposerOpen(false)} style={styles.roundAction}><Icon name="close" size={18} color="#DEE8EF" /></Pressable></View><Text style={styles.groupModalTitle}>A little private circle</Text><Text style={styles.groupModalCopy}>Groups are invite-only, for friends you&apos;ve already accepted.</Text><TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="Give your group a name" placeholderTextColor="#a4a29d" style={styles.fieldInput} /><ActionButton onPress={toggleGroup} style={styles.groupCreateButton}><Text style={styles.actionText}>Create private group</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setComposerOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Not now</Text></Pressable></Frosted></View>
+        <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.groupModalIcon}><Icon name="groups" size={19} color="#666070" /></View><Pressable onPress={() => setComposerOpen(false)} style={styles.roundAction}><Icon name="close" size={18} color="#4B4651" /></Pressable></View><Text style={styles.groupModalTitle}>A little private circle</Text><Text style={styles.groupModalCopy}>Groups are invite-only, for friends you&apos;ve already accepted.</Text><TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="Give your group a name" placeholderTextColor="#a4a29d" style={styles.fieldInput} /><ActionButton onPress={toggleGroup} style={styles.groupCreateButton}><Text style={styles.actionText}>Create private group</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setComposerOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Not now</Text></Pressable></Frosted></View>
       </Modal>
       <Modal visible={verificationPrompt} animationType="fade" transparent onRequestClose={() => setVerificationPrompt(false)}>
-        <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.verificationModalIcon}><Icon name="verified-user" size={19} color="#D5D5D5" /></View><Pressable onPress={() => setVerificationPrompt(false)} style={styles.roundAction}><Icon name="close" size={18} color="#DEE8EF" /></Pressable></View><Text style={styles.groupModalTitle}>A little extra trust, first.</Text><Text style={styles.groupModalCopy}>Your phone is verified. To send friend requests, add a live-selfie match or ID check for the stronger badge. You can keep browsing until then.</Text><View style={styles.verificationStep}><Icon name="phone-iphone" size={16} color="#D6D6D6" /><Text style={styles.verificationStepText}>Phone verification · complete</Text><Icon name="check-circle" size={15} color="#D5D5D5" /></View><View style={styles.verificationStep}><Icon name="face" size={16} color="#B8B8B8" /><Text style={styles.verificationStepText}>Selfie match or ID check · optional</Text><Icon name="lock-outline" size={14} color="#CED6DD" /></View><ActionButton onPress={() => { setVerificationPrompt(false); setSelfieModalVisible(true); }} style={styles.groupCreateButton}><Text style={styles.actionText}>Start selfie check</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setVerificationPrompt(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Maybe later</Text></Pressable></Frosted></View>
+        <View style={[styles.composerModalShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}><Frosted style={[styles.groupModal, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}><View style={styles.modalTopLine}><View style={styles.verificationModalIcon}><Icon name="verified-user" size={19} color="#4B4651" /></View><Pressable onPress={() => setVerificationPrompt(false)} style={styles.roundAction}><Icon name="close" size={18} color="#4B4651" /></Pressable></View><Text style={styles.groupModalTitle}>A little extra trust, first.</Text><Text style={styles.groupModalCopy}>Your phone is verified. To send friend requests, add a live-selfie match or ID check for the stronger badge. You can keep browsing until then.</Text><View style={styles.verificationStep}><Icon name="phone-iphone" size={16} color="#4B4651" /><Text style={styles.verificationStepText}>Phone verification · complete</Text><Icon name="check-circle" size={15} color="#4B4651" /></View><View style={styles.verificationStep}><Icon name="face" size={16} color="#666070" /><Text style={styles.verificationStepText}>Selfie match or ID check · optional</Text><Icon name="lock-outline" size={14} color="#4B4651" /></View><ActionButton onPress={() => { setVerificationPrompt(false); setSelfieModalVisible(true); }} style={styles.groupCreateButton}><Text style={styles.actionText}>Start selfie check</Text><Icon name="arrow-forward" size={15} color="#FFFFFF" /></ActionButton><Pressable onPress={() => setVerificationPrompt(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Maybe later</Text></Pressable></Frosted></View>
       </Modal>
       <Modal visible={actionMenuOpen} transparent animationType="fade" onRequestClose={() => setActionMenuOpen(false)}>
         <Pressable style={[styles.actionMenuShade, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]} onPress={() => setActionMenuOpen(false)}><GlassBlur intensity={35} style={[styles.actionMenuBlur, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity)}
-        ><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#D5D5D5" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#CED6DD" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#B8B8B8" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#CED6DD" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#CED7DD" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></GlassBlur></Pressable>
+          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
+        ><Pressable onPress={(event) => event.stopPropagation()} style={[styles.actionMenuCard, { maxHeight: modalLayout.maxHeight - 2, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}><ScrollView style={styles.navigationMenuScroll} contentContainerStyle={styles.navigationMenuContent} showsVerticalScrollIndicator={false}><View style={styles.actionMenuHandle} /><Text style={styles.actionMenuEyebrow}>KEEP IT EASY</Text><Text style={styles.actionMenuTitle}>Share something small.</Text><Text style={styles.actionMenuSub}>Only this accepted friend can see what you send.</Text><Pressable onPress={shareApproximateArea} style={styles.actionMenuRow}><View style={styles.actionMenuIconBlue}><Icon name="near-me" size={18} color="#4B4651" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Share my approximate area</Text><Text style={styles.actionMenuItemSub}>Broad neighborhood only · no live pin</Text></View><Icon name="chevron-right" size={17} color="#4B4651" /></Pressable><View style={styles.actionMenuDivider} /><Pressable onPress={prepareMeetupInvite} style={styles.actionMenuRow}><View style={styles.actionMenuIconPink}><Icon name="event-available" size={18} color="#666070" /></View><View style={styles.actionMenuCopy}><Text style={styles.actionMenuItemTitle}>Invite them to a meetup</Text><Text style={styles.actionMenuItemSub}>Adds a friendly invite to your editable draft</Text></View><Icon name="chevron-right" size={17} color="#4B4651" /></Pressable><View style={styles.actionMenuPrivacy}><Icon name="lock-outline" size={13} color="#4B4651" /><Text style={styles.actionMenuPrivacyText}>Trufrenz never shares your exact location automatically.</Text></View><Pressable onPress={() => setActionMenuOpen(false)} style={styles.cancelGroup}><Text style={styles.cancelGroupText}>Cancel</Text></Pressable></ScrollView></Pressable></GlassBlur></Pressable>
       </Modal>
       <SelfieVerificationModal visible={selfieModalVisible} onClose={() => setSelfieModalVisible(false)} onCaptured={() => feedback("Selfie captured on this device. A verification provider must review it before your badge changes.")} />
       <CreateMeetupInviteModal visible={inviteModalVisible} contacts={inviteTargets} initialContactId={inviteTargetChat} onClose={() => setInviteModalVisible(false)} onShare={shareMeetupInvite} />
@@ -5628,7 +5628,7 @@ export default function TrufrenzApp() {
 const frozenStyles = StyleSheet.create({
   /* Shared with the hoisted `cardStyles`: the screen uses it at many call sites. */
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
-  safeArea: { flex: 1, backgroundColor: "#F7F5F1", overflow: "hidden" },
+  safeArea: { flex: 1, backgroundColor: "#C6C4C1", overflow: "hidden" },
   noninteractive: { pointerEvents: "none" },
   backgroundImageWrap: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
   backgroundImage: { width: "100%", height: "100%", opacity: 0.86 },
@@ -5654,7 +5654,7 @@ const frozenStyles = StyleSheet.create({
    * cards were losing their depth. It is now a light wash that keeps the drawing
    * visible underneath.
    */
-  headingScrim: { position: "absolute", left: 0, right: 0, top: 0, height: 132, backgroundColor: "rgba(0, 0, 0, 0.26)" },
+  headingScrim: { position: "absolute", left: 0, right: 0, top: 0, height: 132, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   screenContent: { flex: 1 },
   ambient: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   scroll: { flex: 1 },
@@ -5674,7 +5674,7 @@ const frozenStyles = StyleSheet.create({
    */
   brandMark: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 9 },
   brandIcon: { width: 31, height: 31, borderRadius: 12, backgroundColor: "#666666", alignItems: "center", justifyContent: "center" },
-  brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#EEF8FF" },
+  brandWord: { fontSize: 18, fontWeight: "700", letterSpacing: -0.45, color: "#4B4651" },
   /*
    * The greeting shares the app name's line.
    *
@@ -5683,25 +5683,25 @@ const frozenStyles = StyleSheet.create({
    * the right edge — the same overflow that once hid the call buttons.
    */
   brandNameRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 5 },
-  brandGreeting: { flexShrink: 1, color: "#DFE9F0", fontSize: 12, fontWeight: "500", letterSpacing: 0.1 },
-  topBarSub: { marginTop: 2, color: "#DFE9F0", fontSize: 12 },
-  backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  backButtonText: { color: "#E2ECF3", fontSize: 12, fontWeight: "700" },
+  brandGreeting: { flexShrink: 1, color: "#4B4651", fontSize: 12, fontWeight: "500", letterSpacing: 0.1 },
+  topBarSub: { marginTop: 2, color: "#4B4651", fontSize: 12 },
+  backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  backButtonText: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   threadHeading: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 7 },
   threadHeadingCopy: { flex: 1, minWidth: 0 },
-  threadTitle: { color: "#EEF8FF", fontSize: 14, fontWeight: "700" },
+  threadTitle: { color: "#4B4651", fontSize: 14, fontWeight: "700" },
   threadStatusRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  threadStatus: { flexShrink: 1, color: "#B8B8B8", fontSize: 12, fontWeight: "600" },
-  neighborStatus: { color: "#B8B8B8", fontSize: 12, fontWeight: "600", marginTop: 3 },
-  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), padding: 1, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)") },
+  threadStatus: { flexShrink: 1, color: "#666070", fontSize: 12, fontWeight: "600" },
+  neighborStatus: { color: "#666070", fontSize: 12, fontWeight: "600", marginTop: 3 },
+  threadAvatarButton: { width: 37, height: 37, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), padding: 1, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   threadAvatar: { width: "100%", height: "100%", borderRadius: 12 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
   /* Three controls in a conversation header: tighter gaps so none is pushed off. */
   topActionsThread: { gap: 6 },
-  roundAction: { position: "relative", height: 32, width: 32, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center", shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
-  notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: "#FFFFFF" },
-  userAvatar: { height: 35, width: 35, borderRadius: 14, backgroundColor: "#5C594B", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#FFFFFF" },
-  userInitial: { color: "#F2F7FA", fontSize: 15, fontWeight: "700" },
+  roundAction: { position: "relative", height: 32, width: 32, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center", shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
+  notificationDot: { position: "absolute", right: 7, top: 7, height: 6, width: 6, borderRadius: 3, backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: "#858388" },
+  userAvatar: { height: 35, width: 35, borderRadius: 14, backgroundColor: "#D0D0CE", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#858388" },
+  userInitial: { color: "#4B4651", fontSize: 15, fontWeight: "700" },
   /*
    * The section heading sits under the app name with only the gap the top bar's
    * own margin leaves, so the list begins as high as it can without touching
@@ -5709,14 +5709,14 @@ const frozenStyles = StyleSheet.create({
    * sections because it is a section label, not a headline.
    */
   chatHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 2, marginBottom: 8 },
-  chatTitle: { color: "#F0FAFF", fontSize: 16, fontWeight: "700", letterSpacing: -0.4 },
-  composeButton: { width: 36, height: 36, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), shadowColor: "#B8B8B8", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  chatTitle: { color: "#4B4651", fontSize: 16, fontWeight: "700", letterSpacing: -0.4 },
+  composeButton: { width: 36, height: 36, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#B8B8B8", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   /** The control beside the search field that opens the device's contacts. */
   searchFilterButton: { width: 30, height: 30, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
   searchFilterButtonActive: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)") },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
-  searchBar: { height: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.2, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  searchInput: { flex: 1, color: "#ECF6FE", fontSize: 13, paddingVertical: 0, outlineStyle: "none" as any },
+  searchBar: { height: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.2, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  searchInput: { flex: 1, color: "#4B4651", fontSize: 13, paddingVertical: 0, outlineStyle: "none" as any },
   filterRow: { flexDirection: "row", gap: 7, marginTop: 8, marginBottom: 8 },
   /*
    * The filter chips were the last surface with no material of their own.
@@ -5738,20 +5738,20 @@ const frozenStyles = StyleSheet.create({
   sectionLink: { color: "#4A4A4A", fontSize: 12, fontWeight: "600" },
   circlesRow: { alignItems: "flex-start", gap: 17, paddingTop: 10, paddingBottom: 3 },
   circleItem: { width: 51, alignItems: "center", gap: 4 },
-  circleImageWrap: { width: 48, height: 48, borderRadius: 18, borderWidth: 1.5, borderColor: "#CED7DE", padding: 2, position: "relative" },
+  circleImageWrap: { width: 48, height: 48, borderRadius: 18, borderWidth: 1.5, borderColor: "#81848C", padding: 2, position: "relative" },
   circleImage: { width: "100%", height: "100%", borderRadius: 15 },
-  circleStatus: { position: "absolute", right: -1, bottom: -1, width: 12, height: 12, borderRadius: 6, backgroundColor: "#535352", borderWidth: 2, borderColor: "#FAF8F7" },
+  circleStatus: { position: "absolute", right: -1, bottom: -1, width: 12, height: 12, borderRadius: 6, backgroundColor: "#CFCFCF", borderWidth: 2, borderColor: "#868288" },
   circleStatusOnline: { backgroundColor: "#A0A0A0" },
-  circleName: { color: "#DFE9F0", fontSize: 12, textAlign: "center" },
-  addCircle: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.80)", borderWidth: 1, borderColor: "#FFFFFF" },
+  circleName: { color: "#4B4651", fontSize: 12, textAlign: "center" },
+  addCircle: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.80)", borderWidth: 1, borderColor: "#858388" },
   myCircle: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#555A5E" },
-  myCircleInitial: { fontSize: 17, color: "#DBDBDB", fontWeight: "700" },
-  addSmall: { position: "absolute", bottom: -1, right: -1, backgroundColor: "#666666", width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: "#FAF8F7", alignItems: "center", justifyContent: "center" },
+  myCircleInitial: { fontSize: 17, color: "#4B4651", fontWeight: "700" },
+  addSmall: { position: "absolute", bottom: -1, right: -1, backgroundColor: "#666666", width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: "#868288", alignItems: "center", justifyContent: "center" },
   /* Search results: one row per answer, grouped by what tapping it will do. */
   searchResultList: { paddingBottom: 10 },
   searchGroup: { marginTop: 12 },
   searchGroupHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
-  searchGroupNote: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
+  searchGroupNote: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
   searchResultRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -5761,13 +5761,13 @@ const frozenStyles = StyleSheet.create({
     marginBottom: 7,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   searchResultIcon: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.62)") },
   searchResultCopy: { flex: 1, minWidth: 0 },
-  searchResultName: { color: "#EEF8FF", fontSize: 13, fontWeight: "700" },
-  searchResultNote: { color: "#DFE9F0", fontSize: 12, marginTop: 2 },
+  searchResultName: { color: "#4B4651", fontSize: 13, fontWeight: "700" },
+  searchResultNote: { color: "#4B4651", fontSize: 12, marginTop: 2 },
   searchScanCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -5779,39 +5779,39 @@ const frozenStyles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: "dashed",
     borderColor: glassNestedFill("rgba(196, 214, 228, 0.9)"),
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   listHeadingCount: { color: "#4A4842", fontSize: 12, fontWeight: "600" },
   listHeading: { height: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2, borderBottomWidth: 1, borderBottomColor: "rgba(28, 27, 25, 0.16)" },
   chatListScroll: { flex: 1 },
   chatList: { paddingBottom: 0 },
   /** The closing card that uses the space under a short inbox. */
-  quietInboxCard: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  quietInboxIcon: { width: 33, height: 33, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
-  quietInboxTitle: { color: "#D6D6D6", fontSize: 12, fontWeight: "700" },
-  quietInboxText: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 2 },
-  chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderRadius: 16, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), paddingHorizontal: 8, paddingVertical: 8, marginBottom: 6, shadowColor: "#D7E0E7", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.055, shadowRadius: 9, elevation: 1 },
+  quietInboxCard: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  quietInboxIcon: { width: 33, height: 33, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  quietInboxTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  quietInboxText: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 2 },
+  chatRow: { minHeight: 69, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderRadius: 16, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 8, paddingVertical: 8, marginBottom: 6, shadowColor: "#D7E0E7", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.055, shadowRadius: 9, elevation: 1 },
   rowPressed: { opacity: 0.78, transform: [{ scale: 0.995 }] },
   chatAvatarWrap: { position: "relative", width: 48, height: 48 },
-  chatAvatar: { width: 48, height: 48, borderRadius: 18, backgroundColor: "#5B594F" },
-  groupMini: { position: "absolute", width: 19, height: 19, bottom: -3, right: -3, borderRadius: 8, backgroundColor: "#666666", borderWidth: 2, borderColor: "#FAF8F7", alignItems: "center", justifyContent: "center" },
-  onlineDot: { position: "absolute", width: 11, height: 11, bottom: 0, right: 0, borderRadius: 6, backgroundColor: "#A0A0A0", borderWidth: 2, borderColor: "#FAF8F7" },
+  chatAvatar: { width: 48, height: 48, borderRadius: 18, backgroundColor: "#D0D0CF" },
+  groupMini: { position: "absolute", width: 19, height: 19, bottom: -3, right: -3, borderRadius: 8, backgroundColor: "#666666", borderWidth: 2, borderColor: "#868288", alignItems: "center", justifyContent: "center" },
+  onlineDot: { position: "absolute", width: 11, height: 11, bottom: 0, right: 0, borderRadius: 6, backgroundColor: "#A0A0A0", borderWidth: 2, borderColor: "#868288" },
   chatInfo: { flex: 1, minWidth: 0 },
   chatTitleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   chatNameCluster: { flexDirection: "row", alignItems: "center", gap: 4 },
-  chatName: { color: "#EEF8FF", fontSize: 12.5, fontWeight: "650" as any },
-  chatTime: { color: "#DFE9F0", fontSize: 12 },
-  chatTimeUnread: { color: "#B8B8B8", fontWeight: "700" },
+  chatName: { color: "#4B4651", fontSize: 12.5, fontWeight: "650" as any },
+  chatTime: { color: "#4B4651", fontSize: 12 },
+  chatTimeUnread: { color: "#666070", fontWeight: "700" },
   chatLastRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 5 },
-  chatPreview: { color: "#DFE9F0", fontSize: 12, flex: 1, paddingRight: 7 },
+  chatPreview: { color: "#4B4651", fontSize: 12, flex: 1, paddingRight: 7 },
   unreadBadge: { minWidth: 19, height: 19, borderRadius: 9.5, paddingHorizontal: 4, backgroundColor: "#6B6B6B", alignItems: "center", justifyContent: "center" },
   unreadCount: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   safeNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 10, paddingVertical: 8 },
-  safeNoteText: { color: "#E6EFF7", fontSize: 12 },
+  safeNoteText: { color: "#4B4651", fontSize: 12 },
   emptyChats: { alignItems: "center", paddingVertical: 35, paddingHorizontal: 24 },
-  emptyIcon: { width: 53, height: 53, borderRadius: 20, backgroundColor: "#5C594C", alignItems: "center", justifyContent: "center" },
+  emptyIcon: { width: 53, height: 53, borderRadius: 20, backgroundColor: "#D0D0CE", alignItems: "center", justifyContent: "center" },
   emptyTitle: { color: "#1C1B19", fontSize: 15, fontWeight: "700", marginTop: 10 },
-  emptyCopy: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 5 },
+  emptyCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 5 },
   actionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   emptyAction: { marginTop: 13 },
   /*
@@ -5820,13 +5820,13 @@ const frozenStyles = StyleSheet.create({
    * empty space between the composer and the bottom of the screen.
    */
   threadScreen: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 0 },
-  threadTopBarNight: { paddingHorizontal: 8, paddingVertical: 5, marginHorizontal: -7, marginBottom: 8, borderRadius: 16, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: "rgba(47, 58, 69, 0.20)" },
-  threadRoundActionNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(47, 58, 69, 0.26)" },
-  backButtonNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(47, 58, 69, 0.26)" },
-  threadPrimaryText: { color: "#BCBCBC" },
-  threadSecondaryText: { color: "rgba(0, 0, 0, 0.16)" },
-  threadAccentText: { color: "#DFE8EF" },
-  threadReceiptReadText: { color: "#E6E6E6" },
+  threadTopBarNight: { paddingHorizontal: 8, paddingVertical: 5, marginHorizontal: -7, marginBottom: 8, borderRadius: 16, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(47, 58, 69, 0.20)" },
+  threadRoundActionNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(47, 58, 69, 0.26)" },
+  backButtonNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(47, 58, 69, 0.26)" },
+  threadPrimaryText: { color: "#5A5560" },
+  threadSecondaryText: { color: "rgba(0, 0, 0, 0.10)" },
+  threadAccentText: { color: "#4B4651" },
+  threadReceiptReadText: { color: "#4B4651" },
   threadBody: { flex: 1 },
   threadContent: { paddingTop: 8, gap: 9 },
   /*
@@ -5852,63 +5852,63 @@ const frozenStyles = StyleSheet.create({
    */
   threadContentKeyboard: { paddingBottom: 10, flexGrow: 1, justifyContent: "flex-end" },
   dayDivider: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 6 },
-  threadDayDividerNight: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  threadDayDividerNight: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   dividerLine: { flex: 1, height: 1, backgroundColor: "rgba(255, 255, 255, 0.58)" },
   threadDividerLineNight: { backgroundColor: "rgba(47, 58, 69, 0.26)" },
-  dayLabel: { color: "#DFE9F0", fontSize: 12, letterSpacing: 1 },
+  dayLabel: { color: "#4B4651", fontSize: 12, letterSpacing: 1 },
   /*
    * The read marker. Deliberately quiet: a hairline and a small label, so it
    * reads as a bookmark between messages rather than as a message of its own.
    */
   readMarker: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginVertical: 7, paddingHorizontal: 4 },
-  readMarkerNight: { paddingVertical: 5, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  readMarkerNight: { paddingVertical: 5, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   readMarkerLine: { flex: 1, height: 1, backgroundColor: "rgba(131, 114, 31, 0.30)" },
   readMarkerLineNight: { backgroundColor: "rgba(47, 58, 69, 0.26)" },
-  readMarkerLabel: { color: "#B8B8B8", fontSize: 12, letterSpacing: 0.6, fontWeight: "600" },
-  sharedInterest: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.16)", paddingHorizontal: 10, paddingVertical: 6, marginBottom: 5 },
-  sharedInterestNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: "rgba(47, 58, 69, 0.22)" },
-  sharedInterestText: { color: "#B8B8B8", fontSize: 12 },
+  readMarkerLabel: { color: "#666070", fontSize: 12, letterSpacing: 0.6, fontWeight: "600" },
+  sharedInterest: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.10)", paddingHorizontal: 10, paddingVertical: 6, marginBottom: 5 },
+  sharedInterestNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(47, 58, 69, 0.22)" },
+  sharedInterestText: { color: "#666070", fontSize: 12 },
   messageRow: { flexDirection: "row", justifyContent: "flex-start" },
   myMessageRow: { justifyContent: "flex-end" },
-  readOnlyBar: { flexDirection: "row", alignItems: "center", gap: 7, marginHorizontal: 12, marginBottom: 4, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  readOnlyBarNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(47, 58, 69, 0.22)" },
-  readOnlyBarText: { flex: 1, color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  senderLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", marginBottom: 2 },
+  readOnlyBar: { flexDirection: "row", alignItems: "center", gap: 7, marginHorizontal: 12, marginBottom: 4, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  readOnlyBarNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(47, 58, 69, 0.22)" },
+  readOnlyBarText: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  senderLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", marginBottom: 2 },
   messageColumn: { maxWidth: "86%", gap: 4 },
   voiceRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 130 },
-  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)") },
+  voicePlay: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   voicePlayNight: { backgroundColor: CHAT_NIGHT.controlSurface, borderWidth: 1, borderColor: CHAT_NIGHT.border },
   voiceWave: { flexDirection: "row", alignItems: "center", gap: 2, flex: 1, height: 22 },
   voiceBar: { flex: 1, borderRadius: 2, backgroundColor: "rgba(131, 114, 31, 0.55)" },
   voiceBarNight: { backgroundColor: CHAT_NIGHT.secondaryText },
-  voiceTime: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  voiceTime: { color: "#666070", fontSize: 12, fontWeight: "700" },
   locationRow: { flexDirection: "row", alignItems: "flex-start", gap: 7, minWidth: 150 },
   locationCopy: { flex: 1, minWidth: 0 },
-  locationNote: { color: "#B8B8B8", fontSize: 12, fontWeight: "600", marginTop: 3 },
-  photoBubble: { width: 190, height: 140, borderRadius: 13, backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  locationNote: { color: "#666070", fontSize: 12, fontWeight: "600", marginTop: 3 },
+  photoBubble: { width: 190, height: 140, borderRadius: 13, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   reactionRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: -2 },
   myReactionRow: { justifyContent: "flex-end" },
-  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#DCE5EC", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 6, paddingVertical: 3, shadowColor: "#DCE5EC", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   reactionChipNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },
-  reactionChipMine: { borderColor: "rgba(255, 255, 255, 0.65)", backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  reactionChipMine: { borderColor: "rgba(255, 255, 255, 0.65)", backgroundColor: "rgba(0, 0, 0, 0.10)" },
   reactionEmoji: { fontSize: 12 },
-  reactionCount: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
-  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#DCE5EC", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  reactionCount: { color: "#666070", fontSize: 12, fontWeight: "700" },
+  reactionPicker: { flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "flex-start", marginTop: 2, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 6, paddingVertical: 5, shadowColor: "#DCE5EC", shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   myReactionPicker: { alignSelf: "flex-end" },
   reactionChoice: { paddingHorizontal: 4, paddingVertical: 2 },
   reactionChoiceEmoji: { fontSize: 17 },
   messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16 },
-  theirBubble: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderBottomLeftRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  myBubble: { backgroundColor: "rgba(255, 255, 255, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderBottomRightRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  theirBubble: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderBottomLeftRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  myBubble: { backgroundColor: "rgba(255, 255, 255, 0.94)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderBottomRightRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   threadBubbleBorder: { borderColor: "rgba(47, 58, 69, 0.26)" },
-  messageText: { color: "#EAF4FB", fontSize: 12.5, lineHeight: 18 },
-  myMessageText: { color: "#BCBCBC" },
-  messageTime: { textAlign: "right", color: "#DFE9F0", fontSize: 12, marginTop: 4 },
-  myMessageTime: { color: "#E6F0F8" },
+  messageText: { color: "#4B4651", fontSize: 12.5, lineHeight: 18 },
+  myMessageText: { color: "#5A5560" },
+  messageTime: { textAlign: "right", color: "#4B4651", fontSize: 12, marginTop: 4 },
+  myMessageTime: { color: "#4B4651" },
   hangoutStrip: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 9, borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.47)" },
-  hangoutStripNight: { borderTopColor: "rgba(0, 0, 0, 0.25)" },
-  hangoutStripText: { flex: 1, color: "#DFE9F0", fontSize: 12 },
-  inviteLink: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  hangoutStripNight: { borderTopColor: "rgba(0, 0, 0, 0.10)" },
+  hangoutStripText: { flex: 1, color: "#4B4651", fontSize: 12 },
+  inviteLink: { color: "#666070", fontSize: 12, fontWeight: "700" },
   /*
    * Sized to the field it holds rather than to the icons beside it.
    *
@@ -5923,11 +5923,11 @@ const frozenStyles = StyleSheet.create({
    * seam — otherwise the last message appears to run into the input field.
    */
   composerRowRaised: { borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.55)", paddingTop: 7, marginTop: 2 },
-  composerRowNight: { borderTopColor: "rgba(0, 0, 0, 0.25)" },
+  composerRowNight: { borderTopColor: "rgba(0, 0, 0, 0.10)" },
   composerIcon: { width: 30, alignItems: "center" },
   composerIconNight: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: CHAT_NIGHT.controlSurface, borderWidth: 1, borderColor: CHAT_NIGHT.border },
-  quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center" },
-  quickReplyButtonNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(47, 58, 69, 0.26)" },
+  quickReplyButton: { width: 29, height: 34, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  quickReplyButtonNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(47, 58, 69, 0.26)" },
   /*
    * The writing field.
    *
@@ -5948,10 +5948,10 @@ const frozenStyles = StyleSheet.create({
    * field rather than the row, and the icons keep fixed widths so the field is the
    * only thing that gives.
    */
-  composerInput: { minHeight: 46, flexGrow: 1, flexShrink: 1, flexBasis: 0, borderRadius: 15, paddingHorizontal: 11, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), color: "#F3FEFF", fontSize: 15, lineHeight: 20, outlineStyle: "none" as any },
-  composerInputNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(47, 58, 69, 0.32)", color: "#BCBCBC" },
-  sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#595855", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
-  sendButtonNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(47, 58, 69, 0.26)" },
+  composerInput: { minHeight: 46, flexGrow: 1, flexShrink: 1, flexBasis: 0, borderRadius: 15, paddingHorizontal: 11, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), color: "#4B4651", fontSize: 15, lineHeight: 20, outlineStyle: "none" as any },
+  composerInputNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(47, 58, 69, 0.32)", color: "#5A5560" },
+  sendButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#D0D0CF", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 1 },
+  sendButtonNight: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(47, 58, 69, 0.26)" },
   sendButtonActive: { backgroundColor: "#666666" },
   /*
    * The section intro is a header, not a poster. Its spacing was set when it was
@@ -5976,221 +5976,221 @@ const frozenStyles = StyleSheet.create({
   interestFilterRow: { gap: 6, paddingVertical: 1 },
   friendsScroll: { marginTop: 14 },
   friendsContent: { paddingBottom: 20 },
-  contactIcon: { width: 31, height: 31, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  contactIcon: { width: 31, height: 31, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   contactHeaderCopy: { flex: 1, minWidth: 0 },
-  contactScanButton: { minHeight: 37, borderRadius: 12, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  contactScanText: { color: "#D1D1D1", fontSize: 12, fontWeight: "800" },
-  contactRow: { minHeight: 46, paddingHorizontal: 7, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)") },
-  contactRowSelected: { borderColor: "rgba(255, 255, 255, 0.46)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)") },
-  contactSelectMark: { width: 25, height: 25, borderRadius: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(190, 212, 227, 0.85)"), alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)") },
+  contactScanButton: { minHeight: 37, borderRadius: 12, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  contactScanText: { color: "#5A5560", fontSize: 12, fontWeight: "800" },
+  contactRow: { minHeight: 46, paddingHorizontal: 7, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  contactRowSelected: { borderColor: "rgba(255, 255, 255, 0.46)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  contactSelectMark: { width: 25, height: 25, borderRadius: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(190, 212, 227, 0.85)"), alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   contactSelectMarkOn: { backgroundColor: "#666666", borderColor: "rgba(184, 160, 33, 0.55)" },
-  contactName: { color: "#EAF4FB", fontSize: 12, fontWeight: "700" },
-  contactMatchLabel: { color: "#DFE9F0", fontSize: 12, marginTop: 2 },
+  contactName: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  contactMatchLabel: { color: "#4B4651", fontSize: 12, marginTop: 2 },
   contactInviteButton: { minHeight: 37, borderRadius: 12, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#666666", borderWidth: 1, borderColor: "rgba(183, 161, 43, 0.48)" },
   contactInviteText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800", textAlign: "center", flexShrink: 1 },
   contactInviteDisabled: { opacity: 0.55 },
-  contactInviteNote: { color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
-  requestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), marginBottom: 17 },
-  requestHeading: { color: "#EBF5FD", fontSize: 14, fontWeight: "700", marginTop: 4 },
-  requestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "#575757", alignItems: "center", justifyContent: "center" },
-  requestCountText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  contactInviteNote: { color: "#4B4651", fontSize: 12, lineHeight: 17 },
+  requestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginBottom: 17 },
+  requestHeading: { color: "#4B4651", fontSize: 14, fontWeight: "700", marginTop: 4 },
+  requestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "#D0D0D0", alignItems: "center", justifyContent: "center" },
+  requestCountText: { color: "#666070", fontSize: 12, fontWeight: "700" },
   /*
    * The waiting list is tinted cooler than the received list on purpose. One
    * asks the member to decide something now; the other is a state they are only
    * watching, and the two should not read as the same kind of demand.
    */
-  outgoingRequestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), marginBottom: 17 },
-  outgoingRequestHeading: { color: "#EAF4FB", fontSize: 14, fontWeight: "800", marginTop: 4 },
-  outgoingRequestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "rgba(0, 0, 0, 0.16)", alignItems: "center", justifyContent: "center" },
-  outgoingRequestCountText: { color: "#D6D6D6", fontSize: 12, fontWeight: "800" },
-  outgoingRequestCopy: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 4 },
-  withdrawRequestButton: { minHeight: 29, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.45)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), alignItems: "center", justifyContent: "center" },
-  withdrawRequestText: { color: "#D1D1D1", fontSize: 12, fontWeight: "800" },
+  outgoingRequestPanel: { padding: 12, borderRadius: 18, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginBottom: 17 },
+  outgoingRequestHeading: { color: "#4B4651", fontSize: 14, fontWeight: "800", marginTop: 4 },
+  outgoingRequestCount: { paddingHorizontal: 6, minWidth: 19, height: 18, borderRadius: 8, backgroundColor: "rgba(0, 0, 0, 0.10)", alignItems: "center", justifyContent: "center" },
+  outgoingRequestCountText: { color: "#4B4651", fontSize: 12, fontWeight: "800" },
+  outgoingRequestCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 4 },
+  withdrawRequestButton: { minHeight: 29, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.45)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  withdrawRequestText: { color: "#5A5560", fontSize: 12, fontWeight: "800" },
   requestRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 12 },
   requestAvatar: { width: 42, height: 42, borderRadius: 15 },
   requestDetails: { flex: 1, gap: 3 },
-  requestName: { color: "#EAF4FB", fontSize: 12, fontWeight: "700" },
-  requestMutual: { color: "#DFE9F0", fontSize: 12 },
+  requestName: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  requestMutual: { color: "#4B4651", fontSize: 12 },
   requestButtons: { flexDirection: "row", gap: 5 },
   acceptButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: "#8FB5A2", alignItems: "center", justifyContent: "center" },
   declineButton: { width: 29, height: 29, borderRadius: 11, backgroundColor: glassNestedFill("#f1f0ec"), alignItems: "center", justifyContent: "center" },
   suggestHeading: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 10 },
   sectionTitle: { color: "#1C1B19", fontSize: 16, fontWeight: "700", letterSpacing: -0.3, marginTop: 3 },
-  sortChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5, backgroundColor: "#535A5E" },
-  sortChipText: { fontSize: 12, color: "#B8B8B8", fontWeight: "600" },
+  sortChip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5, backgroundColor: "#CFD0D0" },
+  sortChipText: { fontSize: 12, color: "#666070", fontWeight: "600" },
   friendConnectionList: { gap: 7 },
   neighborRow: { minHeight: 68, borderRadius: 15, paddingVertical: 8, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 8 },
   neighborTapArea: { borderRadius: 13 },
   neighborAvatar: { width: 43, height: 43, borderRadius: 15, backgroundColor: "#5B5A51" },
   neighborInfo: { flex: 1, minWidth: 0, gap: 3 },
   neighborNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  neighborName: { color: "#ECF7FE", fontSize: 12, fontWeight: "700", maxWidth: 130 },
-  neighborAbout: { color: "#DFE9F0", fontSize: 12 },
+  neighborName: { color: "#4B4651", fontSize: 12, fontWeight: "700", maxWidth: 130 },
+  neighborAbout: { color: "#4B4651", fontSize: 12 },
   neighborMeta: { flexDirection: "row", alignItems: "center", gap: 3 },
-  neighborMetaText: { color: "#DFE9F0", fontSize: 12 },
+  neighborMetaText: { color: "#4B4651", fontSize: 12 },
   commonInterestTags: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 1 },
-  commonInterestTag: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  commonInterestTagText: { color: "#B8B8B8", fontSize: 12, fontWeight: "600" },
-  phoneOnlyLabel: { color: "#DFE9F0", fontSize: 12, backgroundColor: glassNestedFill("#1B1E23"), paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4, overflow: "hidden", marginLeft: 2 },
-  compactRequestButton: { minWidth: 60, height: 30, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10, borderWidth: 1, borderColor: "#CED7DD", backgroundColor: "rgba(0, 0, 0, 0.16)", paddingHorizontal: 6 },
-  compactRequestText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  commonInterestTag: { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  commonInterestTagText: { color: "#666070", fontSize: 12, fontWeight: "600" },
+  phoneOnlyLabel: { color: "#4B4651", fontSize: 12, backgroundColor: glassNestedFill("#EDE9F0"), paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4, overflow: "hidden", marginLeft: 2 },
+  compactRequestButton: { minWidth: 60, height: 30, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10, borderWidth: 1, borderColor: "#81848B", backgroundColor: "rgba(0, 0, 0, 0.10)", paddingHorizontal: 6 },
+  compactRequestText: { color: "#666070", fontSize: 12, fontWeight: "700" },
   discoveryPaused: { flexDirection: "row", alignItems: "center", gap: 8, padding: 11, marginBottom: 9, borderRadius: 14 },
-  discoveryPausedTitle: { color: "#E1EBF2", fontSize: 12, fontWeight: "700" },
+  discoveryPausedTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   noMatches: { minHeight: 58, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  noMatchesText: { color: "#E6EFF7", fontSize: 12 },
-  suggestCard: { width: "48.5%", borderRadius: 17, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DFE6EB", shadowOpacity: 0.065, shadowRadius: 12, elevation: 3 },
+  noMatchesText: { color: "#4B4651", fontSize: 12 },
+  suggestCard: { width: "48.5%", borderRadius: 17, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DFE6EB", shadowOpacity: 0.065, shadowRadius: 12, elevation: 3 },
   suggestPhotoWrap: { height: 106, position: "relative", backgroundColor: "#5B5A53" },
   suggestPhoto: { width: "100%", height: "100%" },
-  localityTag: { position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 },
-  localityText: { color: "#DFE9F0", fontSize: 12 },
-  tierBadge: { position: "absolute", top: 6, right: 6, width: 23, height: 23, borderRadius: 9, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), alignItems: "center", justifyContent: "center" },
+  localityTag: { position: "absolute", left: 6, bottom: 6, flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4 },
+  localityText: { color: "#4B4651", fontSize: 12 },
+  tierBadge: { position: "absolute", top: 6, right: 6, width: 23, height: 23, borderRadius: 9, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
   suggestBody: { padding: 8 },
   suggestNameRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
-  suggestName: { color: "#ECF7FE", fontSize: 12, fontWeight: "700", flexShrink: 1 },
-  suggestAge: { color: "#E6EFF7", fontSize: 12 },
+  suggestName: { color: "#4B4651", fontSize: 12, fontWeight: "700", flexShrink: 1 },
+  suggestAge: { color: "#4B4651", fontSize: 12 },
   verificationPill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3 },
   verifiedPill: { backgroundColor: "#575C59" },
   phonePill: { backgroundColor: glassNestedFill("#f1f0ec") },
   compactBadge: { marginTop: 4 },
-  verificationText: { color: "#E8E8E8", fontSize: 12, fontWeight: "600" },
-  phoneVerifiedText: { color: "#DFE9F0" },
-  suggestAbout: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, minHeight: 24, marginTop: 5 },
+  verificationText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  phoneVerifiedText: { color: "#4B4651" },
+  suggestAbout: { color: "#4B4651", fontSize: 12, lineHeight: 17, minHeight: 24, marginTop: 5 },
   suggestTags: { flexDirection: "row", gap: 4, marginTop: 5, marginBottom: 7 },
-  suggestTag: { borderRadius: 6, backgroundColor: "#1B1E23", paddingHorizontal: 5, paddingVertical: 3, color: "#B8B8B8", fontSize: 12 },
-  requestFriendButton: { minHeight: 30, borderRadius: 9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), paddingHorizontal: 4, shadowColor: "#B8B8B8", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
+  suggestTag: { borderRadius: 6, backgroundColor: "#EDE9F0", paddingHorizontal: 5, paddingVertical: 3, color: "#666070", fontSize: 12 },
+  requestFriendButton: { minHeight: 30, borderRadius: 9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 4, shadowColor: "#B8B8B8", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   requestFriendText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  requestSentButton: { backgroundColor: "#575B59", borderWidth: 1, borderColor: "#CED6DD" },
-  requestSentText: { color: "#E7E7E7" },
+  requestSentButton: { backgroundColor: "#575B59", borderWidth: 1, borderColor: "#81838B" },
+  requestSentText: { color: "#4B4651" },
   noPressureCard: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 14, marginTop: 13 },
-  noPressureIcon: { width: 29, height: 29, borderRadius: 10, backgroundColor: "#575757", alignItems: "center", justifyContent: "center" },
-  noPressureTitle: { color: "#E5EFF7", fontSize: 12, fontWeight: "700" },
-  noPressureText: { color: "#DFE9F0", fontSize: 12, marginTop: 3 },
+  noPressureIcon: { width: 29, height: 29, borderRadius: 10, backgroundColor: "#D0D0D0", alignItems: "center", justifyContent: "center" },
+  noPressureTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  noPressureText: { color: "#4B4651", fontSize: 12, marginTop: 3 },
   meetupIntroCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 17, marginBottom: 18 },
   meetupIntroArt: { width: 44, height: 44, position: "relative", alignItems: "center", justifyContent: "center" },
-  artBubblePink: { position: "absolute", top: 2, left: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: "#575757" },
-  artBubbleBlue: { position: "absolute", bottom: 1, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: "#535A5F" },
-  artCenter: { width: 32, height: 32, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), alignItems: "center", justifyContent: "center" },
-  meetupIntroTitle: { color: "#E9F3FB", fontSize: 12, fontWeight: "700" },
-  meetupIntroCopy: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 3 },
-  locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
-  locationChipText: { color: "#DFE9F0", fontSize: 12 },
+  artBubblePink: { position: "absolute", top: 2, left: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: "#D0D0D0" },
+  artBubbleBlue: { position: "absolute", bottom: 1, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: "#CFD0D1" },
+  artCenter: { width: 32, height: 32, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  meetupIntroTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  meetupIntroCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  locationChip: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderRadius: 9, paddingHorizontal: 7, paddingVertical: 5 },
+  locationChipText: { color: "#4B4651", fontSize: 12 },
   meetupScroll: { flex: 1, marginTop: 11 },
   meetupList: { gap: 9, paddingBottom: 20, marginTop: 11 },
   planFollowList: { gap: 8, marginBottom: 14 },
   planFollowCard: { padding: 11, borderRadius: 16, gap: 5 },
   planFollowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  planFollowPill: { borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  planFollowPillText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
-  planFollowTiming: { color: "#E6EFF7", fontSize: 12, fontWeight: "700" },
-  planFollowTimingToday: { color: "#DFE8EF" },
-  planFollowTitle: { color: "#EEF8FF", fontSize: 12, fontWeight: "700" },
+  planFollowPill: { borderRadius: 9, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(0, 0, 0, 0.10)" },
+  planFollowPillText: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
+  planFollowTiming: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  planFollowTimingToday: { color: "#4B4651" },
+  planFollowTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   planFollowActions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  planFollowButton: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  planFollowButton: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   planFollowButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  planFollowGhost: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)") },
-  planFollowCheckIn: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  planFollowGhost: { width: 30, height: 30, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  planFollowCheckIn: { borderRadius: 11, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#6E9C86", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   planFollowCheckInText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  planFollowWho: { color: "#E6EFF7", fontSize: 12, marginTop: 2 },
+  planFollowWho: { color: "#4B4651", fontSize: 12, marginTop: 2 },
   meetupCard: { minHeight: 99, padding: 9, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16 },
-  meetupPhoto: { width: 60, height: 72, borderRadius: 12, backgroundColor: "#5C594D" },
+  meetupPhoto: { width: 60, height: 72, borderRadius: 12, backgroundColor: "#D0D0CE" },
   meetupCopy: { flex: 1, minWidth: 0 },
-  meetupDay: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 0.6 },
-  meetupTitle: { color: "#EAF4FB", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 4 },
+  meetupDay: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 0.6 },
+  meetupTitle: { color: "#4B4651", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 4 },
   meetupPlace: { flexDirection: "row", alignItems: "center", gap: 2, marginTop: 3 },
-  meetupPlaceText: { color: "#DFE9F0", fontSize: 12, flex: 1 },
+  meetupPlaceText: { color: "#4B4651", fontSize: 12, flex: 1 },
   meetupMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-  meetupMetaText: { color: "#DFE9F0", fontSize: 12 },
-  metaDivider: { height: 8, width: 1, backgroundColor: "#BBB9AF" },
-  meetupTag: { color: "#DFE9F0", fontSize: 12 },
-  rsvpButton: { alignSelf: "flex-end", borderRadius: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), paddingHorizontal: 9, paddingVertical: 6, marginBottom: 1, shadowColor: "#B8B8B8", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  meetupMetaText: { color: "#4B4651", fontSize: 12 },
+  metaDivider: { height: 8, width: 1, backgroundColor: "#B4AFB9" },
+  meetupTag: { color: "#4B4651", fontSize: 12 },
+  rsvpButton: { alignSelf: "flex-end", borderRadius: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 9, paddingVertical: 6, marginBottom: 1, shadowColor: "#B8B8B8", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   rsvpText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   rsvpJoined: { backgroundColor: "#575B58" },
-  rsvpTextJoined: { color: "#E7E7E7" },
+  rsvpTextJoined: { color: "#4B4651" },
   createPlanLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 36 },
-  createPlanText: { color: "#B8B8B8", fontSize: 12, fontWeight: "600" },
+  createPlanText: { color: "#666070", fontSize: 12, fontWeight: "600" },
   profileCard: { alignItems: "center", padding: 16, borderRadius: 20 },
-  profileAvatarFrame: { width: 84, height: 84, borderRadius: 30, padding: 3, borderWidth: 1.5, borderColor: "#DEDEDE", position: "relative" },
-  profileAvatarPhoto: { width: "100%", height: "100%", borderRadius: 26, backgroundColor: "#5C594D" },
-  profileVerifiedDot: { position: "absolute", right: -3, bottom: -3, width: 22, height: 22, borderRadius: 9, borderWidth: 2, borderColor: "#fcfaf2", backgroundColor: "#6B6B6B", alignItems: "center", justifyContent: "center" },
-  profileBio: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 8, paddingHorizontal: 6 },
+  profileAvatarFrame: { width: 84, height: 84, borderRadius: 30, padding: 3, borderWidth: 1.5, borderColor: "#858388", position: "relative" },
+  profileAvatarPhoto: { width: "100%", height: "100%", borderRadius: 26, backgroundColor: "#D0D0CE" },
+  profileVerifiedDot: { position: "absolute", right: -3, bottom: -3, width: 22, height: 22, borderRadius: 9, borderWidth: 2, borderColor: "#868385", backgroundColor: "#6B6B6B", alignItems: "center", justifyContent: "center" },
+  profileBio: { color: "#4B4651", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 8, paddingHorizontal: 6 },
   profileMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 11 },
-  profileMetaPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  profileMetaText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  getVerifiedButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, borderRadius: 13, paddingHorizontal: 16, marginTop: 12, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  profileMetaPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  profileMetaText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  getVerifiedButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, borderRadius: 13, paddingHorizontal: 16, marginTop: 12, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   getVerifiedText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  profileAvatar: { position: "relative", width: 59, height: 59, borderRadius: 21, backgroundColor: "#575757", alignItems: "center", justifyContent: "center" },
-  profileInitial: { color: "#B8B8B8", fontSize: 25, fontWeight: "700" },
-  profileCheck: { position: "absolute", right: -2, bottom: -2, width: 19, height: 19, borderRadius: 8, backgroundColor: "#9A9A9A", borderColor: "#FFFFFF", borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  profileName: { color: "#EBF5FD", fontSize: 15, fontWeight: "700", marginTop: 7 },
-  profileStatusChip: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 7, maxWidth: 230, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#E4EEF5", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  profileAvatar: { position: "relative", width: 59, height: 59, borderRadius: 21, backgroundColor: "#D0D0D0", alignItems: "center", justifyContent: "center" },
+  profileInitial: { color: "#666070", fontSize: 25, fontWeight: "700" },
+  profileCheck: { position: "absolute", right: -2, bottom: -2, width: 19, height: 19, borderRadius: 8, backgroundColor: "#9A9A9A", borderColor: "#858388", borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  profileName: { color: "#4B4651", fontSize: 15, fontWeight: "700", marginTop: 7 },
+  profileStatusChip: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 7, maxWidth: 230, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E4EEF5", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   profileStatusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#6B6B6B" },
-  profileStatusText: { flexShrink: 1, color: "#E1EAF2", fontSize: 12, fontWeight: "650" as any },
+  profileStatusText: { flexShrink: 1, color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
   profilePhoneBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 7, backgroundColor: glassNestedFill("#EDF1F4"), paddingHorizontal: 7, paddingVertical: 4, marginTop: 6 },
-  profilePhoneText: { color: "#DFE8F0", fontSize: 12 },
-  profileLocality: { flexDirection: "row", alignItems: "center", color: "#E6EFF7", fontSize: 12, marginTop: 8 },
+  profilePhoneText: { color: "#4B4651", fontSize: 12 },
+  profileLocality: { flexDirection: "row", alignItems: "center", color: "#4B4651", fontSize: 12, marginTop: 8 },
   profileInterests: { flexDirection: "row", gap: 5, marginTop: 11 },
-  profileInterest: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "#535A5E" },
-  profileInterestText: { color: "#B8B8B8", fontSize: 12 },
+  profileInterest: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: "#CFD0D0" },
+  profileInterestText: { color: "#666070", fontSize: 12 },
   editProfileButton: { width: "100%", borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.47)", marginTop: 12, paddingTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
-  editProfileText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  editProfileText: { color: "#666070", fontSize: 12, fontWeight: "700" },
   signupCard: { alignItems: "center", padding: 17 },
-  signupIcon: { width: 47, height: 47, borderRadius: 17, backgroundColor: "#5C5949", alignItems: "center", justifyContent: "center" },
-  signupTitle: { color: "#EAF4FB", fontSize: 15, fontWeight: "700", marginTop: 10 },
-  signupCopy: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 5 },
+  signupIcon: { width: 47, height: 47, borderRadius: 17, backgroundColor: "#D0D0CE", alignItems: "center", justifyContent: "center" },
+  signupTitle: { color: "#4B4651", fontSize: 15, fontWeight: "700", marginTop: 10 },
+  signupCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 5 },
   signupCta: { alignSelf: "stretch", marginTop: 12 },
-  guestLoginButton: { alignSelf: "stretch", marginTop: 9, minHeight: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.34)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)") },
-  guestLoginText: { color: "#B8B8B8", fontSize: 12.5, fontWeight: "700" },
+  guestLoginButton: { alignSelf: "stretch", marginTop: 9, minHeight: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.34)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  guestLoginText: { color: "#666070", fontSize: 12.5, fontWeight: "700" },
   phoneRequired: { flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", marginTop: 10 },
-  phoneRequiredText: { color: "#DFE9F0", fontSize: 12 },
-  settingsLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 11, marginBottom: 6 },
+  phoneRequiredText: { color: "#4B4651", fontSize: 12 },
+  settingsLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 11, marginBottom: 6 },
   settingsPanel: { paddingHorizontal: 11, borderRadius: 17 },
   appearancePanel: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 17 },
   appearanceHeadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 9 },
-  opacityReadout: { minWidth: 39, textAlign: "right", color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  opacityReadout: { minWidth: 39, textAlign: "right", color: "#666070", fontSize: 12, fontWeight: "700" },
   opacityOptions: { flexDirection: "row", gap: 4, marginTop: 7 },
-  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)"), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.16)" },
+  opacityOption: { flex: 1, minWidth: 0, minHeight: 35, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.10)" },
   opacityOptionActive: { backgroundColor: "rgba(255, 255, 255, 0.95)", borderColor: "rgba(255, 255, 255, 0.86)", shadowColor: "#B8B8B8", shadowOpacity: 0.10, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  opacityOptionText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  opacityOptionTextActive: { color: "#E2ECF3", fontWeight: "700" },
+  opacityOptionText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  opacityOptionTextActive: { color: "#4B4651", fontWeight: "700" },
   tintRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, paddingVertical: 4 },
   tintOptions: { flexDirection: "row", gap: 7 },
   tintOption: { alignItems: "center", gap: 4, paddingVertical: 5, paddingHorizontal: 7, borderRadius: 11, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.2)" },
-  tintOptionActive: { borderColor: "#B8B8B8", backgroundColor: "rgba(255, 255, 255, 0.28)" },
+  tintOptionActive: { borderColor: "#858388", backgroundColor: "rgba(255, 255, 255, 0.28)" },
   tintSwatch: { width: 46, height: 26, borderRadius: 9, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   tintSwatchBar: { flexDirection: "row", alignItems: "center", gap: 1.5 },
   tintSwatchPill: { width: 7, height: 12, borderRadius: 3.5, alignItems: "center", justifyContent: "center" },
   presetRow: { flexDirection: "row", gap: 8, marginTop: 10 },
-  presetButton: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.18)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)") },
+  presetButton: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.18)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   presetButtonActive: { backgroundColor: "rgba(255, 255, 255, 0.55)", borderColor: "rgba(131, 114, 31, 0.45)" },
-  presetLabel: { fontSize: 12.5, fontWeight: "600", color: "#E0EAF1" },
+  presetLabel: { fontSize: 12.5, fontWeight: "600", color: "#4B4651" },
   presetLabelActive: { color: "#FFFFFF" },
-  tintOptionText: { fontSize: 12, fontWeight: "600", color: "#DFE9F0" },
+  tintOptionText: { fontSize: 12, fontWeight: "600", color: "#4B4651" },
   tintOptionTextActive: { color: "#FFFFFF" },
   opacityScaleCaption: { flexDirection: "row", justifyContent: "space-between", marginTop: 4, marginBottom: 10, paddingHorizontal: 2 },
-  opacityScaleText: { color: "#DFE9F0", fontSize: 12 },
+  opacityScaleText: { color: "#4B4651", fontSize: 12 },
   /*
    * The live sample. Deliberately not centred and not full width, so it reads as a
    * sample of a surface rather than as another settings panel.
    */
   glassSample: { marginTop: 2, marginBottom: 4, alignSelf: "stretch" },
   glassSampleBody: { paddingHorizontal: 11, paddingVertical: 10 },
-  glassSampleTitle: { color: "#EFFAFF", fontSize: 12, fontWeight: "700" },
-  glassSampleCopy: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  glassSampleTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  glassSampleCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 3 },
   resetAppearance: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: "rgba(120, 116, 104, 0.28)" },
-  resetAppearanceText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  resetConfirm: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 6, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.16)" },
-  resetConfirmText: { flex: 1, color: "#F0F0F0", fontSize: 12, fontWeight: "600" },
+  resetAppearanceText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  resetConfirm: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 6, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.10)" },
+  resetConfirmText: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "600" },
   resetUndo: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: "rgba(92, 143, 115, 0.4)" },
-  resetUndoText: { color: "#F0F0F0", fontSize: 12, fontWeight: "700" },
+  resetUndoText: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   settingRow: { minHeight: 59, flexDirection: "row", alignItems: "center", gap: 9 },
-  adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#EAF5FC", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  adBannerText: { flex: 1, fontSize: 12, lineHeight: 17, color: "#E0E9F0" },
+  adBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginBottom: 8, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 15, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#EAF5FC", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  adBannerText: { flex: 1, fontSize: 12, lineHeight: 17, color: "#4B4651" },
   adBannerCta: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "#666666" },
   adBannerCtaText: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
   adBannerClose: { padding: 2 },
-  tierPill: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.3)" },
-  tierPillActive: { backgroundColor: "#666666", borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
-  tierPillText: { fontSize: 12, fontWeight: "700", color: "#E6EFF7" },
+  tierPill: { borderRadius: 10, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(131, 114, 31, 0.3)" },
+  tierPillActive: { backgroundColor: "#666666", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  tierPillText: { fontSize: 12, fontWeight: "700", color: "#4B4651" },
   tierPillTextActive: { color: "#FFFFFF" },
   settingIconPink: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#5D5A49", alignItems: "center", justifyContent: "center" },
   settingIconBlue: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#575B5D", alignItems: "center", justifyContent: "center" },
@@ -6201,15 +6201,15 @@ const frozenStyles = StyleSheet.create({
    * sheet with a bright rim, so a row of toggles reads as one material with the
    * cards rather than as a set of plastic pills.
    */
-  toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.24)", borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.16)", shadowColor: "#DDE7EE", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  settingTitle: { color: "#EAF4FB", fontSize: 12, fontWeight: "700" },
-  settingSub: { color: "#DFE9F0", fontSize: 12, marginTop: 3 },
+  toggleFrame: { minWidth: 54, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.10)", shadowColor: "#DDE7EE", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
+  settingTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  settingSub: { color: "#4B4651", fontSize: 12, marginTop: 3 },
   quietHoursControls: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 5, marginTop: 7 },
-  quietHourButton: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.42)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), alignItems: "center", justifyContent: "center" },
-  quietHourValue: { color: "#DBDBDB", fontSize: 12, fontWeight: "700", marginRight: 3 },
-  settingDivider: { height: 1, backgroundColor: "rgba(0, 0, 0, 0.21)" },
-  premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#535A5E", alignItems: "center", justifyContent: "center" },
-  footerNote: { color: "#DFE9F0", fontSize: 12, textAlign: "center", marginTop: 15 },
+  quietHourButton: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(115, 147, 169, 0.42)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  quietHourValue: { color: "#4B4651", fontSize: 12, fontWeight: "700", marginRight: 3 },
+  settingDivider: { height: 1, backgroundColor: "rgba(0, 0, 0, 0.10)" },
+  premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#CFD0D0", alignItems: "center", justifyContent: "center" },
+  footerNote: { color: "#4B4651", fontSize: 12, textAlign: "center", marginTop: 15 },
   /*
    * Groups.
    *
@@ -6218,40 +6218,40 @@ const frozenStyles = StyleSheet.create({
    * and a state chip, rather than two differently shaped rows.
    */
   groupToolRow: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 },
-  groupCreateCta: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  groupCreateCta: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   groupCreateCtaText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   groupCreateNote: { flex: 1, color: "#4A4842", fontSize: 12, lineHeight: 17 },
   groupList: { gap: 9 },
   groupRow: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 17, paddingHorizontal: 10, paddingVertical: 10 },
   groupRowMain: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10 },
-  groupAvatar: { width: 42, height: 42, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  groupAvatarClosed: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)") },
+  groupAvatar: { width: 42, height: 42, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  groupAvatarClosed: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   groupRowCopy: { flex: 1, minWidth: 0 },
   groupNameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  groupName: { flexShrink: 1, color: "#EEF8FF", fontSize: 13, fontWeight: "650" as any },
-  groupStateChip: { color: "#E7E7E7", fontSize: 12, fontWeight: "700", letterSpacing: 0.4, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), overflow: "hidden" },
-  groupStateChipClosed: { color: "#E0EAF1", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
-  groupMeta: { color: "#DFE9F0", fontSize: 12, marginTop: 2 },
-  groupActivity: { color: "#E6EFF7", fontSize: 12, marginTop: 2 },
+  groupName: { flexShrink: 1, color: "#4B4651", fontSize: 13, fontWeight: "650" as any },
+  groupStateChip: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 0.4, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), overflow: "hidden" },
+  groupStateChipClosed: { color: "#4B4651", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  groupMeta: { color: "#4B4651", fontSize: 12, marginTop: 2 },
+  groupActivity: { color: "#4B4651", fontSize: 12, marginTop: 2 },
   /** A remembered reason reads as a fact, so it is set slightly stronger. */
-  groupActivityClosed: { color: "#E6EFF7", fontStyle: "italic" },
+  groupActivityClosed: { color: "#4B4651", fontStyle: "italic" },
   /*
    * The closing prompt: centred, like every other sheet in the app, so it is
    * never covered by the bar. One field, one line of guidance, and a Close
    * button that says plainly what closing does not do.
    */
   closeSheetScrim: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 22, backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  closeSheetCard: { width: "100%", maxWidth: 420, borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), padding: 15, gap: 9, shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  closeSheetTitle: { color: "#EEF8FF", fontSize: 13.5, fontWeight: "700" },
-  closeSheetBody: { color: "#E6EFF7", fontSize: 12, lineHeight: 17 },
-  closeSheetField: { borderRadius: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), paddingHorizontal: 10, paddingVertical: 8, color: "#EAF4FB", fontSize: 12, outlineStyle: "none" as any },
+  closeSheetCard: { width: "100%", maxWidth: 420, borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), padding: 15, gap: 9, shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  closeSheetTitle: { color: "#4B4651", fontSize: 13.5, fontWeight: "700" },
+  closeSheetBody: { color: "#4B4651", fontSize: 12, lineHeight: 17 },
+  closeSheetField: { borderRadius: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 8, color: "#4B4651", fontSize: 12, outlineStyle: "none" as any },
   closeSheetActions: { flexDirection: "row", gap: 8, marginTop: 2 },
-  closeSheetGhost: { flex: 1, minHeight: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
-  closeSheetGhostText: { color: "#E6EFF7", fontSize: 12, fontWeight: "650" as any },
-  closeSheetPrimary: { flex: 1, minHeight: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
+  closeSheetGhost: { flex: 1, minHeight: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  closeSheetGhostText: { color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
+  closeSheetPrimary: { flex: 1, minHeight: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   closeSheetPrimaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  groupStateButton: { width: 32, height: 32, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  groupClosedNote: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginBottom: 9 },
+  groupStateButton: { width: 32, height: 32, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  groupClosedNote: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginBottom: 9 },
   groupEmptyCard: { alignItems: "center", paddingVertical: 24, paddingHorizontal: 20, borderRadius: 17 },
   /*
    * Bizz.
@@ -6261,20 +6261,20 @@ const frozenStyles = StyleSheet.create({
    * that cannot yet do anything.
    */
   bizzHero: { flexDirection: "row", alignItems: "center", gap: 11, padding: 11, borderRadius: 17, marginBottom: 11 },
-  bizzHeroArt: { width: 58, height: 48, borderRadius: 15, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), alignItems: "center", justifyContent: "center" },
-  bizzHeroTitle: { color: "#EEF8FF", fontSize: 13, fontWeight: "700", lineHeight: 18 },
-  bizzHeroCopy: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  bizzHeroArt: { width: 58, height: 48, borderRadius: 15, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center" },
+  bizzHeroTitle: { color: "#4B4651", fontSize: 13, fontWeight: "700", lineHeight: 18 },
+  bizzHeroCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 3 },
   bizzList: { paddingHorizontal: 11, borderRadius: 17 },
   bizzRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 11 },
-  bizzRowTitle: { color: "#ECF6FE", fontSize: 12, fontWeight: "650" as any },
-  bizzRowSub: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 2 },
-  bizzSoon: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)") },
-  bizzSoonText: { color: "#F2F7FA", fontSize: 12, fontWeight: "700", letterSpacing: 0.3 },
-  bizzAskRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14, marginHorizontal: 2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  bizzAskText: { flex: 1, color: "#E7F1F8", fontSize: 12, fontWeight: "600" },
+  bizzRowTitle: { color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
+  bizzRowSub: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 2 },
+  bizzSoon: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  bizzSoonText: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 0.3 },
+  bizzAskRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 14, marginHorizontal: 2, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  bizzAskText: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "600" },
   offerRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
-  offerWhat: { color: "#EFFAFF", fontSize: 13, fontWeight: "700" },
-  offerLine: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  offerWhat: { color: "#4B4651", fontSize: 13, fontWeight: "700" },
+  offerLine: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 3 },
   offerShare: {
     flexDirection: "row",
     alignItems: "center",
@@ -6282,9 +6282,9 @@ const frozenStyles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 11,
     paddingVertical: 7,
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.25)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   offerShareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   offerRemove: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
@@ -6294,8 +6294,8 @@ const frozenStyles = StyleSheet.create({
    * tile is smaller and sits above the copy rather than in a centred column.
    */
   offerEmptyIcon: { width: 40, height: 40, borderRadius: 15, marginTop: 0, marginBottom: 9 },
-  offerEmptyTitle: { color: "#EFFAFF", fontSize: 12.5, fontWeight: "700" },
-  offerEmptyCopy: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 4 },
+  offerEmptyTitle: { color: "#4B4651", fontSize: 12.5, fontWeight: "700" },
+  offerEmptyCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 4 },
   offerComposeButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -6305,44 +6305,44 @@ const frozenStyles = StyleSheet.create({
     paddingVertical: 11,
     backgroundColor: "#666666",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     shadowColor: "#C2C2C2",
     shadowOpacity: 0.16,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
   },
-  offerComposeButtonText: { color: "#F2FCFF", fontSize: 12, fontWeight: "700" },
+  offerComposeButtonText: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   offerBubble: { gap: 4, minWidth: 168 },
   offerBubbleHead: { flexDirection: "row", alignItems: "center", gap: 5 },
-  offerBubbleLabel: { color: "#F2F7FA", fontSize: 12, fontWeight: "700", letterSpacing: 0.8 },
-  offerBubbleWhat: { color: "#F2FCFF", fontSize: 13.5, fontWeight: "700", lineHeight: 19 },
-  offerBubbleDetail: { color: "#EBF5FD", fontSize: 12, lineHeight: 17 },
-  offerBubblePrice: { color: "#FFFFFF", fontSize: 12, fontWeight: "700", marginTop: 1 },  offerBoundary: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 9, marginHorizontal: 2 },
-  offerSheet: { width: "100%", maxWidth: 360, borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), padding: 16, gap: 8, shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  offerSheetEyebrow: { color: "#DFE9F0", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 },
-  offerSheetTitle: { color: "#F2FCFF", fontSize: 18, fontWeight: "700", marginTop: 5, letterSpacing: -0.3 },
-  offerSheetSub: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 5 },
-  offerFieldLabel: { color: "#DFE9F0", fontSize: 12, fontWeight: "700", letterSpacing: 0.6, marginTop: 13, marginBottom: 5 },
+  offerBubbleLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 0.8 },
+  offerBubbleWhat: { color: "#4B4651", fontSize: 13.5, fontWeight: "700", lineHeight: 19 },
+  offerBubbleDetail: { color: "#4B4651", fontSize: 12, lineHeight: 17 },
+  offerBubblePrice: { color: "#FFFFFF", fontSize: 12, fontWeight: "700", marginTop: 1 },  offerBoundary: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 9, marginHorizontal: 2 },
+  offerSheet: { width: "100%", maxWidth: 360, borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), padding: 16, gap: 8, shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  offerSheetEyebrow: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 },
+  offerSheetTitle: { color: "#4B4651", fontSize: 18, fontWeight: "700", marginTop: 5, letterSpacing: -0.3 },
+  offerSheetSub: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 5 },
+  offerFieldLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 0.6, marginTop: 13, marginBottom: 5 },
   offerInput: {
     borderRadius: 13,
     paddingHorizontal: 12,
     paddingVertical: 9,
     fontSize: 13,
-    color: "#F2FCFF",
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)"),
+    color: "#4B4651",
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.24)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
-  offerSheetNote: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 10 },
+  offerSheetNote: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 10 },
   offerSheetActions: { flexDirection: "row", gap: 9, marginTop: 15 },
-  offerSheetGhost: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)") },
-  offerSheetGhostText: { color: "#EBF5FD", fontSize: 12, fontWeight: "600" },
+  offerSheetGhost: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999, paddingVertical: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  offerSheetGhostText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
   offerSheetPrimary: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 999, paddingVertical: 11, backgroundColor: "#666666" },
-  offerSheetPrimaryText: { color: "#F2FCFF", fontSize: 12, fontWeight: "700" },
+  offerSheetPrimaryText: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   offerPickerList: { maxHeight: 240, marginTop: 13 },
   offerPickerRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
   offerPickerAvatar: { width: 34, height: 34, borderRadius: 17 },
-  offerPickerName: { flex: 1, color: "#EFFAFF", fontSize: 13, fontWeight: "600" },
+  offerPickerName: { flex: 1, color: "#4B4651", fontSize: 13, fontWeight: "600" },
   /*
    * The contact lookup, opened from the search box.
    *
@@ -6352,15 +6352,15 @@ const frozenStyles = StyleSheet.create({
    */
   contactLookupPanel: { marginTop: 10, marginBottom: 12, borderRadius: 17, padding: 11, gap: 8 },
   contactLookupHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  contactLookupTitle: { flex: 1, color: "#EDF7FE", fontSize: 12.5, fontWeight: "700" },
-  contactLookupSub: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 1 },
-  contactLookupInput: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 13, paddingHorizontal: 10, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  contactLookupField: { flex: 1, minWidth: 0, height: 36, color: "#EAF4FB", fontSize: 12, outlineStyle: "none" as any },
-  contactGroupTitle: { color: "#DFE8F0", fontSize: 12, fontWeight: "700", letterSpacing: 0.7, marginTop: 4 },
-  contactGroupNote: { color: "#E6EFF7", fontSize: 12, marginBottom: 3 },
+  contactLookupTitle: { flex: 1, color: "#4B4651", fontSize: 12.5, fontWeight: "700" },
+  contactLookupSub: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 1 },
+  contactLookupInput: { minHeight: 38, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 13, paddingHorizontal: 10, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  contactLookupField: { flex: 1, minWidth: 0, height: 36, color: "#4B4651", fontSize: 12, outlineStyle: "none" as any },
+  contactGroupTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 0.7, marginTop: 4 },
+  contactGroupNote: { color: "#4B4651", fontSize: 12, marginBottom: 3 },
   contactLookupEmpty: { alignItems: "center", paddingVertical: 14, gap: 4 },
-  contactLookupEmptyTitle: { color: "#EBF5FC", fontSize: 12, fontWeight: "700" },
-  contactLookupEmptyBody: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, textAlign: "center" },
+  contactLookupEmptyTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  contactLookupEmptyBody: { color: "#4B4651", fontSize: 12, lineHeight: 17, textAlign: "center" },
   /** The sender that appears once contacts have been chosen. */
   contactInviteBar: { marginBottom: 13, gap: 7 },
   /*
@@ -6370,17 +6370,17 @@ const frozenStyles = StyleSheet.create({
    * member's own address book is one tap and is never in doubt.
    */
   peopleSourceRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13 },
-  peopleSourceChip: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 7, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)") },
+  peopleSourceChip: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 7, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   peopleSourceChipActive: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.78)"), borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
-  peopleSourceText: { color: "#E7F1F8", fontSize: 12, fontWeight: "650" as any },
+  peopleSourceText: { color: "#4B4651", fontSize: 12, fontWeight: "650" as any },
   peopleSourceTextActive: { color: "#FFFFFF" },
-  peopleSourceNote: { flex: 1, color: "#E6EFF7", fontSize: 12, lineHeight: 17 },
+  peopleSourceNote: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   /*
    * The bar is the widest glass surface in the app, so it carries the same
    * double rim as a card: a bright top edge, then a hairline just inside it.
    */
   barInnerRim: { position: "absolute", left: 10, right: 10, top: 4, height: 0, borderTopWidth: 1, borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(0, 0, 0, 0.16)", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
+  bottomBar: { minHeight: 62, paddingBottom: Platform.OS === "web" ? 2 : 1, backgroundColor: "transparent", borderTopWidth: 1, borderTopColor: "rgba(0, 0, 0, 0.10)", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4, shadowColor: "#DDE6EE", shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 4 },
   /*
    * Each entry takes an equal share of the bar rather than a fixed percentage.
    * This was `width: "25%"` from when the bar had four entries; five at 25% is
@@ -6404,61 +6404,61 @@ const frozenStyles = StyleSheet.create({
    */
   tabIconActive: {
     backgroundColor: "rgba(255, 255, 255, 0.55)",
-    borderColor: "rgba(0, 0, 0, 0.16)",
+    borderColor: "rgba(0, 0, 0, 0.10)",
     shadowColor: "#B8B8B8",
     shadowOpacity: 0.16,
     shadowRadius: 7,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  tabLabel: { color: "#DFE9F0", fontSize: 12, fontWeight: "500" },
-  tabLabelActive: { color: "#B8B8B8", fontWeight: "700" },
+  tabLabel: { color: "#4B4651", fontSize: 12, fontWeight: "500" },
+  tabLabelActive: { color: "#666070", fontWeight: "700" },
   toast: { position: "absolute", top: "50%", marginTop: -34, left: 21, right: 21, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#666666", flexDirection: "row", alignItems: "center", gap: 7, shadowColor: "#EBF5FD", shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
-  fieldError: { color: "#B8B8B8", fontSize: 12, lineHeight: 17, marginTop: -6, marginBottom: 10 },
-  fieldHint: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: -6, marginBottom: 10 },
+  fieldError: { color: "#666070", fontSize: 12, lineHeight: 17, marginTop: -6, marginBottom: 10 },
+  fieldHint: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: -6, marginBottom: 10 },
   suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: -4, marginBottom: 12 },
-  suggestionChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
+  suggestionChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
   suggestionChipActive: { backgroundColor: "rgba(255, 255, 255, 0.96)", borderColor: "rgba(255, 255, 255, 1)" },
-  suggestionChipText: { color: "#E6EFF7", fontSize: 12, fontWeight: "600" },
-  suggestionChipTextActive: { color: "#E2EBF3", fontWeight: "700" },
-  photoPicker: { alignItems: "center", gap: 9, paddingVertical: 18, borderRadius: 20, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
-  photoPlaceholder: { width: 84, height: 84, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  photoPreview: { width: 84, height: 84, borderRadius: 30, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  photoPickerText: { color: "#E6EFF7", fontSize: 12, fontWeight: "700" },
-  photoPickerHint: { color: "#E6EFF7", fontSize: 12, textAlign: "center", paddingHorizontal: 18 },
-  photoSafety: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  photoSafetyText: { flex: 1, color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
+  suggestionChipText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  suggestionChipTextActive: { color: "#4B4651", fontWeight: "700" },
+  photoPicker: { alignItems: "center", gap: 9, paddingVertical: 18, borderRadius: 20, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
+  photoPlaceholder: { width: 84, height: 84, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  photoPreview: { width: 84, height: 84, borderRadius: 30, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  photoPickerText: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  photoPickerHint: { color: "#4B4651", fontSize: 12, textAlign: "center", paddingHorizontal: 18 },
+  photoSafety: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  photoSafetyText: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   summaryCard: { padding: 13, borderRadius: 18 },
   summaryHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  summaryAvatar: { width: 46, height: 46, borderRadius: 17, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  summaryAvatarFallback: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#575757", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  summaryAvatarText: { color: "#B8B8B8", fontSize: 17, fontWeight: "800" },
-  summaryName: { color: "#EAF5FC", fontSize: 12.5, fontWeight: "700" },
-  summaryMeta: { color: "#E6EFF7", fontSize: 12, marginTop: 3 },
+  summaryAvatar: { width: 46, height: 46, borderRadius: 17, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  summaryAvatarFallback: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#D0D0D0", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  summaryAvatarText: { color: "#666070", fontSize: 17, fontWeight: "800" },
+  summaryName: { color: "#4B4651", fontSize: 12.5, fontWeight: "700" },
+  summaryMeta: { color: "#4B4651", fontSize: 12, marginTop: 3 },
   summaryTags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 11 },
-  summaryTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  summaryTagText: { color: "#B8B8B8", fontSize: 12, fontWeight: "600" },
-  summaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  summaryRowText: { flex: 1, color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
+  summaryTag: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  summaryTagText: { color: "#666070", fontSize: 12, fontWeight: "600" },
+  summaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  summaryRowText: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   toastText: { color: "#FFFFFF", fontSize: 12, fontWeight: "500", flex: 1 },
-  refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center", shadowColor: "#D7E0E7", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
+  refreshGlass: { position: "absolute", top: 64, left: 39, right: 39, height: 42, borderRadius: 15, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), alignItems: "center", justifyContent: "center", shadowColor: "#D7E0E7", shadowOpacity: 0.1, shadowRadius: 12, elevation: 6, zIndex: 20 },
   refreshGlassContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  refreshGlassText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
-  modalSafe: { flex: 1, backgroundColor: "#F7F5F1" },
+  refreshGlassText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
+  modalSafe: { flex: 1, backgroundColor: "#C6C4C1" },
   modalKeyboard: { flex: 1 },
   modalHeader: { height: 51, paddingHorizontal: 21, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   modalBody: { paddingHorizontal: 23, paddingTop: 22, paddingBottom: 25 },
-  modalTitle: { color: "#EEF8FF", fontSize: 27, lineHeight: 32, letterSpacing: -0.8, fontWeight: "700" },
-  modalSubtitle: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 9, marginBottom: 17, maxWidth: 330 },
+  modalTitle: { color: "#4B4651", fontSize: 27, lineHeight: 32, letterSpacing: -0.8, fontWeight: "700" },
+  modalSubtitle: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 9, marginBottom: 17, maxWidth: 330 },
   authPromise: { padding: 11, borderRadius: 15, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20 },
   authPromiseIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#575B5D", alignItems: "center", justifyContent: "center" },
-  authPromiseTitle: { color: "#E5EFF6", fontSize: 12, fontWeight: "700" },
-  authPromiseCopy: { color: "#DFE9F0", fontSize: 12, marginTop: 3 },
+  authPromiseTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  authPromiseCopy: { color: "#4B4651", fontSize: 12, marginTop: 3 },
   formField: { marginBottom: 15 },
-  fieldLabel: { fontSize: 12, color: "#DFE9F0", letterSpacing: 0.8, fontWeight: "700", marginBottom: 6 },
-  fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), color: "#ECF6FE", fontSize: 12.5 },
+  fieldLabel: { fontSize: 12, color: "#4B4651", letterSpacing: 0.8, fontWeight: "700", marginBottom: 6 },
+  fieldInput: { minHeight: 45, borderRadius: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), color: "#4B4651", fontSize: 12.5 },
   resendRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 },
-  resendPrompt: { fontSize: 13, color: "#DFE9F0" },
+  resendPrompt: { fontSize: 13, color: "#4B4651" },
   resendButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -6468,93 +6468,93 @@ const frozenStyles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(131, 114, 31, 0.35)",
-    backgroundColor: "rgba(0, 0, 0, 0.20)",
+    backgroundColor: "rgba(0, 0, 0, 0.10)",
   },
-  resendButtonDisabled: { borderColor: "rgba(141, 154, 165, 0.28)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)") },
-  resendButtonText: { fontSize: 13, fontWeight: "700", color: "#B8B8B8" },
-  resendButtonTextDisabled: { color: "#C1CAD0" },
-  resendHint: { fontSize: 12, lineHeight: 17, color: "#DFE9F0", marginTop: -2 },
+  resendButtonDisabled: { borderColor: "rgba(141, 154, 165, 0.28)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  resendButtonText: { fontSize: 13, fontWeight: "700", color: "#666070" },
+  resendButtonTextDisabled: { color: "#5A5560" },
+  resendHint: { fontSize: 12, lineHeight: 17, color: "#4B4651", marginTop: -2 },
   codeInput: { letterSpacing: 9, fontSize: 19, fontWeight: "700", textAlign: "center" },
   interestOptions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
-  interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
-  interestOptionActive: { backgroundColor: "#575757", borderColor: "#CED7DE" },
-  interestOptionText: { fontSize: 12, color: "#DFE9F0" },
-  interestOptionTextActive: { color: "#DFE8EF", fontWeight: "700" },
+  interestOption: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  interestOptionActive: { backgroundColor: "#D0D0D0", borderColor: "#81848C" },
+  interestOptionText: { fontSize: 12, color: "#4B4651" },
+  interestOptionTextActive: { color: "#4B4651", fontWeight: "700" },
   verifiedNote: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 11 },
-  verifiedNoteText: { flex: 1, color: "#DFE8F0", fontSize: 12 },
+  verifiedNoteText: { flex: 1, color: "#4B4651", fontSize: 12 },
   authContinue: { marginTop: 17 },
   backLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, padding: 11 },
-  backLinkText: { color: "#B8B8B8", fontSize: 12, fontWeight: "600" },
+  backLinkText: { color: "#666070", fontSize: 12, fontWeight: "600" },
   modalPrivacy: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 8 },
-  modalPrivacyText: { color: "#DFE8F0", fontSize: 12, textAlign: "center" },
-  prototypeNote: { textAlign: "center", color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 8, paddingHorizontal: 8 },
+  modalPrivacyText: { color: "#4B4651", fontSize: 12, textAlign: "center" },
+  prototypeNote: { textAlign: "center", color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 8, paddingHorizontal: 8 },
   composerModalShade: { flex: 1, padding: 22, justifyContent: "center", backgroundColor: "rgba(57, 53, 32, 0.22)" },
   groupModal: { padding: 16, borderRadius: 20 },
   modalTopLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  groupModalIcon: { width: 37, height: 37, borderRadius: 13, backgroundColor: "#575757", alignItems: "center", justifyContent: "center" },
+  groupModalIcon: { width: 37, height: 37, borderRadius: 13, backgroundColor: "#D0D0D0", alignItems: "center", justifyContent: "center" },
   verificationModalIcon: { width: 37, height: 37, borderRadius: 13, backgroundColor: "#575B59", alignItems: "center", justifyContent: "center" },
-  verificationStep: { minHeight: 38, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), marginTop: 6 },
-  verificationStepText: { flex: 1, color: "#DFE9F0", fontSize: 12 },
-  groupModalTitle: { color: "#EBF5FD", fontSize: 16, fontWeight: "700", marginTop: 11 },
-  groupModalCopy: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 11 },
+  verificationStep: { minHeight: 38, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginTop: 6 },
+  verificationStepText: { flex: 1, color: "#4B4651", fontSize: 12 },
+  groupModalTitle: { color: "#4B4651", fontSize: 16, fontWeight: "700", marginTop: 11 },
+  groupModalCopy: { color: "#4B4651", fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 11 },
   groupCreateButton: { marginTop: 10 },
   cancelGroup: { alignItems: "center", padding: 9 },
-  cancelGroupText: { color: "#DFE9F0", fontSize: 12 },
+  cancelGroupText: { color: "#4B4651", fontSize: 12 },
   handoffOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 10, justifyContent: "center", alignItems: "center" },
-  handoffBlur: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0, 0, 0, 0.28)" },
-  handoffCard: { width: 235, padding: 14, borderRadius: 19, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#E4EEF5", shadowOpacity: 0.10, shadowRadius: 18, elevation: 5 },
+  handoffBlur: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0, 0, 0, 0.10)" },
+  handoffCard: { width: 235, padding: 14, borderRadius: 19, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E4EEF5", shadowOpacity: 0.10, shadowRadius: 18, elevation: 5 },
   handoffHeadline: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  handoffTitle: { color: "#E2ECF3", fontSize: 12, fontWeight: "700" },
-  handoffSkeleton: { flexDirection: "row", gap: 9, alignItems: "center", padding: 10, marginTop: 10, backgroundColor: "rgba(0, 0, 0, 0.16)", borderRadius: 12 },
-  skeletonAvatar: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#565656" },
+  handoffTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  handoffSkeleton: { flexDirection: "row", gap: 9, alignItems: "center", padding: 10, marginTop: 10, backgroundColor: "rgba(0, 0, 0, 0.10)", borderRadius: 12 },
+  skeletonAvatar: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#CFCFCF" },
   skeletonTextGroup: { flex: 1, gap: 6 },
-  skeletonLineLong: { width: "80%", height: 6, borderRadius: 4, backgroundColor: "#595648" },
-  skeletonLineShort: { width: "53%", height: 5, borderRadius: 4, backgroundColor: "#5A584D" },
-  handoffCaption: { color: "#DFE9F0", fontSize: 12, textAlign: "center", marginTop: 8 },
+  skeletonLineLong: { width: "80%", height: 6, borderRadius: 4, backgroundColor: "#D0CFCE" },
+  skeletonLineShort: { width: "53%", height: 5, borderRadius: 4, backgroundColor: "#D0D0CE" },
+  handoffCaption: { color: "#4B4651", fontSize: 12, textAlign: "center", marginTop: 8 },
   messageMeta: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 4 },
   receiptWrap: { flexDirection: "row", alignItems: "center", gap: 2 },
-  receiptText: { color: "#B8B8B8", fontSize: 12 },
-  receiptReadText: { color: "#E8E8E8" },
+  receiptText: { color: "#666070", fontSize: 12 },
+  receiptReadText: { color: "#4B4651" },
   typingRow: { flexDirection: "row", justifyContent: "flex-start" },
-  typingBubble: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 12, borderBottomLeftRadius: 5, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: "rgba(47, 58, 69, 0.24)", paddingHorizontal: 10 },
+  typingBubble: { minHeight: 27, flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 12, borderBottomLeftRadius: 5, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(47, 58, 69, 0.24)", paddingHorizontal: 10 },
   typingDots: { flexDirection: "row", alignItems: "center", gap: 3 },
   typingDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: "#6B6B6B" },
   typingDotMiddle: { opacity: 0.72 },
   typingDotLast: { opacity: 0.46 },
-  typingText: { color: "#DFE9F0", fontSize: 12 },
-  selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.16)" },
+  typingText: { color: "#4B4651", fontSize: 12 },
+  selfieEntry: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: "rgba(0, 0, 0, 0.10)" },
   selfieEntryIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: "#5C5A4B", alignItems: "center", justifyContent: "center" },
   navigationMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(53, 50, 31, 0.24)" },
-  navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.30)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#ECF6FD", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
-  navigationMenuCard: { flexShrink: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(0, 0, 0, 0.30)" },
+  navigationMenuBlur: { width: "100%", borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#ECF6FD", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 24, zIndex: 100 },
+  navigationMenuCard: { flexShrink: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   navigationMenuScroll: { flexGrow: 0, flexShrink: 1 },
   navigationMenuContent: { flexGrow: 1 },
   navigationMenuHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 },
-  navigationMenuTitle: { color: "#EAF4FB", fontSize: 17, fontWeight: "700", marginTop: 4 },
+  navigationMenuTitle: { color: "#4B4651", fontSize: 17, fontWeight: "700", marginTop: 4 },
   navigationMenuGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 7 },
-  navigationMenuItem: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 15, paddingHorizontal: 9, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DDE7EE", shadowOpacity: 0.055, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  navigationMenuItem: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 15, paddingHorizontal: 9, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DDE7EE", shadowOpacity: 0.055, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   navigationMenuItemActive: { backgroundColor: "rgba(255, 255, 255, 0.96)", borderColor: "rgba(255, 255, 255, 1)" },
-  navigationMenuIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  navigationMenuIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)" },
   navigationMenuIconActive: { backgroundColor: "#666666" },
-  navigationMenuItemText: { flex: 1, color: "#E0EAF1", fontSize: 12, fontWeight: "700" },
-  navigationMenuItemTextActive: { color: "#E1EBF2" },
-  navigationMenuHint: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 10, paddingHorizontal: 7 },
+  navigationMenuItemText: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  navigationMenuItemTextActive: { color: "#4B4651" },
+  navigationMenuHint: { color: "#4B4651", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 10, paddingHorizontal: 7 },
   actionMenuShade: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(63, 58, 37, 0.2)" },
-  actionMenuBlur: { width: "100%", borderRadius: 25, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.30)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#ECF6FD", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 22 },
-  actionMenuCard: { flexShrink: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(0, 0, 0, 0.30)" },
+  actionMenuBlur: { width: "100%", borderRadius: 25, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#ECF6FD", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 22 },
+  actionMenuCard: { flexShrink: 1, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   actionMenuHandle: { width: 32, height: 3, borderRadius: 2, backgroundColor: "rgba(133, 120, 139, 0.36)", alignSelf: "center", marginBottom: 13 },
-  actionMenuEyebrow: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 1.1 },
-  actionMenuTitle: { color: "#EAF4FB", fontSize: 18, fontWeight: "700", marginTop: 4 },
-  actionMenuSub: { color: "#DFE9F0", fontSize: 12, marginTop: 3, marginBottom: 11 },
+  actionMenuEyebrow: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 1.1 },
+  actionMenuTitle: { color: "#4B4651", fontSize: 18, fontWeight: "700", marginTop: 4 },
+  actionMenuSub: { color: "#4B4651", fontSize: 12, marginTop: 3, marginBottom: 11 },
   actionMenuRow: { minHeight: 57, flexDirection: "row", alignItems: "center", gap: 9 },
   actionMenuIconBlue: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#565B5D", alignItems: "center", justifyContent: "center" },
-  actionMenuIconPink: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#535A5E", alignItems: "center", justifyContent: "center" },
+  actionMenuIconPink: { width: 34, height: 34, borderRadius: 12, backgroundColor: "#CFD0D0", alignItems: "center", justifyContent: "center" },
   actionMenuCopy: { flex: 1, gap: 3 },
-  actionMenuItemTitle: { color: "#EAF4FB", fontSize: 12, fontWeight: "700" },
-  actionMenuItemSub: { color: "#DFE9F0", fontSize: 12 },
+  actionMenuItemTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  actionMenuItemSub: { color: "#4B4651", fontSize: 12 },
   actionMenuDivider: { height: 1, marginLeft: 43, backgroundColor: "rgba(255, 255, 255, 0.55)" },
-  actionMenuPrivacy: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 10, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), marginTop: 6 },
-  actionMenuPrivacyText: { color: "#DFE9F0", fontSize: 12 },
+  actionMenuPrivacy: { minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 10, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginTop: 6 },
+  actionMenuPrivacyText: { color: "#4B4651", fontSize: 12 },
   /**
    * Account status notice.
    *
@@ -6569,8 +6569,8 @@ const frozenStyles = StyleSheet.create({
     bottom: 96,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     paddingHorizontal: 16,
     paddingVertical: 14,
     shadowColor: "#EAF4FB",
@@ -6589,12 +6589,12 @@ const frozenStyles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
-  accountNoticeTitle: { flex: 1, fontSize: 14.5, lineHeight: 19, fontWeight: "700", color: "#EDF7FF" },
-  accountNoticeBody: { fontSize: 13, lineHeight: 18, color: "#E6EFF7" },
-  accountNoticeReason: { fontSize: 12.5, lineHeight: 18, color: "#DFE9F0", fontStyle: "italic" },
-  accountNoticeAllowed: { fontSize: 12.5, lineHeight: 18, color: "#DEDEDE" },
+  accountNoticeTitle: { flex: 1, fontSize: 14.5, lineHeight: 19, fontWeight: "700", color: "#4B4651" },
+  accountNoticeBody: { fontSize: 13, lineHeight: 18, color: "#4B4651" },
+  accountNoticeReason: { fontSize: 12.5, lineHeight: 18, color: "#4B4651", fontStyle: "italic" },
+  accountNoticeAllowed: { fontSize: 12.5, lineHeight: 18, color: "#4B4651" },
   accountNoticeAction: {
     marginTop: 4,
     flexDirection: "row",
@@ -6604,10 +6604,10 @@ const frozenStyles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
-    backgroundColor: "rgba(0, 0, 0, 0.16)",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: "rgba(0, 0, 0, 0.10)",
   },
-  accountNoticeActionText: { fontSize: 13, fontWeight: "700", color: "#B8B8B8" },
+  accountNoticeActionText: { fontSize: 13, fontWeight: "700", color: "#666070" },
 
   /** In-flight state: clearly inert, but still legible. */
 
@@ -6616,16 +6616,16 @@ const frozenStyles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
-    backgroundColor: "rgba(0, 0, 0, 0.16)",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: "rgba(0, 0, 0, 0.10)",
   },
-  noticeMarkText: { fontSize: 12, fontWeight: "700", color: "#B8B8B8" },
+  noticeMarkText: { fontSize: 12, fontWeight: "700", color: "#666070" },
   noticeRow: {
     flexDirection: "row",
     gap: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
+    borderTopColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   noticeDot: {
     width: 7,
@@ -6636,8 +6636,8 @@ const frozenStyles = StyleSheet.create({
   },
   noticeDotRead: { backgroundColor: "rgba(180, 176, 151, 0.55)" },
   noticeCopy: { flex: 1, gap: 2 },
-  noticeTitle: { fontSize: 13.5, lineHeight: 19, fontWeight: "700", color: "#EDF7FF" },
-  noticeBody: { fontSize: 12.5, lineHeight: 18, color: "#E6EFF7" },
+  noticeTitle: { fontSize: 13.5, lineHeight: 19, fontWeight: "700", color: "#4B4651" },
+  noticeBody: { fontSize: 12.5, lineHeight: 18, color: "#4B4651" },
   channelRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
   channelButton: {
     flex: 1,
@@ -6648,13 +6648,13 @@ const frozenStyles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.21)"),
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
-  channelButtonActive: { backgroundColor: "rgba(0, 0, 0, 0.16)", borderColor: "rgba(196, 168, 74, 0.5)" },
-  channelButtonText: { fontSize: 13.5, fontWeight: "600", color: "#E0E0E0" },
+  channelButtonActive: { backgroundColor: "rgba(0, 0, 0, 0.10)", borderColor: "rgba(196, 168, 74, 0.5)" },
+  channelButtonText: { fontSize: 13.5, fontWeight: "600", color: "#4B4651" },
   channelButtonTextActive: { color: "#FFFFFF" },
-  noticeMeta: { fontSize: 12, lineHeight: 17, color: "#DFE9F0", letterSpacing: 0.3 },
+  noticeMeta: { fontSize: 12, lineHeight: 17, color: "#4B4651", letterSpacing: 0.3 },
 
   noticeStoreAction: {
     flexDirection: "row",
@@ -6665,16 +6665,16 @@ const frozenStyles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 11,
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     shadowColor: "#E4EEF5",
     shadowOpacity: 0.07,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  noticeStoreActionText: { fontSize: 12, fontWeight: "700", color: "#B8B8B8" },
+  noticeStoreActionText: { fontSize: 12, fontWeight: "700", color: "#666070" },
 
 });
 

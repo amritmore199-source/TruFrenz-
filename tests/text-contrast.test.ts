@@ -26,7 +26,7 @@ import { join } from "node:path";
  * lightest card is what makes this an honest floor rather than a convenient one,
  * because every other card is darker and therefore easier.
  */
-const CARD = [64, 67, 72];
+const CARD = [232, 229, 235];
 
 /*
  * The page, which is a surface in its own right again.
@@ -191,9 +191,9 @@ describe("text contrast", () => {
      * #7FC0E8 is what carries links, labels and icons on the glass itself. This
      * asserts the ink, because the ink is what has a text floor.
      */
-    expect(contrast(hex("#7FC0E8"), CARD)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(hex("#7A5A7E"), CARD)).toBeGreaterThanOrEqual(4.5);
     // The fill keeps its own floor: white on it, which is how the buttons use it.
-    expect(contrast([255, 255, 255], hex("#2B6C8F"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast([255, 255, 255], hex("#7A5A7E"))).toBeGreaterThanOrEqual(4.5);
   });
 
   /*
@@ -304,13 +304,15 @@ describe("text contrast", () => {
     expect(contrast(light("foreground"), CARD)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(light("muted"), CARD)).toBeGreaterThanOrEqual(4.5);
     /*
-     * primary is read from its *dark* slot, because that is the one carrying the
-     * accent ink. The two slots are not a light/dark-mode pair here: the light slot is
-     * the button fill (white on it, asserted elsewhere) and the dark slot is the ink
-     * that links and labels use on the glass. Reading the wrong slot measures a fill
-     * as if it were text.
+     * primary is read from its *light* slot, which is the one carrying the accent ink.
+     *
+     * The two slots are not a light/dark-mode pair here and they have now swapped
+     * roles: on the restored light system the light slot is the mauve that links and
+     * labels use on the glass, and the dark slot is the pale accent kept for the
+     * legacy dark surfaces. Reading the wrong slot measures a tint as if it were text,
+     * which reads as a dramatic failure for a value that is doing its job correctly.
      */
-    expect(contrast(dark("primary"), CARD)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(light("primary"), CARD)).toBeGreaterThanOrEqual(4.5);
   });
 
   /*
@@ -379,7 +381,7 @@ describe("text contrast", () => {
     // and whose icon is white. The light lemon takes the app's dark ink; the dark
     // brand gold takes white.
     expect(contrast(hex("#FFFFFF"), hex("#2B6C8F"))).toBeGreaterThanOrEqual(4.5);
-    expect(contrast([255, 255, 255], hex("#2B6C8F"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast([255, 255, 255], hex("#7A5A7E"))).toBeGreaterThanOrEqual(4.5);
   });
 
   it("measures a translucent fill where it lands, not where it is declared", () => {
@@ -421,7 +423,7 @@ describe("text contrast", () => {
      * is what keeps it reading as secondary rather than as primary - the same
      * two-sided window, measured in the other direction.
      */
-    const quiet = hex("#B9BEC4");
+    const quiet = hex("#666070");
     expect(contrast(quiet, CARD)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(quiet, CARD)).toBeLessThan(7.5);
   });

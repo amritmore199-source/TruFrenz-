@@ -38,7 +38,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const first = friendName.split(" ")[0] || friendName;
 
   const accent = card.kind === "meetup" ? "#666666" : "#919191";
-  const accentSoft = card.kind === "meetup" ? "rgba(0, 0, 0, 0.16)" : glassNestedFill("rgba(0, 0, 0, 0.16)");
+  const accentSoft = card.kind === "meetup" ? "rgba(0, 0, 0, 0.10)" : glassNestedFill("rgba(0, 0, 0, 0.10)");
 
   return (
     <GlassSurface
@@ -74,13 +74,13 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
 
       {card.status === "accepted" ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="check-circle" size={14} color="#D5D5D5" />
+          <MaterialIcons name="check-circle" size={14} color="#4B4651" />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>{card.kind === "meetup" ? "Meetup confirmed" : "Hangout confirmed"} · you&apos;ll both get a reminder{timing.emphasis === "today" ? " today" : ""}.</Text>
         </View>
       ) : null}
       {card.status === "declined" ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="info-outline" size={14} color="#CED7DD" />
+          <MaterialIcons name="info-outline" size={14} color="#4B4651" />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>{card.declineReason ?? "They can't make it this time."} No reply is expected — try another day whenever you like.</Text>
         </View>
       ) : null}
@@ -92,7 +92,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       ) : null}
       {checkedIn ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="where-to-vote" size={14} color="#D5D5D5" />
+          <MaterialIcons name="where-to-vote" size={14} color="#4B4651" />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>You checked in on arrival. Your trusted contact was not notified automatically.</Text>
         </View>
       ) : null}
@@ -129,7 +129,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#DCE5EC", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { borderRadius: 18, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#DCE5EC", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   cardNight: { borderColor: CHAT_NIGHT.border },
   lightText: { color: CHAT_NIGHT.primaryText },
   lightSecondaryText: { color: CHAT_NIGHT.secondaryText },
@@ -137,25 +137,25 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   kindPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
   kindText: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
-  timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  timingText: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
-  timingToday: { color: "#DFE8EF" },
-  title: { color: "#EEF8FF", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
+  timingPill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "rgba(0, 0, 0, 0.10)" },
+  timingText: { color: "#666070", fontSize: 12, fontWeight: "700" },
+  timingToday: { color: "#4B4651" },
+  title: { color: "#4B4651", fontSize: 12.5, fontWeight: "700", marginTop: 2 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  detailText: { flex: 1, color: "#E6EFF7", fontSize: 12, fontWeight: "600" },
+  detailText: { flex: 1, color: "#4B4651", fontSize: 12, fontWeight: "600" },
   stateRowNight: { backgroundColor: CHAT_NIGHT.markerSurface, borderWidth: 1, borderColor: CHAT_NIGHT.border },
-  stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.16)" },
-  stateText: { flex: 1, color: "#E6EFF7", fontSize: 12, lineHeight: 17 },
+  stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.10)" },
+  stateText: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   primaryActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   checkInActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghostActionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },
-  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)") },
-  ghostActionText: { color: "#B8B8B8", fontSize: 12, fontWeight: "650" as any },
-  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)") },
+  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  ghostActionText: { color: "#666070", fontSize: 12, fontWeight: "650" as any },
+  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
-  linkText: { flex: 1, color: "#E6EFF7", fontSize: 12 },
-  linkAction: { color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  linkText: { flex: 1, color: "#4B4651", fontSize: 12 },
+  linkAction: { color: "#666070", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

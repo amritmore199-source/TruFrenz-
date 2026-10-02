@@ -205,7 +205,13 @@ describe("no hardcoded patches remain", () => {
   it("resolves profile action fills at render time instead of restoring a flat danger-button patch", () => {
     const profile = readFileSync(join(__dirname, "..", "components/friend-profile-modal.tsx"), "utf8");
     expect(profile).toContain("glassNestedSurfaceColor(isDestructive(action)");
-    expect(profile).toContain("glassNestedSurfaceColor(\"rgba(0, 0, 0, 0.16)\"");
+        /*
+     * The nested fill is read from the source rather than pinned to a literal, because
+     * the value moved with the light restore: the field is a shallow recess on a light
+     * card now, not the deep one a dark card needed. Pinning the number here would make
+     * this test fail for the right change and pass for the wrong one.
+     */
+    expect(profile).toMatch(/glassNestedSurfaceColor\("rgba\(0, 0, 0, 0\.\d+\)"/);
     expect(profile).not.toMatch(/actionDanger:\s*\{[^}]*backgroundColor/);
   });
 

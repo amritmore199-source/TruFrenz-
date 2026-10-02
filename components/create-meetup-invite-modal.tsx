@@ -59,7 +59,7 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
       <Text style={styles.sectionLabel}>WHEN WORKS FOR YOU?</Text>
       <View style={styles.timeOptions}>{timeOptions.map((item) => <Pressable key={item} onPress={() => setWhen(item)} style={[styles.timeChip, when === item && styles.timeChipSelected]}><Text style={[styles.timeText, when === item && styles.timeTextSelected]}>{item}</Text></Pressable>)}</View>
       <View style={styles.previewCard}>
-        <View style={styles.previewHeader}><MaterialIcons name="event-available" size={15} color="#B8B8B8" /><Text style={styles.previewEyebrow}>INVITE PREVIEW</Text></View>
+        <View style={styles.previewHeader}><MaterialIcons name="event-available" size={15} color="#666070" /><Text style={styles.previewEyebrow}>INVITE PREVIEW</Text></View>
         <Text style={styles.previewTitle}>{draft?.title || "Your plan"}</Text>
         <Text style={styles.previewDetails}>{venue.name} · {venue.neighborhood}</Text>
         <Text style={styles.previewDetails}>{when}</Text>
@@ -78,10 +78,10 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
         <GlassBlur intensity={38} style={StyleSheet.absoluteFillObject} />
         <Pressable accessibilityLabel="Close meetup invite" style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.keyboard, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>
-            <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) }]}>
+            <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
               <View style={styles.header}>
                 <View style={styles.handle} />
-                <View style={styles.headerRow}><View><Text style={styles.headerEyebrow}>A SMALL, FRIENDLY PLAN</Text><Text style={styles.headerTitle}>Create Meetup Invite</Text></View><Pressable accessibilityLabel="Close meetup invite" onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={19} color="#DCE6ED" /></Pressable></View>
+                <View style={styles.headerRow}><View><Text style={styles.headerEyebrow}>A SMALL, FRIENDLY PLAN</Text><Text style={styles.headerTitle}>Create Meetup Invite</Text></View><Pressable accessibilityLabel="Close meetup invite" onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={19} color="#4B4651" /></Pressable></View>
               </View>
               <FlatList
                 data={publicMeetupVenues as PublicMeetupVenue[]}
@@ -103,49 +103,49 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(53, 49, 26, 0.22)" },
   keyboard: { flexShrink: 1 },
-  sheet: { flexShrink: 1, width: "100%", overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#ECF6FD", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 18 },
+  sheet: { flexShrink: 1, width: "100%", overflow: "hidden", borderRadius: 25, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#ECF6FD", shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 18 },
   header: { paddingHorizontal: 18, paddingTop: 9, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.55)" },
   handle: { width: 34, height: 4, alignSelf: "center", borderRadius: 2, backgroundColor: "rgba(137, 125, 142, 0.38)", marginBottom: 12 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerEyebrow: { color: "#B8B8B8", fontSize: 12, letterSpacing: 1, fontWeight: "700" },
-  headerTitle: { color: "#ECF6FE", fontSize: 18, fontWeight: "700", marginTop: 3 },
-  closeButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#E0EAF1", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  headerEyebrow: { color: "#666070", fontSize: 12, letterSpacing: 1, fontWeight: "700" },
+  headerTitle: { color: "#4B4651", fontSize: 18, fontWeight: "700", marginTop: 3 },
+  closeButton: { width: 34, height: 34, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E0EAF1", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   inviteList: { flexGrow: 1, flexShrink: 1 },
   listContent: { paddingHorizontal: 17, paddingBottom: 12 },
   listHeader: { paddingTop: 14, paddingBottom: 9 },
-  sectionLabel: { color: "#DFE9F0", fontSize: 12, fontWeight: "700", letterSpacing: 0.9 },
+  sectionLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 0.9 },
   contactOptions: { flexDirection: "row", gap: 6, paddingVertical: 7 },
-  contactChip: { minHeight: 29, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  contactChipSelected: { backgroundColor: "#5C5949", borderColor: "#CED7DE" },
-  contactText: { color: "#DFE9F0", fontSize: 12 },
-  contactTextSelected: { color: "#DFE9F0", fontWeight: "700" },
+  contactChip: { minHeight: 29, flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 10, paddingHorizontal: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  contactChipSelected: { backgroundColor: "#D0D0CE", borderColor: "#81848C" },
+  contactText: { color: "#4B4651", fontSize: 12 },
+  contactTextSelected: { color: "#4B4651", fontWeight: "700" },
   titleHeading: { marginTop: 3 },
-  titleInput: { minHeight: 42, marginTop: 6, paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), color: "#EBF5FD", fontSize: 12, outlineStyle: "none" as any },
+  titleInput: { minHeight: 42, marginTop: 6, paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.82)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), color: "#4B4651", fontSize: 12, outlineStyle: "none" as any },
   placeHeading: { marginTop: 13 },
-  helperText: { color: "#DFE9F0", fontSize: 12, marginTop: 3 },
-  venueRow: { minHeight: 53, flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 8, borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), marginBottom: 5, shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  venueSelected: { borderColor: "#CED7DE", backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  helperText: { color: "#4B4651", fontSize: 12, marginTop: 3 },
+  venueRow: { minHeight: 53, flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 8, borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginBottom: 5, shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  venueSelected: { borderColor: "#81848C", backgroundColor: "rgba(0, 0, 0, 0.10)" },
   venueIcon: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#575B5D" },
-  venueIconSelected: { backgroundColor: "#575757" },
+  venueIconSelected: { backgroundColor: "#D0D0D0" },
   venueCopy: { flex: 1, gap: 2 },
-  venueName: { color: "#E8F2FA", fontSize: 12, fontWeight: "700" },
-  venueMeta: { color: "#DFE9F0", fontSize: 12 },
+  venueName: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
+  venueMeta: { color: "#4B4651", fontSize: 12 },
   listFooter: { paddingTop: 8 },
   timeOptions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
-  timeChip: { minHeight: 29, justifyContent: "center", borderRadius: 10, paddingHorizontal: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  timeChipSelected: { backgroundColor: "#5C5949", borderColor: "#CED7DE" },
-  timeText: { color: "#DFE9F0", fontSize: 12 },
-  timeTextSelected: { color: "#DFE9F0", fontWeight: "700" },
-  previewCard: { padding: 10, borderRadius: 14, marginTop: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  timeChip: { minHeight: 29, justifyContent: "center", borderRadius: 10, paddingHorizontal: 8, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#DDE7EE", shadowOpacity: 0.045, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  timeChipSelected: { backgroundColor: "#D0D0CE", borderColor: "#81848C" },
+  timeText: { color: "#4B4651", fontSize: 12 },
+  timeTextSelected: { color: "#4B4651", fontWeight: "700" },
+  previewCard: { padding: 10, borderRadius: 14, marginTop: 11, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 4 },
-  previewEyebrow: { color: "#B8B8B8", fontSize: 12, fontWeight: "700", letterSpacing: 0.7 },
-  previewTitle: { color: "#EAF4FB", fontSize: 12, fontWeight: "700", marginTop: 5 },
-  previewDetails: { color: "#DFE9F0", fontSize: 12, marginTop: 3 },
-  previewNote: { color: "#DFE9F0", fontSize: 12, marginTop: 6 },
-  errorText: { color: "#B8B8B8", fontSize: 12, marginTop: 6 },
-  shareButton: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 13, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), marginTop: 10, shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  previewEyebrow: { color: "#666070", fontSize: 12, fontWeight: "700", letterSpacing: 0.7 },
+  previewTitle: { color: "#4B4651", fontSize: 12, fontWeight: "700", marginTop: 5 },
+  previewDetails: { color: "#4B4651", fontSize: 12, marginTop: 3 },
+  previewNote: { color: "#4B4651", fontSize: 12, marginTop: 6 },
+  errorText: { color: "#666070", fontSize: 12, marginTop: 6 },
+  shareButton: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 13, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginTop: 10, shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   shareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   cancelButton: { minHeight: 32, alignItems: "center", justifyContent: "center" },
-  cancelText: { color: "#DFE9F0", fontSize: 12 },
+  cancelText: { color: "#4B4651", fontSize: 12 },
   pressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
 });

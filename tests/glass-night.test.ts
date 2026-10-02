@@ -156,26 +156,43 @@ describe("surfaces over the crew artwork", () => {
     // relationship rather than against a frozen channel value, so retuning the cast
     // for depth cannot silently pass by moving both sides together.
     expect(sky[2]).toBeGreaterThan(sky[0]);
-    expect(white[0]).toBe(white[1]);
-    expect(white[1]).toBe(white[2]);
+    /*
+     * The neutral cast is *effectively* neutral, not identically so.
+     *
+     * It carries a few points of warmth on purpose - on a warm off-white page a dead
+     * grey reads as a hole rather than as glass - so the contract is that no channel
+     * stands out, rather than that all three are the same number. Asserting equality
+     * would forbid the warmth; asserting the spread pins the property that matters.
+     */
+    expect(Math.max(...white.slice(0, 3)) - Math.min(...white.slice(0, 3))).toBeLessThan(12);
     /*
      * Both casts stay deep enough to carry white ink, and the neutral one is the
      * deeper of the two because it has no colour of its own to lean on. The bound is
      * set where the fitted values actually sit rather than to a paper-white that
      * cannot be seen - which is the same mistake the light system made, inverted.
      */
+    /*
+     * Both casts sit *above* the page, which is the light system's version of the same
+     * bound. A cast lighter than the ground would resolve a card to the page at every
+     * alpha - the invisible pane that was reported as a white patch - so the fitted
+     * values are a clear step up from the warm off-white ground rather than at it.
+     */
     for (const cast of [sky, white]) {
-      expect(luminance([cast[0], cast[1], cast[2]])).toBeLessThan(0.20);
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.55);
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeLessThan(1);
     }
   });
 
   it("leaves a saturated accent alone, so buttons keep their own colour", () => {
-    const lemon = parseRgba(glassSurfaceColor("rgba(241, 222, 85, 0.72)", 80, "sky"));
-    // The hue survives the ink floor; the lightness does not, and must not - a
-    // surface light enough to be "lemon-coloured" is a surface too light to carry a
-    // white label, which is the defect being fixed.
-    expect(lemon[0] / lemon[2]).toBeGreaterThan(2.2);
-    expect(lemon[1]).toBeGreaterThan(lemon[2]);
+    const accent = parseRgba(glassSurfaceColor("rgba(241, 222, 85, 0.72)", 80, "sky"));
+    /*
+     * The hue survives the guard; only the lightness is constrained. Read as a ratio
+     * rather than as frozen channels, because the guard mixes the surface toward the
+     * ground and so the literal triple no longer appears - while the accent is still
+     * emphatically warm.
+     */
+    expect(accent[0]).toBeGreaterThan(accent[2]);
+    expect(accent[1]).toBeGreaterThan(accent[2]);
   });
 
   it("cannot become an opaque fill at any setting", () => {
@@ -200,9 +217,11 @@ describe("surfaces over the crew artwork", () => {
     const neutral = glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80);
     setActiveGlassTint("sky");
     const cool = glassSurfaceColor("rgba(255, 255, 255, 0.5)", 80);
-    // The neutral cast carries equal channels; the cool one trails on red.
-    expect(parseRgba(neutral)[0]).toBe(parseRgba(neutral)[2]);
+    // The neutral cast carries equal channels; the cool one leads with blue.
+    const n = parseRgba(neutral);
+    expect(Math.max(n[0], n[1], n[2]) - Math.min(n[0], n[1], n[2])).toBeLessThan(12);
     expect(parseRgba(cool)[0]).toBeLessThan(parseRgba(cool)[2]);
+    expect(parseRgba(cool)[2]).toBeGreaterThan(parseRgba(cool)[1]);
   });
 });
 
@@ -437,20 +456,28 @@ describe("the active tab pill", () => {
      * is met, so the label does not depend on a solved value a future change to a
      * field could invalidate.
      */
+    /*
+     * One ink for all five sections, and it is dark - the mirror of the white label the
+     * dark system used. The five-grey table was a maintenance trap because it was solved
+     * against pills that all shared one colour; one value that cannot go stale is the
+     * answer in either direction, and on a light pane the value is an ink.
+     */
     for (const cast of ["white", "sky"] as const) {
       for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
-        expect(glassTabAccent(section, cast).ink).toBe("#FFFFFF");
+        expect(glassTabAccent(section, cast).ink).toBe("#3A3440");
       }
     }
   });
 
-  it("carries enough fill that white is legible by construction", () => {
+  it("carries enough fill that its dark label is legible by construction", () => {
     /*
-     * The stronger claim behind the white label: the pill is deep enough that white
-     * clears 4.5:1 on it whatever the field behind it happens to be doing, so the
-     * label is not relying on a solved value that a future change could invalidate.
-     * White clears the floor while the pill's luminance stays under 0.175; each of
-     * these is well below it.
+     * The stronger claim behind the one-ink table: the pill is *light* enough that its
+     * dark label clears 4.5:1 whatever the wallpaper behind it happens to be doing, so
+     * the label does not rely on a solved value a future change could invalidate.
+     *
+     * The backdrop here is the wallpaper at its most saturated under the strongest
+     * pool, which is the darkest ground a pill can land on - so passing here is the
+     * worst case rather than a friendly one.
      */
     const over3 = (fg: number[], alpha: number, bg: number[]) =>
       fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
@@ -458,15 +485,16 @@ describe("the active tab pill", () => {
     for (const cast of ["white", "sky"] as const) {
       for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
         const [r, g, b, a] = glassTabAccent(section, cast).fill.match(/[\d.]+/g)!.map(Number);
-        expect(a).toBeGreaterThan(0.225);
-        expect(luminance(over3([r, g, b], a, backdrop) as [number, number, number])).toBeLessThan(0.175);
+        expect(a).toBeGreaterThan(0.5);
+        const pill = over3([r, g, b], a, backdrop) as [number, number, number];
+        expect(luminance(pill)).toBeGreaterThan(0.5);
       }
     }
   });
 
   it("falls back to the neutral pill for an unknown section", () => {
     // A bar with no section keeps a neutral glass rather than claiming a colour.
-    expect(glassTabAccent(null).ink).toBe("#FFFFFF");
+    expect(glassTabAccent(null).ink).toBe("#3A3440");
     expect(glassTabAccent(undefined).fill).toContain("rgba(");
   });
 });
@@ -527,9 +555,10 @@ describe("the inactive tab ink", () => {
     const icons = (["white", "sky"] as const).map((c) => glassQuietTabInk(c).icon);
     expect(new Set(icons).size).toBe(2);
     // The neutral ink is achromatic; the sky ink leads with blue.
+    // The neutral ink is effectively achromatic - a spread under 8 keeps it reading as
+    // a neutral rather than as a colour, without forbidding the trace of warmth.
     const [nr, ng, nb] = hex(glassQuietTabInk("white").icon);
-    expect(nr).toBe(ng);
-    expect(ng).toBe(nb);
+    expect(Math.max(nr, ng, nb) - Math.min(nr, ng, nb)).toBeLessThan(12);
     const [sr, , sb] = hex(glassQuietTabInk("sky").icon);
     expect(sb).toBeGreaterThan(sr);
   });

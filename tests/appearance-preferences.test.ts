@@ -50,7 +50,7 @@ describe("appearance preferences", () => {
      * channel, so a future retune of the cast does not silently pass.
      */
     const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
-    expect(surface).toMatch(/^rgba\(40, 40, 40, 0\.\d+\)$/);
+    expect(surface).toMatch(/^rgba\(224, 220, 228, 0\.\d+\)$/);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -121,7 +121,7 @@ describe("appearance preferences", () => {
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(40, 40, 40, 0\.\d+\)$/);
+    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(224, 220, 228, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });
@@ -174,9 +174,13 @@ describe("glass colour choice", () => {
      * at 132 before the sheen, a visible step below the page.
      */
     const parse = (c: string) => c.match(/(\d+), (\d+), (\d+)/)!.slice(1).map(Number);
+    /*
+     * Effectively neutral, not identically so: the cast carries a few points of warmth
+     * on purpose, because a dead grey on a warm off-white page reads as a hole rather
+     * than as glass. No channel may stand out, which is the property that matters.
+     */
     const [wr, wg, wb] = parse(white);
-    expect(wr).toBe(wg);
-    expect(wg).toBe(wb);
+    expect(Math.max(wr, wg, wb) - Math.min(wr, wg, wb)).toBeLessThan(12);
     // Sky leads with blue, and by a wide margin.
     const [sr, , sb] = parse(sky);
     expect(sb - sr).toBeGreaterThan(20);
@@ -232,10 +236,9 @@ describe("glass colour choice", () => {
     // blue rather than merely darker.
     expect(sb).toBeGreaterThan(sr);
     expect(sb).toBeGreaterThan(sg);
-    // The neutral chip leads nowhere: all three channels are equal, so it reads
-    // as grey rather than as a colour.
-    expect(nr).toBe(ng);
-    expect(ng).toBe(nb);
+    // The neutral chip leads nowhere - no channel stands out - so it reads as a
+    // neutral rather than as a colour.
+    expect(Math.max(nr, ng, nb) - Math.min(nr, ng, nb)).toBeLessThan(12);
   });
 
   it("outlines a swatch so a pale chip does not vanish into its own selection", () => {

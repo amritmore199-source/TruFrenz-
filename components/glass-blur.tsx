@@ -97,7 +97,7 @@ export function GlassBlur({
     ) : (
       <BlurView
         intensity={intensity}
-        tint="light"
+        tint="default"
         experimentalBlurMethod="dimezisBlurView"
         pointerEvents={pointerEvents}
         style={[StyleSheet.absoluteFillObject, shape, tint]}

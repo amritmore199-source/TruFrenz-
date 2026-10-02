@@ -76,7 +76,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           accessibilityLabel="Dismiss this hint"
           style={({ pressed }) => [styles.dismiss, pressed && styles.pressed]}
         >
-          <MaterialIcons name="close" size={15} color="#CED7DE" />
+          <MaterialIcons name="close" size={15} color="#4B4651" />
         </Pressable>
       </View>
       <Pressable
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     gap: 9,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     shadowColor: "#EFF9FF",
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -117,23 +117,23 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
-  badgeAtLimit: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(255, 255, 255, 0.8)" },
+  badgeAtLimit: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(255, 255, 255, 0.8)" },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: 13, fontWeight: "700", color: "#EDF7FF" },
-  body: { fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
+  title: { fontSize: 13, fontWeight: "700", color: "#4B4651" },
+  body: { fontSize: 12, color: "#4B4651", lineHeight: 17 },
   dismiss: {
     width: 26,
     height: 26,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   cta: {
     flexDirection: "row",
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 34,
     borderRadius: 12,
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
-  ctaAtLimit: { backgroundColor: "#6B6B6B", borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)") },
-  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#E2EBF3" },
-  ctaTextAtLimit: { color: "#EEF8FF" },
+  ctaAtLimit: { backgroundColor: "#6B6B6B", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  ctaText: { fontSize: 12.5, fontWeight: "700", color: "#4B4651" },
+  ctaTextAtLimit: { color: "#4B4651" },
   pressed: { opacity: 0.82 },
 });
