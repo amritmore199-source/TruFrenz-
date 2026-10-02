@@ -9,6 +9,7 @@ import { glassSurfaceColor,
 } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { groupCapacityGate, type Tier } from "@/lib/subscription";
+import { glassFieldBorder } from "@/lib/glass";
 import {
   addMember,
   groupCallGate,
@@ -176,24 +177,24 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   card: { borderRadius: 22, overflow: "hidden" },
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
   topLine: { flexDirection: "row", alignItems: "center", gap: 10 },
-  groupPhoto: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  groupPhoto: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassFieldBorder() },
   headCopy: { flex: 1, minWidth: 0 },
   groupName: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "700" },
-  nameInput: { borderRadius: 11, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 9, paddingVertical: 6, color: "#F5F5F7", fontSize: 12.5, outlineStyle: "none" as any },
+  nameInput: { borderRadius: 11, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 9, paddingVertical: 6, color: "#F5F5F7", fontSize: 12.5, outlineStyle: "none" as any },
   groupMeta: { color: "#F5F5F7", fontSize: 12, marginTop: 2 },
-  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder() },
   adminActions: { flexDirection: "row", gap: 7, marginTop: 11, flexWrap: "wrap" },
-  smallAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  smallAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   smallActionText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
   adminNote: { color: "#F5F5F7", fontSize: 12, marginTop: 10 },
   sectionLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 14 },
   memberRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
-  memberAvatar: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  memberAvatar: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassFieldBorder() },
   memberInitial: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "700" },
   memberCopy: { flex: 1, minWidth: 0 },
   memberName: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   adminPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   adminPillText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
   memberActions: { flexDirection: "row", alignItems: "center", gap: 4 },
-  iconAction: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  iconAction: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder() },
   emptyNote: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 6 },
   settingRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 9 },
   settingTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },

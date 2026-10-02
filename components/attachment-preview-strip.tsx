@@ -7,6 +7,7 @@ import { glassSurfaceColor,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
+import { glassFieldBorder } from "@/lib/glass";
 import {
   attachmentPreviewLabel,
   attachmentPreviewNote,
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     paddingHorizontal: 9,
     paddingVertical: 8,
     overflow: "hidden",
@@ -116,7 +117,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
     shadowRadius: 9,
-    elevation: 2,
   },
   blur: { borderRadius: 15, overflow: "hidden" },
   tint: { borderRadius: 15 },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
   removePressed: { opacity: 0.75 },

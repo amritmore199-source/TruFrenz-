@@ -10,6 +10,7 @@ import { glassSurfaceColor,
 import { useAppAppearance } from "@/lib/appearance-context";
 import { MAX_VOICE_SECONDS, clampVoiceSeconds, type AttachmentDraft } from "@/lib/chat-extras";
 
+import { glassFieldBorder } from "@/lib/glass";
 /** Public places a member can pin manually; never a live or exact location. */
 const PLACE_CHOICES: readonly string[] = [
   "Café Lumen · Pacific Heights",
@@ -203,13 +204,13 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   card: { borderRadius: 22, padding: 14, paddingBottom: 16 },
   handle: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(150, 140, 155, 0.35)", marginBottom: 9 },
   eyebrow: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9 },
   title: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "700", marginTop: 3 },
   grid: { flexDirection: "row", gap: 8, marginTop: 11 },
-  tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  tile: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 9, paddingVertical: 11, gap: 4, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   tileIconPink: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)" },
   tileIconBlue: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   tileIconGreen: { width: 33, height: 33, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
@@ -228,9 +229,9 @@ const styles = StyleSheet.create({
   waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
   waveBarLive: { backgroundColor: "#6B6B6B" },
   actions: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13, flexWrap: "wrap" },
-  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder() },
   primaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   ghostText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
   note: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 9 },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 3 },

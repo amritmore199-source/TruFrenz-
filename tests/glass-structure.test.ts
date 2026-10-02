@@ -620,4 +620,55 @@ describe("the surface layers that were measured wrong", () => {
     expect(screen).toContain("{demoCode ? <View style={styles.demoCodeBox}>");
     expect(screen).toContain("{demoCode}");
   });
+
+  /*
+   * The two defects the member photographed on their own device.
+   *
+   * Both were invisible to every other test in this file, because both were correct
+   * as *values* and wrong as *paint*. They are guarded here as source rules rather
+   * than as resolved colours, since that is the level at which they were wrong.
+   */
+  it("draws no Android elevation, which is an outline rather than a shadow", () => {
+    /*
+     * Android's `elevation` is not a blur — the platform draws it as its own shape
+     * behind the view. At the app's radii it rendered as a pure black 1px rim with
+     * square corners standing proud of every card, which is what the member saw and
+     * reported as "corners are not rectangular". iOS keeps its shadow, which is a
+     * real blur and is clipped to the radius.
+     */
+    const files = [
+      ...readdirSync("components").filter((f) => f.endsWith(".tsx")).map((f) => `components/${f}`),
+      "app/(tabs)/index.tsx",
+    ];
+    const offenders: string[] = [];
+    for (const f of files) {
+      const source = readFileSync(f, "utf8");
+      for (const m of source.matchAll(/elevation:\s*\d+/g)) {
+        offenders.push(`${f}: ${m[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("outlines surfaces with the cast's lit rim, never a near-black hairline", () => {
+    /*
+     * A border resolved from black at low alpha lands *darker* than the glass it
+     * encloses, so on a card at the top of its alpha range it reads as a drawn
+     * outline and squares off the corners. `glassEdge` is the one resolver that
+     * knows the surface it is edging; every outline should come from it or from
+     * `glassFieldBorder` for a groove inside a pane.
+     */
+    const files = [
+      ...readdirSync("components").filter((f) => f.endsWith(".tsx")).map((f) => `components/${f}`),
+      "app/(tabs)/index.tsx",
+    ];
+    const offenders: string[] = [];
+    for (const f of files) {
+      const source = readFileSync(f, "utf8");
+      for (const m of source.matchAll(/borderColor:\s*(?:glassNestedFill\()?\s*"rgba\(0,\s*0,\s*0,\s*[0-9.]+/g)) {
+        offenders.push(`${f}: ${m[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });

@@ -28,8 +28,7 @@ import {
   glassAmbient,
   glassEdge,
   glassTextureInk,
-  glassVeil,
-} from "@/lib/glass";
+  glassVeil, glassFieldBorder } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { AmbientField } from "@/components/ambient-field";
 import { GlassTexture } from "@/components/glass-texture";
@@ -247,7 +246,7 @@ export function WelcomeScreen({
           style={[
             styles.glass,
             {
-              backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity),
+              backgroundColor: glassSurfaceColor(glassFieldBorder(), glassOpacity),
               borderColor: glassEdge("card", cast),
               shadowColor: GLASS_SHADOW,
               shadowOpacity: GLASS_SHADOW_OPACITY,
@@ -326,7 +325,7 @@ export function WelcomeScreen({
                 <View
                   style={[
                     styles.slideIllustration,
-                    { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity), borderColor: glassEdge("card", cast) },
+                    { backgroundColor: glassSurfaceColor(glassFieldBorder(), glassOpacity), borderColor: glassEdge("card", cast) },
                   ]}
                 >
                   <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#F5F5F7" />
@@ -355,7 +354,7 @@ export function WelcomeScreen({
         <GlassBlur
           intensity={30}
           style={[styles.companyGlass]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
+          fill={glassSurfaceColor(glassFieldBorder(), glassOpacity)}
         >
           <View style={styles.companyInner}>
             <Pressable
@@ -392,7 +391,7 @@ export function WelcomeScreen({
       <Modal visible={termsOpen} transparent animationType="fade" onRequestClose={() => setTermsOpen(false)}>
         <View style={styles.termsShade}>
           <GlassBlur intensity={38} style={[styles.termsSheet]}
-            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
+            fill={glassSurfaceColor(glassFieldBorder(), glassOpacity)}
           >
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.termsHeader}>
@@ -459,7 +458,7 @@ const styles = StyleSheet.create({
   /* Clipped, so a pool that runs past the edge cannot widen the page. */
   field: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   bubbleField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassFieldBorder() },
   /*
    * The vertical rhythm of the first screen.
    *
@@ -478,14 +477,13 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassFieldBorder(),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     shadowColor: "#E3EDF4",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   soundHint: { color: "#F5F5F7", fontSize: 12 },
   guestPill: {
@@ -495,20 +493,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 13,
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassFieldBorder(),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
   },
   guestPillText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   glass: {
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     shadowColor: "#E9F3FB",
     shadowOpacity: 0.16,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 12 },
-    elevation: 14,
   },
   /* Clips the blur and the sheen to the panel's own shape. */
   glassShape: { borderRadius: 28 },
@@ -523,12 +520,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#A78FA9",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     shadowColor: "#1A1A1A",
     shadowOpacity: 0.30,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
   },
   brand: { color: "#F5F5F7", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
   tagline: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "600", marginTop: 6, textAlign: "center" },
@@ -556,7 +552,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.24,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
   },
   primaryButtonText: { color: "#FFFFFF", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   ghostButton: {
@@ -566,7 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassFieldBorder(),
     /*
      * The outline is what makes a ghost button a button, so it is solved rather than
      * tinted. Measured on the rendered panel, a boundary is held to 3:1 and this
@@ -606,7 +601,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.14,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
   },
   /*
    * The carousel sits on the *page*, not on the panel, so its ink is the page's ink.
@@ -630,7 +624,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
   },
   companyInner: { paddingHorizontal: 14, paddingVertical: 13, gap: 7 },
   termsRow: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
@@ -642,7 +635,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(28, 27, 25, 0.55)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    backgroundColor: glassFieldBorder(),
   },
   checkboxOn: { backgroundColor: "#A78FA9", borderColor: "#A78FA9" },
   termsText: { flex: 1, color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
@@ -663,16 +656,15 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 18,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     shadowColor: "#ECF6FD",
     shadowOpacity: 0.2,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
-    elevation: 20,
   },
   termsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   termsTitle: { color: "#F5F5F7", fontSize: 17, fontWeight: "800" },
-  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassFieldBorder(), borderWidth: 1, borderColor: glassFieldBorder() },
   termsBodyTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", marginTop: 10 },
   termsBody: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 3 },
   termsFootnote: { color: "#F5F5F7", fontSize: 12, marginTop: 10, textAlign: "center" },

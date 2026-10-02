@@ -1,4 +1,3 @@
-import { glassNestedFill } from "@/lib/appearance-preferences";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -15,15 +14,13 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { GlassBlur } from "@/components/glass-blur";
 import { GlassTexture } from "@/components/glass-texture";
 
-import {
-  GLASS_SHADOW,
+import {GLASS_SHADOW,
   GLASS_SHADOW_OPACITY,
   glassBlur,
   glassEdge,
   glassTextureInk,
   glassTint,
-  glassVeil,
-} from "@/lib/glass";
+  glassVeil, glassFieldBorder} from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { availabilityView, displayUnread, type ChatRowState } from "@/lib/chat-extras";
 import {
@@ -403,7 +400,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
   },
   muteAction: { backgroundColor: "#949494" },
   archiveAction: { backgroundColor: "#A78FA9" },
@@ -423,7 +420,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: GLASS_SHADOW_OPACITY,
     shadowRadius: 10,
-    elevation: 2,
   },
   rowPressed: { opacity: 0.9 },
   avatarWrap: { position: "relative" },

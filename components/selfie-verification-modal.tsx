@@ -18,6 +18,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { MaterialIcons } from "@expo/vector-icons";
 import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage } from "@/lib/selfie-flow";
 
+import { glassFieldBorder } from "@/lib/glass";
 const colors = {
   ink: "#43423d",
   muted: "#F5F5F7",
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
   captureContent: { flex: 1, justifyContent: "center", paddingVertical: 12 },
   cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#CFCFCF", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
   cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(38, 35, 16, 0.08)" },
-  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderStyle: "dashed" },
+  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: glassFieldBorder(), borderStyle: "dashed" },
   cameraHint: { position: "absolute", left: 10, right: 10, bottom: 10, minHeight: 31, borderRadius: 11, backgroundColor: "rgba(38, 35, 16, 0.45)", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
   cameraHintText: { color: "#FFFFFF", fontSize: 12 },
   captureCopy: { alignItems: "center", paddingTop: 13 },
@@ -274,11 +275,11 @@ const styles = StyleSheet.create({
   shutterPressed: { transform: [{ scale: 0.95 }] },
   deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#D0D0CF", alignItems: "center", justifyContent: "center", marginBottom: 12 },
   permissionIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#575B5D", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), marginBottom: 19, backgroundColor: "#5B5A54" },
+  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassFieldBorder(), marginBottom: 19, backgroundColor: "#5B5A54" },
   scanPhoto: { width: "100%", height: "100%", resizeMode: "cover" },
   scanPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.10)" },
-  scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#CCD0CE", shadowColor: "#C8C8C8", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
+  scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#CCD0CE", shadowColor: "#C8C8C8", shadowOpacity: 0.8, shadowRadius: 8 },
   scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#93959C", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
   scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#858289", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
   scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },

@@ -825,3 +825,43 @@ reason stated. `openSignup` still clears it, so a fresh sign-in does not show a 
 Verified end to end rather than by inspection: the full email path was driven in the browser
 from the welcome screen through the code step to landing on Chats, with the code read off the
 screen (`042100`) and accepted.
+
+## The square corners and the opaque toggles (2026-10-02)
+
+Two defects the member photographed on a real Android device. Neither was a wrong
+colour; both were wrong *paint*, which is why every colour-level test passed while the
+screen looked broken.
+
+**The square corners were Android's shadow.** `elevation` is not a blur. The platform
+draws it as its own shape behind the view, so at the app's radii it rendered as a pure
+black 1px rim standing proud of every card on all four sides, with square corners — the
+"wired fencing" in the screenshot. It existed in 27 places in the main screen and 44
+across the components, and it had been added at the same time as the iOS shadow without
+the platform difference being considered. All 71 are gone; iOS keeps `shadowRadius`,
+which is a real blur and is clipped to the radius.
+
+**The near-black hairlines.** `borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)")` was
+used as a generic divider on the welcome panel, every modal sheet and every inner row.
+A black border at low alpha lands *darker* than the glass it encloses, so on a card at
+the top of its alpha range it read as a drawn outline rather than an edge. 79 of them
+now resolve through `glassFieldBorder()`, which is the groove resolver and knows the
+card it sits in; the active tab pill was the one that should be *lit* rather than
+grooved, and now uses `glassEdge("tab")`.
+
+**The toggles were opaque.** The switch tracks were declared at
+`rgba(214, 210, 216, 0.92)` and `rgba(142, 111, 145, 0.95)` — a painted bar, whatever it
+sat on was invisible through it. These were declared as *opaque* values during the
+light-glass pass and never revisited when the system inverted to dark panes over a light
+page. Now `rgba(198, 196, 204, 0.42)` and `rgba(142, 111, 145, 0.66)`: the card shows
+through, state is carried by hue as well as by position, and the "on" track still
+measures 2.4:1 against a card so the control remains a visible object.
+
+**One wrong file against the design.** `tabIconActive` was `rgba(255, 255, 255, 0.55)`
+— a light pill, left from the light-glass pass. It was also the only groove border that
+was genuinely inside a `GlassSurface`, so it was overriding the shared lit rim. It is now
+over the cast, with the shared rim restored.
+
+Two source-level guards were added, because these defects are only visible at the level
+of "what property, on what platform" and no resolved-value assertion can catch them: no
+`elevation:` may appear in any component or screen, and no `borderColor` may be declared
+as a raw low-alpha black.

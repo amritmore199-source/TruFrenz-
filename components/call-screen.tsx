@@ -9,6 +9,7 @@ import { glassSurfaceColor,
 import { useAppAppearance } from "@/lib/appearance-context";
 import { callHeaderLabel, callStateCopy, type CallSession } from "@/lib/group-management";
 
+import { glassFieldBorder } from "@/lib/glass";
 type Props = {
   session: CallSession | null;
   /** Group calls show the group name and a member count instead of one peer. */
@@ -91,9 +92,9 @@ export function CallScreen({ session, groupLabel, onAccept, onDecline, onEnd }: 
 const styles = StyleSheet.create({
   fill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
   backdrop: { ...StyleSheet.absoluteFillObject },
-  panel: { width: "100%", maxWidth: 340, borderRadius: 26, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 20, paddingVertical: 24, alignItems: "center", shadowColor: "#E9F3FA", shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  panel: { width: "100%", maxWidth: 340, borderRadius: 26, borderWidth: 1, borderColor: glassFieldBorder(), paddingHorizontal: 20, paddingVertical: 24, alignItems: "center", shadowColor: "#E9F3FA", shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 10 } },
   avatarWrap: { alignItems: "center", justifyContent: "center" },
-  avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#6B6B6B", borderWidth: 1, borderColor: glassFieldBorder() },
   avatarVideo: { backgroundColor: "#A3A3A3" },
   ringHalo: { position: "absolute", width: 96, height: 96, borderRadius: 36, borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.5)" },
   verifiedBadge: { position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#949494", borderWidth: 2, borderColor: "#868386" },
@@ -102,8 +103,8 @@ const styles = StyleSheet.create({
   state: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any, marginTop: 6 },
   warn: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 9 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 22, marginTop: 20 },
-  decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#9F6673", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  decline: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#9F6673", borderWidth: 1, borderColor: glassFieldBorder() },
+  accept: { alignItems: "center", justifyContent: "center", gap: 5, width: 84, height: 84, borderRadius: 42, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassFieldBorder() },
   actionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   noteRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 20, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   note: { flex: 1, color: "#F5F5F7", fontSize: 12, lineHeight: 17 },

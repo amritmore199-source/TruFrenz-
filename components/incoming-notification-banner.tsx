@@ -9,6 +9,7 @@ import { glassSurfaceColor,
 } from "@/lib/appearance-preferences";
 import { useAppAppearance } from "@/lib/appearance-context";
 
+import { glassFieldBorder } from "@/lib/glass";
 export function IncomingNotificationBanner({
   notification,
   onOpen,
@@ -147,8 +148,8 @@ export function IncomingNotificationBanner({
 }
 
 const styles = StyleSheet.create({
-  position: { position: "absolute", top: 8, left: 13, right: 13, zIndex: 100, elevation: 20 },
-  surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#EBF5FD", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  position: { position: "absolute", top: 8, left: 13, right: 13, zIndex: 100 },
+  surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#EBF5FD", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 } },
   mainAction: { flex: 1, minWidth: 0, minHeight: 76, flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 11, paddingRight: 30 },
   iconWell: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", position: "relative" },
   inviteIconWell: { backgroundColor: "rgba(255, 255, 255, 0.94)" },

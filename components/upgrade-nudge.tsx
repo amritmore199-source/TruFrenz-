@@ -29,6 +29,7 @@ import { glassSurfaceColor,
 } from "@/lib/appearance-preferences";
 import type { UpgradeNudge as Nudge } from "@/lib/subscription-store";
 
+import { glassFieldBorder } from "@/lib/glass";
 type Props = {
   nudge: Nudge;
   onUpgrade: () => void;
@@ -102,12 +103,11 @@ const styles = StyleSheet.create({
     gap: 9,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
     shadowColor: "#EFF9FF",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
   },
   shellAtLimit: { borderColor: "rgba(212, 178, 132, 0.75)" },
   row: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
   },
   badgeAtLimit: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderColor: "rgba(255, 255, 255, 0.8)" },
   text: { flex: 1, gap: 2 },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
   },
   cta: {
     flexDirection: "row",
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    borderColor: glassFieldBorder(),
   },
-  ctaAtLimit: { backgroundColor: "#6B6B6B", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  ctaAtLimit: { backgroundColor: "#6B6B6B", borderColor: glassFieldBorder() },
   ctaText: { fontSize: 12.5, fontWeight: "700", color: "#F5F5F7" },
   ctaTextAtLimit: { color: "#F5F5F7" },
   pressed: { opacity: 0.82 },

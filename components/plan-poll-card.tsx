@@ -7,6 +7,7 @@ import { GlassSurface } from "@/components/glass-surface";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { canVote, pollResults, winningProposal, type PlanPoll } from "@/lib/plan-cards";
 
+import { glassFieldBorder } from "@/lib/glass";
 type Props = {
   poll: PlanPoll;
   nightMode?: boolean;
@@ -79,7 +80,7 @@ export function PlanPollCard({ poll, viewerId, onVote, onUseWinning, nightMode =
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 12, paddingVertical: 11, gap: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { borderRadius: 18, borderWidth: 1, borderColor: glassFieldBorder(), paddingHorizontal: 12, paddingVertical: 11, gap: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   cardNight: { borderColor: CHAT_NIGHT.border },
   lightText: { color: CHAT_NIGHT.primaryText },
   lightSecondaryText: { color: CHAT_NIGHT.secondaryText },
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   pillText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
   voteCount: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
   question: { color: "#F5F5F7", fontSize: 12.5, fontWeight: "700" },
-  option: { borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
+  option: { borderRadius: 13, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
   optionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.markerSurface },
   optionMine: { borderColor: "rgba(255, 255, 255, 0.6)", backgroundColor: "rgba(0, 0, 0, 0.10)" },
   optionLeading: { borderColor: "rgba(140, 190, 168, 0.55)" },
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
   leadNote: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
   tieNote: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   hint: { color: "#F5F5F7", fontSize: 12 },
-  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder() },
   convertText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

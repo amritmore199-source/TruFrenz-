@@ -5,6 +5,7 @@ import { GlassBlur } from "@/components/glass-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { nextSafetySlide, previousSafetySlide, safetyOnboardingSlides } from "@/lib/onboarding-carousel";
 
+import { glassFieldBorder } from "@/lib/glass";
 export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => void }) {
   const [index, setIndex] = useState(0);
   const opacity = useRef(new Animated.Value(1)).current;
@@ -79,13 +80,13 @@ const styles = StyleSheet.create({
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(255, 255, 255, 0.24)" },
   progressTrackActive: { backgroundColor: "#A78FA9" },
   slideAnimated: { width: "100%" },
-  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
-  iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 1, borderColor: glassFieldBorder() },
   eyebrow: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },
   title: { color: "#F5F5F7", fontSize: 24, lineHeight: 29, letterSpacing: -0.65, fontWeight: "700", marginTop: 4 },
   body: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 7 },
-  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  ruleCard: { flexDirection: "row", gap: 9, padding: 11, borderRadius: 15, marginTop: 17, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder() },
   ruleIcon: { width: 31, height: 31, borderRadius: 11, backgroundColor: "#CFD0D0", alignItems: "center", justifyContent: "center" },
   ruleCopy: { flex: 1, gap: 3 },
   ruleTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },

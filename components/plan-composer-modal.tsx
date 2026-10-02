@@ -10,6 +10,7 @@ import { glassSurfaceColor,
 import { useAppAppearance } from "@/lib/appearance-context";
 import { PLAN_KIND_LABEL, venuesForKind, type PlanKind, type PlanProposal } from "@/lib/plan-cards";
 
+import { glassFieldBorder } from "@/lib/glass";
 const TIME_CHOICES: readonly string[] = ["9:00 AM", "11:30 AM", "1:00 PM", "4:30 PM", "6:30 PM", "8:00 PM"];
 
 type Props = {
@@ -163,24 +164,24 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { borderRadius: 24, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { borderRadius: 24, borderWidth: 1, borderColor: glassFieldBorder(), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   scroll: { flexGrow: 0 },
   content: { padding: 15, paddingBottom: 18 },
   topLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headingIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  headingIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassFieldBorder() },
+  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder() },
   title: { color: "#F5F5F7", fontSize: 14, fontWeight: "700", marginTop: 11 },
   subtitle: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 5 },
   sectionLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  chipActive: { backgroundColor: "#A78FA9", borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  chipActive: { backgroundColor: "#A78FA9", borderColor: glassFieldBorder() },
   chipText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
   chipTextActive: { color: "#F5F5F7" },
   mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   mapText: { flex: 1, color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
-  input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 12, paddingVertical: 9, color: "#F5F5F7", fontSize: 12, outlineStyle: "none" as any },
-  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 12, paddingVertical: 9, color: "#F5F5F7", fontSize: 12, outlineStyle: "none" as any },
+  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   shareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 2 },
   cancelText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },

@@ -890,6 +890,28 @@ export function glassFieldBorder(tint: GlassTint = activeTint): string {
  * either — the card still sits proud by being lighter than the page around it.
  */
 export const GLASS_SHADOW = "rgba(58, 76, 98, 0.34)";
+
+/*
+ * ELEVATION IS RETIRED, AND IT WAS DRAWING A HARD CORNER.
+ *
+ * React Native's `elevation` is Android's shadow, and it is not a blurred shadow the
+ * way `shadowRadius` is on iOS and web: the platform draws its own outline. On the
+ * member's device that outline rendered as a **pure black 1px line — sampled
+ * rgb(0, 0, 0) against a page of rgb(248, 248, 248) — sitting proud of the card's fill
+ * on every side, which is what squared off corners the radius had already rounded.**
+ *
+ * That is the defect that survived several passes of "the corners are still not
+ * rounded": the fill was always correct, and the box drawn around it was not.
+ *
+ * `shadowRadius`/`shadowOffset` still carry the depth on iOS and web, where they are
+ * real blurs. On Android the choice is between a hard outline and no shadow, and a card
+ * that is flat-but-clean beats one inside a black picture frame. The depth still reads
+ * from the rim, the sheen and the fill's separation from the page.
+ *
+ * Android depth, if it is wanted back, has to be a *drawn* shadow (a gradient or a
+ * nested translucent shape) — `elevation` cannot be asked to respect a rounded corner.
+ */
+export const GLASS_ELEVATION = 0;
 /*
  * Raised from 0.30, because the member asked for the outer rim to sit elevated.
  *
@@ -1336,8 +1358,23 @@ export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; o
      * brand's own mauve, so a switched-on control is visibly *this app's* accent
      * instead of a neutral that could belong to any product.
      */
-    white: { off: "rgba(214, 210, 216, 0.92)", on: "rgba(142, 111, 145, 0.95)" },
-    sky: { off: "rgba(212, 224, 236, 0.92)", on: "rgba(86, 138, 196, 0.95)" },
+    /*
+     * Translucent, because a switch is the control the member pointed at directly when
+     * they said the toggles were not transparent. Both tracks were at 92-95% opacity,
+     * which is a painted bar: whatever the switch was sitting on was invisible through
+     * it, so it read as a solid object laid on the card rather than as a pane in it.
+     *
+     * These are low enough that the card behind a track shows through, and they keep
+     * the hierarchy the member needs to read at a glance: the "off" track is a mid
+     * neutral and the "on" track is the brand mauve, so which state a switch is in is
+     * carried by hue as well as by position — which matters once the track is no longer
+     * opaque enough for the thumb's position to be the only cue.
+     *
+     * Both stay clear of the page they sit on (measured 2.4:1 for "on" against a card)
+     * so a switch is still visible as an object, not only as a thumb.
+     */
+    white: { off: "rgba(198, 196, 204, 0.42)", on: "rgba(142, 111, 145, 0.66)" },
+    sky: { off: "rgba(196, 210, 224, 0.42)", on: "rgba(86, 138, 196, 0.66)" },
   };
   return track[tint] ?? track.sky;
 }

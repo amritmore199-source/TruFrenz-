@@ -10,6 +10,7 @@ import { glassSurfaceColor,
 import { useAppAppearance } from "@/lib/appearance-context";
 import { deleteThreadConfirmation, unfriendConfirmation, type ChatRowState } from "@/lib/chat-extras";
 
+import { glassFieldBorder } from "@/lib/glass";
 type Props = {
   visible: boolean;
   chatName: string;
@@ -176,7 +177,7 @@ export function ChatOverflowMenu({
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { width: "100%", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   card: { borderRadius: 22, overflow: "hidden" },
   scroll: { flexGrow: 0 },
   content: { padding: 14, paddingBottom: 16 },
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
   confirmTitle: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
   confirmBody: { color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
   confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 4 },
-  confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  confirmGhost: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   confirmGhostText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
   confirmDanger: { borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: "#A26572" },
   confirmDangerText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },

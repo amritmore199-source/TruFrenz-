@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { glassNestedFill } from "@/lib/appearance-preferences";
 import { GlassSurface } from "@/components/glass-surface";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
+import { glassFieldBorder } from "@/lib/glass";
 import {
   PLAN_KIND_LABEL,
   canCheckIn,
@@ -129,7 +130,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#DCE5EC", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { borderRadius: 18, borderWidth: 1, borderColor: glassFieldBorder(), paddingHorizontal: 12, paddingVertical: 11, gap: 6, shadowColor: "#DCE5EC", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   cardNight: { borderColor: CHAT_NIGHT.border },
   lightText: { color: CHAT_NIGHT.primaryText },
   lightSecondaryText: { color: CHAT_NIGHT.secondaryText },
@@ -147,13 +148,13 @@ const styles = StyleSheet.create({
   stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   stateText: { flex: 1, color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder() },
   primaryActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   checkInActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghostActionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },
-  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  ghostAction: { borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   ghostActionText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
-  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  checkInAction: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4, borderRadius: 12, paddingVertical: 9, backgroundColor: "#597E6D", borderWidth: 1, borderColor: glassFieldBorder() },
   linkRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
   linkText: { flex: 1, color: "#F5F5F7", fontSize: 12 },
   linkAction: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },

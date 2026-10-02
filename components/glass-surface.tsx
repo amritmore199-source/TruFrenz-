@@ -4,7 +4,7 @@ import { GlassBlur } from "@/components/glass-blur";
 import { GlassTexture } from "@/components/glass-texture";
 
 import { useAppAppearance } from "@/lib/appearance-context";
-import { GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassBlur, glassEdge, glassTextureInk, glassTint, glassVeil, type GlassSurface as GlassSurfaceKind, type GlassTint } from "@/lib/glass";
+import { GLASS_ELEVATION, GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassBlur, glassEdge, glassTextureInk, glassTint, glassVeil, type GlassSurface as GlassSurfaceKind, type GlassTint } from "@/lib/glass";
 
 type Props = {
   children?: React.ReactNode;
@@ -170,7 +170,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 9 },
-    elevation: 6,
+    /*
+     * `elevation` is deliberately absent. It is Android's shadow, and Android draws it
+     * as its own outline rather than as a blur — measured on the member's device as a
+     * pure black 1px line standing proud of the card on every side, which squared off
+     * corners the radius had already rounded. `GLASS_ELEVATION` records the decision.
+     */
+    elevation: GLASS_ELEVATION,
   },
   /* The face light covers the whole card in the samples, not just the top half. */
   sheen: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
