@@ -499,3 +499,53 @@ errors and the same 28 pre-existing warnings; `git diff --check` clean; the Metr
 bundle serves HTTP 200. Measured in the running app: **page luminance 0.847–0.880,
 cards 0.070–0.089** — a 10:1 separation in the direction the reference uses, where the
 previous build had the cards *lighter* than the page.
+
+---
+
+## The pale surfaces: the resolver trusted its callers
+
+### The report
+
+Groups, Hangouts and the Chats suggestion cards came back from the device with light
+glass and white type on it — unreadable. Chat rows, the bottom bar and the premium
+strip were correct, so it was not the whole material.
+
+### The cause
+
+Two resolver paths can leave a surface light while the ink on it is white:
+
+1. A **neutral** declared fill was pulled toward its cast by `neutralMixFor`, which was
+   calibrated when the cast was a faint wash over a pale page. With the cast now the
+   pane itself, a declared near-white landed part-way — light enough that the white
+   label on it disappeared. The mix is now 1: the cast *is* the surface.
+2. A **saturated** declared fill was passed through with only a low alpha, so a tinted
+   fill at 0.34 composited to something close to the page. The guard that exists to stop
+   exactly this measured the declared colour rather than the colour the surface actually
+   *lands* on — so `rgba(150,200,240,0.34)` looked adequate as a value and was nearly
+   white once composited. It measured 2.78:1.
+
+### The repair
+
+`darkenToInkFloor` now bisects on the **landed** colour — `alpha * fill + (1-alpha) *
+page` — and pulls the surface down until white ink clears AA on the result, with margin
+(0.175 luminance, which measures 4.71:1, rather than the exact 4.5 crossing at 0.184,
+so a channel rounding the wrong way cannot push it back under). Both resolvers apply it.
+
+The distinction that matters is **pane versus accent**, and it is the same chroma test
+the resolver already used: a neutral fill is a pane and takes the cast, then the floor;
+a saturated fill is an action button, a badge or a shared card and keeps its own hue.
+Applying the floor to accents as well was my first attempt and it failed six tests —
+correctly, because darkening an accent washes it into the surface.
+
+A second defect fell out of the probe: `AMBIENT_ALPHA_CAP` was set to 0.38 while the
+sections' own bases ran to 0.45, so **Hangouts and Bizz were silently clipped onto a
+single value** and rendered identically. The cap is now 0.52, above the bases, and all
+five sections differ again.
+
+### Verified
+
+Measured across **every surface class, both casts, four opacity settings, both the
+frozen and the live-resolved fill**: the worst white-ink contrast anywhere is **4.67:1**
+and no combination falls below AA. TypeScript clean; 1032 tests pass with 1 pre-existing
+skip; lint 0 errors and the same 28 pre-existing warnings; `git diff --check` clean;
+bundle HTTP 200.

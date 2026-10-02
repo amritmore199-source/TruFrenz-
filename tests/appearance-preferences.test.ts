@@ -50,7 +50,7 @@ describe("appearance preferences", () => {
      * channel, so a future retune of the cast does not silently pass.
      */
     const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
-    expect(surface).toMatch(/^rgba\(53, 53, 53, 0\.\d+\)$/);
+    expect(surface).toMatch(/^rgba\(40, 40, 40, 0\.\d+\)$/);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -110,7 +110,7 @@ describe("appearance preferences", () => {
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(53, 53, 53, 0\.\d+\)$/);
+    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(40, 40, 40, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });

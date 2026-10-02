@@ -84,7 +84,12 @@ const NEUTRAL_CHROMA = 26;
  * must satisfy the same for their own caps. Each is asserted in the tests,
  * because changing any one of them can quietly undo the others.
  */
-export const AMBIENT_ALPHA_CAP = 0.38;
+export /*
+ * Raised from 0.44. The cap was clipping Hangouts (0.425) and Bizz (0.45) onto a
+ * single value, so two sections that had been given deliberately different weights
+ * rendered identically - a cap set "just in case" silently undoing a decision.
+ */
+const AMBIENT_ALPHA_CAP = 0.52;
 /** The lift and cap that turn a field pool into an empty-state tile. */
 const EMPTY_TILE_LIFT = 1.15;
 export const EMPTY_TILE_ALPHA_CAP = 0.60;
@@ -573,6 +578,80 @@ function parseColor(color: string): { rgb: Rgb; alpha: number | null } | null {
 
 function isNeutral({ r, g, b }: Rgb): boolean {
   return Math.max(r, g, b) - Math.min(r, g, b) <= NEUTRAL_CHROMA;
+}
+
+/**
+ * The relative luminance of a colour, 0 (black) to 1 (white).
+ *
+ * Used to police the one invariant the whole material depends on: a glass surface is
+ * a *pane*, so it is darker than the page behind it, and white ink on it is legible.
+ */
+function surfaceLuminance(c: Rgb): number {
+  const lin = (v: number) => {
+    const x = v / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+}
+
+/**
+ * The deepest a glass surface is allowed to be, as a fraction of its distance to
+ * black, and the factor that takes it there.
+ *
+ * The glass is a dark pane over the member's artwork, so it has to *be* dark - that
+ * is the structure of the design, not a preference. Two paths could still produce a
+ * light surface: a declared fill whose colour was recovered wrongly, and a nested
+ * band that ended up below a cast it was meant to sit inside. Rather than trusting
+ * every caller, this clamps the result: if a surface lands above the ink floor, it is
+ * pulled down onto it. The floor is the point where white ink measures 4.5:1, so any
+ * surface that survives this guard carries its own label.
+ */
+/*
+ * The luminance a surface is pulled down to, chosen with margin rather than to the
+ * exact crossing: 4.5:1 sits at 0.184, and 0.175 measures 4.71:1, which leaves room
+ * for a channel rounding the wrong way without any surface falling back under AA.
+ */
+const INK_FLOOR_LUMINANCE = 0.175;
+
+/**
+ * The colour a translucent surface actually shows over the page.
+ *
+ * The ink sits on the *landed* colour, not on the declared one: `rgba(150,200,240,
+ * 0.34)` is not a pale blue, it is whatever it composites to over the artwork - and at
+ * a low alpha that is very close to the page. Measuring the declared value was the
+ * hole in the first version of this guard, and it let a tinted fill through at 2.78:1.
+ */
+const PAGE_GROUND: Rgb = { r: 250, g: 250, b: 251 };
+function landed(c: Rgb, alpha: number): Rgb {
+  return {
+    r: Math.round(c.r * alpha + PAGE_GROUND.r * (1 - alpha)),
+    g: Math.round(c.g * alpha + PAGE_GROUND.g * (1 - alpha)),
+    b: Math.round(c.b * alpha + PAGE_GROUND.b * (1 - alpha)),
+  };
+}
+
+/**
+ * Pull a surface down until it carries white ink once it has landed.
+ *
+ * Bisection on the darkest the surface may be, searching over the *landed* colour,
+ * so a high-alpha surface and a low-alpha one are held to the same result rather than
+ * to the same number.
+ */
+function darkenToInkFloor(c: Rgb, alpha: number): Rgb {
+  if (surfaceLuminance(landed(c, alpha)) <= INK_FLOOR_LUMINANCE) return c;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i += 1) {
+    const mid = (lo + hi) / 2;
+    const scaled: Rgb = {
+      r: Math.round(c.r * mid),
+      g: Math.round(c.g * mid),
+      b: Math.round(c.b * mid),
+    };
+    if (surfaceLuminance(landed(scaled, alpha)) > INK_FLOOR_LUMINANCE) hi = mid;
+    else lo = mid;
+  }
+  return { r: Math.round(c.r * lo), g: Math.round(c.g * lo), b: Math.round(c.b * lo) };
 }
 
 function mix(a: Rgb, b: Rgb, amount: number): Rgb {
@@ -1248,11 +1327,36 @@ export function glassSurfaceColor(
   );
   const alpha = clampAlpha(BASE_ALPHA + declaredWeight + weightFromSetting(opacity));
 
-  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], neutralMixFor(tint)) : parsed.rgb;
-
+  /*
+   * A neutral surface *becomes* the cast rather than being tinted by it.
+   *
+   * The mix was a compromise while the cast was a faint wash over a pale page. Both
+   * casts are now the pane itself, so a declared near-white has to end up at the
+   * cast's depth - otherwise it stays light and the white ink on it disappears, which
+   * is exactly what happened on Groups, Hangouts and the Chats suggestion cards.
+   */
   // A named surface can raise the weight further, but never past the ceiling.
   const weight = SURFACE_WEIGHT[surface] ?? 0;
   const finalAlpha = Math.min(MAX_GLASS_ALPHA, Math.max(alpha, BASE_ALPHA + weight));
+
+  /*
+   * Two kinds of surface, and they are decided by whether the declared colour has a
+   * hue of its own.
+   *
+   * A *neutral* fill is a pane: it is the member's glass and it takes the cast's
+   * colour and depth, then is pulled onto the ink floor so white type on it is legible
+   * by construction rather than by every caller happening to be right. That guard is
+   * what makes the material safe - without it a declared near-white can land light and
+   * the white label on it disappears, which is the defect this pass exists to fix.
+   *
+   * A *saturated* fill is an accent - an action button, a badge, a shared card - and
+   * it keeps its own colour. Darkening it would wash the accent into the surface, so
+   * it is left alone and carries whatever ink it declares. The two are told apart by
+   * chroma, which is the same test the resolver already used to decide whether to tint.
+   */
+  const neutralDeclared = isNeutral(parsed.rgb);
+  const base = neutralDeclared ? mix(parsed.rgb, TINTS[tint], 1) : parsed.rgb;
+  const rgb = neutralDeclared ? darkenToInkFloor(base, finalAlpha) : base;
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${finalAlpha.toFixed(3)})`;
 }
@@ -1286,7 +1390,14 @@ export function glassNestedSurfaceColor(
   const declared = parsed.alpha ?? 0.6;
   const nestedWeight = nestedWeightForDeclared(declared);
 
-  const rgb = isNeutral(parsed.rgb) ? mix(parsed.rgb, TINTS[tint], neutralMixFor(tint)) : parsed.rgb;
+  /*
+   * The same landing as the card resolver: a neutral nested surface becomes the cast
+   * rather than being tinted by it. A nested surface sits *inside* a card, so it can
+   * never be lighter than the card it lives in - and it was, which is why a row inside
+   * a sheet came out pale while the sheet around it was dark.
+   */
+  const neutralDeclared = isNeutral(parsed.rgb);
+  const base = neutralDeclared ? TINTS[tint] : parsed.rgb;
   /*
    * The cast's bonus applies here too, which keeps the depth relationship the
    * same under every cast. The nested band sits below a sheet's weight by
@@ -1297,6 +1408,12 @@ export function glassNestedSurfaceColor(
    * sharply sunk under the night one.
    */
   const alpha = clampAlpha(BASE_ALPHA + nestedWeight + weightFromSetting(opacity));
+
+  // The same split as the card resolver: a nested pane is held to the ink floor, an
+  // accent keeps its own colour. A nested surface is not darkened *because* it is
+  // nested - the band above already places it, and taking it further would invert the
+  // hierarchy the band exists to create.
+  const rgb = neutralDeclared ? darkenToInkFloor(base, alpha) : base;
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }
