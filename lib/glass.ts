@@ -84,7 +84,7 @@ const NEUTRAL_CHROMA = 26;
  * must satisfy the same for their own caps. Each is asserted in the tests,
  * because changing any one of them can quietly undo the others.
  */
-export const AMBIENT_ALPHA_CAP = 0.3;
+export const AMBIENT_ALPHA_CAP = 0.5;
 /** The lift and cap that turn a field pool into an empty-state tile. */
 const EMPTY_TILE_LIFT = 2.0;
 export const EMPTY_TILE_ALPHA_CAP = 0.66;
@@ -94,43 +94,46 @@ const TAB_PILL_ALPHA_CAP = 0.8;
 
 const TINTS: Record<GlassTint, Rgb> = {
   /*
-   * White - the default, and the "white and black" combination.
+   * White - the default cast, which despite its name is the *dark* one.
    *
-   * A true neutral: every channel identical, so the glass carries no colour of
-   * its own. It is not white in *value*, and that is the whole point. A card that
-   * renders white is invisible against the app's white page - measured, a
-   * pure-white fill resolves to the page at every alpha, which is the "white
-   * patch" the member kept reporting. The member asked for white *and black*:
-   * white glass over the scene, black ink on it, which is how the supplied sample
-   * is built - its card measures 199 against a ground of 251, and its text is
-   * near-black.
+   * This is variant B of the member's references: matte charcoal glass carrying
+   * solid white ink. The cast value is dark because of what the resolver does with
+   * it - a neutral surface declares a near-opaque white, and the resolver mixes that
+   * 62% toward the cast, so the value that reaches the screen is
+   * mix(255, cast, 0.62). A dark cast is therefore what turns a declared-white
+   * surface into a dark pane.
    *
-   * The value is fitted to the sample's own depth. It has to clear the wash below
-   * first: a neutral surface declares a near-opaque white, which the resolver
-   * mixes 62% toward this tint before compositing, so the value that reaches the
-   * screen is mix(255, tint, 0.62). This one renders a card at 1.60:1 against the
-   * page, matching the samples' 1.61-1.64:1.
+   * WHY THE CAST DARKENED RATHER THAN THE ALPHA RISING. A card renders at
+   * `alpha * fill + (1 - alpha) * backdrop`. Over the old pale page, white ink did
+   * not clear 4.5:1 until the card was 118 or darker, which needed an alpha of 0.86
+   * on the previous cast - at which point the wallpaper contributes 14% of the
+   * surface and the blur has nothing to act on, so the result is opaque paint
+   * wearing a glass label. The lever that works is the one underneath: darken the
+   * *backdrop*, leave the alpha alone. At the shipped alpha of 0.28 a card over the
+   * dark field resolves to roughly 46, where white ink clears 15:1, and the surface
+   * is still 72% backdrop - genuinely translucent, genuinely blurred.
    */
-  white: { r: 57, g: 57, b: 57 },
+  white: { r: 14, g: 14, b: 14 },
   /*
-   * Sky - the optional cast, the "sky blue and white" combination.
+   * Sky - the optional cast: variant A's saturated blue glass, deepened.
    *
-   * Fitted to the same luminance as the neutral, so both casts sit at exactly the
-   * same depth and the only difference between them is hue. Blue leads; red and
-   * green stay equal to each other so the cast stays clean rather than drifting
-   * toward violet. Matching the luminance matters: if the two casts sat at
-   * different depths, choosing a colour would silently also change how visible the
-   * glass is, and the member would be picking two things at once.
+   * The reference's own blue (#72B0DF) carries white ink at 2.34:1 and cannot be
+   * copied literally, so this is that blue taken down to the depth where white ink
+   * is comfortable. Blue leads, and red stays lowest so the cast reads as sky rather
+   * than drifting toward violet.
    */
-  sky: { r: 50, g: 50, b: 85 },
+  sky: { r: 8, g: 34, b: 78 },
 };
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
-  /* A plain white sheen. Light across a sheet of glass is not itself coloured,
-     and a grey sheen would dim the surface instead of lighting it. */
-  white: { r: 255, g: 255, b: 255 },
+  /*
+   * A neutral sheen. Both casts carry white ink now, so the sheen's job has inverted
+   * with them: it was lighting a pale pane, and it now has to light a dark one
+   * without washing the ink off it. Kept well below white for that reason.
+   */
+  white: { r: 190, g: 190, b: 190 },
   /* A cool sheen, matching the sky sample's own highlight. */
-  sky: { r: 232, g: 244, b: 255 },
+  sky: { r: 176, g: 200, b: 232 },
 };
 /**
  * How far a neutral surface is pulled toward its cast.
@@ -178,21 +181,9 @@ const NEUTRAL_TINT_MIX_BY_TINT: Record<GlassTint, number> = {
  * buttons keep the separate darker ink that makes them readable.
  */
 export const TEXT_ON_GLASS = {
-  heading: "#1C1B19",
-  /*
-   * Near-black, as the supplied samples' own text is.
-   *
-   * The previous ramp was mid-grey (#43423D and lighter), and that is what capped
-   * how deep the glass could ever go: a mid-grey ink needs a *light* card to clear
-   * AA, so the surfaces had to stay pale, so they never reached the depth the
-   * samples show. Deepening the glass and darkening the ink are one decision, not
-   * two.
-   *
-   * Measured on the worst card in the suite - a surface over the artwork's own
-   * line work rather than over its paper - these clear 9.66:1, 8.06:1 and 5.54:1.
-   */
-  body: "#2B2A27",
-  secondary: "#45433F",
+  heading: "#FFFFFF",
+  body: "#F2F3F5",
+  secondary: "#B9BEC4",
 } as const;
 
 /** The mix for a cast, falling back to the pale wash for an unknown one. */
@@ -838,32 +829,19 @@ export function ambientIntensityFor(section: AmbientSection | null | undefined):
  * label actually renders under.
  */
 const TAB_INK: Record<AmbientSection, string> = {
-  /*
-   * One ink for all five sections, and it is black.
+  /* One ink for all five sections, and it is white.
    *
-   * The previous table held five solved greys, each the lightest neutral that
-   * cleared 4.5:1 on that section's own pill. That approach had a shelf life: it
-   * was solved against pills that all shared one blue, so the moment the fields
-   * became per-section the two palest pills moved out from under their inks and
-   * the label fell to 4.43:1. Every change to a field would have needed this table
-   * re-solved to keep up, and nothing would have failed loudly if it was not.
-   *
-   * Black cannot go stale. Measured across all five sections and both casts on the
-   * darkest backdrop a pill can sit over, black lands between 4.92:1 and 6.34:1 on
-   * the white cast and between 4.43:1 and 5.07:1 on sky - and the pill's own alpha,
-   * which is at least 0.447 everywhere, has far more headroom than black needs:
-   * black clears 4.5:1 from an alpha of 0.225, so the fill is never the binding
-   * constraint. The label is legible by construction rather than by a value that
-   * has to be maintained.
-   *
-   * It is also simply the combination the member asked for: white glass, black ink.
-   * A coloured ink on a coloured pill was two hues arguing.
-   */
-  chats: "#000000",
-  groups: "#000000",
-  hangouts: "#000000",
-  bizz: "#000000",
-  profile: "#000000",
+   * The five-grey table was a maintenance trap - solved against pills that all shared
+   * one blue, so making the fields per-section moved two pills out from under their
+   * inks. White cannot go stale for the same reason black could not: the pill's own
+   * alpha is past the point where the floor is met, so the label does not depend on a
+   * solved value a future change to a field could invalidate. The dark glass is what
+   * forced the direction - the mono variant carries solid white type on charcoal. */
+  chats: "#FFFFFF",
+  groups: "#FFFFFF",
+  hangouts: "#FFFFFF",
+  bizz: "#FFFFFF",
+  profile: "#FFFFFF",
 };
 
 export function glassTabAccent(
@@ -874,10 +852,10 @@ export function glassTabAccent(
    * A caller with no section keeps the shipped lemon rather than silently taking
    * Chats' colour, which would claim a selection that does not exist.
    */
-  if (!section || !(section in TAB_INK)) return { fill: "rgba(214, 216, 218, 0.55)", ink: "#383838" };
+  if (!section || !(section in TAB_INK)) return { fill: "rgba(38, 40, 44, 0.55)", ink: "#FFFFFF" };
   const key = section as AmbientSection;
   const nums = glassEmptyAccent(key, tint).match(/[\d.]+/g) ?? [];
-  if (nums.length < 4) return { fill: "rgba(214, 216, 218, 0.55)", ink: "#383838" };
+  if (nums.length < 4) return { fill: "rgba(38, 40, 44, 0.55)", ink: "#FFFFFF" };
   const [r, g, b, a] = nums.map(Number);
   // Lifted past the empty-state tile: a pill is a quarter of its size and has to
   // read as the active control at a glance rather than as decoration.
@@ -907,16 +885,20 @@ export function glassTabAccent(
  * solved to its own floor: the icon to 3:1, the label to 4.5:1.
  */
 const QUIET_ICON_INK: Record<GlassTint, string> = {
-  /* The neutral ink is achromatic, like the glass it sits on. Measured 3.24:1. */
-  white: "#606060",
-  /* The sky ink leads with blue. Measured 3.22:1. */
-  sky: "#5C6064",
+  /* A dimmed white, and genuinely achromatic: the neutral cast carries no colour of
+     its own, so its quiet ink must not introduce one. It steps down from the active
+     label rather than matching it, which is what keeps an inactive icon reading as
+     inactive. */
+  white: "#C8C8C8",
+  /* The sky ink leans cool, matching the cast. */
+  sky: "#BDC8D6",
 };
 const QUIET_LABEL_INK: Record<GlassTint, string> = {
-  /* Measured 4.86:1 against the lightest bar either cast can produce. */
-  white: "#464646",
-  /* Measured 4.84:1. */
-  sky: "#42464A",
+  /* Solved to 4.5:1 against the *lightest* bar either cast can produce, which is the
+     bar at its heaviest weight over the brightest part of the field. */
+  white: "#C8C8C8",
+  /* Cooler, to follow the cast. */
+  sky: "#BDC8D6",
 };
 export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; label: string } {
   return {
@@ -945,16 +927,15 @@ export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; 
  * cover the whole screen.
  */
 const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
-  // Chats keeps the coolest ink of the five, matching its blue field.
-  chats: { tile: "#2D3E4A", eyebrow: "#425A6C" },
-  // Groups' teal reads greenest of the five.
-  groups: { tile: "#2D4240", eyebrow: "#405D59" },
-  // Hangouts' apricot needs the warmest, darkest ink to clear its own pale tile.
-  hangouts: { tile: "#4B3E2F", eyebrow: "#665440" },
-  // Bizz' gold, the palest tile of the five, so its glyph goes deepest.
-  bizz: { tile: "#3D454D", eyebrow: "#4F5962" },
-  // Profile's lilac.
-  profile: { tile: "#3D3B4A", eyebrow: "#58546A" },
+  /* Inverted with the glass: these were dark inks solved against pale tiles, and on
+     dark tiles they become light inks solved against the same tiles' new depth. Each
+     keeps its section's hue so the accent still reads as *that* section rather than
+     as generic white. */
+  chats: { tile: "#BFE0F5", eyebrow: "#A8CCE6" },
+  groups: { tile: "#B9E4D8", eyebrow: "#A2D2C6" },
+  hangouts: { tile: "#F2D4AE", eyebrow: "#E3C094" },
+  bizz: { tile: "#EFDC9E", eyebrow: "#DFC982" },
+  profile: { tile: "#D6CFF2", eyebrow: "#C3BAE8" },
 };
 /**
  * The accent for a section: the ink for its tinted tile and its header label.
@@ -986,37 +967,20 @@ export function glassEmptyAccent(
  * nearby in the same family rather than becoming five unrelated brand colours.
  */
 const AMBIENT_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: string }> = {
-  // The coolest and calmest, closest to the original blue. A dense column of small
-  // rows, so the field stays quiet behind it.
-  chats: {
-    warm: "rgba(150, 205, 245, 0.22)",
-    cool: "rgba(96, 170, 232, 0.20)",
-    soft: "rgba(186, 224, 250, 0.18)",
-  },
-  // A soft green-teal, the colour of a circle that is growing.
-  groups: {
-    warm: "rgba(146, 214, 205, 0.23)",
-    cool: "rgba(96, 182, 172, 0.21)",
-    soft: "rgba(184, 228, 220, 0.19)",
-  },
-  // A warm apricot, matching the plans screen's daylight mood.
-  hangouts: {
-    warm: "rgba(240, 199, 150, 0.24)",
-    cool: "rgba(226, 164, 108, 0.22)",
-    soft: "rgba(248, 220, 186, 0.20)",
-  },
-  // A muted gold, tying the section to the app's own lemon accent.
-  bizz: {
-    warm: "rgba(236, 214, 140, 0.24)",
-    cool: "rgba(220, 188, 96, 0.22)",
-    soft: "rgba(246, 230, 180, 0.20)",
-  },
-  // A soft lilac, the calmest of the five, for the settings screens.
-  profile: {
-    warm: "rgba(198, 190, 240, 0.22)",
-    cool: "rgba(158, 148, 224, 0.20)",
-    soft: "rgba(220, 214, 246, 0.18)",
-  },
+  /*
+   * Dark pools, not light ones.
+   *
+   * The field used to be pale washes laid over a pale page, which meant the glass had
+   * nothing to diffuse and every surface composited toward white. On the dark page
+   * these are the light *sources* - they sit under the glass and give it a scene to
+   * blur, which is what a backdrop field is for. Each keeps its section's hue so the
+   * sections remain distinguishable.
+   */
+  chats:    { warm: "rgba(38, 74, 116, 0.42)",  cool: "rgba(24, 54, 96, 0.40)",  soft: "rgba(52, 92, 138, 0.36)" },
+  groups:   { warm: "rgba(30, 82, 76, 0.42)",   cool: "rgba(20, 62, 58, 0.40)",  soft: "rgba(44, 102, 94, 0.36)" },
+  hangouts: { warm: "rgba(104, 70, 30, 0.42)",  cool: "rgba(84, 54, 22, 0.40)",  soft: "rgba(124, 88, 42, 0.36)" },
+  bizz:     { warm: "rgba(96, 84, 30, 0.42)",   cool: "rgba(76, 66, 22, 0.40)",  soft: "rgba(116, 102, 42, 0.36)" },
+  profile:  { warm: "rgba(60, 54, 104, 0.42)",  cool: "rgba(44, 38, 84, 0.40)",  soft: "rgba(78, 70, 124, 0.36)" },
 };
 /**
  * How the sky cast shifts a section's own hue.
@@ -1177,27 +1141,25 @@ export function glassSwatch(tint: GlassTint): string {
 /**
  * The outline for a swatch chip.
  *
- * The selected chip is filled with its own tint, so a pale swatch inside it has
- * almost no contrast — the lemon chip in particular disappeared into its own
- * selected state. This rim is a darkened version of the same hue, which
- * separates the chip from both the panel and its own selection fill without
- * introducing a colour that is not part of the palette.
+ * The rim inverted with the chips. On the light system a pale swatch disappeared into
+ * its own selected state, so the rim was a darkened version of the same hue. The chips
+ * are deep now, so the problem is the opposite one - a dark chip vanishes into the dark
+ * glass around it - and the rim is a *lit* version of the same hue instead. Deriving it
+ * from the chip rather than the raw cast is what keeps the relationship right: the
+ * chip's saturation lift moves channels away from the cast's mean, so a rim built from
+ * the cast alone could land on the wrong side of the chip it is meant to outline.
  */
 export function glassSwatchEdge(tint: GlassTint): string {
-  /*
-   * Built from the chip, not from the raw cast.
-   *
-   * The chip raises saturation, which pushes a channel away from the cast's own
-   * mean and can leave it *below* the cast's value — true of the dark slate,
-   * where the red channel of the chip (23) sits under the cast's own red (42). A
-   * rim derived from the cast would then be lighter than the chip on that
-   * channel and stop reading as a rim at all. Deriving it from the chip keeps
-   * every channel darker by construction, for any cast.
-   */
   const match = glassSwatch(tint).match(/(\d+), (\d+), (\d+)/);
   const [r, g, b] = match ? match.slice(1).map(Number) : [0, 0, 0];
-  const [dr, dg, db] = [r, g, b].map((component) => Math.round(component * 0.58));
-  return `rgba(${dr}, ${dg}, ${db}, 0.85)`;
+  /*
+   * Lift toward white rather than scaling up, so a chip that is already near a channel
+   * ceiling cannot clip and flatten the hue. Each channel travels 42% of the way to
+   * white, which is enough to read as a lit edge and small enough to stay the chip's
+   * own colour rather than becoming a white ring.
+   */
+  const lift = (component: number) => Math.round(component + (255 - component) * 0.42);
+  return `rgba(${lift(r)}, ${lift(g)}, ${lift(b)}, 0.85)`;
 }
 
 /**

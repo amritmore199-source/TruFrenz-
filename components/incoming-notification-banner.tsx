@@ -121,7 +121,7 @@ export function IncomingNotificationBanner({
       accessibilityHint="Swipe left or right to dismiss, or use the dismiss control."
       style={[styles.position, { opacity, pointerEvents: notification ? "auto" : "none", transform: [{ translateX }, { translateY }, { scale }] }]}
     >
-      <View style={[styles.surface, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.92)"), glassOpacity) }]}>
+      <View style={[styles.surface, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity) }]}>
         <GlassBlur intensity={44} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
@@ -136,10 +136,10 @@ export function IncomingNotificationBanner({
             <Text style={styles.sender} numberOfLines={1}>{displayed.senderName}</Text>
             <Text style={styles.preview} numberOfLines={1}>{displayed.preview}</Text>
           </View>
-          <MaterialIcons name="chevron-right" size={20} color="#8B8881" />
+          <MaterialIcons name="chevron-right" size={20} color="#CED7DE" />
         </Pressable>
         <Pressable onPress={onDismiss} style={styles.close} accessibilityRole="button" accessibilityLabel="Dismiss notification">
-          <MaterialIcons name="close" size={15} color="#807d76" />
+          <MaterialIcons name="close" size={15} color="#D6DFE6" />
         </Pressable>
       </View>
     </Animated.View>
@@ -148,18 +148,18 @@ export function IncomingNotificationBanner({
 
 const styles = StyleSheet.create({
   position: { position: "absolute", top: 8, left: 13, right: 13, zIndex: 100, elevation: 20 },
-  surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: glassNestedFill("rgba(252, 250, 242, 0.92)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"), shadowColor: "#454E57", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#EBF5FD", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   mainAction: { flex: 1, minWidth: 0, minHeight: 76, flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 11, paddingRight: 30 },
   iconWell: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", position: "relative" },
   inviteIconWell: { backgroundColor: "rgba(242, 234, 193, 0.94)" },
-  messageIconWell: { backgroundColor: glassNestedFill("rgba(232, 240, 245, 0.96)") },
+  messageIconWell: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#2F7295", borderWidth: 1.5, borderColor: "#FFFFFF" },
   copy: { flex: 1, minWidth: 0, paddingVertical: 10 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  kind: { color: "#2B6C8F", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
-  now: { color: "#6E6C67", fontSize: 12, fontWeight: "600", letterSpacing: 0.6 },
-  sender: { color: "#454E56", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 2 },
-  preview: { color: "#6E6C67", fontSize: 12, lineHeight: 17, marginTop: 1 },
-  close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.43)") },
+  kind: { color: "#7FC0E8", fontSize: 12, fontWeight: "800", letterSpacing: 1 },
+  now: { color: "#DFE9F0", fontSize: 12, fontWeight: "600", letterSpacing: 0.6 },
+  sender: { color: "#EBF5FD", fontSize: 12, lineHeight: 17, fontWeight: "700", marginTop: 2 },
+  preview: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, marginTop: 1 },
+  close: { position: "absolute", right: 6, top: 6, width: 23, height: 23, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.22)") },
   pressed: { opacity: 0.8 },
 });

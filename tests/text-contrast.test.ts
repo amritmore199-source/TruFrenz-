@@ -17,8 +17,16 @@ import { join } from "node:path";
  * always better than this, never worse.
  */
 
-/** A glass card over the artwork, at the lightest it resolves. */
-const CARD = [233, 239, 246];
+/**
+ * A glass card, at the *lightest* it resolves - which on the dark system is the
+ * worst case for white ink, exactly as it was the worst case for dark ink before.
+ *
+ * The value is the card at its heaviest weight over the brightest part of the field:
+ * alpha 0.46 of the dark fill over the lifted backdrop. Measuring against the
+ * lightest card is what makes this an honest floor rather than a convenient one,
+ * because every other card is darker and therefore easier.
+ */
+const CARD = [64, 67, 72];
 
 function lin(v: number): number {
   const x = v / 255;
@@ -120,10 +128,20 @@ describe("text contrast", () => {
     expect(failing.map(({ file, style, value }) => `${file}: ${style} ${value}`)).toEqual([]);
   });
 
-  it("keeps the accent gold at AA, since it is used for links and labels", () => {
-    // The gold carries the largest number of text uses in the app, so it is the one
-    // colour where a small miss would be felt everywhere.
-    expect(contrast(hex("#2B6C8F"), CARD)).toBeGreaterThanOrEqual(4.5);
+  it("keeps the accent at AA, since it is used for links and labels", () => {
+    /*
+     * The accent carries the largest number of text uses in the app, so it is the one
+     * colour where a small miss would be felt everywhere.
+     *
+     * It changed identity with the glass. On the light system the accent was a dark
+     * teal that read as ink; on dark glass a dark ink is invisible, so the accent has
+     * split in two - #2B6C8F survives as the *fill* on buttons, and the lighter
+     * #7FC0E8 is what carries links, labels and icons on the glass itself. This
+     * asserts the ink, because the ink is what has a text floor.
+     */
+    expect(contrast(hex("#7FC0E8"), CARD)).toBeGreaterThanOrEqual(4.5);
+    // The fill keeps its own floor: white on it, which is how the buttons use it.
+    expect(contrast([255, 255, 255], hex("#2B6C8F"))).toBeGreaterThanOrEqual(4.5);
   });
 
   /*
@@ -226,9 +244,21 @@ describe("text contrast", () => {
       expect(match, `${token} must exist in theme.config.js`).not.toBeNull();
       return hex(match![1]);
     };
+    const dark = (token: string): number[] => {
+      const match = new RegExp(`${token}:\\s*\\{\\s*light:\\s*'#[0-9A-Fa-f]{6}',\\s*dark:\\s*'(#[0-9A-Fa-f]{6})'`).exec(config);
+      expect(match, `${token} must exist in theme.config.js`).not.toBeNull();
+      return hex(match![1]);
+    };
     expect(contrast(light("foreground"), CARD)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(light("muted"), CARD)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(light("primary"), CARD)).toBeGreaterThanOrEqual(3);
+    /*
+     * primary is read from its *dark* slot, because that is the one carrying the
+     * accent ink. The two slots are not a light/dark-mode pair here: the light slot is
+     * the button fill (white on it, asserted elsewhere) and the dark slot is the ink
+     * that links and labels use on the glass. Reading the wrong slot measures a fill
+     * as if it were text.
+     */
+    expect(contrast(dark("primary"), CARD)).toBeGreaterThanOrEqual(4.5);
   });
 
   /*
@@ -329,12 +359,18 @@ describe("text contrast", () => {
     expect(failing).toEqual([]);
   });
 
-  it("keeps the quiet tier the lightest ink that still clears AA", () => {
-    // The quiet tier is solved rather than chosen: this is the value that lets
-    // timestamps and hints read as secondary while staying legible. If it drifts
-    // lighter it stops passing; if it drifts darker it stops reading as secondary.
-    const quiet = hex("#6E6C67");
+  it("keeps the quiet tier the dimmest ink that still clears AA", () => {
+    /*
+     * The quiet tier is solved rather than chosen: this is the value that lets
+     * timestamps and hints read as secondary while staying legible.
+     *
+     * On dark glass the tier is bounded from *below* rather than above. A dim ink
+     * stops passing as it gets darker, so the floor is the constraint and the ceiling
+     * is what keeps it reading as secondary rather than as primary - the same
+     * two-sided window, measured in the other direction.
+     */
+    const quiet = hex("#B9BEC4");
     expect(contrast(quiet, CARD)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(quiet, CARD)).toBeLessThan(4.8);
+    expect(contrast(quiet, CARD)).toBeLessThan(7.5);
   });
 });

@@ -12,17 +12,34 @@
  * once already and the call sites should not have to care.
  */
 export const CHAT_NIGHT = {
-  backdrop: "rgba(236, 241, 247, 0.42)",
-  incomingBubble: "rgba(232, 238, 245, 0.88)",
-  outgoingBubble: "rgba(245, 231, 168, 0.92)",
-  typingBubble: "rgba(232, 238, 245, 0.86)",
-  controlSurface: "rgba(240, 244, 249, 0.82)",
-  composerSurface: "rgba(243, 246, 250, 0.86)",
-  markerSurface: "rgba(238, 242, 248, 0.82)",
-  primaryText: "#2F3A45",
-  secondaryText: "rgba(47, 58, 69, 0.78)",
-  subtleText: "rgba(47, 58, 69, 0.62)",
-  accentText: "#64707D",
-  border: "rgba(47, 58, 69, 0.28)",
-  divider: "rgba(47, 58, 69, 0.28)",
+  /*
+   * The open conversation's palette, on the dark system.
+   *
+   * This used to be a light palette - pale bubbles carrying dark ink - and it was the
+   * one screen that could not use white text, because the artwork sat on white paper
+   * underneath it. With the backdrop dark the constraint is gone and the reason for
+   * the split is gone with it: the conversation now uses the same white ink as the
+   * rest of the app, so a member moving from the inbox into a thread sees one
+   * interface rather than two.
+   *
+   * The surfaces are faint lifts rather than washes. A bubble is still glass - it
+   * takes the blur behind it - so it cannot be opaque, and a faint lift over a dark
+   * backdrop is what keeps white ink comfortable on it while the artwork still shows
+   * through. The outgoing bubble is the one exception and it is deliberate: a sent
+   * message is the member's own, so it takes the accent as a solid fill, exactly as
+   * the send button does.
+   */
+  backdrop: "rgba(0, 0, 0, 0.22)",
+  incomingBubble: "rgba(255, 255, 255, 0.12)",
+  outgoingBubble: "rgba(43, 108, 143, 0.92)",
+  typingBubble: "rgba(255, 255, 255, 0.12)",
+  controlSurface: "rgba(255, 255, 255, 0.12)",
+  composerSurface: "rgba(255, 255, 255, 0.12)",
+  markerSurface: "rgba(255, 255, 255, 0.12)",
+  primaryText: "#FFFFFF",
+  secondaryText: "rgba(255, 255, 255, 0.84)",
+  subtleText: "rgba(255, 255, 255, 0.68)",
+  accentText: "#9CC0DE",
+  border: "rgba(255, 255, 255, 0.22)",
+  divider: "rgba(255, 255, 255, 0.22)",
 } as const;

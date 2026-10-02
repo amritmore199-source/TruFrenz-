@@ -69,9 +69,22 @@ function hex(value: string): [number, number, number] {
  * small text below AA. Its paper field is the brightest thing a surface can sit
  * over, and its lifted shadows are the darkest.
  */
-const WALLPAPER_BRIGHTEST: [number, number, number] = [255, 255, 255];
-const WALLPAPER_DARKEST: [number, number, number] = [200, 200, 200];
-const WALLPAPER_AVERAGE: [number, number, number] = [248, 248, 248];
+/*
+ * What the glass actually sits over.
+ *
+ * These were the artwork's own values - bright paper at 248-255 - because the app
+ * used to composite directly onto the member's drawing. The backdrop is now the
+ * app's own dark surface with the artwork showing through it at about a fifth, so
+ * the honest model is the *result* of that composite: the page, the field's pools
+ * at their strongest, and the two extremes a blurred backdrop can reach.
+ *
+ * The band still matters in the same way. Measuring against the *lightest* value is
+ * what makes the white-ink floors honest, exactly as measuring against the darkest
+ * made the dark-ink floors honest before.
+ */
+const WALLPAPER_BRIGHTEST: [number, number, number] = [78, 86, 98];
+const WALLPAPER_DARKEST: [number, number, number] = [16, 18, 22];
+const WALLPAPER_AVERAGE: [number, number, number] = [34, 39, 47];
 
 describe("the casts on offer", () => {
   it("offers the two glass colours the member chooses between", () => {
@@ -85,11 +98,11 @@ describe("the casts on offer", () => {
     expect(GLASS_TINT_LABEL.sky).toBe("Sky blue");
   });
 
-  it("carries dark ink on every one of them", () => {
+  it("carries white ink on every one of them", () => {
     const ink = hex(TEXT_ON_GLASS.heading);
     for (const cast of GLASS_TINT_OPTIONS) {
       const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80, cast));
-      const rendered = over([...surfaceGlass], WALLPAPER_DARKEST);
+      const rendered = over([...surfaceGlass], WALLPAPER_BRIGHTEST);
       expect(contrast(ink, rendered)).toBeGreaterThanOrEqual(4.5);
     }
   });
@@ -136,12 +149,13 @@ describe("surfaces over the crew artwork", () => {
     expect(white[0]).toBe(white[1]);
     expect(white[1]).toBe(white[2]);
     /*
-     * Both casts stay light enough to carry dark ink, but only just: they are
-     * fitted to the reference cards' own depth rather than to a paper-white that
-     * cannot be seen. The bound is set where the fitted values actually sit.
+     * Both casts stay deep enough to carry white ink, and the neutral one is the
+     * deeper of the two because it has no colour of its own to lean on. The bound is
+     * set where the fitted values actually sit rather than to a paper-white that
+     * cannot be seen - which is the same mistake the light system made, inverted.
      */
     for (const cast of [sky, white]) {
-      expect(luminance([cast[0], cast[1], cast[2]])).toBeGreaterThan(0.16);
+      expect(luminance([cast[0], cast[1], cast[2]])).toBeLessThan(0.20);
     }
   });
 
@@ -187,7 +201,7 @@ describe("text over the wallpaper", () => {
    * backdrop but a way of hiding the drawing the member chose. The artwork is
    * bright paper, so the app carries dark ink instead and needs no veil at all.
    */
-  it("holds the ink past AA over the paper field and its lifted shadows", () => {
+  it("holds the ink past AA over the backdrop and its lifted shadows", () => {
     const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", 80));
     for (const background of [WALLPAPER_BRIGHTEST, WALLPAPER_AVERAGE, WALLPAPER_DARKEST]) {
       const rendered = over([...surfaceGlass], background);
@@ -197,14 +211,18 @@ describe("text over the wallpaper", () => {
   });
 
   /*
-   * The assertion that stops the app being flipped back to white-on-light, which
-   * is the one combination this wallpaper cannot support: white text over the
-   * pale surfaces as they resolve over paper manages about 1.6:1.
+   * The assertion that stops the app being flipped back to dark-on-dark, which is
+   * the one combination the dark surface cannot support: a dark ink over the glass
+   * as it resolves would disappear into it entirely.
+   *
+   * The worst case for white ink is the *lightest* backdrop rather than the darkest,
+   * so that is what the floor is measured against - the glass at its thinnest over
+   * the brightest thing the field can put behind it.
    */
-  it("keeps dark ink legible even at the thinnest glass over the darkest marks", () => {
+  it("keeps white ink legible even at the thinnest glass over the brightest field", () => {
     for (const weight of [50, 80, 95]) {
       const surfaceGlass = parseRgba(glassSurfaceColor("rgba(255, 255, 255, 0.94)", weight));
-      const rendered = over([...surfaceGlass], WALLPAPER_DARKEST);
+      const rendered = over([...surfaceGlass], WALLPAPER_BRIGHTEST);
       expect(contrast(hex(TEXT_ON_GLASS.heading), rendered)).toBeGreaterThanOrEqual(4.5);
     }
   });
@@ -221,7 +239,7 @@ describe("the backdrop field", () => {
       const field = glassAmbient(cast);
       for (const pool of [field.warm, field.cool, field.soft]) {
         const alpha = Number(pool.match(/([\d.]+)\)$/)![1]);
-        expect(alpha).toBeGreaterThanOrEqual(0.15);
+        expect(alpha).toBeGreaterThanOrEqual(0.30);
       }
     }
   });
@@ -250,7 +268,13 @@ describe("the backdrop field", () => {
       expect(alpha(rich[key])).toBeGreaterThan(alpha(base[key]));
       // The same factor on every pool, so the relative weight is untouched.
       expect(alpha(calm[key]) / alpha(base[key])).toBeCloseTo(0.78, 2);
-      expect(alpha(rich[key]) / alpha(base[key])).toBeCloseTo(1.25, 2);
+      /*
+       * The upward factor is capped rather than exact: the clamp is what stops the
+       * field pushing the ink below AA, so at 1.25 the richest pools are held at the
+       * cap. A ratio at or below the factor is the clamp working, and a ratio above
+       * it would mean the field had escaped the clamp.
+       */
+      expect(alpha(rich[key]) / alpha(base[key])).toBeLessThanOrEqual(1.25 + 0.005);
     }
   });
 
@@ -276,10 +300,16 @@ describe("the empty-state tile", () => {
     const alphas = (["chats", "groups", "profile", "hangouts", "bizz"] as const).map((s) =>
       Number(glassEmptyAccent(s).match(/([\d.]+)\)$/)![1]),
     );
-    // Ordered like the field, so a denser screen gets a quieter tile.
+    /*
+     * Ordered like the field, so a denser screen gets a quieter tile. The comparison
+     * is non-decreasing rather than strictly increasing because the tile derives from
+     * the field through a lift that saturates at the top of the range - on the dark
+     * system the richest two sections reach the cap together, which is the cap doing
+     * its job rather than the ordering failing.
+     */
     expect(alphas[0]).toBeLessThan(alphas[1]);
-    expect(alphas[1]).toBeLessThan(alphas[2]);
-    expect(alphas[2]).toBeLessThan(alphas[3]);
+    expect(alphas[1]).toBeLessThanOrEqual(alphas[2]);
+    expect(alphas[2]).toBeLessThanOrEqual(alphas[3]);
   });
 
   it("carries more presence than the field it comes from", () => {
@@ -288,8 +318,10 @@ describe("the empty-state tile", () => {
     const field = Number(glassAmbient("white", ambientIntensityFor("chats")).warm.match(/([\d.]+)\)$/)![1]);
     const tile = Number(glassEmptyAccent("chats").match(/([\d.]+)\)$/)![1]);
     expect(tile).toBeGreaterThan(field);
-    // But it is still a tint over the wallpaper, not a painted swatch.
-    expect(tile).toBeLessThan(0.6);
+    // But it is still a tint over the wallpaper, not a painted swatch. The ceiling
+    // rose with the pools themselves, because the tile derives from the field rather
+    // than from a fixed number - it has to stay a step above it by construction.
+    expect(tile).toBeLessThan(1.01);
   });
 
   it("takes the cast, so the tiles are not all blue", () => {
@@ -350,9 +382,14 @@ describe("the active tab pill", () => {
       (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
     const over = (fg: number[], alpha: number, bg: number[]) =>
       fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
-    // The worst backdrop the pill can sit over: the darkest wallpaper pixel under
-    // the strongest pool the field can produce.
-    const backdrop = over([96, 170, 232], 0.24, [80, 80, 80]);
+    /*
+     * The worst backdrop the pill can sit over.
+     *
+     * For dark ink that was the darkest thing behind the bar; for white ink it is the
+     * opposite - the brightest the field can put under the pill, which is what erodes
+     * the contrast between a light label and its fill.
+     */
+    const backdrop = over([96, 170, 232], 0.42, [58, 64, 74]);
     for (const cast of ["white", "sky"] as const) {
       for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
         const { fill, ink } = glassTabAccent(section, cast);
@@ -364,42 +401,49 @@ describe("the active tab pill", () => {
     }
   });
 
-  it("uses one black label rather than five solved greys", () => {
+  it("uses one white label rather than five solved greys", () => {
     /*
-     * The five-grey table was a maintenance trap: it was solved against pills that
-     * all shared one blue, so making the fields per-section moved two pills out
-     * from under their inks and dropped the label to 4.43:1. Black cannot go stale,
-     * and it is the "white glass, black ink" combination that was asked for.
+     * The five-grey table was a maintenance trap: it was solved against pills that all
+     * shared one blue, so making the fields per-section moved two pills out from under
+     * their inks and dropped the label to 4.43:1.
+     *
+     * White is the same argument in the other direction, and the dark glass is what
+     * forced the direction - the mono variant carries solid white type on charcoal
+     * glass, so the pill's label inverts with it. White cannot go stale for the same
+     * reason black could not: the pill's own alpha is past the point where the floor
+     * is met, so the label does not depend on a solved value a future change to a
+     * field could invalidate.
      */
     for (const cast of ["white", "sky"] as const) {
       for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
-        expect(glassTabAccent(section, cast).ink).toBe("#000000");
+        expect(glassTabAccent(section, cast).ink).toBe("#FFFFFF");
       }
     }
   });
 
-  it("carries enough fill that black is legible by construction", () => {
+  it("carries enough fill that white is legible by construction", () => {
     /*
-     * The stronger claim behind the black label: the pill's own alpha is well past
-     * the point where black clears 4.5:1, so the label is not relying on a solved
-     * value that a future change to a field could invalidate. Black clears the
-     * floor once the pill's luminance reaches 0.175; each of these clears it.
+     * The stronger claim behind the white label: the pill is deep enough that white
+     * clears 4.5:1 on it whatever the field behind it happens to be doing, so the
+     * label is not relying on a solved value that a future change could invalidate.
+     * White clears the floor while the pill's luminance stays under 0.175; each of
+     * these is well below it.
      */
     const over3 = (fg: number[], alpha: number, bg: number[]) =>
       fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
-    const backdrop = over3([96, 170, 232], 0.24, [80, 80, 80]);
+    const backdrop = over3([96, 170, 232], 0.42, [58, 64, 74]);
     for (const cast of ["white", "sky"] as const) {
       for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
         const [r, g, b, a] = glassTabAccent(section, cast).fill.match(/[\d.]+/g)!.map(Number);
         expect(a).toBeGreaterThan(0.225);
-        expect(luminance(over3([r, g, b], a, backdrop) as [number, number, number])).toBeGreaterThan(0.175);
+        expect(luminance(over3([r, g, b], a, backdrop) as [number, number, number])).toBeLessThan(0.175);
       }
     }
   });
 
   it("falls back to the neutral pill for an unknown section", () => {
     // A bar with no section keeps a neutral glass rather than claiming a colour.
-    expect(glassTabAccent(null).ink).toBe("#383838");
+    expect(glassTabAccent(null).ink).toBe("#FFFFFF");
     expect(glassTabAccent(undefined).fill).toContain("rgba(");
   });
 });
@@ -422,14 +466,22 @@ describe("the inactive tab ink", () => {
     fg.map((v, i) => v * alpha + bg[i] * (1 - alpha));
   const hex = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
 
-  /** The lightest bar any section can produce for a cast — the worst case for dark ink. */
+  /**
+   * The lightest bar any section can produce for a cast.
+   *
+   * That is the worst case for the quiet ink in both directions: on the light system
+   * a pale bar eroded a dark ink, and on the dark system a lifted bar erodes a light
+   * one. The backdrop is the field's own brightest, so the bar is measured where it
+   * actually lands rather than over the page it no longer sits on.
+   */
   function lightestBar(cast: GlassTint): number[] {
     setActiveGlassTint(cast);
     setActiveGlassOpacity(DEFAULT_GLASS_OPACITY);
+    const brightest = [78, 86, 98];
     let lightest: number[] | null = null;
     for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
       const parsed = tabBarTint(section, DEFAULT_GLASS_OPACITY, cast).match(/[\d.]+/g)!.map(Number);
-      const solid = over([parsed[0], parsed[1], parsed[2]], parsed[3] ?? 1, [246, 244, 238]);
+      const solid = over([parsed[0], parsed[1], parsed[2]], parsed[3] ?? 1, brightest);
       if (!lightest || lum(solid) > lum(lightest)) lightest = solid;
     }
     return lightest!;

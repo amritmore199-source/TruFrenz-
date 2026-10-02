@@ -30,13 +30,13 @@ const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
 /** Fixed bubble field keeps the drift deterministic between renders. */
 const BUBBLES = [
   { left: "6%", size: 78, delay: 0, duration: 9000, drift: 92, tint: "rgba(231, 218, 155, 0.55)" },
-  { left: "22%", size: 46, delay: 1400, duration: 11000, drift: 128, tint: "rgba(203, 222, 234, 0.55)" },
+  { left: "22%", size: 46, delay: 1400, duration: 11000, drift: 128, tint: "rgba(0, 0, 0, 0.20)" },
   { left: "38%", size: 96, delay: 2600, duration: 12500, drift: 74, tint: "rgba(234, 228, 193, 0.5)" },
-  { left: "54%", size: 58, delay: 800, duration: 10200, drift: 142, tint: "rgba(210, 226, 231, 0.5)" },
+  { left: "54%", size: 58, delay: 800, duration: 10200, drift: 142, tint: "rgba(0, 0, 0, 0.21)" },
   { left: "70%", size: 84, delay: 2100, duration: 11800, drift: 96, tint: "rgba(235, 221, 156, 0.5)" },
-  { left: "86%", size: 40, delay: 3300, duration: 9400, drift: 118, tint: "rgba(206, 224, 236, 0.55)" },
+  { left: "86%", size: 40, delay: 3300, duration: 9400, drift: 118, tint: "rgba(0, 0, 0, 0.20)" },
   { left: "14%", size: 64, delay: 4200, duration: 13200, drift: 88, tint: "rgba(231, 225, 197, 0.45)" },
-  { left: "62%", size: 34, delay: 5200, duration: 10600, drift: 132, tint: "rgba(214, 228, 234, 0.5)" },
+  { left: "62%", size: 34, delay: 5200, duration: 10600, drift: 132, tint: "rgba(0, 0, 0, 0.21)" },
 ] as const;
 
 const SLIDE_TINTS: Record<string, string> = {
@@ -207,12 +207,12 @@ export function WelcomeScreen({
               accessibilityLabel={soundOn ? "Turn ambient sound off" : "Turn ambient sound on"}
               style={({ pressed }) => [styles.soundToggle, pressed && styles.pressed]}
             >
-              <MaterialIcons name={soundOn ? "volume-up" : "volume-off"} size={18} color="#5E6A76" />
+              <MaterialIcons name={soundOn ? "volume-up" : "volume-off"} size={18} color="#E1EAF2" />
             </Pressable>
             <Text style={styles.soundHint}>{soundUnavailable ? "Sound unavailable here" : soundOn ? "Ambient on" : "Ambient off"}</Text>
           </View>
           <View style={styles.guestPill}>
-            <MaterialIcons name="verified-user" size={13} color="#69808F" />
+            <MaterialIcons name="verified-user" size={13} color="#BAE3FE" />
             <Text style={styles.guestPillText}>Verified friendships only</Text>
           </View>
         </View>
@@ -220,7 +220,7 @@ export function WelcomeScreen({
         <GlassBlur
           intensity={42}
           style={[styles.glass]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.72)"), glassOpacity)}
+          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.17)"), glassOpacity)}
         >
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
@@ -273,7 +273,7 @@ export function WelcomeScreen({
             {WELCOME_SLIDES.map((item) => (
               <View key={item.id} style={[styles.slide, { width: slideWidth }]}>
                 <View style={[styles.slideIllustration, { backgroundColor: SLIDE_TINTS[item.tint] ?? "#f0eacb" }]}>
-                  <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#65727F" />
+                  <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#DDE6ED" />
                 </View>
                 <Text style={styles.slideTitle}>{item.title}</Text>
                 <Text style={styles.slideBody}>{item.body}</Text>
@@ -299,7 +299,7 @@ export function WelcomeScreen({
         <GlassBlur
           intensity={30}
           style={[styles.companyGlass]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(255, 255, 255, 0.66)"), glassOpacity)}
+          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.18)"), glassOpacity)}
         >
           <View style={styles.companyInner}>
             <Pressable
@@ -321,7 +321,7 @@ export function WelcomeScreen({
               <Text style={styles.termsLinkText}>Read Terms &amp; Privacy</Text>
             </Pressable>
             <View style={styles.companyLine}>
-              <MaterialIcons name="apartment" size={13} color="#8a877f" />
+              <MaterialIcons name="apartment" size={13} color="#CFD8DF" />
               <Text style={styles.companyText}>
                 {COMPANY_DETAILS.legalName} · {COMPANY_DETAILS.location}
               </Text>
@@ -336,13 +336,13 @@ export function WelcomeScreen({
       <Modal visible={termsOpen} transparent animationType="fade" onRequestClose={() => setTermsOpen(false)}>
         <View style={styles.termsShade}>
           <GlassBlur intensity={38} style={[styles.termsSheet]}
-            fill={glassSurfaceColor(glassNestedFill("rgba(252, 250, 242, 0.93)"), glassOpacity)}
+            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity)}
           >
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.termsHeader}>
                 <Text style={styles.termsTitle}>Terms &amp; Privacy</Text>
                 <Pressable onPress={() => setTermsOpen(false)} accessibilityLabel="Close terms" style={styles.termsClose}>
-                  <MaterialIcons name="close" size={18} color="#636F7B" />
+                  <MaterialIcons name="close" size={18} color="#DEE8EF" />
                 </Pressable>
               </View>
               <Text style={styles.termsBodyTitle}>Friendship only</Text>
@@ -381,13 +381,13 @@ export function WelcomeScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFillObject, overflow: "hidden", backgroundColor: "#f7f5ea" },
+  root: { ...StyleSheet.absoluteFillObject, overflow: "hidden", backgroundColor: "#5C5B56" },
   backdrop: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", opacity: 0.5 },
-  backdropWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(250, 247, 235, 0.42)" },
+  backdropWash: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.22)" },
   /* Clipped, so a pool that runs past the edge cannot widen the page. */
   field: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   bubbleField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
-  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
+  bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
   scroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 26, gap: 14 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   soundToggleWrap: { alignItems: "center", gap: 4 },
@@ -397,16 +397,16 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"),
-    shadowColor: "#59646F",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    shadowColor: "#E3EDF4",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  soundHint: { color: "#5F5D57", fontSize: 12 },
+  soundHint: { color: "#E6EFF7", fontSize: 12 },
   guestPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,17 +414,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 13,
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  guestPillText: { color: "#626D78", fontSize: 12, fontWeight: "600" },
+  guestPillText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
   glass: {
     borderRadius: 28,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.98)"),
-    shadowColor: "#4A545D",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    shadowColor: "#E9F3FB",
     shadowOpacity: 0.16,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 12 },
@@ -440,16 +440,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#2B6C8F",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
-    shadowColor: "#626E7A",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    shadowColor: "#DFE8EF",
     shadowOpacity: 0.22,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 5 },
     elevation: 5,
   },
-  brand: { color: "#414952", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
-  tagline: { color: "#626E7A", fontSize: 13.5, fontWeight: "600", marginTop: 6, textAlign: "center" },
-  support: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
+  brand: { color: "#ECF7FE", fontSize: 30, fontWeight: "800", letterSpacing: 0.4, marginTop: 12 },
+  tagline: { color: "#DFE8EF", fontSize: 13.5, fontWeight: "600", marginTop: 6, textAlign: "center" },
+  support: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 7, textAlign: "center", paddingHorizontal: 6 },
   primaryButton: {
     minHeight: 50,
     width: "100%",
@@ -461,8 +461,8 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: "#2B6C8F",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)"),
-    shadowColor: "#626F7B",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
+    shadowColor: "#DEE8EF",
     shadowOpacity: 0.24,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
@@ -476,15 +476,15 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.5)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.21)"),
     borderWidth: 1,
     borderColor: "rgba(131, 114, 31, 0.5)",
   },
-  ghostButtonText: { color: "#626E7A", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
+  ghostButtonText: { color: "#DFE8EF", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   buttonMuted: { opacity: 0.62 },
   guestLink: { marginTop: 14, paddingVertical: 4, paddingHorizontal: 10 },
-  guestLinkText: { color: "#626D76", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
-  guestNote: { color: "#6E6C67", fontSize: 12, marginTop: 3, textAlign: "center" },
+  guestLinkText: { color: "#DFE9F0", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
+  guestNote: { color: "#DFE9F0", fontSize: 12, marginTop: 3, textAlign: "center" },
   carouselBlock: { alignItems: "center", gap: 2 },
   carouselFrame: { width: "100%", height: 172 },
   carousel: { width: "100%", height: "100%" },
@@ -496,25 +496,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
-    shadowColor: "#5B6772",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    shadowColor: "#E2ECF3",
     shadowOpacity: 0.09,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  slideTitle: { color: "#49525B", fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
-  slideBody: { color: "#6E6C67", fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
+  slideTitle: { color: "#EAF4FB", fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
+  slideBody: { color: "#DFE9F0", fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.32)" },
   dotActive: { width: 20, backgroundColor: "#2B6C8F" },
-  swipeHint: { color: "#6E6C67", fontSize: 12, marginTop: 3, marginBottom: 4 },
+  swipeHint: { color: "#DFE9F0", fontSize: 12, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)"),
-    shadowColor: "#4E5862",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    shadowColor: "#E8F2F9",
     shadowOpacity: 0.1,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },
@@ -530,16 +530,16 @@ const styles = StyleSheet.create({
     borderColor: "rgba(131, 114, 31, 0.6)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.8)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  checkboxOn: { backgroundColor: "#2B6C8F", borderColor: "#7B8A9A" },
-  termsText: { flex: 1, color: "#6E6C67", fontSize: 12, lineHeight: 17 },
-  termsStrong: { color: "#58636E", fontWeight: "700" },
+  checkboxOn: { backgroundColor: "#2B6C8F", borderColor: "#CED7DE" },
+  termsText: { flex: 1, color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
+  termsStrong: { color: "#E4EDF5", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },
-  termsLinkText: { color: "#626E7A", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
+  termsLinkText: { color: "#DFE8EF", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
   companyLine: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
-  companyText: { color: "#6E6C67", fontSize: 12 },
-  companyTextSmall: { color: "#6E6C67", fontSize: 12 },
+  companyText: { color: "#DFE9F0", fontSize: 12 },
+  companyTextSmall: { color: "#DFE9F0", fontSize: 12 },
   termsShade: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, paddingVertical: 44, backgroundColor: "rgba(53, 50, 31, 0.3)" },
   termsSheet: {
     width: "100%",
@@ -551,18 +551,18 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 18,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.99)"),
-    shadowColor: "#434C54",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+    shadowColor: "#ECF6FD",
     shadowOpacity: 0.2,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
     elevation: 20,
   },
   termsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  termsTitle: { color: "#414952", fontSize: 17, fontWeight: "800" },
-  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.95)") },
-  termsBodyTitle: { color: "#505A64", fontSize: 12, fontWeight: "700", marginTop: 10 },
-  termsBody: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 3 },
-  termsFootnote: { color: "#6E6C67", fontSize: 12, marginTop: 10, textAlign: "center" },
+  termsTitle: { color: "#ECF7FE", fontSize: 17, fontWeight: "800" },
+  termsClose: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  termsBodyTitle: { color: "#E7F1F8", fontSize: 12, fontWeight: "700", marginTop: 10 },
+  termsBody: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  termsFootnote: { color: "#DFE9F0", fontSize: 12, marginTop: 10, textAlign: "center" },
   pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
 });

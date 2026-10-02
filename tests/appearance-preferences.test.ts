@@ -38,17 +38,19 @@ describe("appearance preferences", () => {
   });
 
   it("applies opacity while preserving each glass surface's tint", () => {
-    // A neutral surface becomes pale blue-white glass rather than the near-opaque
-    // white fill it used to be, which is what stopped the wallpaper showing through.
-    const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
     /*
-     * The resolved colour is the cast mixed with the declared white, so with the
-     * sky cast deepened it resolves to a cool grey-blue rather than the
-     * near-white it used to. The test asserts the properties that matter — cool,
-     * translucent, and a visible step from the page — rather than one frozen
-     * channel value, so a future retune of the cast does not silently pass.
+     * A neutral surface now resolves *dark*, and that is the whole point of the dark
+     * system rather than an accident of it.
+     *
+     * The resolver mixes a declared near-white 62% toward the cast, so a dark cast is
+     * what turns a declared-white surface into a charcoal pane. It was 132 while the
+     * cast was a mid grey, which is exactly the value that could not carry white ink
+     * without going nearly opaque - so the assertion is on the properties that matter
+     * (deep enough for white ink, still translucent) rather than on one frozen
+     * channel, so a future retune of the cast does not silently pass.
      */
-    expect(surface).toMatch(/^rgba\(132, 132, 132, 0\.\d+\)$/);
+    const surface = glassSurfaceColor("rgba(255, 255, 255, 0.79)", 80, "white");
+    expect(surface).toMatch(/^rgba\(106, 106, 106, 0\.\d+\)$/);
     const alpha = Number(surface.match(/, (0\.\d+)\)$/)![1]);
     expect(alpha).toBeLessThanOrEqual(MAX_GLASS_ALPHA);
     expect(alpha).toBeGreaterThan(0.2);
@@ -96,13 +98,19 @@ describe("appearance preferences", () => {
   });
 
   it("returns a rim and a sheen so the glass reads as a lit surface", () => {
+    /*
+     * The rim is still white - a lit edge is a lit edge - but the sheen is not, and
+     * that is deliberate. Its job inverted with the glass: it used to light a pale
+     * pane, and it now has to lift a dark one without washing the white ink off it,
+     * so it sits well below white rather than at it.
+     */
     expect(glassEdge("card")).toMatch(/^rgba\(255, 255, 255, 0\.\d+\)$/);
-    expect(glassVeil("card", 80)).toMatch(/^rgba\(255, 255, 255, 0\.\d+\)$/);
+    expect(glassVeil("card", 80)).toMatch(/^rgba\(190, 190, 190, 0\.\d+\)$/);
   });
 
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
-    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(132, 132, 132, 0\.\d+\)$/);
+    expect(glassSurfaceColor("#FFFFFF", 70, "white")).toMatch(/^rgba\(106, 106, 106, 0\.\d+\)$/);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });
@@ -219,8 +227,13 @@ describe("glass colour choice", () => {
       const chip = parse(glassSwatch(tint));
       const edge = parse(glassSwatchEdge(tint));
       expect(glassSwatchEdge(tint)).toMatch(/^rgba\(\d+, \d+, \d+, 0\.\d+\)$/);
-      // Every channel must be darker than the chip, so the rim reads on any hue.
-      edge.forEach((channel, index) => expect(channel).toBeLessThan(chip[index]));
+      /*
+       * The rim is *lighter* than the chip now. On the light system the swatch was a
+       * pale chip that needed a darker rim to stay visible inside its own selection;
+       * on the dark system the chip is deep and the rim is what separates it from the
+       * glass around it, so the direction inverts with everything else.
+       */
+      edge.forEach((channel, index) => expect(channel).toBeGreaterThan(chip[index]));
     }
   });
 });

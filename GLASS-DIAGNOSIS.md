@@ -340,3 +340,86 @@ comment rather than left implicit: that decision was taken while a one-line safe
 reminder sat above the date, and bottom-anchoring then pushed the date away from the
 reminder. The reminder has since been removed, so the same anchoring now separates the
 two elements that most need to touch.
+
+---
+
+## The dark restructure: why the glass could never look like the references
+
+### The measurement that settled it
+
+The member supplied two references — a sky-blue glass travel UI and its monochrome
+twin — and the instruction was to rebuild the app to match, black-and-white as the
+default and sky as the option. Before changing anything, the references were sampled
+directly. Two numbers mattered:
+
+- the reference's blue module sits at about **RGB(112, 176, 223)** with **white** type
+- its dark modules sit at **RGB(46, 46, 46) – (77, 77, 77)** with **white** type
+
+Both variants carry white ink. The app carried dark ink on pale glass. That is not a
+difference of taste; it is a different system.
+
+### Why the old system could not get there
+
+A card renders at `alpha * fill + (1 - alpha) * backdrop`. Every previous pass tried to
+reach a visible card by moving `fill` — deepening the cast, raising the alpha. That has
+a hard ceiling: with white ink on it, a card has to reach luminance 0.175 or below to
+clear 4.5:1, and over the old pale page that needed **alpha 0.86**. At 0.86 the
+wallpaper contributes 14% of the surface. The blur has nothing left to act on, so the
+card is opaque paint wearing a glass label — which is exactly the "flat" the member
+kept reporting, and exactly why raising the fill weight made it worse rather than
+better.
+
+The lever that works is the one *underneath*: **darken the backdrop and leave the alpha
+alone.** At the shipped alpha of 0.28 a card over a dark field resolves to about 46,
+where white ink clears 15:1, and the surface is still 72% backdrop — genuinely
+translucent, genuinely blurred, with the artwork showing through at just under a fifth.
+
+### What changed
+
+| | before | after |
+|---|---|---|
+| page backdrop | `rgba(250,248,247,0.10)` over a pale screen | `rgba(16,18,22,0.82)` over `#0E1014` |
+| `TINTS.white` | `57,57,57` | `14,14,14` |
+| `TINTS.sky` | `50,50,85` | `8,34,78` |
+| text ramp | `#1C1B19 / #2B2A27 / #45433F` (dark) | `#FFFFFF / #F2F3F5 / #B9BEC4` (light) |
+| accent | `#2B6C8F` as ink | `#2B6C8F` as *fill*, `#7FC0E8` as ink |
+| tab pill ink | one black label | one white label |
+| quiet tab ink | `#606060 / #464646` | `#C8C8C8 / #BDC8D6` |
+| ambient field | pale washes, alpha 0.18–0.22 | dark pools, alpha 0.36–0.42 |
+| section accents | dark inks on pale tiles | light inks on the same tiles |
+| `CHAT_NIGHT` | pale bubbles, dark ink | faint lifts, white ink; outgoing bubble takes the accent |
+
+784 ink declarations and 473 field fills were converted in one pass, hue-preserving:
+each dark ink was inverted to a light one at the same *relative* weight, so the
+typographic hierarchy survived the flip rather than flattening onto one grey.
+
+### The catch that the tests found, twice
+
+The `AMBIENT_ALPHA_CAP` clamp sat at 0.30 while the new pools run to 0.42. The clamp is
+what stops the field pushing the ink below AA — but when the base already exceeds it, the
+clamp silently flattens every section onto one alpha, which is the precise failure its
+own comment warns about. It is now 0.50, above the richest pool, and the coupling is
+asserted.
+
+The same shape appeared in the swatch rim: it was a *darkened* version of the chip,
+which was right when chips were pale and wrong once they were deep — a dark chip
+vanishing into dark glass. It is now a *lit* version of the same hue.
+
+### Verified
+
+TypeScript clean; **1031 tests pass** with 1 pre-existing skip across 69 files; lint 0
+errors and the same 28 pre-existing warnings; `git diff --check` clean; both bundle
+routes serve HTTP 200. Measured in the running app rather than inferred: page
+luminance **0.076**, chat-row fill **0.076–0.199** carrying the blue field, white
+heading ink at **15.1:1** on the card and the quiet tier at **5.3:1**.
+
+### The tests were rewritten, not weakened
+
+Every floor moved with the surface rather than being lowered to fit. The contrast card
+became the *lightest* dark card (64,67,72) — the worst case for white ink, exactly as
+the darkest pale card was the worst case for dark ink. The pill's worst-case backdrop
+flipped from the darkest field to the brightest. The inactive-ink helper now measures
+the bar where it lands over the field instead of over a page it no longer sits on. One
+guard was exempted by *name* rather than by rule: `backgroundWash` is the page, not a
+surface, and it is the value the whole system is built on — so the next surface that
+tries to look like it is still caught.

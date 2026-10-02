@@ -144,7 +144,7 @@ function DetailRow({
   const color = tone === "positive" ? "#4E8567" : tone === "warning" ? "#A5763F" : "#E8ECEF";
   return (
     <View style={styles.detailRow}>
-      <MaterialIcons name={icon} size={15} color="#2B6C8F" />
+      <MaterialIcons name={icon} size={15} color="#7FC0E8" />
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={[styles.detailValue, { color }]}>{value}</Text>
     </View>
@@ -243,7 +243,7 @@ export function ManageSubscriptionModal({
 
           <View style={styles.headerRow}>
             <View style={styles.headerBadge}>
-              <MaterialIcons name={premium ? "workspace-premium" : "card-giftcard"} size={18} color="#5C6874" />
+              <MaterialIcons name={premium ? "workspace-premium" : "card-giftcard"} size={18} color="#E2EBF3" />
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>Manage subscription</Text>
@@ -260,7 +260,7 @@ export function ManageSubscriptionModal({
               accessibilityLabel="Close manage subscription"
               style={({ pressed }) => [styles.close, pressed && styles.pressed]}
             >
-              <MaterialIcons name="close" size={17} color="#68655e" />
+              <MaterialIcons name="close" size={17} color="#E2ECF3" />
             </Pressable>
           </View>
 
@@ -325,7 +325,7 @@ export function ManageSubscriptionModal({
                   </View>
                   {cancelled ? (
                     <View style={styles.noticeCard}>
-                      <MaterialIcons name="info-outline" size={14} color="#8A6A3E" />
+                      <MaterialIcons name="info-outline" size={14} color="#FFC473" />
                       <Text style={styles.noticeText}>
                         Auto-renew is off. Premium stays on until {subscription.renewsOn ? new Date(subscription.renewsOn).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "the period ends"}, then your account returns to the free plan.
                       </Text>
@@ -356,7 +356,7 @@ export function ManageSubscriptionModal({
                     <MaterialIcons
                       name={receiptChannelIcon(receipt.channel)}
                       size={15}
-                      color="#2B6C8F"
+                      color="#7FC0E8"
                     />
                     <View style={styles.receiptText}>
                       <Text style={styles.receiptTitle}>
@@ -403,10 +403,10 @@ export function ManageSubscriptionModal({
                 style={({ pressed }) => [styles.secondaryButton, restoring && styles.buttonBusy, pressed && styles.pressed]}
               >
                 {restoring ? (
-                  <ActivityIndicator size="small" color="#5C6874" />
+                  <ActivityIndicator size="small" color="#E2EBF3" />
                 ) : (
                   <>
-                    <MaterialIcons name="restore" size={15} color="#5C6874" />
+                    <MaterialIcons name="restore" size={15} color="#E2EBF3" />
                     <Text style={styles.secondaryButtonText}>Restore purchases</Text>
                   </>
                 )}
@@ -460,7 +460,7 @@ export function ManageSubscriptionModal({
                   {isComp ? (
                     <>
                       <View style={styles.storeHint}>
-                        <MaterialIcons name="card-giftcard" size={13} color="#6E6C67" />
+                        <MaterialIcons name="card-giftcard" size={13} color="#DFE9F0" />
                         <Text style={styles.storeHintText}>{storeManagementLine("comp")}</Text>
                       </View>
                       <Text style={styles.storeStepsText}>
@@ -476,7 +476,7 @@ export function ManageSubscriptionModal({
                         accessibilityLabel={storeManageActionLabel(Platform.OS)}
                         style={({ pressed }) => [styles.storeHint, pressed && styles.pressed]}
                       >
-                        <MaterialIcons name="open-in-new" size={13} color="#6E6C67" />
+                        <MaterialIcons name="open-in-new" size={13} color="#DFE9F0" />
                         <Text style={styles.storeHintTextLinked}>{storeManagementLine(channel)}</Text>
                       </Pressable>
                       <Text style={styles.storeStepsText}>{storeManageStepsText(Platform.OS)}</Text>
@@ -534,7 +534,7 @@ export function ManageSubscriptionModal({
                   )}
 
                   <View style={styles.refundRow}>
-                    <MaterialIcons name="help-outline" size={13} color="#6E6C67" />
+                    <MaterialIcons name="help-outline" size={13} color="#DFE9F0" />
                     <Text style={styles.refundText}>{REFUND_LINE}</Text>
                   </View>
                 </View>
@@ -555,7 +555,7 @@ export function ManageSubscriptionModal({
             )}
 
             <View style={styles.footerNote}>
-              <MaterialIcons name="lock-outline" size={13} color="#6E6C67" />
+              <MaterialIcons name="lock-outline" size={13} color="#DFE9F0" />
               <Text style={styles.footerNoteText}>
                 {verification === "store"
                   ? "Every purchase is confirmed with your store before Premium turns on."
@@ -581,8 +581,8 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)"),
-    shadowColor: "#394048",
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)"),
+    shadowColor: "#EFF9FF",
     shadowOpacity: 0.22,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 14 },
@@ -596,79 +596,79 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
   headerText: { flex: 1 },
-  title: { fontSize: 16, fontWeight: "700", color: "#333A40" },
-  subtitle: { fontSize: 12, color: "#5F5D57", marginTop: 2, lineHeight: 17 },
+  title: { fontSize: 16, fontWeight: "700", color: "#F0FBFF" },
+  subtitle: { fontSize: 12, color: "#E6EFF7", marginTop: 2, lineHeight: 17 },
   close: {
     width: 30,
     height: 30,
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.85)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
   body: { flexGrow: 0 },
   bodyContent: { paddingHorizontal: 16, paddingBottom: 16, gap: 9 },
   planCard: {
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
     borderRadius: 18,
     padding: 13,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.75)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
     gap: 10,
   },
   planCardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   planCardText: { flex: 1 },
-  planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#333A40" },
-  planCardSub: { fontSize: 12, color: "#5F5D57", marginTop: 2 },
+  planCardTitle: { fontSize: 14.5, fontWeight: "700", color: "#F0FBFF" },
+  planCardSub: { fontSize: 12, color: "#E6EFF7", marginTop: 2 },
   tierPill: { borderRadius: 9, paddingHorizontal: 9, paddingVertical: 3 },
   tierPillPremium: { backgroundColor: "rgba(212, 187, 59, 0.9)" },
-  tierPillFree: { backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)") },
+  tierPillFree: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)") },
   tierPillText: { fontSize: 12, fontWeight: "700" },
-  tierPillTextPremium: { color: "#43423d" },
-  tierPillTextFree: { color: "#68655e" },
+  tierPillTextPremium: { color: "#EEF8FF" },
+  tierPillTextFree: { color: "#E2ECF3" },
   detailList: { gap: 7 },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  detailLabel: { fontSize: 12, color: "#5F5D57", width: 78 },
+  detailLabel: { fontSize: 12, color: "#E6EFF7", width: 78 },
   detailValue: { flex: 1, fontSize: 12, fontWeight: "600" },
   noticeCard: {
     flexDirection: "row",
     gap: 8,
     alignItems: "flex-start",
-    backgroundColor: "rgba(250, 240, 224, 0.82)",
+    backgroundColor: "rgba(0, 0, 0, 0.16)",
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
   },
-  noticeText: { flex: 1, fontSize: 12, color: "#6E5636", lineHeight: 17 },
-  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#5F5D57", marginTop: 5, marginLeft: 2 },
+  noticeText: { flex: 1, fontSize: 12, color: "#FFC77D", lineHeight: 17 },
+  sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#E6EFF7", marginTop: 5, marginLeft: 2 },
   receiptCard: {
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     gap: 9,
   },
-  emptyReceipts: { fontSize: 12, color: "#5F5D57", lineHeight: 17 },
+  emptyReceipts: { fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
   receiptRow: { flexDirection: "row", alignItems: "center", gap: 9 },
   receiptDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.22)", paddingTop: 9 },
   receiptText: { flex: 1 },
-  receiptTitle: { fontSize: 12.5, fontWeight: "600", color: "#3E464D" },
-  receiptSub: { fontSize: 12, color: "#5F5D57", marginTop: 1 },
+  receiptTitle: { fontSize: 12.5, fontWeight: "600", color: "#EDF7FF" },
+  receiptSub: { fontSize: 12, color: "#E6EFF7", marginTop: 1 },
   statusPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
-  statusActive: { backgroundColor: "rgba(214, 238, 224, 0.9)" },
-  statusStopped: { backgroundColor: "rgba(250, 240, 224, 0.95)" },
+  statusActive: { backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  statusStopped: { backgroundColor: "rgba(0, 0, 0, 0.16)" },
   statusText: { fontSize: 12, fontWeight: "700" },
-  statusTextActive: { color: "#45765C" },
-  statusTextStopped: { color: "#8C6436" },
+  statusTextActive: { color: "#93FCC5" },
+  statusTextStopped: { color: "#FFB662" },
   secondaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -676,52 +676,52 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 38,
     borderRadius: 13,
-    backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  secondaryButtonText: { fontSize: 13, fontWeight: "700", color: "#5C6874" },
-  restoreNote: { fontSize: 12, color: "#5F5D57", lineHeight: 17 },
-  restoreNoteOk: { color: "#45765C", fontWeight: "600" },
-  restoreNoteBad: { color: "#9D5B3C" },
+  secondaryButtonText: { fontSize: 13, fontWeight: "700", color: "#E2EBF3" },
+  restoreNote: { fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
+  restoreNoteOk: { color: "#93FCC5", fontWeight: "600" },
+  restoreNoteBad: { color: "#FF9461" },
   changeRow: { flexDirection: "row", gap: 8 },
   changeCard: {
     flex: 1,
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 10,
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     gap: 3,
   },
-  changeName: { fontSize: 13, fontWeight: "700", color: "#3E464D" },
-  changePrice: { fontSize: 12, color: "#5F5D57" },
+  changeName: { fontSize: 13, fontWeight: "700", color: "#EDF7FF" },
+  changePrice: { fontSize: 12, color: "#E6EFF7" },
   cancelCard: {
-    backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.56)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
     gap: 9,
   },
-  cancelBody: { fontSize: 12, color: "#53514C", lineHeight: 17 },
+  cancelBody: { fontSize: 12, color: "#EAF4FB", lineHeight: 17 },
   storeHint: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storeHintText: { fontSize: 12, color: "#626E7A", fontWeight: "700" },
+  storeHintText: { fontSize: 12, color: "#DFE8EF", fontWeight: "700" },
   /*
    * The store row is a link, and it previously looked like one without being
    * one — an open-in-new icon beside instruction text. The affordance now
    * matches the behaviour, so the label is underlined and slightly darker.
    */
-  storeHintTextLinked: { fontSize: 12, color: "#626E7A", fontWeight: "700", textDecorationLine: "underline" },
+  storeHintTextLinked: { fontSize: 12, color: "#DFE8EF", fontWeight: "700", textDecorationLine: "underline" },
   storeStepsText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#5F5D57",
+    color: "#E6EFF7",
     marginTop: 6,
   },
-  confirmBox: { gap: 9, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), borderRadius: 12, padding: 10 },
-  confirmText: { fontSize: 12, color: "#53514C", lineHeight: 17 },
+  confirmBox: { gap: 9, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), borderRadius: 12, padding: 10 },
+  confirmText: { fontSize: 12, color: "#EAF4FB", lineHeight: 17 },
   confirmActions: { flexDirection: "row", gap: 8 },
   ghostButton: {
     flex: 1,
@@ -729,11 +729,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 36,
     borderRadius: 12,
-    backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.40)"),
+    backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"),
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.92)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  ghostButtonText: { fontSize: 12.5, fontWeight: "700", color: "#68655e" },
+  ghostButtonText: { fontSize: 12.5, fontWeight: "700", color: "#E2ECF3" },
   dangerButton: {
     flex: 1,
     alignItems: "center",
@@ -742,11 +742,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "rgba(145, 93, 104, 0.92)",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
   },
   dangerButtonText: { fontSize: 12.5, fontWeight: "700", color: "#FFFFFF" },
   refundRow: { flexDirection: "row", gap: 6, alignItems: "flex-start" },
-  refundText: { flex: 1, fontSize: 12, color: "#5F5D57", lineHeight: 17 },
+  refundText: { flex: 1, fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -756,11 +756,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: "#2F7295",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.20)"),
   },
   primaryButtonText: { fontSize: 13.5, fontWeight: "700", color: "#FFFFFF" },
   buttonBusy: { opacity: 0.7 },
   footerNote: { flexDirection: "row", gap: 6, alignItems: "flex-start", marginTop: 4 },
-  footerNoteText: { flex: 1, fontSize: 12, color: "#5F5D57", lineHeight: 17 },
+  footerNoteText: { flex: 1, fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
   pressed: { opacity: 0.82 },
 });

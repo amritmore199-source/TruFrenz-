@@ -121,7 +121,19 @@ describe("resolving a fill into glass", () => {
 describe("no hardcoded patches remain", () => {
   const ROOTS = ["app", "components", "lib"];
 
-  /** A near-white fill that is still a literal rather than a resolved call. */
+  /*
+   * The one fill that is allowed to be a near-opaque literal, and why.
+   *
+   * `backgroundWash` is not a surface - it is the page. Everything else in the app
+   * composites *over* it, so it has nothing behind it to be translucent against, and
+   * it is the value that sets the depth the whole dark system is built on: a card
+   * renders at `alpha * fill + (1 - alpha) * backdrop`, so a pale backdrop would make
+   * dark translucent glass impossible at any cast. It is exempt by name rather than
+   * by rule, so the next surface that tries to look like it still gets caught.
+   */
+  const PAGE_BACKDROP = /backgroundWash:[^}]*rgba\(16, 18, 22, 0\.82\)/;
+
+  /** A near-opaque fill that is still a literal rather than a resolved call. */
   function findPatches(): string[] {
     const found: string[] = [];
     const fill = /backgroundColor:\s*"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*0?\.(\d+)\s*\)"/g;
@@ -134,12 +146,24 @@ describe("no hardcoded patches remain", () => {
           walk(full);
         } else if (/\.tsx?$/.test(entry)) {
           const text = readFileSync(full, "utf8");
+          const pageLine = PAGE_BACKDROP.test(text);
           for (const match of text.matchAll(fill)) {
             const [literal, r, g, b, a] = match;
-            // The welcome screen's full-page backdrop wash is an intentional
-            // 0.42 veil for legibility; controls and cards must resolve at 0.43+
-            // so the member never sees another flat white patch inside them.
-            if (Math.min(Number(r), Number(g), Number(b)) >= 230 && Number("0." + a) >= 0.43) {
+            // The page backdrop is the one fill that has nothing behind it to be
+            // translucent against; every surface the member sees is exempted from
+            // the exemption, because it composites over this.
+            if (pageLine && literal.includes("rgba(16, 18, 22, 0.82)")) continue;
+            /*
+             * The patch this catches has inverted with the glass.
+             *
+             * It used to be a near-white film painted over the tint, so the scan
+             * looked for a light fill at 0.43+ alpha. On the dark system a flat patch
+             * is a near-opaque *dark* fill - the same defect, the other way up - so
+             * the scan now looks for a low-luminance fill at high alpha. Either way
+             * it is a surface that has stopped being translucent.
+             */
+            const isDark = Math.max(Number(r), Number(g), Number(b)) <= 26;
+            if (isDark && Number("0." + a) >= 0.43) {
               found.push(`${full}: ${literal}`);
             }
           }
@@ -168,7 +192,7 @@ describe("no hardcoded patches remain", () => {
   it("resolves profile action fills at render time instead of restoring a flat danger-button patch", () => {
     const profile = readFileSync(join(__dirname, "..", "components/friend-profile-modal.tsx"), "utf8");
     expect(profile).toContain("glassNestedSurfaceColor(isDestructive(action)");
-    expect(profile).toContain("glassNestedSurfaceColor(\"rgba(255, 255, 255, 0.98)\"");
+    expect(profile).toContain("glassNestedSurfaceColor(\"rgba(0, 0, 0, 0.16)\"");
     expect(profile).not.toMatch(/actionDanger:\s*\{[^}]*backgroundColor/);
   });
 

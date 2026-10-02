@@ -78,13 +78,13 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
         <View style={[styles.scrim, { paddingHorizontal: modalLayout.horizontalGutter, paddingTop: modalLayout.topPadding, paddingBottom: modalLayout.bottomPadding }]}>
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
           <GlassBlur intensity={34} style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
-            fill={glassSurfaceColor(glassNestedFill("rgba(251, 249, 238, 0.9)"), glassOpacity)}
+            fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.16)"), glassOpacity)}
           >
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.topLine}>
-                <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#2B6C8F" /></View>
+                <View style={styles.headingIcon}><MaterialIcons name="event-available" size={18} color="#7FC0E8" /></View>
                 <Pressable accessibilityRole="button" accessibilityLabel="Close plan composer" onPress={onClose} style={({ pressed }) => [styles.roundAction, pressed && styles.pressed]}>
-                  <MaterialIcons name="close" size={18} color="#636F7B" />
+                  <MaterialIcons name="close" size={18} color="#DEE8EF" />
                 </Pressable>
               </View>
 
@@ -129,7 +129,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
                 ))}
               </View>
               <View style={styles.mapRow}>
-                <MaterialIcons name="map" size={14} color="#2B6C8F" />
+                <MaterialIcons name="map" size={14} color="#7FC0E8" />
                 <Text style={styles.mapText}>Pinned from the venue picker · {venue?.area ?? "Nearby"} · exact addresses are never shared</Text>
               </View>
 
@@ -163,26 +163,26 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   scrim: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(57, 53, 32, 0.24)" },
-  sheet: { borderRadius: 24, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)"), overflow: "hidden", shadowColor: "#4B555E", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  sheet: { borderRadius: 24, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), overflow: "hidden", shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   scroll: { flexGrow: 0 },
   content: { padding: 15, paddingBottom: 18 },
   topLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headingIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(247, 241, 214, 0.92)", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
-  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.7)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)") },
-  title: { color: "#43423d", fontSize: 14, fontWeight: "700", marginTop: 11 },
-  subtitle: { color: "#5F5D57", fontSize: 12, lineHeight: 17, marginTop: 5 },
-  sectionLabel: { color: "#5F5D57", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
+  headingIcon: { width: 36, height: 36, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  roundAction: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  title: { color: "#EEF8FF", fontSize: 14, fontWeight: "700", marginTop: 11 },
+  subtitle: { color: "#E6EFF7", fontSize: 12, lineHeight: 17, marginTop: 5 },
+  sectionLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.66)"), paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#75726a", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  chipActive: { backgroundColor: "#2B6C8F", borderColor: glassNestedFill("rgba(255, 255, 255, 0.7)") },
-  chipText: { color: "#5F5D57", fontSize: 12, fontWeight: "650" as any },
-  chipTextActive: { color: "#43423d" },
-  mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(245, 242, 223, 0.8)" },
-  mapText: { flex: 1, color: "#2B6C8F", fontSize: 12, fontWeight: "600" },
-  input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.96)"), backgroundColor: glassNestedFill("rgba(241, 246, 252, 0.36)"), paddingHorizontal: 12, paddingVertical: 9, color: "#53514C", fontSize: 12, outlineStyle: "none" as any },
-  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.6)"), shadowColor: "#4D5760", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  chipActive: { backgroundColor: "#2B6C8F", borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
+  chipText: { color: "#E6EFF7", fontSize: 12, fontWeight: "650" as any },
+  chipTextActive: { color: "#EEF8FF" },
+  mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  mapText: { flex: 1, color: "#7FC0E8", fontSize: 12, fontWeight: "600" },
+  input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.24)"), paddingHorizontal: 12, paddingVertical: 9, color: "#EAF4FB", fontSize: 12, outlineStyle: "none" as any },
+  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.19)"), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   shareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 2 },
-  cancelText: { color: "#5F5D57", fontSize: 12, fontWeight: "600" },
+  cancelText: { color: "#E6EFF7", fontSize: 12, fontWeight: "600" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

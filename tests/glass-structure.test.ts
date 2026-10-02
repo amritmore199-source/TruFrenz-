@@ -134,9 +134,14 @@ describe("the double rim and the colour field", () => {
          *
          * The ceiling is where the ink over the darkest wallpaper pixel stops
          * clearing AA; see the contrast test below.
+         *
+         * The band itself inverted with the glass. It was tuned as pale washes over a
+         * pale page; the pools are now the light sources under dark glass, so they
+         * carry more weight - a 0.36-0.42 pool is what gives the blur a scene to pick
+         * up without turning the surface into a painted swatch.
          */
-        expect(a).toBeGreaterThanOrEqual(0.16);
-        expect(a).toBeLessThanOrEqual(0.24);
+        expect(a).toBeGreaterThanOrEqual(0.30);
+        expect(a).toBeLessThanOrEqual(0.46);
         // A pool with no chroma would leave the glass reading grey again.
         expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeGreaterThan(10);
       }

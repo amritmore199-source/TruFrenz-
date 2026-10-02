@@ -22,8 +22,8 @@ const colors = {
   ink: "#43423d",
   muted: "#6E6C67",
   purple: "#2B6C8F",
-  glass: glassNestedFill("rgba(255, 255, 255, 0.82)"),
-  stroke: glassNestedFill("rgba(255, 255, 255, 0.97)"),
+  glass: glassNestedFill("rgba(0, 0, 0, 0.16)"),
+  stroke: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   green: "#6AA082",
 };
 
@@ -112,7 +112,7 @@ export function SelfieVerificationModal({
       <Text style={styles.title}>A small step for a little more trust.</Text>
       <Text style={styles.description}>Take a fresh front-camera selfie. A real identity provider would check it against your profile before Trufrenz grants the stronger badge.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#778C9B" />
+        <MaterialIcons name="lock-outline" size={18} color="#B9DAF1" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Your photo stays on this device in this prototype.</Text>
           <Text style={styles.promiseText}>It is not uploaded, stored in your profile, or treated as a completed identity check.</Text>
@@ -138,7 +138,7 @@ export function SelfieVerificationModal({
           <Text style={styles.title}>Center your face.</Text>
           <Text style={styles.description}>Remove sunglasses; make sure your full face is visible. No audio is recorded.</Text>
           <View style={styles.captureControls}>
-            <Pressable onPress={onClose} style={styles.cameraClose}><MaterialIcons name="close" size={19} color="#737168" /></Pressable>
+            <Pressable onPress={onClose} style={styles.cameraClose}><MaterialIcons name="close" size={19} color="#DDE6ED" /></Pressable>
             <Pressable onPress={captureSelfie} accessibilityLabel="Take selfie" style={({ pressed }) => [styles.shutter, pressed && styles.shutterPressed]}><View style={styles.shutterInner}><MaterialIcons name="camera-alt" size={21} color={colors.purple} /></View></Pressable>
             <View style={styles.cameraCloseSpacer} />
           </View>
@@ -149,12 +149,12 @@ export function SelfieVerificationModal({
 
   const renderPermissionRequest = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#728D9C" /></View>
+      <View style={styles.permissionIcon}><MaterialIcons name="videocam" size={26} color="#B1DBF3" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS</Text>
       <Text style={styles.title}>Your camera stays off until you say yes.</Text>
       <Text style={styles.description}>Trufrenz needs the front camera for one fresh selfie. We never turn it on in the background, and you can leave this step any time.</Text>
       <View style={styles.promiseCard}>
-        <MaterialIcons name="lock-outline" size={18} color="#778C9B" />
+        <MaterialIcons name="lock-outline" size={18} color="#B9DAF1" />
         <View style={styles.promiseCopy}>
           <Text style={styles.promiseTitle}>Camera access is optional.</Text>
           <Text style={styles.promiseText}>If you choose Allow, a camera preview opens. If you choose Don’t Allow, you can still use Trufrenz without a selfie badge.</Text>
@@ -167,7 +167,7 @@ export function SelfieVerificationModal({
 
   const renderDenied = () => (
     <View style={styles.centeredContent}>
-      <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#89867c" /></View>
+      <View style={styles.deniedIcon}><MaterialIcons name="no-photography" size={26} color="#D0D9DF" /></View>
       <Text style={styles.kicker}>CAMERA ACCESS PAUSED</Text>
       <Text style={styles.title}>No rush. You’re still welcome here.</Text>
       <Text style={styles.description}>To try the selfie check, enable camera access in device settings. You can keep using Trufrenz without it.</Text>
@@ -181,7 +181,7 @@ export function SelfieVerificationModal({
     return (
       <View style={styles.centeredContent}>
         <View style={styles.scanFrame}>
-          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#2B6C8F" /></View>}
+          {photoUri ? <Image source={{ uri: photoUri }} style={styles.scanPhoto} /> : <View style={styles.scanPlaceholder}><MaterialIcons name="face" size={48} color="#7FC0E8" /></View>}
           <View style={styles.scanTint} />
           <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanTranslate }] }]} />
           <View style={styles.scanCornerTop} /><View style={styles.scanCornerBottom} />
@@ -200,7 +200,7 @@ export function SelfieVerificationModal({
       <Text style={styles.kicker}>SELFIE CAPTURED</Text>
       <Text style={styles.title}>That’s a good first step.</Text>
       <Text style={styles.description}>Your photo was captured locally. Identity review is not connected in this prototype, so your profile won’t receive a verified badge yet.</Text>
-      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#2B6C8F" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
+      <View style={styles.pendingPill}><MaterialIcons name="hourglass-top" size={14} color="#7FC0E8" /><Text style={styles.pendingText}>Captured · awaiting real provider review</Text></View>
       <View style={styles.successButtons}><ActionButton onPress={finish} icon="check" title="Done" /><Pressable onPress={() => { setPhotoUri(null); setStage("capture"); }} style={styles.retakeButton}><Text style={styles.retakeText}>Retake</Text></Pressable></View>
     </Animated.View>
   );
@@ -211,7 +211,7 @@ export function SelfieVerificationModal({
         <View style={styles.background}><View style={styles.ambientPink} /><View style={styles.ambientBlue} /></View>
         <View style={styles.header}>
           <View style={styles.headerBrand}><View style={styles.brandMark}><MaterialIcons name="spa" size={15} color="#FFFFFF" /></View><View><Text style={styles.brandText}>Trufrenz</Text><Text style={styles.headerSub}>Selfie identity check</Text></View></View>
-          <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#6f6c65" /></Pressable>
+          <Pressable onPress={onClose} accessibilityLabel="Close selfie check" style={styles.closeButton}><MaterialIcons name="close" size={20} color="#DFE8F0" /></Pressable>
         </View>
         <View style={styles.body}>
           {stage === "intro" ? renderIntro() : null}
@@ -232,62 +232,62 @@ function ActionButton({ onPress, icon, title }: { onPress: () => void; icon: key
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FAF8F7" },
+  safeArea: { flex: 1, backgroundColor: "#5D5C5B" },
   background: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   ambientPink: { position: "absolute", height: 300, width: 300, borderRadius: 150, top: 70, right: -180, backgroundColor: "rgba(238, 227, 173, 0.50)" },
-  ambientBlue: { position: "absolute", height: 260, width: 260, borderRadius: 130, left: -170, bottom: 80, backgroundColor: "rgba(213, 234, 244, 0.55)" },
+  ambientBlue: { position: "absolute", height: 260, width: 260, borderRadius: 130, left: -170, bottom: 80, backgroundColor: "rgba(0, 0, 0, 0.20)" },
   header: { height: 56, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: "rgba(222, 218, 197, 0.45)" },
   headerBrand: { flexDirection: "row", alignItems: "center", gap: 9 },
   brandMark: { width: 30, height: 30, borderRadius: 11, backgroundColor: colors.purple, alignItems: "center", justifyContent: "center" },
   brandText: { color: colors.ink, fontSize: 14, fontWeight: "700" },
   headerSub: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  closeButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
+  closeButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.17)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   body: { flex: 1, paddingHorizontal: 20, justifyContent: "center" },
   centeredContent: { width: "100%", alignItems: "center", paddingVertical: 15 },
   heroIcon: { width: 64, height: 64, borderRadius: 23, backgroundColor: "rgba(241, 232, 188, 0.93)", alignItems: "center", justifyContent: "center", marginBottom: 17 },
-  kicker: { color: "#2B6C8F", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
+  kicker: { color: "#7FC0E8", fontSize: 12, fontWeight: "700", letterSpacing: 1.15, marginTop: 6, textAlign: "center" },
   title: { color: colors.ink, fontSize: 24, lineHeight: 30, letterSpacing: -0.65, fontWeight: "700", textAlign: "center", marginTop: 8, maxWidth: 330 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 8, maxWidth: 340 },
   promiseCard: { alignSelf: "stretch", minHeight: 65, flexDirection: "row", alignItems: "center", gap: 9, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 9, marginTop: 17, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.stroke, overflow: "hidden" },
   promiseCopy: { flex: 1, gap: 3 },
-  promiseTitle: { color: "#5F5D57", fontSize: 12, fontWeight: "700" },
-  promiseText: { color: "#6E6C67", fontSize: 12, lineHeight: 17 },
+  promiseTitle: { color: "#E6EFF7", fontSize: 12, fontWeight: "700" },
+  promiseText: { color: "#DFE9F0", fontSize: 12, lineHeight: 17 },
   primaryButton: { width: "100%", minHeight: 45, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, backgroundColor: colors.purple, paddingHorizontal: 13, marginTop: 15 },
   primaryButtonText: { flex: 1, textAlign: "center", color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   buttonPressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
   secondaryButton: { padding: 12, alignItems: "center" },
-  secondaryText: { color: "#6E6C67", fontSize: 12, fontWeight: "600" },
+  secondaryText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
   captureContent: { flex: 1, justifyContent: "center", paddingVertical: 12 },
-  cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#d6d5d2", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
+  cameraFrame: { width: "100%", height: 350, maxHeight: "52%", borderRadius: 24, overflow: "hidden", backgroundColor: "#565554", borderWidth: 2, borderColor: colors.stroke, alignSelf: "center" },
   cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(38, 35, 16, 0.08)" },
-  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: glassNestedFill("rgba(255, 255, 255, 0.88)"), borderStyle: "dashed" },
+  faceGuide: { width: 178, height: 234, alignSelf: "center", marginTop: 43, borderRadius: 90, borderWidth: 1.5, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderStyle: "dashed" },
   cameraHint: { position: "absolute", left: 10, right: 10, bottom: 10, minHeight: 31, borderRadius: 11, backgroundColor: "rgba(38, 35, 16, 0.45)", alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 5 },
   cameraHintText: { color: "#FFFFFF", fontSize: 12 },
   captureCopy: { alignItems: "center", paddingTop: 13 },
   captureControls: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingTop: 13 },
   // Resolved at render for the same reason as every other surface here: a
   // module-scope constant is fixed at import, so it could not follow the setting.
-  cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.82)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
+  cameraClose: { width: 38, height: 38, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: colors.stroke, alignItems: "center", justifyContent: "center" },
   cameraCloseSpacer: { width: 38, height: 38 },
-  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#7B8A9A", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.58)"), alignItems: "center", justifyContent: "center" },
-  shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  shutter: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#CED7DE", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), alignItems: "center", justifyContent: "center" },
+  shutterInner: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#5D5D5D", alignItems: "center", justifyContent: "center" },
   shutterPressed: { transform: [{ scale: 0.95 }] },
-  deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#efebda", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  permissionIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#E8F0F4", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"), marginBottom: 19, backgroundColor: "#f1efe2" },
+  deniedIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#5B5951", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  permissionIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: "#575B5D", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  scanFrame: { width: 205, height: 208, borderRadius: 25, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), marginBottom: 19, backgroundColor: "#5B5A54" },
   scanPhoto: { width: "100%", height: "100%", resizeMode: "cover" },
   scanPlaceholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(207, 236, 223, 0.20)" },
-  scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#9AD5B6", shadowColor: "#9AD5B6", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
-  scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#72A98B", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
-  scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#639379", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
-  scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.78)") },
-  scanningStatusText: { color: "#6E6C67", fontSize: 12 },
+  scanTint: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0, 0, 0, 0.26)" },
+  scanLine: { position: "absolute", top: 0, left: 8, right: 8, height: 2, backgroundColor: "#3B5A49", shadowColor: "#9AD5B6", shadowOpacity: 0.8, shadowRadius: 8, elevation: 5 },
+  scanCornerTop: { position: "absolute", top: 12, left: 12, width: 26, height: 26, borderColor: "#8ED2AD", borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 9 },
+  scanCornerBottom: { position: "absolute", bottom: 12, right: 12, width: 26, height: 26, borderColor: "#9AE5BD", borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 9 },
+  scanningStatus: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
+  scanningStatusText: { color: "#DFE9F0", fontSize: 12 },
   successCheck: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.green, alignItems: "center", justifyContent: "center", marginBottom: 9 },
-  pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "#f1edd6", marginTop: 14 },
-  pendingText: { color: "#6E6C67", fontSize: 12, fontWeight: "600" },
+  pendingPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "#5C5A4F", marginTop: 14 },
+  pendingText: { color: "#DFE9F0", fontSize: 12, fontWeight: "600" },
   successButtons: { width: "100%", alignItems: "center" },
   retakeButton: { padding: 11 },
-  retakeText: { color: "#2B6C8F", fontSize: 12, fontWeight: "700" },
-  errorText: { color: "#955A68", textAlign: "center", fontSize: 12, marginHorizontal: 20, marginBottom: 9 },
+  retakeText: { color: "#7FC0E8", fontSize: 12, fontWeight: "700" },
+  errorText: { color: "#FF9AB2", textAlign: "center", fontSize: 12, marginHorizontal: 20, marginBottom: 9 },
 });

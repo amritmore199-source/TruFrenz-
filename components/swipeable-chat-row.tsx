@@ -302,9 +302,9 @@ export function SwipeableChatRow({
                 <Text style={styles.name} numberOfLines={1}>
                   {chat.name}
                 </Text>
-                {chat.verified ? <MaterialIcons name="verified" size={13} color="#5A957E" /> : null}
-                {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#8A8882" /> : null}
-                {state.archived ? <MaterialIcons name="archive" size={12} color="#8A8882" /> : null}
+                {chat.verified ? <MaterialIcons name="verified" size={13} color="#8BE7C3" /> : null}
+                {state.muted ? <MaterialIcons name="notifications-off" size={12} color="#CED7DE" /> : null}
+                {state.archived ? <MaterialIcons name="archive" size={12} color="#CED7DE" /> : null}
               </View>
               <Text style={[styles.time, unread > 0 && styles.timeUnread]}>{chat.time}</Text>
             </View>
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.72)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)"),
   },
   muteAction: { backgroundColor: "#8297A6" },
   archiveAction: { backgroundColor: "#2B6C8F" },
@@ -377,11 +377,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 11,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(255, 255, 255, 0.94)"),
+    borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
     borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 8,
-    shadowColor: "#7e7b73",
+    shadowColor: "#D7E0E7",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.055,
     shadowRadius: 9,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   rowPressed: { opacity: 0.9 },
   avatarWrap: { position: "relative" },
-  avatar: { width: 46, height: 46, borderRadius: 16, backgroundColor: "rgba(232, 229, 209, 0.9)" },
+  avatar: { width: 46, height: 46, borderRadius: 16, backgroundColor: "rgba(0, 0, 0, 0.16)" },
   groupMini: {
     position: "absolute",
     right: -2,
@@ -410,12 +410,12 @@ const styles = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   nameCluster: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
-  name: { color: "#3C444B", fontSize: 12.5, fontWeight: "650" as any, flexShrink: 1 },
-  time: { color: "#5F5D57", fontSize: 12 },
-  timeUnread: { color: "#626E7A", fontWeight: "700" },
+  name: { color: "#EEF8FF", fontSize: 12.5, fontWeight: "650" as any, flexShrink: 1 },
+  time: { color: "#E6EFF7", fontSize: 12 },
+  timeUnread: { color: "#DFE8EF", fontWeight: "700" },
   lastRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 },
-  preview: { flex: 1, color: "#5F5D57", fontSize: 12 },
+  preview: { flex: 1, color: "#E6EFF7", fontSize: 12 },
   badge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 5, backgroundColor: "#2F7295" },
   badgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  status: { color: "#2B6C8F", fontSize: 12, fontWeight: "600", marginTop: 3 },
+  status: { color: "#7FC0E8", fontSize: 12, fontWeight: "600", marginTop: 3 },
 });
