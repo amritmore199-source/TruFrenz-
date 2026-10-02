@@ -14,7 +14,17 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { GlassBlur } from "@/components/glass-blur";
 
-import { glassBlur, glassTint } from "@/lib/glass";
+import {
+  GLASS_RIM_INNER_INSET,
+  GLASS_SHADOW,
+  GLASS_SHADOW_OPACITY,
+  glassBlur,
+  glassEdge,
+  glassInnerRim,
+  glassTint,
+  glassTopGlow,
+  glassVeil,
+} from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { availabilityView, displayUnread, type ChatRowState } from "@/lib/chat-extras";
 import {
@@ -93,7 +103,7 @@ export function SwipeableChatRow({
   onMarkUnread,
   markedUnread = false,
 }: Props) {
-  const { glassOpacity } = useAppAppearance();
+  const { glassOpacity, glassTint: cast } = useAppAppearance();
   const translateX = useRef(new Animated.Value(0)).current;
   const offsetRef = useRef(0);
   const committedRef = useRef(false);
@@ -261,11 +271,17 @@ export function SwipeableChatRow({
           delayLongPress={420}
           style={({ pressed }) => [
             styles.row,
+            { borderColor: glassEdge("row", cast) },
             pressed && styles.rowPressed,
           ]}
         >
-          {/* Blur first, then the tint: the wallpaper's bright areas would
-              otherwise read as hard white patches across the row. */}
+          {/*
+            The row is built from the same five layers as every card and the welcome
+            panel: blur, cast, sheen, top glow and a double rim. It had only the first
+            two, so it was glass with no edge surface - no lit rim, no inner hairline,
+            no falloff across the face - and at 69pt tall in a stack of four it is the
+            most repeated surface in the app, which is where the omission showed most.
+          */}
           <GlassBlur
             intensity={glassBlur("row")}
             style={[StyleSheet.absoluteFillObject, styles.rowBlur]}
@@ -278,6 +294,18 @@ export function SwipeableChatRow({
               styles.rowTint,
               { backgroundColor: glassTint("row", glassOpacity) },
             ]}
+          />
+          {/* Light across the whole face, so the row is not one flat field. */}
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, styles.rowTint, { backgroundColor: glassVeil("row", glassOpacity, cast) }]}
+          />
+          {/* A pool of light along the top edge. */}
+          <View pointerEvents="none" style={[styles.rowTopGlow, { backgroundColor: glassTopGlow(cast) }]} />
+          {/* The inner hairline, inset from the rim exactly as the cards' is. */}
+          <View
+            pointerEvents="none"
+            style={[styles.rowInnerRim, { borderColor: glassInnerRim(cast) }]}
           />
           <View style={styles.avatarWrap}>
             <Image source={chat.image} style={styles.avatar} />
@@ -371,21 +399,30 @@ const styles = StyleSheet.create({
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
+  rowTopGlow: { position: "absolute", left: 0, right: 0, top: 0, height: "46%", borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  rowInnerRim: {
+    position: "absolute",
+    left: GLASS_RIM_INNER_INSET,
+    right: GLASS_RIM_INNER_INSET,
+    top: GLASS_RIM_INNER_INSET,
+    bottom: GLASS_RIM_INNER_INSET,
+    borderWidth: 1,
+    borderRadius: 16 - GLASS_RIM_INNER_INSET,
+  },
   row: {
     minHeight: 69,
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
     borderWidth: 1,
-    borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderRadius: 16,
     paddingHorizontal: 8,
     paddingVertical: 8,
-    shadowColor: "#D7E0E7",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.055,
-    shadowRadius: 9,
-    elevation: 1,
+    shadowColor: GLASS_SHADOW,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: GLASS_SHADOW_OPACITY,
+    shadowRadius: 10,
+    elevation: 2,
   },
   rowPressed: { opacity: 0.9 },
   avatarWrap: { position: "relative" },

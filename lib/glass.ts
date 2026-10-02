@@ -115,8 +115,15 @@ const TINTS: Record<GlassTint, Rgb> = {
    * Sky - the optional cast, in the same light material: a cool pale blue rather than
    * a blue theme. The page and the ink do not change with it, so switching cast changes
    * the temperature of the glass and nothing else.
+   *
+   * The blue is deliberately *mild*. At the previous value (205,219,234) the pane was
+   * saturated enough to compete with the brand's mauve: the primary action rendered as
+   * a mauve pill on a blue panel, which is a colour clash rather than a tint. Measured
+   * on the rendered panel, this value keeps the cast unmistakably cool while letting
+   * the accent read as the accent. The saturation lives in the hairline, which is where
+   * the reference put it, not in the face.
    */
-  sky: { r: 205, g: 219, b: 234 },
+  sky: { r: 206, g: 216, b: 228 },
 };
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
@@ -843,8 +850,13 @@ export const GLASS_SHADOW_OPACITY = 0.3;
  *
  * The first attempt at this app's glass had one rim at half opacity, which is
  * why it read as a drawn outline rather than as a lit edge.
+ *
+ * The inset was 4pt and read as two separate rules with a gap between them rather
+ * than as one edge. Measured against the samples, their two lines sit about a pixel
+ * to a pixel and a half apart at phone scale - closer than either line is thick - so
+ * on a 3x screen 2pt is the closest this can go while both lines stay distinct.
  */
-export const GLASS_RIM_INNER_INSET = 4;
+export const GLASS_RIM_INNER_INSET = 2;
 
 /**
  * The colour field the glass sits over.

@@ -537,8 +537,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
+    /*
+     * The outline is what makes a ghost button a button, so it is solved rather than
+     * tinted. Measured on the rendered panel, a boundary is held to 3:1 and this
+     * outline was at 1.76:1 - which is what the member saw as corners "not closing":
+     * the line was faint enough to dissolve where the curve met the straight edge, so
+     * the shape read as two arcs rather than one pill.
+     *
+     * Only full opacity clears the floor. Over the panel, the mauve composites to
+     * 3.01:1 at 1.0 and to 2.65:1 at 0.9, so there is no translucent value that works
+     * and the outline is opaque. Its *face* is deliberately left translucent - a face
+     * cannot carry 3:1 by translucency at any alpha (the best it reaches over this
+     * panel is 1.30:1 at 0.7), which is why a ghost button is defined by its line and
+     * not by its body, and why the body stays glass.
+     */
     borderWidth: 1,
-    borderColor: "rgba(142, 111, 145, 0.55)",
+    borderColor: "#8E6F91",
   },
   ghostButtonText: { color: "#4B4651", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   buttonMuted: { opacity: 0.62 },

@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -349,5 +350,61 @@ describe("the blur layer cannot be overridden", () => {
     // element, so a fill painted below would be the thing it blurs.
     expect(source).toContain("backdropFilter");
     expect(source).toMatch(/backdropFilter[\s\S]{0,400}tint,/);
+  });
+});
+
+describe("every large surface is built from the whole recipe", () => {
+  /*
+   * The defect this guards against arrived three times, in three different places,
+   * and each time it looked like a different bug.
+   *
+   * A surface that takes the blur and the cast but stops there is glass with no edge
+   * surface: no lit rim, no inner hairline, no sheen, no falloff across the face. It
+   * renders as a flat tinted rectangle, and because the tint is real it passes every
+   * colour check - it is the *layers* that are missing. The welcome panel had exactly
+   * this, and so did the chat rows, and both were read as "the glass looks flat"
+   * rather than as a missing layer.
+   *
+   * There is no runtime type that can catch it: a View with one background colour is
+   * perfectly valid. So it is caught at the source, by requiring that any component
+   * painting a glass surface names all four of the layers beside the fill.
+   */
+  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
+
+  /* The four layers that make a surface read as glass rather than as a tinted block. */
+  const LAYERS = ["glassVeil", "glassTopGlow", "glassInnerRim"] as const;
+
+  const SURFACES = [
+    "components/glass-surface.tsx",
+    "components/welcome-screen.tsx",
+    "components/swipeable-chat-row.tsx",
+  ];
+
+  for (const file of SURFACES) {
+    it(`${file} paints the whole recipe, not just a fill`, () => {
+      const src = read(file);
+      // It must be a frosted surface at all...
+      expect(src).toMatch(/GlassBlur|glassBlur/);
+      // ...and it must also carry each of the layers that give it an edge and a falloff.
+      for (const layer of LAYERS) {
+        expect(src).toContain(layer);
+      }
+      // The outer rim comes from the cast rather than a fixed colour, so a surface
+      // cannot be near-white on one cast and grey on another.
+      expect(src).toContain("glassEdge");
+    });
+  }
+
+  it("routes the screen's large surfaces through the shared primitive", () => {
+    /*
+     * A hand-rolled surface is how the welcome panel and the chat rows drifted: both
+     * were written before the recipe was settled and neither was migrated, so they kept
+     * the two layers they started with. Counting the call sites does not prove the
+     * layers are right, but it does catch a whole surface being painted by hand.
+     */
+    const screen = read("app/(tabs)/index.tsx");
+    expect(screen).toMatch(/import \{ GlassSurface \} from "@\/components\/glass-surface"/);
+    // The search field was the last hand-painted block on this screen.
+    expect(screen).toMatch(/<GlassSurface surface="field"/);
   });
 });

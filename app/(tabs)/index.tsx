@@ -4373,7 +4373,14 @@ export default function TrufrenzApp() {
         first thing under the header and the list starts a full row higher.
       */}
       <View style={styles.chatHeading}><Text style={styles.chatTitle}>Conversations</Text><Pressable onPress={() => setComposerOpen(true)} accessibilityRole="button" accessibilityLabel="Start a new group" style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={18} color="#FFFFFF" /></Pressable></View>
-      <View style={[styles.searchBar, { borderColor: glassFieldBorder(glassTintChoice) }]}><Icon name="search" size={18} color="#4B4651" /><TextInput value={search} onChangeText={setSearch} placeholder="Search friends, chats or your contacts" placeholderTextColor="#8f9aa3" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#666070" /></Pressable></View>
+      {/*
+        The search box is the first control on the screen and it was a plain View - the
+        one large surface here with no blur behind its fill, so it read as a painted
+        rectangle while the rows below it were glass. It goes through the shared
+        surface now like every other pane, keeping its field border because an input's
+        boundary is held to 3:1 rather than to the rim's near-white.
+      */}
+      <GlassSurface surface="field" radius={14} style={[styles.searchBar, { borderColor: glassFieldBorder(glassTintChoice) }]}><Icon name="search" size={18} color="#4B4651" /><TextInput value={search} onChangeText={setSearch} placeholder="Search friends, chats or your contacts" placeholderTextColor="#8f9aa3" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#4B4651" /></Pressable></GlassSurface>
       {renderContactLookup()}
       <View style={styles.filterRow}>{filters.map((filter) => <Pressable key={filter} onPress={() => setChatFilter(filter)} ><GlassSurface surface="chip" radius={15} style={[styles.filterChip, chatFilter === filter && styles.filterChipActive]}><Text style={[styles.filterChipText, chatFilter === filter && styles.filterChipTextActive]}>{filter}{filter === "Unread" ? "  2" : ""}</Text></GlassSurface></Pressable>)}</View>
       {chatFilter === "All" && !search ? <View style={styles.circlesSection}><View style={styles.sectionHeaderLine}><Text style={styles.sectionEyebrow}>YOUR PEOPLE</Text><Pressable onPress={() => { openContactLookup(); tap(); }} accessibilityRole="button" accessibilityLabel="See everyone from your phone contacts"><Text style={styles.sectionLink}>See all <Icon name="chevron-right" size={12} color="#666070" /></Text></Pressable></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circlesRow}>
@@ -5713,9 +5720,9 @@ const frozenStyles = StyleSheet.create({
   composeButton: { width: 36, height: 36, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#B8B8B8", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   /** The control beside the search field that opens the device's contacts. */
   searchFilterButton: { width: 30, height: 30, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
-  searchFilterButtonActive: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderColor: glassNestedFill("rgba(255, 255, 255, 0.9)") },
+  searchFilterButtonActive: { backgroundColor: "rgba(255, 255, 255, 0.55)", borderColor: "rgba(255, 255, 255, 0.85)" },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "52%" },
-  searchBar: { height: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.2, borderRadius: 14, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  searchBar: { height: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.2 },
   searchInput: { flex: 1, color: "#4B4651", fontSize: 13, paddingVertical: 0, outlineStyle: "none" as any },
   filterRow: { flexDirection: "row", gap: 7, marginTop: 8, marginBottom: 8 },
   /*
@@ -5728,9 +5735,19 @@ const frozenStyles = StyleSheet.create({
    * is rendered, and the ink is dark because a chip is a small control that has to be
    * read rather than a label on the glass.
    */
-  filterChip: { minHeight: 29, borderRadius: 15, paddingHorizontal: 13, justifyContent: "center", overflow: "hidden", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.5)"), borderWidth: 1, borderColor: glassNestedFill("rgba(255, 255, 255, 0.38)") },
-  filterChipActive: { backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.72)"), borderColor: glassNestedFill("rgba(255, 255, 255, 0.55)") },
-  filterChipText: { fontSize: 12, color: "#FFFFFF", fontWeight: "500" },
+  /*
+   * Two states, two inks - the same construction as the tab bar.
+   *
+   * The chip had inherited white ink from the dark era while its fill had already
+   * been lightened, so a resting chip was white text on pale glass: measured, it was
+   * about 1.2:1 and effectively invisible. Both states now declare their ink with
+   * their fill. Resting is a pale pane with dark ink; selected is the brand accent
+   * with white ink. A two-state control has to be told apart at a glance, and a
+   * difference in *colour* does that where a difference in alpha alone does not.
+   */
+  filterChip: { minHeight: 29, borderRadius: 15, paddingHorizontal: 13, justifyContent: "center", overflow: "hidden", backgroundColor: glassNestedFill("rgba(255, 255, 255, 0.5)"), borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.92)" },
+  filterChipActive: { backgroundColor: "#886A8B", borderColor: "rgba(255, 255, 255, 0.85)" },
+  filterChipText: { fontSize: 12, color: "#4B4651", fontWeight: "500" },
   filterChipTextActive: { color: "#FFFFFF", fontWeight: "700" },
   circlesSection: { marginTop: 3, marginBottom: 12 },
   sectionHeaderLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 7 },
