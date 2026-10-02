@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   removeButton: { width: 32, height: 32, borderRadius: 11, backgroundColor: "rgba(0, 0, 0, 0.16)", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), alignItems: "center", justifyContent: "center" },
   fieldLabel: { color: "#E6EFF7", fontSize: 12, fontWeight: "700", letterSpacing: 0.8, marginTop: 12, marginBottom: 6 },
   addRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  input: { minHeight: 42, flex: 1, borderRadius: 12, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(220, 214, 189, 0.72)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), color: "#ECF6FE", fontSize: 12, outlineStyle: "none" as any },
+  input: { minHeight: 42, flex: 1, borderRadius: 12, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.72)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.23)"), color: "#ECF6FE", fontSize: 12, outlineStyle: "none" as any },
   addButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), alignItems: "center", justifyContent: "center", shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   done: { minHeight: 39, borderRadius: 13, marginTop: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#2B6C8F", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.18)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   doneText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },

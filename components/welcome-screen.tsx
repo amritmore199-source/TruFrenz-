@@ -29,13 +29,13 @@ const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
 
 /** Fixed bubble field keeps the drift deterministic between renders. */
 const BUBBLES = [
-  { left: "6%", size: 78, delay: 0, duration: 9000, drift: 92, tint: "rgba(231, 218, 155, 0.55)" },
+  { left: "6%", size: 78, delay: 0, duration: 9000, drift: 92, tint: "rgba(255, 255, 255, 0.55)" },
   { left: "22%", size: 46, delay: 1400, duration: 11000, drift: 128, tint: "rgba(0, 0, 0, 0.20)" },
-  { left: "38%", size: 96, delay: 2600, duration: 12500, drift: 74, tint: "rgba(234, 228, 193, 0.5)" },
+  { left: "38%", size: 96, delay: 2600, duration: 12500, drift: 74, tint: "rgba(255, 255, 255, 0.5)" },
   { left: "54%", size: 58, delay: 800, duration: 10200, drift: 142, tint: "rgba(0, 0, 0, 0.21)" },
-  { left: "70%", size: 84, delay: 2100, duration: 11800, drift: 96, tint: "rgba(235, 221, 156, 0.5)" },
+  { left: "70%", size: 84, delay: 2100, duration: 11800, drift: 96, tint: "rgba(255, 255, 255, 0.5)" },
   { left: "86%", size: 40, delay: 3300, duration: 9400, drift: 118, tint: "rgba(0, 0, 0, 0.20)" },
-  { left: "14%", size: 64, delay: 4200, duration: 13200, drift: 88, tint: "rgba(231, 225, 197, 0.45)" },
+  { left: "14%", size: 64, delay: 4200, duration: 13200, drift: 88, tint: "rgba(255, 255, 255, 0.45)" },
   { left: "62%", size: 34, delay: 5200, duration: 10600, drift: 132, tint: "rgba(0, 0, 0, 0.21)" },
 ] as const;
 

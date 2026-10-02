@@ -100,7 +100,12 @@ describe("resolving a fill into glass", () => {
     // A saturated fill is an accent, not a neutral: the lemon buttons must stay
     // themselves rather than becoming blue-white.
     const accent = glassNestedFill("rgba(241, 222, 85, 0.9)");
-    expect(accent).toContain("241, 222, 85");
+    // Read as a ratio: the ink floor scales all three channels by one factor, so the
+    // gold is still gold but the literal triple no longer appears. Asserting the
+    // triple would forbid the guard that keeps the label on it legible.
+    const parts = (accent.match(/[\d.]+/g) ?? []).map(Number);
+    expect(parts[0] / parts[2]).toBeGreaterThan(2.2);
+    expect(parts[1] / parts[2]).toBeGreaterThan(2.0);
   });
 
   it("reads the weight the provider mirrored, and clamps it", () => {

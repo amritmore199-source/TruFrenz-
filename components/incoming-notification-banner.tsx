@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   surface: { minHeight: 76, flexDirection: "row", alignItems: "center", borderRadius: 20, overflow: "hidden", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), shadowColor: "#EBF5FD", shadowOpacity: 0.19, shadowRadius: 21, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   mainAction: { flex: 1, minWidth: 0, minHeight: 76, flexDirection: "row", alignItems: "center", gap: 10, paddingLeft: 11, paddingRight: 30 },
   iconWell: { width: 42, height: 42, borderRadius: 15, alignItems: "center", justifyContent: "center", position: "relative" },
-  inviteIconWell: { backgroundColor: "rgba(242, 234, 193, 0.94)" },
+  inviteIconWell: { backgroundColor: "rgba(255, 255, 255, 0.94)" },
   messageIconWell: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   statusDot: { position: "absolute", right: 2, top: 2, width: 8, height: 8, borderRadius: 4, backgroundColor: "#2F7295", borderWidth: 1.5, borderColor: "#FFFFFF" },
   copy: { flex: 1, minWidth: 0, paddingVertical: 10 },

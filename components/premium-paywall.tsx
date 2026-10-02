@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.7, color: "#7FC0E8", marginTop: 4 },
   planRow: { flexDirection: "row", gap: 8 },
   planCard: { flex: 1, borderRadius: 16, paddingVertical: 11, paddingHorizontal: 9, alignItems: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.20)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.17)") },
-  planCardSelected: { backgroundColor: "rgba(237, 225, 168, 0.92)", borderColor: "#CED7DE" },
+  planCardSelected: { backgroundColor: "rgba(255, 255, 255, 0.92)", borderColor: "#CED7DE" },
   planName: { fontSize: 12, fontWeight: "700", color: "#EAF4FB" },
   planNameSelected: { color: "#E9F3FA" },
   planPrice: { fontSize: 19, fontWeight: "700", color: "#EFF9FF", marginTop: 4 },

@@ -171,8 +171,11 @@ describe("surfaces over the crew artwork", () => {
 
   it("leaves a saturated accent alone, so buttons keep their own colour", () => {
     const lemon = parseRgba(glassSurfaceColor("rgba(241, 222, 85, 0.72)", 80, "sky"));
-    expect(lemon[0]).toBeGreaterThan(200);
-    expect(lemon[2]).toBeLessThan(140);
+    // The hue survives the ink floor; the lightness does not, and must not - a
+    // surface light enough to be "lemon-coloured" is a surface too light to carry a
+    // white label, which is the defect being fixed.
+    expect(lemon[0] / lemon[2]).toBeGreaterThan(2.2);
+    expect(lemon[1]).toBeGreaterThan(lemon[2]);
   });
 
   it("cannot become an opaque fill at any setting", () => {

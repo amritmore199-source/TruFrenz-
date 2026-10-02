@@ -128,14 +128,18 @@ const TINTS: Record<GlassTint, Rgb> = {
    */
   white: { r: 40, g: 40, b: 40 },
   /*
-   * Sky - the optional cast: variant A's saturated blue glass, deepened.
+   * Sky - the optional cast: the same pane in a cool neutral, not a blue theme.
    *
-   * The reference's own blue (#72B0DF) carries white ink at 2.34:1 and cannot be
-   * copied literally, so this is that blue taken down to the depth where white ink
-   * is comfortable. Blue leads, and red stays lowest so the cast reads as sky rather
-   * than drifting toward violet.
+   * The reference's own blue (#72B0DF, chroma 110) carries white ink at 2.46:1, so it
+   * cannot be copied literally - and copying it "as close as possible" is what made
+   * the member ask why blue was appearing everywhere. The honest reading of the
+   * reference is that it is a *tinted* glass, not a coloured one: the blue is a cast
+   * over the scene, it does not replace it. This is therefore a greyer, quieter blue -
+   * the card lands at chroma 46 against 73 before - which reads as glass with a cool
+   * light through it. Blue still leads and red is still lowest, so it reads as sky
+   * rather than drifting toward violet, and white ink keeps a comfortable margin.
    */
-  sky: { r: 26, g: 68, b: 112 },
+  sky: { r: 20, g: 46, b: 74 },
 };
 /** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
@@ -1075,7 +1079,7 @@ export function glassEmptyAccent(
 ): string {
   const field = glassAmbient(tint, ambientIntensityFor(section), section);
   const nums = field.warm.match(/[\d.]+/g) ?? [];
-  if (nums.length < 4) return "rgba(239, 233, 205, 1)";
+  if (nums.length < 4) return "rgba(255, 255, 255, 1)";
   const [r, g, b, a] = nums.map(Number);
   return `rgba(${r}, ${g}, ${b}, ${Math.min(EMPTY_TILE_ALPHA_CAP, a * EMPTY_TILE_LIFT).toFixed(3)})`;
 }
@@ -1123,8 +1127,18 @@ const AMBIENT_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: 
 const SKY_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: string }> = {
   chats:    { warm: "rgba(150, 200, 240, 0.34)", cool: "rgba(120, 172, 222, 0.32)", soft: "rgba(178, 216, 246, 0.30)" },
   groups:   { warm: "rgba(140, 214, 198, 0.34)", cool: "rgba(112, 186, 170, 0.32)", soft: "rgba(168, 226, 212, 0.30)" },
-  hangouts: { warm: "rgba(240, 200, 150, 0.34)", cool: "rgba(216, 172, 118, 0.32)", soft: "rgba(248, 218, 176, 0.30)" },
-  bizz:     { warm: "rgba(236, 214, 140, 0.34)", cool: "rgba(210, 186, 108, 0.32)", soft: "rgba(244, 228, 172, 0.30)" },
+  /*
+   * Hangouts and Bizz keep a hue, but not the lemon one.
+   *
+   * These two were the gold family, and gold was withdrawn. They are field pools -
+   * they sit *under* the glass and are never inked - so replacing them with white, as
+   * the warm-fill sweep did elsewhere, would have flattened a deliberate composition
+   * into the same wash as everything else. Instead they take hues that are distinct,
+   * restrained and unambiguously not lemon: a warm terracotta and a muted plum, both
+   * at the strength the rest of the field uses.
+   */
+  hangouts: { warm: "rgba(226, 168, 128, 0.34)", cool: "rgba(198, 142, 104, 0.32)", soft: "rgba(238, 190, 158, 0.30)" },
+  bizz:     { warm: "rgba(196, 166, 206, 0.34)", cool: "rgba(168, 138, 180, 0.32)", soft: "rgba(214, 190, 222, 0.30)" },
   profile:  { warm: "rgba(198, 190, 240, 0.34)", cool: "rgba(170, 160, 224, 0.32)", soft: "rgba(216, 210, 246, 0.30)" },
 };
 /**
@@ -1340,23 +1354,25 @@ export function glassSurfaceColor(
   const finalAlpha = Math.min(MAX_GLASS_ALPHA, Math.max(alpha, BASE_ALPHA + weight));
 
   /*
-   * Two kinds of surface, and they are decided by whether the declared colour has a
-   * hue of its own.
+   * The ink floor applies to *every* surface, and that is the point.
    *
-   * A *neutral* fill is a pane: it is the member's glass and it takes the cast's
-   * colour and depth, then is pulled onto the ink floor so white type on it is legible
-   * by construction rather than by every caller happening to be right. That guard is
-   * what makes the material safe - without it a declared near-white can land light and
-   * the white label on it disappears, which is the defect this pass exists to fix.
+   * The first version of this guard skipped saturated fills, on the reasoning that an
+   * accent button should keep its colour. That was right about accents and wrong
+   * about everything else: a pale lemon panel, a warm divider, a cream selected chip
+   * and a gold sheet header are all "saturated" by that test, and all of them landed
+   * light with white type on them - unreadable, and reading as leftover colour from a
+   * theme that was supposed to be gone. Exempting a class of surface from the ink
+   * floor means that class is not material at all, it is paint that happens to be
+   * translucent.
    *
-   * A *saturated* fill is an accent - an action button, a badge, a shared card - and
-   * it keeps its own colour. Darkening it would wash the accent into the surface, so
-   * it is left alone and carries whatever ink it declares. The two are told apart by
-   * chroma, which is the same test the resolver already used to decide whether to tint.
+   * So the rule is now unconditional. A neutral fill takes the cast; every fill, of
+   * any hue, is then taken down until white ink clears AA on the colour it actually
+   * lands on. The hue survives - it is scaled uniformly, so a warm surface stays warm
+   * - but nothing can be too light to carry its own label.
    */
   const neutralDeclared = isNeutral(parsed.rgb);
   const base = neutralDeclared ? mix(parsed.rgb, TINTS[tint], 1) : parsed.rgb;
-  const rgb = neutralDeclared ? darkenToInkFloor(base, finalAlpha) : base;
+  const rgb = darkenToInkFloor(base, finalAlpha);
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${finalAlpha.toFixed(3)})`;
 }
@@ -1409,11 +1425,10 @@ export function glassNestedSurfaceColor(
    */
   const alpha = clampAlpha(BASE_ALPHA + nestedWeight + weightFromSetting(opacity));
 
-  // The same split as the card resolver: a nested pane is held to the ink floor, an
-  // accent keeps its own colour. A nested surface is not darkened *because* it is
-  // nested - the band above already places it, and taking it further would invert the
-  // hierarchy the band exists to create.
-  const rgb = neutralDeclared ? darkenToInkFloor(base, alpha) : base;
+  // The same unconditional ink floor as the card resolver. A nested surface is not
+  // darkened *because* it is nested - the band above already places it, and taking it
+  // further would invert the hierarchy the band exists to create.
+  const rgb = darkenToInkFloor(base, alpha);
 
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
 }

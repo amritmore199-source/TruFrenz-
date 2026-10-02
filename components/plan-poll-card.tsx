@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   question: { color: "#EEF8FF", fontSize: 12.5, fontWeight: "700" },
   option: { borderRadius: 13, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), paddingHorizontal: 10, paddingVertical: 8, gap: 5 },
   optionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.markerSurface },
-  optionMine: { borderColor: "rgba(233, 209, 119, 0.6)", backgroundColor: "rgba(0, 0, 0, 0.16)" },
+  optionMine: { borderColor: "rgba(255, 255, 255, 0.6)", backgroundColor: "rgba(0, 0, 0, 0.16)" },
   optionLeading: { borderColor: "rgba(140, 190, 168, 0.55)" },
   optionTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   optionLabel: { flex: 1, color: "#E6EFF7", fontSize: 12, fontWeight: "650" as any },

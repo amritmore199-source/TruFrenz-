@@ -60,7 +60,18 @@ describe("appearance preferences", () => {
     // Tinting a coloured button blue would break the accent, so only neutral
     // surfaces are re-cast. The hue must survive untouched.
     const accent = glassSurfaceColor("rgba(241, 222, 85, 0.94)", 80);
-    expect(accent).toContain("241, 222, 85");
+    /*
+     * The hue survives, read as a ratio rather than as frozen channels.
+     *
+     * The surface is now taken to the ink floor like every other fill, which scales
+     * all three channels by one factor - so 241:222:85 no longer appears literally,
+     * but the accent is still emphatically gold. Asserting the exact triple would
+     * forbid the ink floor; asserting the ratio asserts what actually matters.
+     */
+    const parts = (accent.match(/[\d.]+/g) ?? []).map(Number);
+    expect(parts.length).toBeGreaterThanOrEqual(4);
+    expect(parts[0] / parts[2]).toBeGreaterThan(2.2);
+    expect(parts[1] / parts[2]).toBeGreaterThan(2.0);
   });
 
   it("never lets any surface or setting reach an opaque fill", () => {
@@ -172,10 +183,18 @@ describe("glass colour choice", () => {
   });
 
   it("still keeps a saturated accent in its own hue regardless of the cast", () => {
-    // The member's own bubble is a warm accent; the glass colour must not
-    // repaint it, or the two bubble sides would stop being distinguishable.
+    /*
+     * The member's own bubble is a warm accent, and the cast must not repaint it - or
+     * the two bubble sides would stop being distinguishable.
+     *
+     * Read as a ratio, because the ink floor scales the channels uniformly: the bubble
+     * stays warm at every cast, which is the property that actually matters, while its
+     * lightness follows the floor like everything else so the text on it stays legible.
+     */
     for (const tint of GLASS_TINT_OPTIONS) {
-      expect(glassSurfaceColor("rgba(233, 227, 193, 0.94)", 80, tint)).toContain("233, 227, 193");
+      const parts = (glassSurfaceColor("rgba(233, 227, 193, 0.94)", 80, tint).match(/[\d.]+/g) ?? []).map(Number);
+      expect(parts[0]).toBeGreaterThan(parts[2]);
+      expect(parts[1]).toBeGreaterThan(parts[2]);
     }
   });
 

@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   avatarWrap: { alignItems: "center", justifyContent: "center" },
   avatar: { width: 76, height: 76, borderRadius: 28, alignItems: "center", justifyContent: "center", backgroundColor: "#2F7295", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)") },
   avatarVideo: { backgroundColor: "#8FA6B6" },
-  ringHalo: { position: "absolute", width: 96, height: 96, borderRadius: 36, borderWidth: 2, borderColor: "rgba(233, 209, 119, 0.5)" },
+  ringHalo: { position: "absolute", width: 96, height: 96, borderRadius: 36, borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.5)" },
   verifiedBadge: { position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#61A088", borderWidth: 2, borderColor: "#fbfaf4" },
   title: { color: "#EEF8FF", fontSize: 17, fontWeight: "700", marginTop: 15 },
   subtitle: { color: "#E6EFF7", fontSize: 12, marginTop: 4 },

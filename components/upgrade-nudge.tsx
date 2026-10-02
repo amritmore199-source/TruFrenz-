@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.16)"),
   },
-  badgeAtLimit: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(226, 198, 158, 0.8)" },
+  badgeAtLimit: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.16)"), borderColor: "rgba(255, 255, 255, 0.8)" },
   text: { flex: 1, gap: 2 },
   title: { fontSize: 13, fontWeight: "700", color: "#EDF7FF" },
   body: { fontSize: 12, color: "#E6EFF7", lineHeight: 17 },
