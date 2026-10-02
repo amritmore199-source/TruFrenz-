@@ -37,7 +37,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
   const checkedIn = Boolean(card.checkedInAt);
   const first = friendName.split(" ")[0] || friendName;
 
-  const accent = card.kind === "meetup" ? "#666666" : "#919191";
+  const accent = card.kind === "meetup" ? "#8E6F91" : "#7A5A7E";
   const accentSoft = card.kind === "meetup" ? "rgba(0, 0, 0, 0.10)" : glassNestedFill("rgba(0, 0, 0, 0.10)");
 
   return (
@@ -60,15 +60,15 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       <Text style={[styles.title, nightMode && styles.lightText]}>{card.title}</Text>
 
       <View style={styles.detailRow}>
-        <MaterialIcons name="schedule" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
+        <MaterialIcons name="schedule" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#8E6F91"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]}>{card.proposal.date} · {card.proposal.time}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="place" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
+        <MaterialIcons name="place" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#8E6F91"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]} numberOfLines={1}>{card.proposal.place}{card.proposal.area ? ` · ${card.proposal.area}` : ""}</Text>
       </View>
       <View style={styles.detailRow}>
-        <MaterialIcons name="person-outline" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
+        <MaterialIcons name="person-outline" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#8E6F91"} />
         <Text style={[styles.detailText, nightMode && styles.lightSecondaryText]}>{mine ? "You suggested this" : `${first} suggested this`}</Text>
       </View>
 
@@ -86,7 +86,7 @@ export function PlanCardView({ card, viewer, friendName, onRespond, onCheckIn, o
       ) : null}
       {card.status === "rescheduled" ? (
         <View style={[styles.stateRow, nightMode && styles.stateRowNight]}>
-          <MaterialIcons name="update" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#666666"} />
+          <MaterialIcons name="update" size={14} color={nightMode ? CHAT_NIGHT.accentText : "#8E6F91"} />
           <Text style={[styles.stateText, nightMode && styles.lightSecondaryText]}>New time suggested. {mine ? `${first} proposed the change` : "You proposed the change"}.</Text>
         </View>
       ) : null}
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   stateRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   stateText: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   actions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" },
-  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  primaryAction: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   primaryActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   checkInActionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghostActionNight: { borderColor: CHAT_NIGHT.border, backgroundColor: CHAT_NIGHT.controlSurface },

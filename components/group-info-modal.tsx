@@ -153,7 +153,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
               <View style={styles.settingRow}>
                 <MaterialIcons name="notifications-off" size={16} color="#4B4651" />
                 <View style={styles.memberCopy}><Text style={styles.settingTitle}>Mute notifications</Text><Text style={styles.memberRole}>Your choice only — other members are unaffected</Text></View>
-                <Switch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#D6DBDE", true: "#666666" }} thumbColor="#FFFFFF" />
+                <Switch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#D6DBDE", true: "#8E6F91" }} thumbColor="#FFFFFF" />
               </View>
 
               <Pressable accessibilityRole="button" accessibilityLabel="Start a group call" onPress={() => { onFeedback(callGate.message); if (callGate.allowed) onStartGroupCall(); }} style={({ pressed }) => [styles.callRow, pressed && styles.pressed]}>

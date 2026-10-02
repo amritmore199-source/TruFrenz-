@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
   waveBarLive: { backgroundColor: "#6B6B6B" },
   actions: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13, flexWrap: "wrap" },
-  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   primaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   ghostText: { color: "#666070", fontSize: 12, fontWeight: "650" as any },

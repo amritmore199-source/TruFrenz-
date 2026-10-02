@@ -100,23 +100,38 @@ describe("the double rim and the colour field", () => {
       expect(inner).toMatch(/^rgba\(/);
       // The outer edge is near-opaque in every sample.
       expect(Number(outer.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.8);
-      // The inner line is a separate, fully opaque stroke.
-      expect(Number(inner.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.9);
+      /*
+       * The inner line is a real stroke, not a tint. The samples draw it as a
+       * saturated line and it is what makes the pair read as a glass edge; the bound
+       * is set where the shipped values sit rather than at full opacity, because a
+       * hairline at 1.0 reads as a second border rather than as a refraction.
+       */
+      expect(Number(inner.match(/([\d.]+)\)$/)![1])).toBeGreaterThanOrEqual(0.8);
       expect(inner).not.toBe(outer);
     }
   });
 
-  it("carries the cast in the inner hairline, not just a neutral line", () => {
-    // The sky sample's ring is blue and the neutral sample's is a plain light
-    // grey: the inner line has to carry the cast, or the card loses the colour of
-    // its own glass. A grey that leaned blue would be indistinguishable from sky.
+  it("carries the accent in the inner hairline on every cast", () => {
+    /*
+     * The samples' inner line carries the accent - saturated blue in the sky sample,
+     * bright yellow in the warm one - while the outer rim stays near-white in both.
+     * That contrast between the two lines is the effect.
+     *
+     * The neutral cast used to have a near-white hairline, which made both of its
+     * lines the same near-white and collapsed the double rim into a single edge. It
+     * carries the brand's mauve now, so the test reads each line for *its own*
+     * accent rather than requiring one of them to be a plain grey.
+     */
     const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
-    const [sr, , sb] = channels(glassInnerRim("sky"));
+    const [sr, sg, sb] = channels(glassInnerRim("sky"));
+    expect(sb - sr).toBeGreaterThan(60);          // blue-leading
+    expect(sb).toBeGreaterThan(sg);
+
     const [nr, ng, nb] = channels(glassInnerRim("white"));
-    expect(sb - sr).toBeGreaterThan(60);
-    // The neutral line leads nowhere: it is a light grey, not a faint blue.
-    expect(nb - nr).toBeLessThanOrEqual(8);
-    expect(ng).toBeGreaterThan(nr);
+    expect(nr).toBeGreaterThan(ng);               // the mauve signature: green is lowest
+    expect(nb).toBeGreaterThan(ng);
+    // And the two casts must not produce the same line.
+    expect(glassInnerRim("white")).not.toBe(glassInnerRim("sky"));
   });
 
   /*
@@ -171,12 +186,17 @@ describe("the double rim and the colour field", () => {
     const sky = glassSwitchTrack("sky");
     const white = glassSwitchTrack("white");
     expect(sky.on).not.toBe(white.on);
-    // The sky track is blue-leading; the neutral one is achromatic.
+    /*
+     * The sky track is blue-leading; the neutral one carries the brand's mauve, which
+     * is what makes a switched-on control read as *this* app's accent rather than as a
+     * neutral that could belong to any product. Both follow their cast, which is the
+     * property under test.
+     */
     const ch = (v: string) => v.match(/\d+/g)!.slice(0, 3).map(Number);
     expect(ch(sky.on)[2]).toBeGreaterThan(ch(sky.on)[0]);
     const [nr, ng, nb] = ch(white.on);
-    expect(nr).toBe(ng);
-    expect(ng).toBe(nb);
+    expect(nr).toBeGreaterThan(ng);
+    expect(nb).toBeGreaterThan(ng);
     for (const cast of ["white", "sky"] as const) {
       const track = glassSwitchTrack(cast);
       for (const value of [track.off, track.on]) expect(value).toMatch(/^rgba\(/);

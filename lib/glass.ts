@@ -1250,8 +1250,12 @@ export function glassAmbient(
  */
 export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; on: string } {
   const track: Record<GlassTint, { off: string; on: string }> = {
-    /* A grey track: the control is carved from the same stone as the card. */
-    white: { off: "rgba(214, 216, 218, 0.92)", on: "rgba(90, 90, 90, 0.95)" },
+    /*
+     * The track follows the cast rather than sitting on a grey. The "on" state is the
+     * brand's own mauve, so a switched-on control is visibly *this app's* accent
+     * instead of a neutral that could belong to any product.
+     */
+    white: { off: "rgba(214, 210, 216, 0.92)", on: "rgba(142, 111, 145, 0.95)" },
     sky: { off: "rgba(212, 224, 236, 0.92)", on: "rgba(86, 138, 196, 0.95)" },
   };
   return track[tint] ?? track.sky;
@@ -1259,9 +1263,18 @@ export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; o
 
 /** The inner hairline's colour for a cast. Saturated, unlike the fill. */
 export function glassInnerRim(tint: GlassTint = activeTint): string {
+  /*
+   * The hairline carries the *accent*, which is what the samples actually do: the
+   * sky sample's inner line is a saturated blue and the warm one's is a bright
+   * yellow, while the outer rim stays near-white in both. That contrast between the
+   * two lines is the whole effect - it reads as the ground edge of a sheet of glass.
+   *
+   * The neutral cast had a near-white hairline, which meant both its lines were the
+   * same near-white and the double rim collapsed into a single edge. It takes the
+   * brand's own mauve now, so the pair reads as two lines on the default cast too.
+   */
   const inner: Record<GlassTint, string> = {
-    /* A cool near-white hairline, as the neutral sample's own inner line is. */
-    white: "rgba(238, 242, 246, 0.95)",
+    white: "rgba(142, 111, 145, 0.85)",
     /* The sky sample's own ring: a saturated blue line just inside the rim. */
     sky: "rgba(122, 188, 232, 0.95)",
   };

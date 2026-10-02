@@ -21,6 +21,15 @@ import { COMPANY_DETAILS, GUEST_MODE_NOTICE, WELCOME_SLIDES, clampSlideIndex } f
 import { glassSurfaceColor,
   glassNestedFill,
 } from "@/lib/appearance-preferences";
+import {
+  GLASS_RIM_INNER_INSET,
+  GLASS_SHADOW,
+  GLASS_SHADOW_OPACITY,
+  glassEdge,
+  glassInnerRim,
+  glassTopGlow,
+  glassVeil,
+} from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { AmbientField } from "@/components/ambient-field";
 import { ambientIntensityFor, glassAmbient } from "@/lib/glass";
@@ -57,6 +66,9 @@ export function WelcomeScreen({
   soundEnabledByDefault?: boolean;
 }) {
   const { glassOpacity, glassTint } = useAppAppearance();
+  /* The member's cast, under the name the surfaces below use. This screen reads the
+     stored appearance like every other screen does rather than shipping its own. */
+  const cast = glassTint;
   /*
    * The welcome screen takes the profile intensity: it is a reading screen first —
    * three lines of copy and two buttons over the panel — so it wants the same
@@ -217,11 +229,44 @@ export function WelcomeScreen({
           </View>
         </View>
 
-        <GlassBlur
-          intensity={42}
-          style={[styles.glass]}
-          fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)}
+        {/*
+          The panel is built the same way every other surface in the app is built,
+          because it *is* the same surface. It had been a bare blur with a fill and a
+          radius - no outer rim, no inner hairline, no sheen, no top glow, no shadow -
+          so it rendered as a flat tinted rectangle while the cards behind the sign-in
+          door were properly lit. On the first screen the member ever sees, that is the
+          worst place to have been the one exception.
+        */}
+        <View
+          style={[
+            styles.glass,
+            {
+              backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity),
+              borderColor: glassEdge("card", cast),
+              shadowColor: GLASS_SHADOW,
+              shadowOpacity: GLASS_SHADOW_OPACITY,
+            },
+          ]}
         >
+          <GlassBlur
+            intensity={42}
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, styles.glassShape]}
+          />
+          {/* The sheen: light across the whole face, which is what stops a large panel
+              reading as one flat field of colour. */}
+          <View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, styles.glassShape, { backgroundColor: glassVeil("card", glassOpacity, cast) }]}
+          />
+          {/* A pool of light along the top edge, so the surface has a falloff. */}
+          <View pointerEvents="none" style={[styles.glassTopGlow, { backgroundColor: glassTopGlow(cast) }]} />
+          {/* The inner hairline, a few pixels in from the outer rim. Together the two
+              read as the ground edge of a sheet of glass rather than as a drawn border. */}
+          <View
+            pointerEvents="none"
+            style={[styles.glassInnerRim, { borderColor: glassInnerRim(cast) }]}
+          />
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
               <View style={styles.brandIcon}>
@@ -256,7 +301,7 @@ export function WelcomeScreen({
             </Pressable>
             <Text style={styles.guestNote}>Browse-only preview · no chatting until you join</Text>
           </View>
-        </GlassBlur>
+        </View>
 
         <View style={styles.carouselBlock}>
           <View style={styles.carouselFrame} onLayout={(event) => setCarouselWidth(Math.round(event.nativeEvent.layout.width))}>
@@ -421,7 +466,6 @@ const styles = StyleSheet.create({
   guestPillText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
   glass: {
     borderRadius: 28,
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     shadowColor: "#E9F3FB",
@@ -429,6 +473,22 @@ const styles = StyleSheet.create({
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 12 },
     elevation: 14,
+  },
+  /* Clips the blur and the sheen to the panel's own shape. */
+  glassShape: { borderRadius: 28 },
+  /* A pool of light along the top edge, strongest at the very top - the falloff that
+     keeps a large panel from reading as a flat field. */
+  glassTopGlow: { position: "absolute", left: 0, right: 0, top: 0, height: "34%", borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  /* The hairline, inset from the outer rim by the same amount every other surface
+     uses, so the two edges read as one construction across the whole app. */
+  glassInnerRim: {
+    position: "absolute",
+    left: GLASS_RIM_INNER_INSET,
+    right: GLASS_RIM_INNER_INSET,
+    top: GLASS_RIM_INNER_INSET,
+    bottom: GLASS_RIM_INNER_INSET,
+    borderWidth: 1,
+    borderRadius: 28 - GLASS_RIM_INNER_INSET,
   },
   glassInner: { paddingHorizontal: 20, paddingTop: 26, paddingBottom: 22, alignItems: "center" },
   brandMark: { alignItems: "center" },
@@ -438,7 +498,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#666666",
+    backgroundColor: "#8E6F91",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     shadowColor: "#DFE8EF",
@@ -459,7 +519,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#666666",
+    backgroundColor: "#8E6F91",
     borderWidth: 1,
     borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     shadowColor: "#DEE8EF",
@@ -478,7 +538,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
     borderWidth: 1,
-    borderColor: "rgba(131, 114, 31, 0.5)",
+    borderColor: "rgba(142, 111, 145, 0.55)",
   },
   ghostButtonText: { color: "#4B4651", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   buttonMuted: { opacity: 0.62 },
@@ -506,8 +566,8 @@ const styles = StyleSheet.create({
   slideTitle: { color: "#4B4651", fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
   slideBody: { color: "#4B4651", fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(131, 114, 31, 0.32)" },
-  dotActive: { width: 20, backgroundColor: "#666666" },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(142, 111, 145, 0.40)" },
+  dotActive: { width: 20, backgroundColor: "#8E6F91" },
   swipeHint: { color: "#4B4651", fontSize: 12, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
@@ -527,12 +587,12 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 7,
     borderWidth: 1.4,
-    borderColor: "rgba(131, 114, 31, 0.6)",
+    borderColor: "rgba(142, 111, 145, 0.6)",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   },
-  checkboxOn: { backgroundColor: "#666666", borderColor: "#81848C" },
+  checkboxOn: { backgroundColor: "#8E6F91", borderColor: "#7A5A7E" },
   termsText: { flex: 1, color: "#4B4651", fontSize: 12, lineHeight: 17 },
   termsStrong: { color: "#4B4651", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },

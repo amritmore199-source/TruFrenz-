@@ -21,7 +21,7 @@ import { stageAfterCameraPermission, stageAfterSelfieCapture, type SelfieStage }
 const colors = {
   ink: "#43423d",
   muted: "#6E6C67",
-  purple: "#666666",
+  purple: "#8E6F91",
   glass: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   stroke: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   green: "#6AA082",

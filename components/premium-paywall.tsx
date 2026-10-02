@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   paymentNote: { flexDirection: "row", gap: 7, alignItems: "flex-start", paddingHorizontal: 2, marginTop: 2 },
   paymentNoteText: { flex: 1, fontSize: 12, color: "#4B4651", lineHeight: 17 },
   footer: { paddingHorizontal: 16, paddingTop: 9, paddingBottom: 14, gap: 7, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(140, 128, 146, 0.24)", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 46, borderRadius: 16, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+  primaryButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 46, borderRadius: 16, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
   primaryButtonBusy: { opacity: 0.8 },
   primaryButtonText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
   footerNote: { fontSize: 12, color: "#4B4651", textAlign: "center" },

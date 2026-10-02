@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   leadNote: { color: "#4B4651", fontSize: 12, fontWeight: "700" },
   tieNote: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
   hint: { color: "#4B4651", fontSize: 12 },
-  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  convert: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 2, borderRadius: 12, paddingVertical: 9, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   convertText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 });

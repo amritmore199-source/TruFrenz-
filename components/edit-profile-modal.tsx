@@ -363,11 +363,11 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide from discovery</Text><Text style={styles.switchSub}>You stay invisible in suggestions.</Text></View>
-                    <Switch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#D6DBDE", true: "#666666" }} thumbColor="#FFFFFF" />
+                    <Switch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#D6DBDE", true: "#8E6F91" }} thumbColor="#FFFFFF" />
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide exact locality</Text><Text style={styles.switchSub}>Show only a broad “~X km” range.</Text></View>
-                    <Switch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#D6DBDE", true: "#666666" }} thumbColor="#FFFFFF" />
+                    <Switch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#D6DBDE", true: "#8E6F91" }} thumbColor="#FFFFFF" />
                   </View>
                   <Pressable onPress={() => onNotify(`Block list · ${profile.privacy.blockedIds.length} blocked member(s).`)} accessibilityLabel="Open block list" style={({ pressed }) => [styles.blockList, pressed && styles.pressed]}>
                     <MaterialIcons name="block" size={15} color="#666070" />
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   badgePhone: { backgroundColor: glassNestedFill("#EDF1F4") },
   badgeText: { color: "#4B4651", fontSize: 12, fontWeight: "600" },
   badgeTextPhone: { color: "#4B4651" },
-  verifyButton: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  verifyButton: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   verifyButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   sectionLabel: { color: "#4B4651", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 15, marginBottom: 7 },
   photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", gap: 9, padding: 14, borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.55)" },
   ghostButton: { flex: 1, minHeight: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   ghostText: { color: "#666070", fontSize: 12, fontWeight: "700" },
-  saveButton: { flex: 1.4, minHeight: 42, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#666666", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  saveButton: { flex: 1.4, minHeight: 42, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#8E6F91", borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   saveText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
 });

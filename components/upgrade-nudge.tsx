@@ -60,7 +60,7 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
           <MaterialIcons
             name={atLimit ? "lock-clock" : "auto-awesome"}
             size={16}
-            color={atLimit ? "#A5763F" : "#666666"}
+            color={atLimit ? "#A5763F" : "#8E6F91"}
           />
         </View>
         <View style={styles.text}>
