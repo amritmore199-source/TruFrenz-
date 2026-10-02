@@ -27,11 +27,12 @@ import {
   ambientIntensityFor,
   glassAmbient,
   glassEdge,
+  glassTextureInk,
   glassVeil,
 } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { AmbientField } from "@/components/ambient-field";
-import { GlassTopGlow } from "@/components/glass-glow";
+import { GlassTexture } from "@/components/glass-texture";
 
 const ambientLoop = require("../assets/audio/ambient-welcome.mp3");
 
@@ -47,11 +48,17 @@ const BUBBLES = [
   { left: "62%", size: 34, delay: 5200, duration: 10600, drift: 132, tint: "rgba(0, 0, 0, 0.10)" },
 ] as const;
 
-const SLIDE_TINTS: Record<string, string> = {
-  sky: "#E4EFF5",
-  blush: "#DCE9F2",
-  sage: "#E7F1EA",
-};
+/*
+ * The ink for anything that sits on the page rather than on a pane.
+ *
+ * The page is near-white paper, so its ink is dark. This is the same ramp the signed-in
+ * app uses for its headings, kept here as a named pair so a page-level style cannot drift
+ * back to white by being copied from a card-level one.
+ */
+const PAGE_INK = {
+  strong: "#1C1B19",
+  body: "#3F3D39",
+} as const;
 
 export function WelcomeScreen({
   onSignUp,
@@ -258,9 +265,9 @@ export function WelcomeScreen({
             pointerEvents="none"
             style={[StyleSheet.absoluteFillObject, styles.glassShape, { backgroundColor: glassVeil("card", glassOpacity, cast) }]}
           />
-          {/* A pool of light along the top edge, so the surface has a falloff. A real
-              gradient: a solid band ends in a visible step across the card. */}
-          <GlassTopGlow cast={cast} radius={28} heightRatio={0.34} />
+          {/* The tooth, so the pane reads as a material rather than as a flat field. It sits
+              above the blur and below the content, because it belongs to the sheet. */}
+          <GlassTexture color={glassTextureInk(cast)} radius={28} />
           <View style={styles.glassInner}>
             <View style={styles.brandMark}>
               <View style={styles.brandIcon}>
@@ -311,7 +318,17 @@ export function WelcomeScreen({
             >
             {WELCOME_SLIDES.map((item) => (
               <View key={item.id} style={[styles.slide, { width: slideWidth }]}>
-                <View style={[styles.slideIllustration, { backgroundColor: SLIDE_TINTS[item.tint] ?? "#f0eacb" }]}>
+                {/*
+                  The tile is a pane like every other surface, so it takes the same fill
+                  and the same white ink. It was a pale pastel with a white glyph, which
+                  is white on #E4EFF5 - 1.1:1, and invisible.
+                */}
+                <View
+                  style={[
+                    styles.slideIllustration,
+                    { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity), borderColor: glassEdge("card", cast) },
+                  ]}
+                >
                   <MaterialIcons name={item.icon as keyof typeof MaterialIcons.glyphMap} size={26} color="#F5F5F7" />
                 </View>
                 <Text style={styles.slideTitle}>{item.title}</Text>
@@ -443,7 +460,16 @@ const styles = StyleSheet.create({
   field: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   bubbleField: { ...StyleSheet.absoluteFillObject, overflow: "hidden" },
   bubble: { position: "absolute", bottom: -60, borderWidth: 1, borderColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
-  scroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 26, gap: 14 },
+  /*
+   * The vertical rhythm of the first screen.
+   *
+   * The terms card was reported as sitting too far down, and the gap below the carousel is
+   * what put it there: the intro frame is 172pt tall whatever it contains, so a 14pt gap
+   * either side of it read as roughly 40pt of dead space between the panel and the card.
+   * The frame is trimmed and the gap with it, which lifts the terms card about 24pt on a
+   * small phone without crowding the slides.
+   */
+  scroll: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 20, gap: 9 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   soundToggleWrap: { alignItems: "center", gap: 4 },
   soundToggle: {
@@ -487,6 +513,7 @@ const styles = StyleSheet.create({
   /* Clips the blur and the sheen to the panel's own shape. */
   glassShape: { borderRadius: 28 },
   glassInner: { paddingHorizontal: 20, paddingTop: 26, paddingBottom: 22, alignItems: "center" },
+  /* The gap the terms card used to sit across is closed: the two panes are one block. */
   brandMark: { alignItems: "center" },
   brandIcon: {
     width: 58,
@@ -563,7 +590,7 @@ const styles = StyleSheet.create({
   guestLinkText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", textDecorationLine: "underline" },
   guestNote: { color: "#F5F5F7", fontSize: 12, marginTop: 3, textAlign: "center" },
   carouselBlock: { alignItems: "center", gap: 2 },
-  carouselFrame: { width: "100%", height: 172 },
+  carouselFrame: { width: "100%", height: 150 },
   carousel: { width: "100%", height: "100%" },
   slide: { alignItems: "center", paddingHorizontal: 14, gap: 8 },
   slideIllustration: {
@@ -581,12 +608,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  slideTitle: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
-  slideBody: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
+  /*
+   * The carousel sits on the *page*, not on the panel, so its ink is the page's ink.
+   *
+   * It was white, which over this artwork measures about 1.0:1 - the slides were not
+   * faint, they were invisible, and the member reported precisely that. Anything outside
+   * a pane takes the page ramp; only what sits on a pane takes the white one.
+   */
+  slideTitle: { color: PAGE_INK.strong, fontSize: 13.5, fontWeight: "700", textAlign: "center", marginTop: 4 },
+  slideBody: { color: PAGE_INK.body, fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(28, 27, 25, 0.28)" },
   dotActive: { width: 20, backgroundColor: "#A78FA9" },
-  swipeHint: { color: "#F5F5F7", fontSize: 12, marginTop: 3, marginBottom: 4 },
+  swipeHint: { color: PAGE_INK.body, fontSize: 12, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
     overflow: "hidden",

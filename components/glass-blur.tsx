@@ -2,8 +2,8 @@ import { BlurView } from "expo-blur";
 import React from "react";
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
-import { GlassGlow } from "@/components/glass-glow";
-import { activeGlassTint, glassTopGlow } from "@/lib/glass";
+import { GlassTexture } from "@/components/glass-texture";
+import { activeGlassTint, glassTextureInk } from "@/lib/glass";
 
 /**
  * The blur layer of a glass surface.
@@ -114,13 +114,36 @@ export function GlassBlur({
         ]}
       />
     ) : (
-      <BlurView
-        intensity={intensity}
-        tint="default"
-        experimentalBlurMethod="dimezisBlurView"
-        pointerEvents={pointerEvents}
-        style={[StyleSheet.absoluteFillObject, shape, tint]}
-      />
+      <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape]}>
+        {/*
+          The fill goes *under* the blur on native, not on it.
+
+          This is the Android half of the same defect the web half had, and it was found by
+          measuring the member's screenshot rather than by reading: the welcome panel
+          rendered rgb(155,155,155) on the phone where an 82% charcoal fill composites to
+          about 110. The blur layer was adding roughly 20 points of light to every surface.
+
+          The cause is in expo-blur's own Android view
+          (`expo-blur/android/.../ExpoBlurView.kt`): it draws its blurred backdrop *over*
+          the view's background. For the DEFAULT tint that backdrop is
+          `rgba(255,255,255, 0.44 * intensity/100)` - a white film at 0.185 for this app's
+          intensity of 42. Moving the fill behind the BlurView preserves the correct layer
+          order, but it does **not** remove that film: the native blur is still painted on
+          top. The real fix is its DARK tint, which makes the native overlay the shadowed
+          counterpart of the charcoal glass rather than a white wash.
+
+          On iOS the fill is honoured on the BlurView itself; Android's composite differs,
+          so the platform-specific tint is intentional rather than an appearance setting.
+        */}
+        <View style={[StyleSheet.absoluteFillObject, shape, tint]} />
+        <BlurView
+          intensity={intensity}
+          tint="dark"
+          experimentalBlurMethod="dimezisBlurView"
+          pointerEvents={pointerEvents}
+          style={[StyleSheet.absoluteFillObject, shape]}
+        />
+      </View>
     );
 
   /*
@@ -129,13 +152,22 @@ export function GlassBlur({
    * through twenty call sites to say so would be twenty chances to pass the wrong
    * one.
    */
-  const glowLayer = glow ? (
-    <GlassGlow
-      color={glassTopGlow(activeGlassTint())}
-      radius={(typeof glow === "object" ? glow.radius : undefined) ?? radius ?? 18}
-      heightRatio={typeof glow === "object" ? glow.heightRatio : 0.26}
-    />
+  /*
+   * The tooth, under the light rather than over it.
+   *
+   * It is drawn whenever this element is the surface itself - that is, when it carries
+   * the fill - because a scrim has no face to give a texture to.
+   */
+  const textureLayer = fill ? (
+    <GlassTexture color={glassTextureInk(activeGlassTint())} radius={radius} />
   ) : null;
+
+  /*
+   * The top glow is retired: `glassTopGlow` now resolves to transparent, and the reasoning
+   * is recorded there rather than here. The `glow` prop is kept so the twenty call sites
+   * that pass it stay valid while the layer is gone, and so a future pass that wants a
+   * lit edge finds the plumbing rather than having to rebuild it.
+   */
 
   /*
    * A call site that passes children is using this as the sheet element itself, so
@@ -147,7 +179,7 @@ export function GlassBlur({
     return (
       <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape, style]}>
         {blur}
-        {glowLayer}
+        {textureLayer}
       </View>
     );
   }
@@ -155,7 +187,7 @@ export function GlassBlur({
   return (
     <View style={style}>
       {blur}
-      {glowLayer}
+      {textureLayer}
       {children}
     </View>
   );

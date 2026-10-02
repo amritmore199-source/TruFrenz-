@@ -1,19 +1,10 @@
 import React from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
-import { GlassTopGlow } from "@/components/glass-glow";
+import { GlassTexture } from "@/components/glass-texture";
 
 import { useAppAppearance } from "@/lib/appearance-context";
-import {
-  GLASS_SHADOW,
-  GLASS_SHADOW_OPACITY,
-  glassBlur,
-  glassEdge,
-  glassTint,
-  glassVeil,
-  type GlassTint,
-  type GlassSurface as GlassSurfaceKind,
-} from "@/lib/glass";
+import { GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassBlur, glassEdge, glassTextureInk, glassTint, glassVeil, type GlassSurface as GlassSurfaceKind, type GlassTint } from "@/lib/glass";
 
 type Props = {
   children?: React.ReactNode;
@@ -121,7 +112,12 @@ export function GlassSurface({
         rectangle, so the previous solid block of light ended in a step rather than
         fading, and that step was measurable across the middle of the card.
       */}
-      <GlassTopGlow cast={cast} radius={typeof radius === "number" ? radius : 18} />
+      {/*
+        The tooth, in the member's own cast. It sits here rather than on the blur so every
+        surface built from this primitive - cards, chips, sheets, the ad-free preview, the
+        cast chips themselves - gets the same material without each call site asking.
+      */}
+      <GlassTexture color={glassTextureInk(cast)} radius={typeof radius === "number" ? radius : 18} />
       {children}
     </View>
   );

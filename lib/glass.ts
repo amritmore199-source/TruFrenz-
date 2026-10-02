@@ -63,7 +63,17 @@ const MAX_DECLARED_WEIGHT = 0.11;
  * sheet weight so a row can never out-weigh the surface it sits on, and it has
  * enough spread that two rows declaring different alphas still differ.
  */
-const NESTED_MIN_WEIGHT = -0.02;
+/*
+ * A pane inside a pane, and how much lighter it sits.
+ *
+ * The minimum moved from -0.02 to -0.07 because the member asked for the welcome card to be
+ * more transparent, and the panel is the archetypal nested surface. This is the right lever
+ * for that request rather than an alpha on the one panel: the terms card, every row inside
+ * a sheet and every chip share this band, so moving it keeps a sheet's inside and its
+ * outside in the same relationship instead of making one screen's card see-through while
+ * the rest stay solid.
+ */
+const NESTED_MIN_WEIGHT = -0.07;
 const NESTED_MAX_WEIGHT = 0.04;
 
 /** How much the member's lightest setting can add, at most. */
@@ -1359,27 +1369,53 @@ export function glassInnerRim(tint: GlassTint = activeTint): string {
  * the sheet were catching light from above. It is what stops a large card from
  * reading as a flat panel, because a flat panel has no falloff across it.
  */
+export function glassTextureInk(tint: GlassTint = activeTint): string {
+  /*
+   * The tooth on a pane.
+   *
+   * Light, not dark: the pane is the shadowed side of the sheet, so the texture that
+   * makes it read as a material is what little light scatters *across* it rather than a
+   * shadow line drawn on it. A dark tooth on charcoal would darken the surface further
+   * and read as a print fault.
+   *
+   * It is very weak on purpose - about one point of value. A texture strong enough to be
+   * named is a pattern, and a 24px mesh at this scale was read as "wired fencing"; what
+   * makes a surface feel like a material is a tooth too fine to point at.
+   */
+  const ink: Record<GlassTint, string> = {
+    white: "rgba(255, 255, 255, 0.045)",
+    sky: "rgba(226, 240, 255, 0.050)",
+  };
+  return ink[tint] ?? ink.sky;
+}
+
 export function glassTopGlow(tint: GlassTint = activeTint): string {
   /*
-   * The glow is the pool of light along the top of a sheet, and it is *deliberately*
-   * faint now that the panes are dark.
+   * Retired: a pane carries no top glow.
    *
-   * At 0.46 over a dark face it is not a highlight, it is a wash: measured on the welcome
-   * panel, which takes it across the top third of its height, it lifted the surface from
-   * charcoal to a muddy grey and flattened the depth the pane exists to have. A light pool
-   * reads as light on dark only while it stays a small fraction of the face; past that it
-   * becomes the face. Halving it twice, 0.46 -> 0.20 -> 0.12, is measured rather than
-   * guessed: at 0.12 the panel's top third lifts by about four points of value, which is
-   * visible as light along the top edge and not as a different surface. The rim - which is
-   * now opaque - carries the edge, so the glow does not have to.
+   * It was a pool of light along the top edge, and it was correct while the surfaces were
+   * pale. Over a dark face it stopped being a highlight and became a wash - at its
+   * original 0.46 it lifted the welcome panel from charcoal to a muddy grey, and measured
+   * on the member's own screenshot the *whole* panel read 155 where an 82% charcoal fill
+   * composites to about 110. Two rounds of halving (0.46 -> 0.20 -> 0.09) made it less
+   * bad without making it right, which is the signal that the layer is wrong rather than
+   * too strong: on a dark pane there is no bright edge to catch, so a light pool is light
+   * *in* the surface, not light *on* it.
+   *
+   * The edge is carried by the outer rim, which is opaque, so nothing is lost by removing
+   * this. Kept as a function returning transparent so the surfaces that name it stay
+   * valid and the decision is recorded in one place rather than by deleting call sites.
    */
-  const glow: Record<GlassTint, string> = {
-    /* A white glow: light from above is not itself coloured. */
-    white: "rgba(255, 255, 255, 0.09)",
-    sky: "rgba(206, 230, 250, 0.085)",
-  };
-  return glow[tint] ?? glow.sky;
+  return "rgba(255, 255, 255, 0)";
 }
+
+/* The retired glow colour, kept only so the change above is legible against it.
+const GLOW_RETIRED: Record<GlassTint, string> = {
+  white: "rgba(255, 255, 255, 0.09)",
+  sky: "rgba(206, 230, 250, 0.085)",
+};
+*/
+
 
 
 /**

@@ -13,13 +13,14 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { GlassBlur } from "@/components/glass-blur";
-import { GlassTopGlow } from "@/components/glass-glow";
+import { GlassTexture } from "@/components/glass-texture";
 
 import {
   GLASS_SHADOW,
   GLASS_SHADOW_OPACITY,
   glassBlur,
   glassEdge,
+  glassTextureInk,
   glassTint,
   glassVeil,
 } from "@/lib/glass";
@@ -299,7 +300,9 @@ export function SwipeableChatRow({
             style={[StyleSheet.absoluteFillObject, styles.rowTint, { backgroundColor: glassVeil("row", glassOpacity, cast) }]}
           />
           {/* A pool of light along the top edge, as a real gradient. */}
-          <GlassTopGlow cast={cast} radius={16} heightRatio={0.46} />
+          {/* The tooth. A row is a pane like any other, and at 46pt the texture is what
+              separates it from the card behind it at a glance. */}
+          <GlassTexture color={glassTextureInk(cast)} radius={16} />
           <View style={styles.avatarWrap}>
             <Image source={chat.image} style={styles.avatar} />
             {chat.kind === "group" ? (

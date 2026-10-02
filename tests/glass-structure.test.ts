@@ -393,10 +393,23 @@ describe("every large surface is built from the whole recipe", () => {
      * The glow is produced by `GlassTopGlow`, which resolves its own colour, so the
      * surfaces name the component rather than the resolver.
      */
-  const LAYERS = ["glassVeil", "GlassTopGlow"] as const;
+  /*
+   * The layers that make a surface read as a material rather than as a tinted block.
+   *
+   * `GlassTopGlow` is no longer one of them. It was a pool of light along the top edge, which
+   * is correct on a pale pane and wrong on a dark one: over charcoal it is light *in* the
+   * surface rather than light *on* it, and measured on the member's own screenshot it lifted
+   * the whole welcome panel to a mid-grey. It resolves to transparent now, and the edge is
+   * carried by the opaque outer rim instead.
+   *
+   * `GlassTexture` replaces it as the third layer. It is the opposite of a wash - a tooth
+   * fine enough to read as a material rather than as a pattern - which is what the
+   * references have and what "2D texture" asks for.
+   */
+  const LAYERS = ["glassVeil", "GlassTexture"] as const;
 
   const SURFACES = [
-    "components/glass-glow.tsx",
+    "components/glass-texture.tsx",
     "components/glass-surface.tsx",
     "components/welcome-screen.tsx",
     "components/swipeable-chat-row.tsx",
@@ -406,13 +419,13 @@ describe("every large surface is built from the whole recipe", () => {
     it(`${file} paints the whole recipe, not just a fill`, () => {
       const src = read(file);
       /*
-       * It must be a frosted surface at all. `glass-glow.tsx` is the one exception:
-       * it *is* the glow layer, built on a gradient rather than on a blur, so it is
-       * held to naming the glow resolver instead.
+       * It must be a frosted surface at all. `glass-texture.tsx` is the one exception: it
+       * *is* the tooth, built on a vector pattern rather than on a blur, so it is held to
+       * naming its own ink resolver instead.
        */
-      if (file === "components/glass-glow.tsx") {
-        expect(src).toContain("glassTopGlow");
-        expect(src).toContain("RadialGradient");
+      if (file === "components/glass-texture.tsx") {
+        expect(src).toContain("Pattern");
+        expect(src).toContain("glassTextureInk");
         return;
       }
       expect(src).toMatch(/GlassBlur|glassBlur/);
@@ -528,5 +541,55 @@ describe("the single rim, the grain and the rounded corners", () => {
     // and the swipe actions are pills, sized from the constant rather than a literal
     const row = read("components/swipeable-chat-row.tsx");
     expect(row).toMatch(/borderRadius: Math\.round\(CHAT_ROW_ACTION_SIZE/);
+  });
+});
+
+describe("the surface layers that were measured wrong", () => {
+  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
+
+  it("puts the fill under the blur on native, so expo-blur's white overlay cannot dilute it", () => {
+    /*
+     * The Android half of the defect the web half already had. expo-blur's Android view draws
+     * its blurred backdrop *over* the view's own background, and for the DEFAULT tint that
+     * backdrop is rgba(255,255,255, 0.44 * intensity/100) - a white film. Passing our fill as
+     * the BlurView's own style therefore put it underneath that film, and the member's panel
+     * rendered rgb(155,155,155) where an 82% charcoal fill composites to about 110.
+     *
+     * The fill must be a sibling behind the BlurView, not a style on it.
+     */
+    const src = read("components/glass-blur.tsx");
+    const native = src.slice(src.indexOf("BlurView"));
+    // The BlurView's style must not carry the tint...
+    expect(native).not.toMatch(/<BlurView[\s\S]*?style=\{\[StyleSheet\.absoluteFillObject, shape, tint\]\}/);
+    // ...and a fill layer must be rendered before it.
+    expect(native).toMatch(/shape, tint\]\} \/>\s*<BlurView/);
+  });
+
+  it("carries no top glow on any surface", () => {
+    // It was measured down three times (0.46 -> 0.20 -> 0.09) without becoming right, which
+    // is the signal that the layer is wrong rather than too strong on a dark pane.
+    const src = read("lib/glass.ts");
+    expect(src).toMatch(/export function glassTopGlow[\s\S]{0,1400}return "rgba\(255, 255, 255, 0\)"/);
+  });
+
+  it("draws the tooth faint enough to be a material rather than a pattern", () => {
+    // A texture the member can name is a pattern. The 24px mesh that preceded this was read
+    // as "wired fencing", so both the alpha and the spacing are pinned.
+    const src = read("lib/glass.ts");
+    const ink = src.slice(src.indexOf("export function glassTextureInk"));
+    const alpha = Number(ink.match(/rgba\(255, 255, 255, (0\.\d+)\)/)?.[1] ?? "1");
+    expect(alpha).toBeGreaterThan(0);
+    expect(alpha).toBeLessThan(0.08);
+    /*
+     * The cadence is pinned from *both* sides, because both ends are real failures already
+     * seen: a 24pt mesh read as "wired fencing", and a cadence at or below the width of a
+     * glyph stroke reads as banding rather than as grain.
+     */
+    const tex = read("components/glass-texture.tsx");
+    const spacing = Number(tex.match(/width="(\d+)" height="\d+" patternUnits/)?.[1] ?? "0");
+    expect(spacing).toBeGreaterThanOrEqual(9);
+    expect(spacing).toBeLessThanOrEqual(18);
+    // A mesh is lines; grain is points. The tooth must not be built from diagonals.
+    expect(tex).not.toContain("Line");
   });
 });

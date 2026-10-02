@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Nothing in the app is painted by the browser.
+ *
+ * React Native Web renders a link as a real `<a>`, and an `<a>` with no colour of its own
+ * takes the user agent's - which measured rgb(0, 122, 255), the platform blue, on the
+ * welcome screen's company line. That is a colour this design never chose, and it appeared
+ * on a near-white page where the footer is meant to be quiet grey: the two places it showed
+ * up both read as a stray link rather than as part of the surface.
+ *
+ * `color: inherit` is the fix rather than a specific value, because the correct ink depends
+ * on what the link sits on - a pane or the page - and inherit is exactly that answer. It also
+ * closes the class of defect rather than one instance of it: any future link inside a glass
+ * surface picks up the surface's own ink instead of the browser's.
+ */
+a {
+  color: inherit;
+  text-decoration: none;
+}

@@ -736,3 +736,60 @@ on the sheet's own alpha, which is the flat-panel defect the band exists to prev
 
 Validation: TypeScript clean, **1038 tests pass** with 1 pre-existing skip across 69 files,
 lint 0 errors (28 pre-existing warnings), `git diff --check` clean, web bundle HTTP 200.
+
+### The grey wash and the invisible text: both were the same mistake in two places
+
+The member reported three things on the welcome screen - unreadable text, a white glow, and a
+card that should be more transparent - and one on every screen: cards that still did not look
+like frosted glass. Two of these were real defects with one cause between them, and one was a
+layer that should never have been on a dark pane.
+
+**The panel was a mid-grey, and the glow was why.** Measured down the centre of the member's
+own screenshot, the panel read rgb(155,155,155) where an 82% charcoal fill composites to about
+110 over that page. Profiling the whole column made the shape of it obvious: the *bottom*
+card, which carries the same fill and no glow, read about 130, and the top of the panel was
+lighter than its bottom. The top glow was a pool of light along the upper edge, and at 0.46
+it was lifting the entire surface. It had already been halved twice (0.46 -> 0.20 -> 0.09) and
+had never become right, which is the signal that the layer is wrong rather than too strong: on
+a dark pane there is no bright edge to catch, so a light pool is light *in* the surface rather
+than light *on* it. It is retired, and the edge is carried by the opaque outer rim. The panel
+now measures 87,85,81 against a 250 page - a 7.1:1 separation, and the heading on it clears
+5.5:1.
+
+**The blur was adding light on Android, which is the native half of the web bug fixed in
+6ca0ea03.** The same 155 reading had a second contributor. expo-blur's Android view
+(`ExpoBlurView.kt`) draws its blurred backdrop *over* the view's background, and for the
+DEFAULT tint that backdrop is `rgba(255,255,255, 0.44 * intensity/100)` - a white film at 0.185
+for this app's intensity. Our fill was therefore being diluted by a white overlay nobody asked
+for, and because iOS composites the other way round this read as an Android-only difference in
+depth. The fill now renders as a sibling *behind* the BlurView and the native tint is `dark`,
+so the overlay is the shadowed counterpart of the charcoal glass. Both the layer order and the
+tint are asserted, because either one alone leaves the white film in place - the first attempt
+at this fix moved the fill and left the tint, which would not have changed anything on device.
+
+**The text that was invisible was on the page, not on the panel.** The carousel titles, the
+slide bodies and the swipe hint were white, which over this artwork is about 1.0:1 - not faint,
+invisible. The rule is that anything outside a pane takes the page's ink and only what sits on
+a pane takes the white one; the page ramp is now a named pair so a page-level style cannot
+drift back by being copied from a card-level one. Measured after: slide ink 34,33,31 on a
+226 ground, 12.4:1. The slide tiles were the same error in the other direction - a pale pastel
+with a white glyph, white on #E4EFF5 at 1.1:1 - and are now panes like every other surface.
+
+**The 2D texture.** Three attempts at this are worth recording, because two failed for the
+same reason. A 24pt diagonal mesh was read, correctly, as "wired fencing": a texture the member
+can name is a pattern, not a material. A 5pt diagonal hairline crossed in both directions was
+still a mesh at a finer scale. What is on the surface now is grain - three irregular pinpricks
+repeating on a 13pt cadence at a 0.035-alpha cap, which moves a pixel by less than a point. It
+is drawn over the blur and under the content, in the member's own cast, and it is applied by
+the shared `GlassSurface` primitive so every card, chip, sheet and row gets it without asking.
+The contract pins the cadence from both sides (a mesh above, banding below) and forbids the
+tooth being built from lines at all.
+
+**One stray colour.** The web build renders a link as a real `<a>`, and an `<a>` with no colour
+of its own takes the user agent's platform blue. `global.css` now sets `color: inherit` on
+anchors, which is the correct answer rather than a value: the right ink depends on whether the
+link sits on a pane or on the page, and inherit is exactly that.
+
+Validation: TypeScript clean; 1041 tests pass with 1 pre-existing skip across 69 files; lint 0
+errors and the 28 pre-existing warnings; `git diff --check` clean; the Metro bundle serves HTTP
+200 with the tooth compiled in.
