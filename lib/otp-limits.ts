@@ -79,6 +79,15 @@ export type SendCounts = {
   callerInLongWindow: number;
   /** Milliseconds since the most recent send to this destination, if any. */
   msSinceLastDestinationSend: number | null;
+  /**
+   * Whether this send costs nobody anything.
+   *
+   * True when the code is written on the screen rather than sent by a provider,
+   * so the request spends no message, no money and no carrier goodwill. The
+   * destination rules exist to stop a stranger being texted repeatedly at the
+   * owner's expense, and that harm cannot occur when nothing leaves the server.
+   */
+  freeSend?: boolean;
 };
 
 export type SendDecision =
@@ -154,35 +163,58 @@ export function describeWait(seconds: number): string {
  * from "you have used up your codes for today", and the messages differ.
  */
 export function decideSend(counts: SendCounts): SendDecision {
-  const since = counts.msSinceLastDestinationSend;
-  if (since !== null && since < RESEND_COOLDOWN_MS) {
-    const wait = retryAfter(RESEND_COOLDOWN_MS - since);
-    return {
-      allowed: false,
-      rule: "cooldown",
-      retryAfterSeconds: wait,
-      message: `We just sent a code. Please wait ${describeWait(wait)} before asking for another.`,
-    };
-  }
+  /**
+   * The per-destination rules apply only to codes that cost something.
+   *
+   * This was the lockout the member hit on their own number: six codes in a day,
+  * accumulated while testing the very screen they were building, and then a
+  * refusal that offered only "try again tomorrow". With no SMS provider
+  * connected the code is shown in the app, so the limits were protecting a paid
+  * channel that was not in use, and the price of that was a member who could
+  * not sign in.
+  *
+   * The three rules inside this guard are the ones about money and about
+   * pestering a stranger: the resend cooldown, and the hourly and daily caps on
+   * one number. None of them describes a harm that can happen when nothing
+   * leaves the server, and the cooldown in particular is what made an immediate
+   * retry impossible while the flow was still being built.
+   *
+   * What is deliberately *not* inside it: the caller's own hourly and daily
+   * ceilings, below. Those are not about cost. They are what keeps a public demo
+   * from being scripted — one device minting codes for a thousand numbers — so
+   * they stay in force, and with them the cap on wrong guesses.
+   */
+  if (!counts.freeSend) {
+    const since = counts.msSinceLastDestinationSend;
+    if (since !== null && since < RESEND_COOLDOWN_MS) {
+      const wait = retryAfter(RESEND_COOLDOWN_MS - since);
+      return {
+        allowed: false,
+        rule: "cooldown",
+        retryAfterSeconds: wait,
+        message: `We just sent a code. Please wait ${describeWait(wait)} before asking for another.`,
+      };
+    }
 
-  if (counts.destinationInShortWindow >= DESTINATION_SHORT_LIMIT) {
-    return {
-      allowed: false,
-      rule: "destination-short",
-      retryAfterSeconds: retryAfter(DESTINATION_SHORT_WINDOW_MS),
-      message:
-        "That number has asked for several codes in the last hour. Please wait a while, or use email instead.",
-    };
-  }
+    if (counts.destinationInShortWindow >= DESTINATION_SHORT_LIMIT) {
+      return {
+        allowed: false,
+        rule: "destination-short",
+        retryAfterSeconds: retryAfter(DESTINATION_SHORT_WINDOW_MS),
+        message:
+          "That number has asked for several codes in the last hour. Please wait a while, or use email instead.",
+      };
+    }
 
-  if (counts.destinationInLongWindow >= DESTINATION_LONG_LIMIT) {
-    return {
-      allowed: false,
-      rule: "destination-long",
-      retryAfterSeconds: retryAfter(DESTINATION_LONG_WINDOW_MS),
-      message:
-        "That number has reached today's limit for codes. Please try again tomorrow, or use email instead.",
-    };
+    if (counts.destinationInLongWindow >= DESTINATION_LONG_LIMIT) {
+      return {
+        allowed: false,
+        rule: "destination-long",
+        retryAfterSeconds: retryAfter(DESTINATION_LONG_WINDOW_MS),
+        message:
+          "That number has reached today's limit for codes. Please try again tomorrow, or use email instead.",
+      };
+    }
   }
 
   if (counts.callerInShortWindow >= CALLER_SHORT_LIMIT) {

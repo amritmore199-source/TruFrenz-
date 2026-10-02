@@ -314,7 +314,7 @@ import { CHAT_NIGHT } from "@/lib/chat-appearance";
 import { AmbientField } from "@/components/ambient-field";
 import { GlassSurface } from "@/components/glass-surface";
 import { GlassTexture } from "@/components/glass-texture";
-import { liveGlass } from "@/lib/glass";
+import { glassSheetFill, liveGlass } from "@/lib/glass";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { createGuestSession, createMemberSession, isGuestSession, parseSession, serializeSession, SESSION_STORAGE_KEY, shouldShowWelcome, type StoredSession } from "@/lib/session";
 import {
@@ -2369,6 +2369,7 @@ export default function TrufrenzApp() {
         code: result.code,
         error: result.error,
         retryAfterSeconds: result.retryAfterSeconds,
+        rule: result.rule,
       });
       if (described.cooldownSeconds > 0) {
         setResendDeadline(Date.now() + described.cooldownSeconds * 1000);
@@ -5584,7 +5585,7 @@ export default function TrufrenzApp() {
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : `STEP 1 OF 4 · ${authChannel === "email" ? "EMAIL" : "PHONE"}`) : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
-<View style={[styles.modalCard, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity), borderColor: glassEdge("card", glassTintChoice) }]}>
+<View style={[styles.modalCard, { backgroundColor: glassSheetFill("rgba(0, 0, 0, 0.10)", glassOpacity, glassTintChoice), borderColor: glassEdge("card", glassTintChoice) }]}>
                 <GlassBlur
                   intensity={42}
                   pointerEvents="none"

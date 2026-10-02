@@ -172,6 +172,53 @@ describe("decideSend", () => {
     expect(decision.rule).toBe("cooldown");
     expect(decision.retryAfterSeconds).toBeLessThanOrEqual(60);
   });
+
+  it("does not throttle a code that costs nothing", () => {
+    /*
+     * The lockout the member hit on their own number.
+     *
+     * With no provider connected the code is shown on screen, so a request
+     * spends no message and cannot text a stranger at the owner's expense. The
+     * per-destination caps describe a harm that cannot occur, and applying them
+     * anyway locked the member out of their own account for a day.
+     */
+    const saturated = counts(
+      Array.from({ length: DESTINATION_LONG_LIMIT + 1 }, (_, i) =>
+        send({ createdAt: NOW - i * RESEND_COOLDOWN_MS * 2 }),
+      ),
+    );
+    // The same log refuses an ordinary send...
+    expect(decideSend(saturated).allowed).toBe(false);
+    // ...and allows a free one, including an immediate resend.
+    expect(decideSend({ ...saturated, freeSend: true })).toEqual({ allowed: true });
+  });
+
+  it("still refuses a free send from a device that has spent its day", () => {
+    /*
+     * The exemption is about cost, not about being unlimited.
+     *
+     * The caller ceilings are what keep a public demo from being scripted — one
+     * device minting codes for a thousand numbers. Those must survive, or the
+     * exemption would reopen the endpoint the guard was written to close.
+     */
+    /*
+     * Placed two hours back so they sit inside the daily window and outside the
+     * hourly one: the day's ceiling is the rule under test, and a log that also
+     * trips the hourly cap would prove the wrong thing.
+     */
+    const spent = counts(
+      Array.from({ length: CALLER_LONG_LIMIT }, (_, i) =>
+        send({
+          destination: `+1555000000${i}`,
+          callerKey: CALLER,
+          createdAt: NOW - 2 * 60 * 60 * 1000,
+        }),
+      ),
+    );
+    const decision = decideSend({ ...spent, freeSend: true });
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) expect(decision.rule).toBe("caller-long");
+  });
 });
 
 describe("decideVerify", () => {

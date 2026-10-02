@@ -75,8 +75,29 @@ export function describeResendFailure(input: {
   code?: string;
   error: string;
   retryAfterSeconds?: number | null;
+  /** Which limit refused, when the refusal names one. */
+  rule?: string | null;
 }): { message: string; cooldownSeconds: number } {
   if (input.code === "rate_limited" || input.code === "verify_locked") {
+    /**
+     * A wait longer than an hour is not a countdown.
+     *
+     * This is the defect the member hit and it mattered more than the wording:
+     * the per-day limit returns a full day, and a button that silently counts
+     * down from 86,400 gives no hint that the real answer is "tomorrow". Worse,
+     * leaving a countdown armed that long means the flow looks like it is about
+     * to reopen when it is not. So a long limit is stated as a limit, and the
+     * caller is pointed at the other channel — which is the one thing that
+     * genuinely works, since the limit is per number.
+     */
+    const rawSeconds = cooldownSecondsFrom(input.retryAfterSeconds);
+    if (rawSeconds > 3600) {
+      const other = input.code === "verify_locked" ? "Wait and try again" : "Use email instead";
+      return {
+        message: `This number has reached its limit. ${other} — or try again tomorrow.`,
+        cooldownSeconds: 0,
+      };
+    }
     const seconds = cooldownSecondsFrom(input.retryAfterSeconds);
     return {
       message: `You can ask for another code in ${seconds}s.`,

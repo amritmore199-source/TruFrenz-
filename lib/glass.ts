@@ -1572,6 +1572,57 @@ export function glassSurfaceColor(
 }
 
 /**
+ * How much lighter a full-screen sheet sits than a card.
+ *
+ * A sheet covers the screen, so the artwork behind it is the *subject* and the
+ * panel is a frame around it. At a card's weight that relationship inverts: the
+ * pane becomes opaque enough to read as a dark screen with a picture faintly
+ * behind it. The sign-in sheet measured 0.80 alpha — the heaviest surface the app
+ * draws — on the one screen where the member is looking at the app's own artwork.
+ *
+ * The card weight is the right answer for a card in a scrolling list. It is the
+ * wrong answer for a sheet, and the difference is what this constant expresses.
+ */
+const SHEET_LIGHTER = 0.20;
+
+/**
+ * The fill for a sheet: the same material, at a weight that lets the backdrop through.
+ *
+ * A separate entry point rather than a tweak to `glassSurfaceColor`, because the
+ * two ask different questions. A card asks "how do I sit distinctly above the
+ * page?" and the answer is a specific depth. A sheet asks "how do I frame the
+ * artwork without becoming the subject?" and the answer is a *lighter* pane than
+ * the card resolver will ever produce. Passing a smaller declared alpha cannot
+ * express that: it floors at `BASE_ALPHA` and ignores anything quieter, which is
+ * why the lighter values already tried on this sheet changed nothing at all.
+ *
+ * Transparency is not allowed to cost legibility, so the ink floor still runs —
+ * if the lower alpha would leave white type short of AA over the artwork, the
+ * pane's *colour* is taken down until it clears. The alpha decides how much
+ * artwork shows through; the floor guarantees the label on top stays readable at
+ * whatever comes through.
+ */
+export function glassSheetFill(
+  color: string,
+  opacity: number,
+  tint: GlassTint = activeTint,
+): string {
+  const parsed = parseColor(color);
+  if (!parsed) return color;
+  const declaredWeight = Math.min(
+    MAX_DECLARED_WEIGHT,
+    Math.max(0, ((parsed.alpha ?? 0) - 0.6) * 0.35),
+  );
+  const alpha = clampAlpha(
+    BASE_ALPHA - SHEET_LIGHTER + declaredWeight + weightFromSetting(opacity),
+  );
+  const neutralDeclared = isNeutral(parsed.rgb);
+  const base = neutralDeclared ? mix(parsed.rgb, TINTS[tint], 1) : parsed.rgb;
+  const rgb = darkenToInkFloor(base, alpha);
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(3)})`;
+}
+
+/**
  * Resolve a surface that sits *inside* another glass surface.
  *
  * `glassSurfaceColor` treats any declared alpha below 0.6 as wanting no extra

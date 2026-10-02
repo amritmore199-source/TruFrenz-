@@ -77,6 +77,14 @@ async function request<T>(
        * knows the window; the client must not invent one.
        */
       retryAfterSeconds?: number;
+      /**
+       * Which limit refused, when one did.
+       *
+       * Carried through because the wait alone is not enough to word the answer:
+       * a 45-second cooldown is a countdown, a 24-hour destination limit is not.
+       * Only the rule says which of those the member is actually in.
+       */
+      rule?: string;
     }
 > {
   try {
@@ -99,13 +107,19 @@ async function request<T>(
       parsed = null;
     }
     if (!response.ok) {
-      const body = (parsed ?? {}) as { error?: string; code?: string; retryAfterSeconds?: number };
+      const body = (parsed ?? {}) as {
+        error?: string;
+        code?: string;
+        retryAfterSeconds?: number;
+        rule?: string;
+      };
       return {
         ok: false,
         error: body.error ?? "Something went wrong.",
         code: body.code,
         retryAfterSeconds:
           typeof body.retryAfterSeconds === "number" ? body.retryAfterSeconds : undefined,
+        rule: typeof body.rule === "string" ? body.rule : undefined,
       };
     }
     return { ok: true, data: (parsed ?? {}) as T };

@@ -865,3 +865,67 @@ Two source-level guards were added, because these defects are only visible at th
 of "what property, on what platform" and no resolved-value assertion can catch them: no
 `elevation:` may appear in any component or screen, and no `borderColor` may be declared
 as a raw low-alpha black.
+
+---
+
+## The OTP lockout, and why the login card was opaque
+
+Two reports arrived together and they turned out to be independent.
+
+### "login is not happening, no OTP is generated"
+
+Not a delivery problem. The endpoint answered correctly and the code was issued
+— the member's own number was being *refused* before a code was ever minted.
+
+The refusal was `destination-long`: six codes already spent against that number
+inside the daily window, accumulated naturally while the sign-in screen was being
+built and tested. The bypass for this existed and passed the right flag, but the
+flag was computed *after* `decideSend` had already run, so it never reached the
+decision. `freeSend` was always false and the per-destination caps always applied.
+
+What made it worse than a normal rate limit was the wording. The server returned
+the honest wait — 86,400 seconds — and the client turned it into a button
+counting down from a day, which reads as "about to reopen" when the real answer
+is "tomorrow". A member in that state concludes the feature is broken, which is
+exactly what was reported.
+
+Both halves are fixed:
+
+- `decideSend` now exempts only the cost-bearing rules when nothing can actually
+  deliver a code — the resend cooldown and the per-number hourly and daily caps.
+  The *caller* ceilings stay in force, and that distinction is deliberate: those
+  are what stop one device minting codes for a thousand numbers, and exempting
+  them would have reopened the endpoint the guard was written to close. Both
+  halves are asserted, including that a device that has spent its day is still
+  refused.
+- A wait longer than an hour is now stated as a limit rather than counted down,
+  and points at the one thing that does work, since the limit is per number.
+
+Verified end to end against the live database: request → verify → session issued,
+returning the member's own account.
+
+### The login card would not become transparent
+
+The member asked twice for this sheet to be see-through and both attempts changed
+nothing. The reason is a floor, not a bug: `glassSurfaceColor` treats any declared
+alpha below 0.6 as wanting no extra presence, then clamps the result up to
+`BASE_ALPHA`. Every "lighter" value therefore resolved to the same 0.80 — the
+heaviest surface in the app, on the one screen whose whole point is the artwork.
+
+A floor is the right behaviour for a card: a card must sit distinctly above the
+page, and a quieter declared alpha must not erode that. It is the wrong behaviour
+for a sheet, which has the opposite job — it frames artwork that is the subject,
+so at a card's depth it stops being a frame and becomes a dark screen with a
+picture faintly behind it. That is a different question, so it gets a different
+entry point rather than a loosened floor: `glassSheetFill`, which starts one
+measured step below the card weight. The ink floor still runs unconditionally, so
+transparency can never cost legibility — if the lower alpha would leave white type
+short of AA over the artwork, the pane's colour is taken down until it clears.
+
+Measured in the running app: the sign-in card went from `rgba(62,60,58,0.80)` to
+`rgba(62,60,58,0.57)`, and it now responds to the member's weight setting instead
+of being frozen at one value.
+
+Counts for this pass: TypeScript clean; 1051 tests pass with 1 pre-existing skip
+across 68 files; lint 0 errors and the 28 pre-existing warnings; `git diff --check`
+clean; the web bundle compiles at 11.4 MB with the new resolver in it.

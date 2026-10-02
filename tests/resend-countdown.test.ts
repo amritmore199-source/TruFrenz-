@@ -166,4 +166,34 @@ describe("naming the transport", () => {
     expect(transportFor({ channel: "phone", deliverable: true, provider: "msg91" })).toBe("msg91");
     expect(transportFor({ channel: "email", deliverable: true, provider: "email" })).toBe("email");
   });
+
+  it("states a day-long limit as a limit rather than counting it down", () => {
+    /*
+     * A countdown from 86,400 is not a countdown, it is a wait until tomorrow —
+     * and leaving the button armed for a day makes the flow look about to reopen
+     * when it will not. The member met this as "no OTP is generated" on their own
+     * number, which was true: the server refused because their number had spent
+     * its daily allowance.
+     */
+    const described = describeResendFailure({
+      code: "rate_limited",
+      error: "That number has reached today's limit for codes.",
+      retryAfterSeconds: 86400,
+      rule: "destination-long",
+    });
+    expect(described.cooldownSeconds).toBe(0);
+    expect(described.message).toContain("Use email instead");
+    expect(described.message).not.toContain("86400");
+  });
+
+  it("still counts down a wait that is short enough to wait out", () => {
+    const described = describeResendFailure({
+      code: "rate_limited",
+      error: "Wait.",
+      retryAfterSeconds: 45,
+      rule: "cooldown",
+    });
+    expect(described.cooldownSeconds).toBe(45);
+    expect(described.message).toBe("You can ask for another code in 45s.");
+  });
 });

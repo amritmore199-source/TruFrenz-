@@ -10,6 +10,9 @@ import {
   glassEdge,
   glassFieldBorder,
   glassInnerRim,
+  glassNestedFill,
+  glassSheetFill,
+  glassSurfaceColor,
   glassSwitchTrack,
 } from "../lib/glass";
 
@@ -671,4 +674,50 @@ describe("the surface layers that were measured wrong", () => {
     }
     expect(offenders).toEqual([]);
   });
+
+describe("a full-screen sheet", () => {
+  /*
+   * The sign-in sheet was the heaviest surface in the app.
+   *
+   * It measured 0.80 alpha — nearly opaque — because it resolves through the
+   * *card* weight, and a card's job is to sit distinctly above the page. A sheet
+   * has the opposite job: it frames artwork that is the subject, so at a card's
+   * depth it stops being a frame and becomes a dark screen with a picture faintly
+   * behind it. On the one screen whose whole point is the app's own artwork.
+   */
+  it("sits lighter than a card, so the backdrop stays the subject", () => {
+    const sheet = glassSheetFill("rgba(0, 0, 0, 0.10)", 80, "white");
+    const card = glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), 80, "white");
+    const read = (value: string) => Number(value.match(/([\d.]+)\)$/)?.[1] ?? "0");
+    expect(read(sheet)).toBeLessThan(read(card));
+    // Light enough to read as glass, not so light it stops being a pane.
+    expect(read(sheet)).toBeLessThanOrEqual(0.65);
+    expect(read(sheet)).toBeGreaterThanOrEqual(0.45);
+  });
+
+  /*
+   * And it still follows the member's setting, which the card resolver already
+   * does. A surface that ignored the setting is the defect this whole module
+   * exists to prevent, so the new entry point is held to the same contract.
+   */
+  it("still follows the member's glass weight", () => {
+    const light = glassSheetFill("rgba(0, 0, 0, 0.10)", 50, "white");
+    const heavy = glassSheetFill("rgba(0, 0, 0, 0.10)", 95, "white");
+    expect(light).not.toBe(heavy);
+    const read = (value: string) => Number(value.match(/([\d.]+)\)$/)?.[1] ?? "0");
+    expect(read(heavy)).toBeGreaterThan(read(light));
+  });
+
+  /*
+   * The sign-in sheet specifically. A regression here is invisible in the source
+   * — the two calls look alike — so it is pinned where it is used.
+   */
+  it("is what the sign-in sheet actually uses", () => {
+    const source = read("app/(tabs)/index.tsx");
+    expect(source).toContain("glassSheetFill(");
+    expect(source).not.toContain(
+      'styles.modalCard, { backgroundColor: glassSurfaceColor(glassNestedFill',
+    );
+  });
+});
 });

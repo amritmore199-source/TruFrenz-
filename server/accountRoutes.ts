@@ -283,7 +283,19 @@ export function registerAccountRoutes(app: Express) {
     });
     const now = Date.now();
     const sends = await otpGuard.recentSends({ destination: input.destination, callerKey, now });
-    const decision = decideSend(summariseSends(sends, input.destination, callerKey, now));
+    /**
+     * Which channels can deliver right now, resolved *before* the decision.
+     *
+     * Whether a code costs anything changes which limits describe a real harm.
+     * A code written on the screen spends no message and cannot text a stranger
+     * at the owner's expense, so the per-destination caps are skipped for it —
+     * see `decideSend`. Calling this earlier is what lets the decision know.
+     */
+    const canSendEmail = emailConfigured();
+    const canSendSms = smsConfigured();
+    const deliverable = input.channel === "email" ? canSendEmail : canSendSms;
+    const counts = summariseSends(sends, input.destination, callerKey, now);
+    const decision = decideSend(deliverable ? counts : { ...counts, freeSend: true });
     if (!decision.allowed) {
       res.status(429).json({
         error: decision.message,
@@ -312,12 +324,6 @@ export function registerAccountRoutes(app: Express) {
       });
       return;
     }
-
-    // Which channels can actually deliver right now. This decides the response
-    // shape, so the client never has to guess.
-    const canSendEmail = emailConfigured();
-    const canSendSms = smsConfigured();
-    const deliverable = input.channel === "email" ? canSendEmail : canSendSms;
 
     // The code is only revealed when nothing can deliver it AND demo mode is on.
     const revealCode = !deliverable && demoCodeAllowed();
