@@ -1602,6 +1602,23 @@ const SHEET_LIGHTER = 0.20;
  * artwork shows through; the floor guarantees the label on top stays readable at
  * whatever comes through.
  */
+/**
+ * A see-through pane for the welcome hero, conversation rows and discovery cards.
+ * White is 56% ink / 44% backdrop at the default setting. Optional Sky needs
+ * 59% ink / 41% backdrop: its blue channels are brighter than neutral black,
+ * so the same alpha would put #F5F5F7 labels below AA over white artwork.
+ * Do not substitute the general card resolver: it floors alpha near 0.8.
+ */
+export function glassTranslucentPane(
+  opacity: number,
+  tint: GlassTint = activeTint,
+): string {
+  const minimum = tint === "sky" ? 0.59 : 0.56;
+  const alpha = Math.min(MAX_GLASS_ALPHA, Math.max(minimum, minimum + weightFromSetting(opacity) - weightFromSetting(80)));
+  const ink = tint === "sky" ? { r: 0, g: 12, b: 29 } : { r: 0, g: 0, b: 0 };
+  return `rgba(${ink.r}, ${ink.g}, ${ink.b}, ${alpha.toFixed(3)})`;
+}
+
 export function glassSheetFill(
   color: string,
   opacity: number,

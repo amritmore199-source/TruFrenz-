@@ -307,7 +307,7 @@ import {
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
 import { GLASS_PRESETS,
-  GLASS_RIM_INNER_INSET, GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassTextureInk, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+  GLASS_RIM_INNER_INSET, GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassTextureInk, glassTranslucentPane, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -574,7 +574,7 @@ const cardStyles = StyleSheet.create({
    * hairline, together with Android's `elevation` outline, is what squared off the
    * corners: the fill was rounded and the box drawn around it was not.
    */
-  frosted: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15 },
+  frosted: { borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15 },
   actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder(), paddingHorizontal: 14, shadowColor: "#B8B8B8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9 },
   actionButtonSecondary: { backgroundColor: "#D0D0CE" },
   actionButtonDisabled: { opacity: 0.62 },
@@ -591,10 +591,11 @@ const cardStyles = StyleSheet.create({
  * this screen uses the name at more than seventy call sites.
  */
 function Frosted({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { glassOpacity, glassTint: cast } = useAppAppearance();
   const flattened = StyleSheet.flatten(style);
   const radius = flattened?.borderRadius ?? cardStyles.frosted.borderRadius;
   return (
-    <GlassSurface surface="card" radius={radius} style={[cardStyles.frosted, style]}>
+    <GlassSurface surface="card" radius={radius} fill={glassTranslucentPane(glassOpacity, cast)} sheen={false} style={[cardStyles.frosted, style]}>
       {children}
     </GlassSurface>
   );
@@ -4094,12 +4095,12 @@ export default function TrufrenzApp() {
                         the same recipe as the cards - blur, cast, glow, rim - so a
                         conversation is made of the same material as everything else
                         rather than of flat rectangles laid on top of it. The fill comes
-                        from the chat palette, which already resolves the incoming and
-                        outgoing tones for the current cast.
+                         from the same cast-aware translucent pane as the inbox; the
+                         parent is transparent so the blur samples the artwork.
                       */}
                       <GlassBlur
                         intensity={glassBlur("chip")}
-                        fill={mine ? CHAT_NIGHT.outgoingBubble : CHAT_NIGHT.incomingBubble}
+                        fill={glassTranslucentPane(glassOpacity, glassTintChoice)}
                         glow={{ radius: 16, heightRatio: 0.62 }}
                         style={StyleSheet.absoluteFill}
                       />
@@ -4440,7 +4441,7 @@ export default function TrufrenzApp() {
         the top bar's line with the word Trufrenz, so the section title is the
         first thing under the header and the list starts a full row higher.
       */}
-      <View style={styles.chatHeading}><Text style={styles.chatTitle}>Conversations</Text><Pressable onPress={() => setComposerOpen(true)} accessibilityRole="button" accessibilityLabel="Start a new group" style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={18} color="#FFFFFF" /></Pressable></View>
+      <View style={styles.chatHeading}><Text style={styles.chatTitle}>Your conversations</Text><Pressable onPress={() => setComposerOpen(true)} accessibilityRole="button" accessibilityLabel="Start a new group" style={({ pressed }) => [styles.composeButton, pressed && styles.pressed]}><Icon name="edit-square" size={18} color="#FFFFFF" /></Pressable></View>
       {/*
         The search box is the first control on the screen and it was a plain View - the
         one large surface here with no blur behind its fill, so it read as a painted
@@ -4448,7 +4449,7 @@ export default function TrufrenzApp() {
         surface now like every other pane, keeping its field border because an input's
         boundary is held to 3:1 rather than to the rim's near-white.
       */}
-      <GlassSurface surface="field" radius={14} style={[styles.searchBar, { borderColor: glassFieldBorder() }]}><Icon name="search" size={18} color="#F5F5F7" /><TextInput value={search} onChangeText={setSearch} placeholder="Search friends, chats or your contacts" placeholderTextColor="#CFCFD7" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#F5F5F7" /></Pressable></GlassSurface>
+      <GlassSurface surface="field" radius={14} fill={glassTranslucentPane(glassOpacity, glassTintChoice)} sheen={false} style={[styles.searchBar, { borderColor: glassFieldBorder() }]}><Icon name="search" size={18} color="#F5F5F7" /><TextInput value={search} onChangeText={setSearch} placeholder="Search friends, chats or your contacts" placeholderTextColor="#F5F5F7" style={styles.searchInput} returnKeyType="search" /><Pressable onPress={openContactLookup} accessibilityRole="button" accessibilityLabel="Search your phone's contacts for people on Trufrenz" style={({ pressed }) => [styles.searchFilterButton, contactLookupOpen && styles.searchFilterButtonActive, pressed && styles.pressed]}><Icon name="tune" size={17} color="#F5F5F7" /></Pressable></GlassSurface>
       {renderContactLookup()}
       <View style={styles.filterRow}>{filters.map((filter) => <Pressable key={filter} onPress={() => setChatFilter(filter)} ><GlassSurface surface="chip" radius={15} style={[styles.filterChip, chatFilter === filter && styles.filterChipActive]}><Text style={[styles.filterChipText, chatFilter === filter && styles.filterChipTextActive]}>{filter}{filter === "Unread" ? "  2" : ""}</Text></GlassSurface></Pressable>)}</View>
       {chatFilter === "All" && !search ? <View style={styles.circlesSection}><View style={styles.sectionHeaderLine}><Text style={styles.sectionEyebrow}>YOUR PEOPLE</Text><Pressable onPress={() => { openContactLookup(); tap(); }} accessibilityRole="button" accessibilityLabel="See everyone from your phone contacts"><Text style={styles.sectionLink}>See all <Icon name="chevron-right" size={12} color="#F5F5F7" /></Text></Pressable></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.circlesRow}>
@@ -5808,7 +5809,7 @@ const frozenStyles = StyleSheet.create({
    * the right edge — the same overflow that once hid the call buttons.
    */
   brandNameRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 5 },
-  brandGreeting: { flexShrink: 1, color: "#F5F5F7", fontSize: 12, fontWeight: "500", letterSpacing: 0.1 },
+  brandGreeting: { flexShrink: 1, color: "#4A4A4A", fontSize: 12, fontWeight: "500", letterSpacing: 0.1 },
   topBarSub: { marginTop: 2, color: "#F5F5F7", fontSize: 12 },
   backButton: { height: 35, flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, borderRadius: 13, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder() },
   backButtonText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
@@ -5834,14 +5835,14 @@ const frozenStyles = StyleSheet.create({
    * sections because it is a section label, not a headline.
    */
   chatHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 2, marginBottom: 8 },
-  chatTitle: { color: "#F5F5F7", fontSize: 16, fontWeight: "700", letterSpacing: -0.4 },
+  chatTitle: { color: "#1C1B19", fontSize: 16, fontWeight: "700", letterSpacing: -0.4 },
   composeButton: { width: 36, height: 36, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#B8B8B8", shadowOpacity: 0.18, shadowRadius: 9, shadowOffset: { width: 0, height: 4 } },
   /** The control beside the search field that opens the device's contacts. */
   searchFilterButton: { width: 30, height: 30, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
   searchFilterButtonActive: { backgroundColor: "rgba(255, 255, 255, 0.55)", borderColor: "rgba(255, 255, 255, 0.85)" },
   glassSheen: { position: "absolute", left: 0, right: 0, top: 0, height: "34%" },
   searchBar: { height: 40, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1.2 },
-  searchInput: { flex: 1, color: "#F5F5F7", fontSize: 13, paddingVertical: 0, outlineStyle: "none" as any },
+  searchInput: { flex: 1, position: "relative", zIndex: 2, color: "#F5F5F7", fontSize: 13, paddingVertical: 0, outlineStyle: "none" as any },
   filterRow: { flexDirection: "row", gap: 7, marginTop: 8, marginBottom: 8 },
   /*
    * The filter chips were the last surface with no material of their own.
@@ -6038,8 +6039,8 @@ const frozenStyles = StyleSheet.create({
    * show the blur sticking out past the fill.
    */
   messageBubble: { maxWidth: "83%", paddingHorizontal: 12, paddingTop: 9, paddingBottom: 6, borderRadius: 16, overflow: "hidden" },
-  theirBubble: { backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder(), borderBottomLeftRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  myBubble: { backgroundColor: "rgba(255, 255, 255, 0.94)", borderWidth: 1, borderColor: glassFieldBorder(), borderBottomRightRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  theirBubble: { backgroundColor: "transparent", borderWidth: 1, borderColor: glassFieldBorder(), borderBottomLeftRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  myBubble: { backgroundColor: "transparent", borderWidth: 1, borderColor: glassFieldBorder(), borderBottomRightRadius: 6, shadowColor: "#DDE6ED", shadowOpacity: 0.055, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
   threadBubbleBorder: { borderColor: "rgba(47, 58, 69, 0.26)" },
   messageText: { color: "#F5F5F7", fontSize: 12.5, lineHeight: 18 },
   myMessageText: { color: "#F5F5F7" },

@@ -15,6 +15,8 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   /** A colour to lay under the glass, for a surface that needs its own cast. */
   fill?: string;
+  /** Omit the white veil on low-alpha panes, keeping their ink contrast intact. */
+  sheen?: boolean;
   /**
    * Render a cast other than the member's current one.
    *
@@ -67,6 +69,7 @@ export function GlassSurface({
   radius = 18,
   style,
   fill,
+  sheen = true,
   cast: castOverride,
   accessibilityLabel,
 }: Props) {
@@ -77,6 +80,8 @@ export function GlassSurface({
   const { glassOpacity, glassTint: activeCast } = useAppAppearance();
   const cast = castOverride ?? activeCast;
   const shape = { borderRadius: radius };
+  const { backgroundColor: callerFill, ...layoutStyle } = StyleSheet.flatten(style) ?? {};
+  const resolvedFill = (typeof callerFill === "string" ? callerFill : undefined) ?? fill ?? glassTint(surface, glassOpacity, cast);
   return (
     <View
       accessibilityLabel={accessibilityLabel}
@@ -90,23 +95,25 @@ export function GlassSurface({
         styles.base,
         shape,
         {
-          backgroundColor: fill ?? glassTint(surface, glassOpacity, cast),
+          backgroundColor: "transparent",
           borderColor: glassEdge(surface, cast),
           shadowColor: GLASS_SHADOW,
           shadowOpacity: GLASS_SHADOW_OPACITY,
         },
-        style,
+        layoutStyle,
       ]}
     >
       <GlassBlur
         intensity={glassBlur(surface)}
+        fill={resolvedFill}
+        texture={false}
         pointerEvents="none"
         style={[StyleSheet.absoluteFillObject, styles.noninteractive, shape]}
       />
-      <View
+      {sheen ? <View
         pointerEvents="none"
         style={[styles.sheen, shape, { backgroundColor: glassVeil(surface, glassOpacity, cast) }]}
-      />
+      /> : null}
       {/*
         A real gradient, not a solid band. See `GlassGlow` for why: a View is a
         rectangle, so the previous solid block of light ended in a step rather than
@@ -168,6 +175,8 @@ export function GlassCard({
 const styles = StyleSheet.create({
   base: {
     borderWidth: 1,
+    // Rounded borders alone do not clip absolute-fill children on Android/web.
+    overflow: "hidden",
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 9 },
     /*

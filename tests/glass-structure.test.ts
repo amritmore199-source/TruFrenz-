@@ -13,6 +13,7 @@ import {
   glassNestedFill,
   glassSheetFill,
   glassSurfaceColor,
+  glassTranslucentPane,
   glassSwitchTrack,
 } from "../lib/glass";
 
@@ -409,7 +410,9 @@ describe("every large surface is built from the whole recipe", () => {
    * fine enough to read as a material rather than as a pattern - which is what the
    * references have and what "2D texture" asks for.
    */
-  const LAYERS = ["glassVeil", "GlassTexture"] as const;
+  // A veil is optional on low-alpha panes: white over the 56%-opaque face
+  // would push white body copy below AA against bright artwork.
+  const LAYERS = ["GlassTexture"] as const;
 
   const SURFACES = [
     "components/glass-texture.tsx",
@@ -432,6 +435,7 @@ describe("every large surface is built from the whole recipe", () => {
         return;
       }
       expect(src).toMatch(/GlassBlur|glassBlur/);
+      if (file === "components/glass-surface.tsx") expect(src).toContain("glassVeil");
       // ...and it must also carry each of the layers that give it an edge and a falloff.
       for (const layer of LAYERS) {
         expect(src).toContain(layer);
@@ -720,4 +724,39 @@ describe("a full-screen sheet", () => {
     );
   });
 });
+});
+
+describe("rounded translucent panes", () => {
+  it("lets about 44% of the artwork show through at the default weight", () => {
+    for (const cast of ["white", "sky"] as const) {
+      const fill = glassTranslucentPane(80, cast);
+      expect(Number(fill.match(/([\d.]+)\)$/)?.[1])).toBeCloseTo(cast === "sky" ? 0.59 : 0.56, 2);
+      // The darkest page pixel may be black; the brightest may be white. On
+      // white, this is the lowest possible contrast for the pane's white ink.
+      const rgba = fill.match(/[\d.]+/g)!.map(Number);
+      const landed = rgba.slice(0, 3).map((channel) => Math.round(channel * rgba[3] + 255 * (1 - rgba[3])));
+      const luma = (rgb: number[]) => rgb.map((v) => {
+        const channel = v / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      }).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+      expect((luma([245, 245, 247]) + 0.05) / (luma(landed) + 0.05)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("clips every glass layer and paints tint on the blur rather than the parent", () => {
+    const surface = read("components/glass-surface.tsx");
+    const welcome = read("components/welcome-screen.tsx");
+    const row = read("components/swipeable-chat-row.tsx");
+    expect(surface).toContain('overflow: "hidden"');
+    expect(surface).toContain("fill={resolvedFill}");
+    expect(welcome).toContain('overflow: "hidden"');
+    expect(welcome).toContain("fill={glassTranslucentPane(glassOpacity, cast)}");
+    expect(row).toContain('overflow: "hidden"');
+    expect(row).toContain("glassTranslucentPane(glassOpacity, cast)");
+    const conversation = read("app/(tabs)/index.tsx");
+    expect(conversation).toContain("fill={glassTranslucentPane(glassOpacity, glassTintChoice)}");
+    expect(conversation).toMatch(/myBubble: \{ backgroundColor: "transparent"/);
+    expect(conversation).toMatch(/theirBubble: \{ backgroundColor: "transparent"/);
+    expect(conversation).toMatch(/searchInput: \{[^}]*position: "relative", zIndex: 2/);
+  });
 });

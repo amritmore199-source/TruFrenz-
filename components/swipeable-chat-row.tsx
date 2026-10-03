@@ -19,8 +19,8 @@ import {GLASS_SHADOW,
   glassBlur,
   glassEdge,
   glassTextureInk,
-  glassTint,
-  glassVeil, glassFieldBorder} from "@/lib/glass";
+  glassTranslucentPane,
+  glassFieldBorder} from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { availabilityView, displayUnread, type ChatRowState } from "@/lib/chat-extras";
 import {
@@ -288,14 +288,10 @@ export function SwipeableChatRow({
             style={[
               StyleSheet.absoluteFillObject,
               styles.rowTint,
-              { backgroundColor: glassTint("row", glassOpacity) },
+              { backgroundColor: glassTranslucentPane(glassOpacity, cast) },
             ]}
           />
-          {/* Light across the whole face, so the row is not one flat field. */}
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFillObject, styles.rowTint, { backgroundColor: glassVeil("row", glassOpacity, cast) }]}
-          />
+          {/* No white veil: the translucent face itself carries the wallpaper. */}
           {/* A pool of light along the top edge, as a real gradient. */}
           {/* The tooth. A row is a pane like any other, and at 46pt the texture is what
               separates it from the card behind it at a glance. */}
@@ -414,6 +410,7 @@ const styles = StyleSheet.create({
     gap: 11,
     borderWidth: 1,
     borderRadius: 16,
+    overflow: "hidden",
     paddingHorizontal: 8,
     paddingVertical: 8,
     shadowColor: GLASS_SHADOW,

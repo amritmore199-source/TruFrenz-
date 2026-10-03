@@ -55,6 +55,8 @@ type Props = {
    * the fill is painted by the surface itself.
    */
   fill?: string;
+  /** The caller can draw its own texture layer instead. */
+  texture?: boolean;
   /** Clips the blur to the surface's own shape. */
   radius?: number;
   /** Applied to the outer element, so a sheet keeps its own box. */
@@ -86,6 +88,7 @@ type Props = {
 export function GlassBlur({
   intensity,
   fill,
+  texture = true,
   radius,
   style,
   pointerEvents = "none",
@@ -158,7 +161,7 @@ export function GlassBlur({
    * It is drawn whenever this element is the surface itself - that is, when it carries
    * the fill - because a scrim has no face to give a texture to.
    */
-  const textureLayer = fill ? (
+  const textureLayer = fill && texture ? (
     <GlassTexture color={glassTextureInk(activeGlassTint())} radius={radius} />
   ) : null;
 

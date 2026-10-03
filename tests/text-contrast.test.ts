@@ -59,6 +59,8 @@ const PAGE = [250, 250, 251];
  * Every entry is a heading rendered directly over the artwork.
  */
 const PAGE_LEVEL_STYLES = new Set([
+  "brandGreeting",
+  "chatTitle",
   "sectionEyebrow",
   "sectionTitle",
   "pageTitle",

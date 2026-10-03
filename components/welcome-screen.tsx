@@ -27,8 +27,9 @@ import {
   ambientIntensityFor,
   glassAmbient,
   glassEdge,
+  glassTranslucentPane,
   glassTextureInk,
-  glassVeil, glassFieldBorder } from "@/lib/glass";
+  glassFieldBorder } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { AmbientField } from "@/components/ambient-field";
 import { GlassTexture } from "@/components/glass-texture";
@@ -246,7 +247,7 @@ export function WelcomeScreen({
           style={[
             styles.glass,
             {
-              backgroundColor: glassSurfaceColor(glassFieldBorder(), glassOpacity),
+              backgroundColor: "transparent",
               borderColor: glassEdge("card", cast),
               shadowColor: GLASS_SHADOW,
               shadowOpacity: GLASS_SHADOW_OPACITY,
@@ -255,15 +256,12 @@ export function WelcomeScreen({
         >
           <GlassBlur
             intensity={42}
+            fill={glassTranslucentPane(glassOpacity, cast)}
+            texture={false}
             pointerEvents="none"
             style={[StyleSheet.absoluteFillObject, styles.glassShape]}
           />
-          {/* The sheen: light across the whole face, which is what stops a large panel
-              reading as one flat field of colour. */}
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFillObject, styles.glassShape, { backgroundColor: glassVeil("card", glassOpacity, cast) }]}
-          />
+          {/* No white veil: it washed the see-through pane grey and reduced label contrast. */}
           {/* The tooth, so the pane reads as a material rather than as a flat field. It sits
               above the blur and below the content, because it belongs to the sheet. */}
           <GlassTexture color={glassTextureInk(cast)} radius={28} />
@@ -500,6 +498,7 @@ const styles = StyleSheet.create({
   guestPillText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   glass: {
     borderRadius: 28,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: glassFieldBorder(),
     shadowColor: "#E9F3FB",
