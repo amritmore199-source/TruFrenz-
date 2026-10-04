@@ -49,13 +49,13 @@ export function UpgradeNudgeCard({ nudge, onUpgrade, onDismiss }: Props) {
     <View
       style={[
         styles.shell,
-        { backgroundColor: glassSurfaceColor(atLimit ? "#FBF3E6" : "#FFFFFF", glassOpacity) },
+        { backgroundColor: "transparent" },
         atLimit && styles.shellAtLimit,
       ]}
       accessibilityRole="summary"
       accessibilityLabel={`${nudge.title}. ${nudge.body}`}
     >
-      <GlassBlur intensity={38} style={StyleSheet.absoluteFill} />
+      <GlassBlur intensity={38} fill={glassSurfaceColor(atLimit ? "#FBF3E6" : "#FFFFFF", glassOpacity)} style={StyleSheet.absoluteFill} />
       <View style={styles.row}>
         <View style={[styles.badge, atLimit && styles.badgeAtLimit]}>
           <MaterialIcons

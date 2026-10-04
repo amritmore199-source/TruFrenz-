@@ -1,5 +1,6 @@
+import { GlassSwitch } from "@/components/glass-switch";
 import React, { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -119,19 +120,19 @@ export function ChatOverflowMenu({
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.muted }} accessibilityLabel={state.muted ? "Unmute notifications" : "Mute notifications"} onPress={onToggleMute} style={styles.row}>
                 <View style={styles.iconBlue}><MaterialIcons name={state.muted ? "notifications-active" : "notifications-off"} size={17} color="#F5F5F7" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.muted ? "Unmute this chat" : "Mute this chat"}</Text><Text style={styles.rowSub}>{state.muted ? "Notifications are paused" : "Stay quiet, keep the badge"}</Text></View>
-                <Switch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <GlassSwitch value={state.muted} onValueChange={onToggleMute} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: state.archived }} accessibilityLabel={state.archived ? "Unarchive conversation" : "Archive conversation"} onPress={onToggleArchive} style={styles.row}>
                 <View style={styles.iconNeutral}><MaterialIcons name={state.archived ? "unarchive" : "archive"} size={17} color="#F5F5F7" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>{state.archived ? "Move back to inbox" : "Archive this chat"}</Text><Text style={styles.rowSub}>{state.archived ? "Returns to your main list" : "Hidden until a new message arrives"}</Text></View>
-                <Switch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <GlassSwitch value={state.archived} onValueChange={onToggleArchive} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <Pressable accessibilityRole="switch" accessibilityState={{ checked: shareReadReceipts }} accessibilityLabel="Show when I have read messages" onPress={() => onToggleReadReceipts(!shareReadReceipts)} style={styles.row}>
                 <View style={styles.iconBlue}><MaterialIcons name="done-all" size={17} color="#F5F5F7" /></View>
                 <View style={styles.copy}><Text style={styles.rowTitle}>Show when I&apos;ve read messages</Text><Text style={styles.rowSub}>{shareReadReceipts ? "Read receipts are on" : "Off by default · your friends see Delivered only"}</Text></View>
-                <Switch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" pointerEvents="none" />
+                <GlassSwitch value={shareReadReceipts} onValueChange={onToggleReadReceipts} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" pointerEvents="none" />
               </Pressable>
 
               <View style={styles.divider} />

@@ -175,8 +175,7 @@ export function PremiumPaywall({
           style={[styles.sheet, { maxWidth: layout.maxWidth, maxHeight: layout.maxHeight }]}
           accessibilityViewIsModal
         >
-          <GlassBlur intensity={46} style={StyleSheet.absoluteFill} glow />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]} />
+          <GlassBlur intensity={46} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} style={StyleSheet.absoluteFill} />
 
           <View style={styles.handle} />
 

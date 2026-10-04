@@ -53,7 +53,9 @@ export const MAX_GLASS_ALPHA = 0.90;
  * glass. This one step moves every surface class at once, which is the point: the
  * complaint was never about one card.
  */
-const BASE_ALPHA = 0.70;
+// Leave a meaningful portion of the page behind cards, settings rows and sheets.
+// Contrast is checked against the brightest possible backdrop in glass tests.
+const BASE_ALPHA = 0.60;
 
 /** How much a surface's own declared alpha can add, at most. */
 const MAX_DECLARED_WEIGHT = 0.11;
@@ -138,13 +140,13 @@ const TINTS: Record<GlassTint, Rgb> = {
    * It is at a depth that carries white ink at roughly 7:1, well clear of the 4.5:1 floor,
    * so the ink floor never has to pull it darker.
    */
-  white: { r: 62, g: 60, b: 58 },
+  white: { r: 28, g: 28, b: 28 },
   /*
    * Sky - the optional cast, the same dark material with a cool lean rather than a blue
    * theme. It is deeper in blue and slightly lighter overall so it stays recognisably a
    * different temperature rather than a different material.
    */
-  sky: { r: 40, g: 48, b: 62 },
+  sky: { r: 18, g: 26, b: 50 },
 };/** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
   /*
@@ -542,20 +544,9 @@ const SURFACE_WEIGHT: Record<GlassSurface, number> = {
   panel: 0.08,
   row: 0.02,
   chip: 0,
-  /*
-   * The bar is the one surface that deliberately did *not* follow BASE_ALPHA up.
-   *
-   * Its weights were calibrated as offsets from the base, and the bar carries the
-   * app's only two-state control: an active pill with dark ink on it and an inactive
-   * icon in a mid-grey. That pair only works while the bar stays light. Measured at
-   * the raised base, the bar composite dropped to #A3A3A2, where a quiet icon needs
-   * near-black to clear 3:1 — which is the same ink the active pill uses, so the
-   * active and inactive states would have become indistinguishable.
-   *
-   * Absorbing the 0.04 here keeps the bar exactly where it was calibrated while every
-   * card, panel, field and row gains the depth the member asked for.
-   */
-  tab: 0.08,
+  // The bar retains its previously tested text contrast while the content panes
+  // become more translucent. Its blur still reveals the scene beneath it.
+  tab: 0.18,
   field: 0.07,
   // A surface that floats over another surface rather than over the wallpaper.
   // Slightly lighter than a card so a nested panel reads as inset rather than as

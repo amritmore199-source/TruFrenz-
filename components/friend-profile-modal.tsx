@@ -124,8 +124,8 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <GlassBlur intensity={58} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close profile" onPress={onClose} />
-        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
-          <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
+        <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: "transparent" }]}>
+          <GlassBlur intensity={64} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
           <View style={styles.header}>
             <View style={styles.handle} />
             <Pressable onPress={onClose} style={styles.close} accessibilityLabel="Close profile">

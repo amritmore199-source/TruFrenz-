@@ -460,31 +460,14 @@ describe("every large surface is built from the whole recipe", () => {
   });
 });
 
-describe("the appearance picker shows the edge it is describing", () => {
-  /*
-   * The two rim lines are the most misread part of this material. A card whose outer
-   * rim and inner hairline are both near-white has one edge drawn twice, not a double
-   * rim - and that defect has been reported more than once, because at card scale the
-   * pair is two hairlines a pixel or two apart and cannot be judged from a screen.
-   *
-   * The picker therefore shows the corner enlarged, built from the same two resolvers
-   * the real surfaces use so it cannot drift out of step with what it describes. This
-   * guards that it keeps doing so: a hand-picked colour here would look right and be
-   * wrong, which is exactly the failure the sample exists to prevent.
-   */
+describe("the appearance picker shows the single edge it is describing", () => {
   const screen = readFileSync(join(process.cwd(), "app/(tabs)/index.tsx"), "utf8");
 
-  it("builds the sample from the live resolvers rather than fixed colours", () => {
+  it("uses the cast-aware outer rim, with no retired inner hairline", () => {
     expect(screen).toContain("rimSampleOuter");
-    expect(screen).toContain("rimSampleInner");
     expect(screen).toMatch(/glassEdge\("card", glassTintChoice\)/);
-    expect(screen).toMatch(/glassInnerRim\(glassTintChoice\)/);
-  });
-
-  it("insets the sample by the same constant the real surfaces use", () => {
-    // The gap shown has to be the gap they get, or the sample teaches the wrong thing.
-    expect(screen).toContain("GLASS_RIM_INNER_INSET");
-    expect(screen).toMatch(/rimSampleInner:[^}]*GLASS_RIM_INNER_INSET/);
+    expect(screen).not.toContain("rimSampleInner");
+    expect(screen).not.toContain("GLASS_RIM_INNER_INSET");
   });
 });
 
@@ -554,22 +537,13 @@ describe("the single rim, the grain and the rounded corners", () => {
 describe("the surface layers that were measured wrong", () => {
   const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 
-  it("puts the fill under the blur on native, so expo-blur's white overlay cannot dilute it", () => {
-    /*
-     * The Android half of the defect the web half already had. expo-blur's Android view draws
-     * its blurred backdrop *over* the view's own background, and for the DEFAULT tint that
-     * backdrop is rgba(255,255,255, 0.44 * intensity/100) - a white film. Passing our fill as
-     * the BlurView's own style therefore put it underneath that film, and the member's panel
-     * rendered rgb(155,155,155) where an 82% charcoal fill composites to about 110.
-     *
-     * The fill must be a sibling behind the BlurView, not a style on it.
-     */
+  it("blurs the artwork first and overlays the glass cast on native", () => {
+    // A tint underneath BlurView is just a flat background for native blur to sample.
+    // The contrast-safe cast must overlay the *result* of blurring the scene.
     const src = read("components/glass-blur.tsx");
-    const native = src.slice(src.indexOf("BlurView"));
-    // The BlurView's style must not carry the tint...
-    expect(native).not.toMatch(/<BlurView[\s\S]*?style=\{\[StyleSheet\.absoluteFillObject, shape, tint\]\}/);
-    // ...and a fill layer must be rendered before it.
-    expect(native).toMatch(/shape, tint\]\} \/>\s*<BlurView/);
+    expect(src).toMatch(/<BlurView[\s\S]*?\/>\s*\{tint \? <View pointerEvents="none" style=\{\[StyleSheet\.absoluteFillObject, shape, tint\]\}/);
+    expect(src).toContain('experimentalBlurMethod="dimezisBlurView"');
+    expect(src).toContain('blurReductionFactor={2}');
   });
 
   it("carries no top glow on any surface", () => {

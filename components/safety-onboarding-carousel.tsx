@@ -3,10 +3,12 @@ import React, { useRef, useState } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useAppAppearance } from "@/lib/appearance-context";
 import { nextSafetySlide, previousSafetySlide, safetyOnboardingSlides } from "@/lib/onboarding-carousel";
 
-import { glassFieldBorder } from "@/lib/glass";
+import { glassFieldBorder, glassTint } from "@/lib/glass";
 export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => void }) {
+  const { glassOpacity, glassTint: cast } = useAppAppearance();
   const [index, setIndex] = useState(0);
   const opacity = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -48,7 +50,7 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
           if (delta > 55 && index > 0) goBack();
         }}
       >
-        <GlassBlur intensity={32} style={styles.glassCard}>
+        <GlassBlur intensity={56} fill={glassTint("card", glassOpacity, cast)} style={styles.glassCard}>
           <View style={styles.cardContent}>
             <View style={styles.iconHalo}><MaterialIcons name={slide.icon} size={25} color="#F5F5F7" /></View>
             <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
@@ -80,7 +82,7 @@ const styles = StyleSheet.create({
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(255, 255, 255, 0.24)" },
   progressTrackActive: { backgroundColor: "#A78FA9" },
   slideAnimated: { width: "100%" },
-  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
+  glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: "transparent" },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
   iconHalo: { width: 48, height: 48, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 1, borderColor: glassFieldBorder() },
   eyebrow: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1.05, marginTop: 16 },

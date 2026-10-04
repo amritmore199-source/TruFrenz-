@@ -104,7 +104,7 @@ export function AttachmentSheet({ visible, onClose, onPickPhoto, onSend, onSugge
         <GlassBlur intensity={35} style={[styles.sheet, { maxWidth: modalLayout.maxWidth}]}
           fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} glow
 >
-          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={styles.card}>
             <View style={styles.handle} />
 
             {mode === "menu" ? (

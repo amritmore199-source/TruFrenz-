@@ -84,8 +84,9 @@ describe("appearance preferences", () => {
   it("passes unrecognised colour formats straight through", () => {
     // Hex is understood now, so a hex white is glassed like any other neutral.
     const hexed = glassSurfaceColor("#FFFFFF", 70, "white");
-    const [hr, , hb] = hexed.match(/\d+/g)!.slice(0, 3).map(Number);
-    expect(hr).toBeGreaterThan(hb);
+    const [hr, hg, hb] = hexed.match(/\d+/g)!.slice(0, 3).map(Number);
+    expect(hr).toBe(hg);
+    expect(hg).toBe(hb);
     expect(glassSurfaceColor("papayawhip", 70)).toBe("papayawhip");
   });
 });

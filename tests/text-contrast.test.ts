@@ -61,6 +61,8 @@ const PAGE = [250, 250, 251];
 const PAGE_LEVEL_STYLES = new Set([
   "brandGreeting",
   "chatTitle",
+  "settingsLabel",
+  "offerBoundary",
   "sectionEyebrow",
   "sectionTitle",
   "pageTitle",

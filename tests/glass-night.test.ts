@@ -13,6 +13,8 @@ import {
   glassAmbient,
   glassNestedSurfaceColor,
   glassSurfaceColor,
+  glassTint,
+  glassVeil,
   matchGlassPreset,
   setActiveGlassOpacity,
   tabBarTint,
@@ -93,6 +95,18 @@ function hex(value: string): [number, number, number] {
 const WALLPAPER_BRIGHTEST: [number, number, number] = [252, 252, 253];
 const WALLPAPER_DARKEST: [number, number, number] = [214, 214, 216];
 const WALLPAPER_AVERAGE: [number, number, number] = [236, 236, 238];
+
+describe("transparent surface legibility", () => {
+  it("keeps white text at AA over the brightest artwork, including the reflective sheen", () => {
+    for (const cast of GLASS_TINT_OPTIONS) {
+      for (const kind of ["card", "panel", "row", "chip", "field", "floater"] as const) {
+        const landed = over(parseRgba(glassVeil(kind, 80, cast)),
+          over(parseRgba(glassTint(kind, 80, cast)), WALLPAPER_BRIGHTEST));
+        expect(contrast(hex("#F5F5F7"), landed), `${cast} ${kind}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+});
 
 describe("the casts on offer", () => {
   it("offers the two glass colours the member chooses between", () => {

@@ -42,8 +42,8 @@ export function QuickRepliesModal({
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <GlassBlur intensity={34} style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close quick replies" onPress={onClose} />
-        <Pressable style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]} onPress={(event) => event.stopPropagation()}>
-          <GlassBlur intensity={39} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
+        <Pressable style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: "transparent" }]} onPress={(event) => event.stopPropagation()}>
+          <GlassBlur intensity={39} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
           <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.handle} />
           <View style={styles.headingRow}>

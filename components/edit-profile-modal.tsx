@@ -1,5 +1,6 @@
+import { GlassSwitch } from "@/components/glass-switch";
 import React, { useEffect, useState } from "react";
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -100,8 +101,8 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
         <GlassBlur intensity={28} style={StyleSheet.absoluteFill} pointerEvents="none" />
           <GlassBlur intensity={56} style={StyleSheet.absoluteFill} />
           <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close edit profile" onPress={onClose} />
-          <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
-            <GlassBlur intensity={64} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
+          <View style={[styles.sheet, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight, backgroundColor: "transparent" }]}>
+            <GlassBlur intensity={64} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} pointerEvents="none" style={StyleSheet.absoluteFill} glow />
             <View style={styles.header}>
               <View style={styles.headerText}>
                 <Text style={styles.eyebrow}>EDIT PROFILE</Text>
@@ -341,7 +342,7 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   <Text style={styles.switchTitle}>Available for a hello</Text>
                   <Text style={styles.switchSub}>Controls discovery and whether friends can reach you.</Text>
                 </View>
-                <Switch accessibilityLabel="Available for a hello" value={profile.available} onValueChange={(value) => patch({ available: value })} trackColor={{ false: "#D6DBDE", true: "#D4D4D4" }} thumbColor="#FFFFFF" />
+                <GlassSwitch accessibilityLabel="Available for a hello" value={profile.available} onValueChange={(value) => patch({ available: value })} trackColor={{ false: "#D6DBDE", true: "#D4D4D4" }} thumbColor="#FFFFFF" />
               </View>
 
               <Pressable onPress={() => setPrivacyOpen((current) => !current)} accessibilityLabel="Toggle privacy controls" style={styles.privacyHeader}>
@@ -364,11 +365,11 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide from discovery</Text><Text style={styles.switchSub}>You stay invisible in suggestions.</Text></View>
-                    <Switch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
+                    <GlassSwitch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide exact locality</Text><Text style={styles.switchSub}>Show only a broad “~X km” range.</Text></View>
-                    <Switch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
+                    <GlassSwitch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
                   </View>
                   <Pressable onPress={() => onNotify(`Block list · ${profile.privacy.blockedIds.length} blocked member(s).`)} accessibilityLabel="Open block list" style={({ pressed }) => [styles.blockList, pressed && styles.pressed]}>
                     <MaterialIcons name="block" size={15} color="#F5F5F7" />

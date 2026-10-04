@@ -235,11 +235,11 @@ export function ManageSubscriptionModal({
             {
               maxWidth: layout.maxWidth,
               maxHeight: layout.maxHeight,
-              backgroundColor: panelColor,
+              backgroundColor: "transparent",
             },
           ]}
         >
-          <GlassBlur intensity={46} style={StyleSheet.absoluteFill} glow />
+          <GlassBlur intensity={46} fill={panelColor} style={StyleSheet.absoluteFill} glow />
           <View style={styles.handle} />
 
           <View style={styles.headerRow}>

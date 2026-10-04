@@ -122,8 +122,8 @@ export function IncomingNotificationBanner({
       accessibilityHint="Swipe left or right to dismiss, or use the dismiss control."
       style={[styles.position, { opacity, pointerEvents: notification ? "auto" : "none", transform: [{ translateX }, { translateY }, { scale }] }]}
     >
-      <View style={[styles.surface, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
-        <GlassBlur intensity={44} style={StyleSheet.absoluteFill} />
+      <View style={[styles.surface, { backgroundColor: "transparent" }]}>
+        <GlassBlur intensity={44} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
             <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#A78FA9" : "#8C8C8C"} />

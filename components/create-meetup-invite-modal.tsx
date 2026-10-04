@@ -79,7 +79,8 @@ export function CreateMeetupInviteModal({ visible, onClose, onShare, contacts, i
         <GlassBlur intensity={38} style={StyleSheet.absoluteFillObject} glow />
         <Pressable accessibilityLabel="Close meetup invite" style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.keyboard, { width: "100%", maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight }]}>
-            <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight, backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
+            <View style={[styles.sheet, { maxHeight: modalLayout.maxHeight, backgroundColor: "transparent" }]}>
+              <GlassBlur intensity={38} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} style={StyleSheet.absoluteFillObject} />
               <View style={styles.header}>
                 <View style={styles.handle} />
                 <View style={styles.headerRow}><View><Text style={styles.headerEyebrow}>A SMALL, FRIENDLY PLAN</Text><Text style={styles.headerTitle}>Create Meetup Invite</Text></View><Pressable accessibilityLabel="Close meetup invite" onPress={onClose} style={styles.closeButton}><MaterialIcons name="close" size={19} color="#F5F5F7" /></Pressable></View>

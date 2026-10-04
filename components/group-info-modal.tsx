@@ -1,5 +1,6 @@
+import { GlassSwitch } from "@/components/glass-switch";
 import React, { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { GlassBlur } from "@/components/glass-blur";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -70,7 +71,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
         <GlassBlur intensity={35} style={[styles.sheet, { maxWidth: modalLayout.maxWidth, maxHeight: modalLayout.maxHeight}]}
           fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} glow
 >
-          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.card, { backgroundColor: glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity) }]}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={styles.card}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.topLine}>
                 <View style={styles.groupPhoto}><MaterialIcons name="groups" size={22} color="#FFFFFF" /></View>
@@ -154,7 +155,7 @@ export function GroupInfoModal({ visible, group, viewerId, friendDirectory, onCl
               <View style={styles.settingRow}>
                 <MaterialIcons name="notifications-off" size={16} color="#F5F5F7" />
                 <View style={styles.memberCopy}><Text style={styles.settingTitle}>Mute notifications</Text><Text style={styles.memberRole}>Your choice only — other members are unaffected</Text></View>
-                <Switch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
+                <GlassSwitch value={group.settings.muted} onValueChange={() => onUpdate({ ...group, settings: { ...group.settings, muted: !group.settings.muted } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
               </View>
 
               <Pressable accessibilityRole="button" accessibilityLabel="Start a group call" onPress={() => { onFeedback(callGate.message); if (callGate.allowed) onStartGroupCall(); }} style={({ pressed }) => [styles.callRow, pressed && styles.pressed]}>

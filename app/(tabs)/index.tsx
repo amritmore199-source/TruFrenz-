@@ -1,3 +1,4 @@
+import { GlassSwitch } from "@/components/glass-switch";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -18,7 +19,6 @@ import {
   StatusBar,
   type StyleProp,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -307,7 +307,7 @@ import {
   type BizzOfferDraft,
 } from "@/lib/bizz-offers";
 import { GLASS_PRESETS,
-  GLASS_RIM_INNER_INSET, GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassTextureInk, glassTranslucentPane, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassInnerRim, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
+  GLASS_SHADOW, GLASS_SHADOW_OPACITY, glassTextureInk, glassTranslucentPane, glassTint, ambientIntensityFor, glassAmbient, glassBlur, glassEmptyAccent, glassQuietTabInk, glassSectionAccent, glassTabAccent, glassSwitchTrack, glassEdge, glassSwatchEdge, glassFieldBorder, glassVeil, matchGlassPreset, tabBarTint, type GlassTint, type TabAccent } from "@/lib/glass";
 import { useAppAppearance } from "@/lib/appearance-context";
 import { wallpaperSource } from "@/lib/wallpaper";
 import { CHAT_NIGHT } from "@/lib/chat-appearance";
@@ -575,8 +575,8 @@ const cardStyles = StyleSheet.create({
    * corners: the fill was rounded and the box drawn around it was not.
    */
   frosted: { borderRadius: 19, shadowColor: GLASS_SHADOW, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.075, shadowRadius: 15 },
-  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder(), paddingHorizontal: 14, shadowColor: "#B8B8B8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 9 },
-  actionButtonSecondary: { backgroundColor: "#D0D0CE" },
+  actionButton: { height: 43, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 14, overflow: "hidden", backgroundColor: "transparent", borderWidth: 1, borderColor: glassEdge("chip"), paddingHorizontal: 14 },
+  actionBlur: { ...StyleSheet.absoluteFillObject, borderRadius: 14, overflow: "hidden" },
   actionButtonDisabled: { opacity: 0.62 },
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
 });
@@ -602,15 +602,16 @@ function Frosted({ children, style }: { children: React.ReactNode; style?: Style
 }
 
 function ActionButton({ children, onPress, style, secondary = false, disabled = false }: { children: React.ReactNode; onPress: () => void; style?: object; secondary?: boolean; disabled?: boolean }) {
-  // A disabled button still reports its state, so a screen reader explains why
-  // the action is unavailable rather than silently ignoring the tap.
-  const action = cardStyles.actionButton;
-  /*
-   * The primary button is a lemon accent, so its own fill passes through the
-   * re-resolver unchanged; only its neutral rim is re-resolved, which is what
-   * keeps the button part of the same glass as the card it sits on.
-   */
-  return <Pressable onPress={disabled ? undefined : onPress} disabled={disabled} accessibilityState={{ disabled }} style={({ pressed }) => [action, { backgroundColor: liveGlass(action.backgroundColor), borderColor: liveGlass(action.borderColor) }, secondary && cardStyles.actionButtonSecondary, style, disabled && cardStyles.actionButtonDisabled, pressed && !disabled && cardStyles.pressed]}>{children}</Pressable>; }
+  const { glassOpacity, glassTint: cast } = useAppAppearance();
+  const fill = glassTint(secondary ? "chip" : "card", glassOpacity, cast);
+  return (
+    <Pressable onPress={disabled ? undefined : onPress} disabled={disabled} accessibilityState={{ disabled }}
+      style={({ pressed }) => [cardStyles.actionButton, style, disabled && cardStyles.actionButtonDisabled, pressed && !disabled && cardStyles.pressed]}>
+      <GlassBlur intensity={48} fill={fill} style={cardStyles.actionBlur} />
+      {children}
+    </Pressable>
+  );
+}
 
 export default function TrufrenzApp() {
   const modalLayout = useResponsiveModalLayout();
@@ -4692,18 +4693,18 @@ export default function TrufrenzApp() {
     {joined ? <Pressable onPress={() => setSelfieModalVisible(true)} style={({ pressed }) => [styles.selfieEntry, pressed && styles.pressed]}><View style={styles.selfieEntryIcon}><Icon name="face-retouching-natural" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Optional selfie identity check</Text><Text style={styles.settingSub}>Capture locally · verified badge only after provider review.</Text></View><Icon name="chevron-right" size={18} color="#F5F5F7" /></Pressable> : null}
     <Text style={styles.settingsLabel}>HOW YOU SHOW UP</Text>
     <Frosted style={styles.settingsPanel}>
-      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="circle" size={16} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Available for a hello</Text><Text style={styles.settingSub}>Let accepted friends know you&apos;re around.</Text></View><View style={styles.toggleFrame}><Switch value={available} onValueChange={(value) => { setAvailable(value); tap(); feedback(value ? "You're showing as available." : "Available status paused."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="circle" size={16} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Available for a hello</Text><Text style={styles.settingSub}>Let accepted friends know you&apos;re around.</Text></View><View style={styles.toggleFrame}><GlassSwitch value={available} onValueChange={(value) => { setAvailable(value); tap(); feedback(value ? "You're showing as available." : "Available status paused."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="visibility-off" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Appear in suggestions</Text><Text style={styles.settingSub}>You can pause discovery any time.</Text></View><View style={styles.toggleFrame}><Switch value={discoverable} onValueChange={(value) => { setDiscoverable(value); tap(); feedback(value ? "You&apos;re back in suggestions." : "You&apos;ve been hidden from suggestions."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="visibility-off" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Appear in suggestions</Text><Text style={styles.settingSub}>You can pause discovery any time.</Text></View><View style={styles.toggleFrame}><GlassSwitch value={discoverable} onValueChange={(value) => { setDiscoverable(value); tap(); feedback(value ? "You&apos;re back in suggestions." : "You&apos;ve been hidden from suggestions."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       {/* Exact distance is a Premium feature, so turning the softening off offers the upgrade. */}
-      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="my-location" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Soften my distance</Text><Text style={styles.settingSub}>Show a broad area, never an exact pin.</Text></View><View style={styles.toggleFrame}><Switch value={blurDistance} onValueChange={(value) => { if (!value) { const mapPermission = liveMapGate(tier); if (!mapPermission.allowed) { openPaywall(mapPermission.message, "quarterly"); return; } } setBlurDistance(value); tap(); feedback(value ? "Approximate distance is on." : "Exact distance is visible now."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="my-location" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Soften my distance</Text><Text style={styles.settingSub}>Show a broad area, never an exact pin.</Text></View><View style={styles.toggleFrame}><GlassSwitch value={blurDistance} onValueChange={(value) => { if (!value) { const mapPermission = liveMapGate(tier); if (!mapPermission.allowed) { openPaywall(mapPermission.message, "quarterly"); return; } } setBlurDistance(value); tap(); feedback(value ? "Approximate distance is on." : "Exact distance is visible now."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
     </Frosted>
     <Text style={styles.settingsLabel}>PRIVACY & LITTLE EXTRAS</Text>
     <Frosted style={styles.settingsPanel}>
       <Pressable onPress={() => feedback("Safety center · report, block, and meetup reminders.")} style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="shield" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Safety center</Text><Text style={styles.settingSub}>Report, block, and meetup comfort.</Text></View><Icon name="chevron-right" size={18} color="#F5F5F7" /></Pressable>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="contacts" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Let people find me by phone</Text><Text style={styles.settingSub}>{joined ? "Only members who choose to check contacts can find you. Off until you opt in." : "Log in to choose whether contacts can find you."}</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Allow other Trufrenz members to find me by phone contact" value={joined ? contactDiscoveryEnabled : false} disabled={!joined || contactPreferenceBusy} onValueChange={(value) => void updateContactDiscoveryPreference(value)} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="contacts" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Let people find me by phone</Text><Text style={styles.settingSub}>{joined ? "Only members who choose to check contacts can find you. Off until you opt in." : "Log in to choose whether contacts can find you."}</Text></View><View style={styles.toggleFrame}><GlassSwitch accessibilityLabel="Allow other Trufrenz members to find me by phone contact" value={joined ? contactDiscoveryEnabled : false} disabled={!joined || contactPreferenceBusy} onValueChange={(value) => void updateContactDiscoveryPreference(value)} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       {/*
         Quiet hours, above the subscription row because it applies to everyone
@@ -4711,7 +4712,7 @@ export default function TrufrenzApp() {
         hours underneath only appear once it is on, so the row stays one line for
         the members who never want it.
       */}
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="bedtime" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Quiet hours</Text><Text style={styles.settingSub}>{describeQuietHours(quietHours)}</Text>{quietHours.enabled ? <View style={styles.quietHoursControls}><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(quietHours.startHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#F5F5F7" /></Pressable><Text style={styles.quietHourValue}>Starts {hourLabel(quietHours.startHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(shiftHour(quietHours.startHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#F5F5F7" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(quietHours.endHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#F5F5F7" /></Pressable><Text style={styles.quietHourValue}>Ends {hourLabel(quietHours.endHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(shiftHour(quietHours.endHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#F5F5F7" /></Pressable></View> : null}</View><View style={styles.toggleFrame}><Switch value={quietHours.enabled} onValueChange={(value) => { setQuietHours((current) => ({ ...current, enabled: value })); tap(); feedback(value ? `Quiet from ${hourLabel(quietHours.startHour)} to ${hourLabel(quietHours.endHour)}.` : "Quiet hours off. Notifications can reach you again."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="bedtime" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Quiet hours</Text><Text style={styles.settingSub}>{describeQuietHours(quietHours)}</Text>{quietHours.enabled ? <View style={styles.quietHoursControls}><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(quietHours.startHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#F5F5F7" /></Pressable><Text style={styles.quietHourValue}>Starts {hourLabel(quietHours.startHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to start at ${hourLabel(shiftHour(quietHours.startHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, startHour: shiftHour(current.startHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#F5F5F7" /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(quietHours.endHour)}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, -1) })); tap(); }} style={styles.quietHourButton}><Icon name="remove" size={13} color="#F5F5F7" /></Pressable><Text style={styles.quietHourValue}>Ends {hourLabel(quietHours.endHour)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Set quiet hours to end at ${hourLabel(shiftHour(quietHours.endHour, 1))}`} onPress={() => { setQuietHours((current) => ({ ...current, endHour: shiftHour(current.endHour, 1) })); tap(); }} style={styles.quietHourButton}><Icon name="add" size={13} color="#F5F5F7" /></Pressable></View> : null}</View><View style={styles.toggleFrame}><GlassSwitch value={quietHours.enabled} onValueChange={(value) => { setQuietHours((current) => ({ ...current, enabled: value })); tap(); feedback(value ? `Quiet from ${hourLabel(quietHours.startHour)} to ${hourLabel(quietHours.endHour)}.` : "Quiet hours off. Notifications can reach you again."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       <View style={styles.settingDivider} />
       <Pressable onPress={() => { tap(); if (paidTier) { setManageOpen(true); } else { openPaywall(undefined, subscription.planId); } }} accessibilityRole="button" accessibilityLabel={paidTier ? `Manage Trufrenz Premium, ${tierLabel(tier)}` : "Upgrade to Trufrenz Premium"} style={styles.settingRow}><View style={styles.settingIconPink}><Icon name="workspace-premium" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>{paidTier ? "Trufrenz Premium" : "A little more Trufrenz"}</Text><Text style={styles.settingSub}>{paidTier ? `${activePlanLine(subscription)} · manage` : "Calls, live map, and read receipts · from ₹49"}</Text></View><View style={[styles.tierPill, paidTier && styles.tierPillActive]}><Text style={[styles.tierPillText, paidTier && styles.tierPillTextActive]}>{tierLabel(tier)}</Text></View></Pressable><Pressable onPress={() => { setCallSession(createCallSession({ id: `call-${Date.now()}`, peerName: "Maya Chen", peerVerified: true, video: false, direction: "incoming" })); tap(); }} accessibilityRole="button" accessibilityLabel="Preview an incoming call screen" style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="call" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Preview an incoming call</Text><Text style={styles.settingSub}>Caller photo, verified badge, Accept or Decline</Text></View><Icon name="chevron-right" size={17} color="#F5F5F7" /></Pressable>
     </Frosted>
@@ -4940,7 +4941,7 @@ export default function TrufrenzApp() {
         </View>
       </View>
       <View style={styles.settingDivider} />
-      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the crew artwork behind the glass. Its tone follows your glass colour.</Text></View><View style={styles.toggleFrame}><Switch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
+      <View style={styles.settingRow}><View style={styles.settingIconBlue}><Icon name="wallpaper" size={17} color="#F5F5F7" /></View><View style={styles.settingContent}><Text style={styles.settingTitle}>Show wallpaper</Text><Text style={styles.settingSub}>Use the crew artwork behind the glass. Its tone follows your glass colour.</Text></View><View style={styles.toggleFrame}><GlassSwitch accessibilityLabel="Show wallpaper" value={wallpaperVisible} onValueChange={(value) => { setWallpaperVisible(value); tap(); feedback(value ? "Wallpaper is visible." : "Wallpaper is hidden."); }} trackColor={{ false: switchTrack.off, true: switchTrack.on }} thumbColor="#FFFFFF" /></View></View>
       {/*
         The double rim, at the size it actually appears.
         *
@@ -4957,12 +4958,10 @@ export default function TrufrenzApp() {
         * drift out of step with what it is describing.
         */}
       <View style={styles.rimSample}>
-        <View style={[styles.rimSampleOuter, { borderColor: glassEdge("card", glassTintChoice) }]}>
-          <View style={[styles.rimSampleInner, { borderColor: glassInnerRim(glassTintChoice) }]} />
-        </View>
+        <View style={[styles.rimSampleOuter, { borderColor: glassEdge("card", glassTintChoice) }]} />
         <View style={styles.rimSampleCopy}>
-          <Text style={styles.settingTitle}>The edge, four times life size</Text>
-          <Text style={styles.settingSub}>The outer line catches the light; the inner line carries the colour.</Text>
+          <Text style={styles.settingTitle}>A softly lit outer edge</Text>
+          <Text style={styles.settingSub}>One rounded rim catches the light around the transparent pane.</Text>
         </View>
       </View>
     </Frosted>
@@ -5539,7 +5538,7 @@ export default function TrufrenzApp() {
         differs a little per section, because the content behind the bar ranges
         from dense chat rows to an almost empty screen.
       */}
-      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: tabBarTint(tabAccent, glassOpacity, glassTintChoice), borderTopColor: glassEdge("tab", glassTintChoice) }]}><GlassBlur intensity={glassBlur("tab")} style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
+      {showWelcome || !bottomBarVisible ? null : <View style={[styles.bottomBar, { backgroundColor: "transparent", borderTopColor: glassEdge("tab", glassTintChoice) }]}><GlassBlur intensity={glassBlur("tab")} fill={tabBarTint(tabAccent, glassOpacity, glassTintChoice)} style={[StyleSheet.absoluteFillObject, styles.noninteractive]} /><View pointerEvents="none" style={[styles.glassSheen, { backgroundColor: glassVeil("tab", glassOpacity, glassTintChoice) }]} />{BOTTOM_SECTIONS.map((section) => { const active = sectionForDestination(tab) === section.id && !selectedChat;
         /*
          * The active pill takes its own section's colour rather than one shared
          * lemon, so the bar says *what* is selected and not merely *that* something
@@ -5586,9 +5585,10 @@ export default function TrufrenzApp() {
             <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <Text style={styles.pageEyebrow}>{authStep === "phone" ? (authIntent === "login" ? "WELCOME BACK" : `STEP 1 OF 4 · ${authChannel === "email" ? "EMAIL" : "PHONE"}`) : authStep === "code" ? "ONE SMALL SAFETY STEP" : authStep === "profile" ? "STEP 2 OF 4 · ABOUT YOU" : authStep === "photo" ? "STEP 3 OF 4 · YOUR PHOTO" : "STEP 4 OF 4 · ALL SET"}</Text>
               <Text style={styles.modalTitle}>{authStep === "phone" ? (authIntent === "login" ? "Log in with\nyour number." : "Your number.\nYour own account.") : authStep === "code" ? "Check your\nphone." : authStep === "profile" ? "What should friends\ncall you?" : authStep === "photo" ? "Show your\nfriendly face." : "You're ready\nto belong."}</Text>
-<View style={[styles.modalCard, { backgroundColor: glassSheetFill("rgba(0, 0, 0, 0.10)", glassOpacity, glassTintChoice), borderColor: glassEdge("card", glassTintChoice) }]}>
+<View style={[styles.modalCard, { backgroundColor: "transparent", borderColor: glassEdge("card", glassTintChoice) }]}>
                 <GlassBlur
                   intensity={42}
+                  fill={glassSheetFill("rgba(0, 0, 0, 0.10)", glassOpacity, glassTintChoice)}
                   pointerEvents="none"
                   style={[StyleSheet.absoluteFillObject, styles.modalCardShape]}
                 />
@@ -6291,7 +6291,7 @@ const frozenStyles = StyleSheet.create({
   guestLoginText: { color: "#F5F5F7", fontSize: 12.5, fontWeight: "700" },
   phoneRequired: { flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", marginTop: 10 },
   phoneRequiredText: { color: "#F5F5F7", fontSize: 12 },
-  settingsLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 11, marginBottom: 6 },
+  settingsLabel: { color: "#45433F", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 11, marginBottom: 6 },
   settingsPanel: { paddingHorizontal: 11, borderRadius: 17 },
   appearancePanel: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 17 },
   appearanceHeadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 9 },
@@ -6363,7 +6363,6 @@ const frozenStyles = StyleSheet.create({
    */
   rimSample: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 12 },
   rimSampleOuter: { width: 74, height: 74, borderRadius: 18, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
-  rimSampleInner: { position: "absolute", left: GLASS_RIM_INNER_INSET, right: GLASS_RIM_INNER_INSET, top: GLASS_RIM_INNER_INSET, bottom: GLASS_RIM_INNER_INSET, borderRadius: 14, borderWidth: 1.5 },
   rimSampleCopy: { flex: 1 },
   settingDivider: { height: 1, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   premiumLock: { width: 24, height: 24, borderRadius: 9, backgroundColor: "#CFD0D0", alignItems: "center", justifyContent: "center" },
@@ -6475,7 +6474,7 @@ const frozenStyles = StyleSheet.create({
   offerBubbleLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.8 },
   offerBubbleWhat: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "700", lineHeight: 19 },
   offerBubbleDetail: { color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
-  offerBubblePrice: { color: "#FFFFFF", fontSize: 12, fontWeight: "700", marginTop: 1 },  offerBoundary: { color: "#F5F5F7", fontSize: 12, lineHeight: 17, marginTop: 9, marginHorizontal: 2 },
+  offerBubblePrice: { color: "#FFFFFF", fontSize: 12, fontWeight: "700", marginTop: 1 },  offerBoundary: { color: "#45433F", fontSize: 12, lineHeight: 17, marginTop: 9, marginHorizontal: 2 },
   offerSheet: { width: "100%", maxWidth: 360, borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), padding: 16, gap: 8, shadowColor: "#E9F3FA", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   offerSheetEyebrow: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1.2 },
   offerSheetTitle: { color: "#F5F5F7", fontSize: 18, fontWeight: "700", marginTop: 5, letterSpacing: -0.3 },

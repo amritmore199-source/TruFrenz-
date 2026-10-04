@@ -117,35 +117,20 @@ export function GlassBlur({
         ]}
       />
     ) : (
-      <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape]}>
-        {/*
-          The fill goes *under* the blur on native, not on it.
-
-          This is the Android half of the same defect the web half had, and it was found by
-          measuring the member's screenshot rather than by reading: the welcome panel
-          rendered rgb(155,155,155) on the phone where an 82% charcoal fill composites to
-          about 110. The blur layer was adding roughly 20 points of light to every surface.
-
-          The cause is in expo-blur's own Android view
-          (`expo-blur/android/.../ExpoBlurView.kt`): it draws its blurred backdrop *over*
-          the view's background. For the DEFAULT tint that backdrop is
-          `rgba(255,255,255, 0.44 * intensity/100)` - a white film at 0.185 for this app's
-          intensity of 42. Moving the fill behind the BlurView preserves the correct layer
-          order, but it does **not** remove that film: the native blur is still painted on
-          top. The real fix is its DARK tint, which makes the native overlay the shadowed
-          counterpart of the charcoal glass rather than a white wash.
-
-          On iOS the fill is honoured on the BlurView itself; Android's composite differs,
-          so the platform-specific tint is intentional rather than an appearance setting.
-        */}
-        <View style={[StyleSheet.absoluteFillObject, shape, tint]} />
+      <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape, styles.clip]}>
+        {/* Blur the actual backdrop first, then tint the resulting pixels. Painting the
+            fill underneath BlurView made the native blur sample a flat panel: the
+            artwork remained sharp/grey behind an opaque-looking film. Android's dark
+            system tint avoids the extra white overlay; our cast is the final layer. */}
         <BlurView
           intensity={intensity}
+          blurReductionFactor={2}
           tint="dark"
           experimentalBlurMethod="dimezisBlurView"
           pointerEvents={pointerEvents}
           style={[StyleSheet.absoluteFillObject, shape]}
         />
+        {tint ? <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, shape, tint]} /> : null}
       </View>
     );
 
@@ -180,7 +165,7 @@ export function GlassBlur({
    */
   if (!children) {
     return (
-      <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, shape, style]}>
+      <View pointerEvents={pointerEvents} style={[StyleSheet.absoluteFillObject, styles.clip, shape, style]}>
         {blur}
         {textureLayer}
       </View>
@@ -188,10 +173,12 @@ export function GlassBlur({
   }
 
   return (
-    <View style={style}>
+    <View style={[styles.clip, shape, style]}>
       {blur}
       {textureLayer}
       {children}
     </View>
   );
 }
+
+const styles = StyleSheet.create({ clip: { overflow: "hidden" } });
