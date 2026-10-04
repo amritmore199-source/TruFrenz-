@@ -146,7 +146,7 @@ const TINTS: Record<GlassTint, Rgb> = {
    * theme. It is deeper in blue and slightly lighter overall so it stays recognisably a
    * different temperature rather than a different material.
    */
-  sky: { r: 18, g: 26, b: 50 },
+  sky: { r: 0, g: 35, b: 70 },
 };/** The sheen laid over the tint, which reads as a lit sheet of glass. */
 const VEIL: Record<GlassTint, Rgb> = {
   /*
@@ -241,11 +241,11 @@ function neutralMixFor(tint: GlassTint): number {
  * that pass a tint are unaffected; the provider re-renders the tree when the
  * choice changes, so a render never reads a stale value.
  */
-let activeTint: GlassTint = "white";
+let activeTint: GlassTint = "sky";
 
 /** Called by the appearance provider when the member changes the glass colour. */
 export function setActiveGlassTint(tint: GlassTint): void {
-  activeTint = tint === "sky" ? "sky" : "white";
+  activeTint = tint === "white" ? "white" : "sky";
 }
 
 /** The tint currently in effect. Exposed for tests and diagnostics. */
@@ -441,19 +441,11 @@ export function liveGlass(color: string | undefined | null): string | undefined 
  * preset can be recognised again from the current values.
  */
 export const GLASS_PRESETS = [
-  /*
-   * All three presets use the ash cast.
-   *
-   * A preset is a weight, and the cast is a separate question the chips below it
-   * answer. Pointing the presets at the system default means the shipped
-   * appearance lights "Balanced" when the member opens the panel, rather than
-   * showing three unselected presets beside a cast they never chose. A member who
-   * picks a colour keeps it — the presets only set weight — and picking a preset
-   * afterwards returns the surface to ash.
-   */
-  { id: "subtle", label: "Subtle", glassOpacity: 50, glassTint: "white" },
-  { id: "balanced", label: "Balanced", glassOpacity: 80, glassTint: "white" },
-  { id: "strong", label: "Strong", glassOpacity: 95, glassTint: "white" },
+  /* These named opacity levels use Sky as their initial preview cast. Selecting a
+   * level does not change a member's explicit White choice. */
+  { id: "subtle", label: "Subtle", glassOpacity: 50, glassTint: "sky" },
+  { id: "balanced", label: "Balanced", glassOpacity: 80, glassTint: "sky" },
+  { id: "strong", label: "Strong", glassOpacity: 95, glassTint: "sky" },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
@@ -467,11 +459,9 @@ export type GlassPresetId = GlassPreset["id"];
 /** Which preset, if any, the current values match. */
 export function matchGlassPreset(
   glassOpacity: number,
-  tint: GlassTint,
+  _tint: GlassTint,
 ): GlassPresetId | null {
-  const found = GLASS_PRESETS.find(
-    (preset) => preset.glassOpacity === glassOpacity && preset.glassTint === tint,
-  );
+  const found = GLASS_PRESETS.find((preset) => preset.glassOpacity === glassOpacity);
   return found ? found.id : null;
 }
 
@@ -838,7 +828,7 @@ export function glassEdge(surface: GlassSurface, tint: GlassTint = activeTint): 
     field: 0.78,
     floater: 0.88,
   };
-  const { r, g, b } = tint === "sky" ? { r: 232, g: 244, b: 255 } : { r: 255, g: 255, b: 255 };
+  const { r, g, b } = tint === "sky" ? { r: 0, g: 191, b: 255 } : { r: 255, g: 255, b: 255 };
   return `rgba(${r}, ${g}, ${b}, ${strength[surface] ?? 0.6})`;
 }
 
@@ -1024,29 +1014,23 @@ export function ambientIntensityFor(section: AmbientSection | null | undefined):
  * label actually renders under.
  */
 const TAB_INK: Record<AmbientSection, string> = {
-  /*
-   * One ink for all five sections, and it is dark mauve.
-   *
-   * The pill is a light mauve pane now, so its label has to be an ink rather than a
-   * highlight - white on this surface would be the light-on-light that made the bar
-   * unreadable. One value for all five because the five pills share a depth: a
-   * five-way table is a maintenance trap, and it only existed when the pills had been
-   * given five different hues.
-   */
-  chats: "#3A3440",
-  groups: "#3A3440",
-  hangouts: "#3A3440",
-  bizz: "#3A3440",
-  profile: "#3A3440",
+  /* The active pill is a light, cast-aware pane; dark neutral ink clears AA on it. */
+  chats: "#363636",
+  groups: "#363636",
+  hangouts: "#363636",
+  bizz: "#363636",
+  profile: "#363636",
 };
 
 export function glassTabAccent(
   section: AmbientSection | null | undefined,
   tint: GlassTint = activeTint,
 ): { fill: string; ink: string } {
-  /* A caller with no section gets the shipped mauve rather than silently taking
-     Chats' colour, which would claim a selection that does not exist. */
-  if (!section || !(section in TAB_INK)) return { fill: "rgba(169, 150, 172, 0.72)", ink: "#3A3440" };
+  /* No section selected: a cast-aware but section-neutral pill. */
+  if (!section || !(section in TAB_INK)) return {
+    fill: tint === "sky" ? "rgba(0, 191, 255, 0.72)" : "rgba(165, 165, 165, 0.72)",
+    ink: "#363636",
+  };
   const key = section as AmbientSection;
 
   /*
@@ -1138,19 +1122,12 @@ export function glassQuietTabInk(tint: GlassTint = activeTint): { icon: string; 
  * cover the whole screen.
  */
 const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
-  /*
-   * The original dusty mauve family, one tone per section.
-   *
-   * These are the values the app shipped with before the lemon pass replaced them, and
-   * before a later pass took the hue out entirely. Each is the ink for a tinted tile
-   * and for that section's header label on the light page, so they are dark enough to
-   * read on the warm off-white ground.
-   */
-  chats: { tile: "#8E6F91", eyebrow: "#785F7C" },
-  groups: { tile: "#7393A9", eyebrow: "#5A697B" },
-  hangouts: { tile: "#7A8FA0", eyebrow: "#5F6877" },
-  bizz: { tile: "#987998", eyebrow: "#776079" },
-  profile: { tile: "#766B82", eyebrow: "#6E6379" },
+  /* White's section labels differ in neutral depth; Sky's accents live below. */
+  chats: { tile: "#797979", eyebrow: "#676767" },
+  groups: { tile: "#8F8F8F", eyebrow: "#686868" },
+  hangouts: { tile: "#8C8C8C", eyebrow: "#676767" },
+  bizz: { tile: "#838383", eyebrow: "#676767" },
+  profile: { tile: "#6F6F6F", eyebrow: "#676767" },
 };
 /**
  * The accent for a section: the ink for its tinted tile and its header label.
@@ -1161,22 +1138,16 @@ const SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> 
 /**
  * The section's accent, which follows the cast.
  *
- * The default cast is monochrome, so its accents are five *depths* - the sections stay
- * distinguishable without any of them introducing a colour. The sky cast is the one the
- * member switches on when they want colour, so it is the one that gets the five hues
- * back. Splitting it this way is what makes "monochrome by default, sky blue on request"
- * a property of the material rather than a promise: there is no path by which a
- * saturated accent can reach a default screen, because the table it would come from is
- * only read when the sky cast is active.
+ * Sky is the default and uses blue-only section accents. White is optional and
+ * uses neutral depths, so switching to White does not revive mauve or lemon.
  */
 const SKY_SECTION_ACCENT: Record<AmbientSection, { tile: string; eyebrow: string }> = {
-  /* The same five sections in their warm tones, for when the member has the distinct
-     cast on. The default set above is the cool mauve; these are the counterparts. */
-  chats: { tile: "#987998", eyebrow: "#776079" },
-  groups: { tile: "#588B79", eyebrow: "#4E6D66" },
-  hangouts: { tile: "#8E7894", eyebrow: "#726278" },
-  bizz: { tile: "#9D7E9E", eyebrow: "#756078" },
-  profile: { tile: "#715C78", eyebrow: "#715C78" },
+  /* Bright tile ink over glass; deeper eyebrow ink against the white page. */
+  chats: { tile: "#00BFFF", eyebrow: "#007AA8" },
+  groups: { tile: "#00BFFF", eyebrow: "#007AA8" },
+  hangouts: { tile: "#00BFFF", eyebrow: "#007AA8" },
+  bizz: { tile: "#00BFFF", eyebrow: "#007AA8" },
+  profile: { tile: "#00BFFF", eyebrow: "#007AA8" },
 };
 
 export function glassSectionAccent(
@@ -1243,7 +1214,7 @@ const AMBIENT_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: 
  */
 const SKY_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: string }> = {
   chats:    { warm: "rgba(150, 200, 240, 0.34)", cool: "rgba(120, 172, 222, 0.32)", soft: "rgba(178, 216, 246, 0.30)" },
-  groups:   { warm: "rgba(140, 214, 198, 0.34)", cool: "rgba(112, 186, 170, 0.32)", soft: "rgba(168, 226, 212, 0.30)" },
+  groups:   { warm: "rgba(145, 204, 237, 0.34)", cool: "rgba(110, 176, 218, 0.32)", soft: "rgba(177, 218, 244, 0.30)" },
   /*
    * Hangouts and Bizz keep a hue, but not the lemon one.
    *
@@ -1254,9 +1225,9 @@ const SKY_FIELD: Record<AmbientSection, { warm: string; cool: string; soft: stri
    * restrained and unambiguously not lemon: a warm terracotta and a muted plum, both
    * at the strength the rest of the field uses.
    */
-  hangouts: { warm: "rgba(226, 168, 128, 0.34)", cool: "rgba(198, 142, 104, 0.32)", soft: "rgba(238, 190, 158, 0.30)" },
-  bizz:     { warm: "rgba(196, 166, 206, 0.34)", cool: "rgba(168, 138, 180, 0.32)", soft: "rgba(214, 190, 222, 0.30)" },
-  profile:  { warm: "rgba(198, 190, 240, 0.34)", cool: "rgba(170, 160, 224, 0.32)", soft: "rgba(216, 210, 246, 0.30)" },
+  hangouts: { warm: "rgba(169, 211, 239, 0.34)", cool: "rgba(125, 179, 219, 0.32)", soft: "rgba(192, 225, 247, 0.30)" },
+  bizz:     { warm: "rgba(138, 195, 232, 0.34)", cool: "rgba(101, 161, 210, 0.32)", soft: "rgba(171, 213, 241, 0.30)" },
+  profile:  { warm: "rgba(165, 205, 235, 0.34)", cool: "rgba(118, 170, 214, 0.32)", soft: "rgba(193, 221, 245, 0.30)" },
 };
 /**
  * How the sky cast shifts a section's own hue.
@@ -1364,8 +1335,8 @@ export function glassSwitchTrack(tint: GlassTint = activeTint): { off: string; o
      * Both stay clear of the page they sit on (measured 2.4:1 for "on" against a card)
      * so a switch is still visible as an object, not only as a thumb.
      */
-    white: { off: "rgba(198, 196, 204, 0.42)", on: "rgba(142, 111, 145, 0.66)" },
-    sky: { off: "rgba(196, 210, 224, 0.42)", on: "rgba(86, 138, 196, 0.66)" },
+    white: { off: "rgba(198, 198, 198, 0.42)", on: "rgba(95, 95, 95, 0.66)" },
+    sky: { off: "rgba(124, 204, 232, 0.42)", on: "rgba(0, 191, 255, 0.66)" },
   };
   return track[tint] ?? track.sky;
 }
@@ -1383,9 +1354,9 @@ export function glassInnerRim(tint: GlassTint = activeTint): string {
    * brand's own mauve now, so the pair reads as two lines on the default cast too.
    */
   const inner: Record<GlassTint, string> = {
-    white: "rgba(142, 111, 145, 0.85)",
+    white: "rgba(112, 112, 112, 0.85)",
     /* The sky sample's own ring: a saturated blue line just inside the rim. */
-    sky: "rgba(122, 188, 232, 0.95)",
+    sky: "rgba(0, 191, 255, 0.95)",
   };
   return inner[tint] ?? inner.sky;
 }
@@ -1595,18 +1566,18 @@ const SHEET_LIGHTER = 0.20;
  */
 /**
  * A see-through pane for the welcome hero, conversation rows and discovery cards.
- * White is 56% ink / 44% backdrop at the default setting. Optional Sky needs
- * 59% ink / 41% backdrop: its blue channels are brighter than neutral black,
- * so the same alpha would put #F5F5F7 labels below AA over white artwork.
+ * White is 56% ink / 44% backdrop at the default setting. Sky uses a stronger
+ * cyan-blue tint; its 80% base still shows a blurred 20% of the artwork while
+ * keeping the pane dark enough for its white labels to clear AA.
  * Do not substitute the general card resolver: it floors alpha near 0.8.
  */
 export function glassTranslucentPane(
   opacity: number,
   tint: GlassTint = activeTint,
 ): string {
-  const minimum = tint === "sky" ? 0.59 : 0.56;
+  const minimum = tint === "sky" ? 0.80 : 0.56;
   const alpha = Math.min(MAX_GLASS_ALPHA, Math.max(minimum, minimum + weightFromSetting(opacity) - weightFromSetting(80)));
-  const ink = tint === "sky" ? { r: 0, g: 12, b: 29 } : { r: 0, g: 0, b: 0 };
+  const ink = tint === "sky" ? { r: 0, g: 73, b: 112 } : { r: 0, g: 0, b: 0 };
   return `rgba(${ink.r}, ${ink.g}, ${ink.b}, ${alpha.toFixed(3)})`;
 }
 

@@ -2,7 +2,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   APPEARANCE_STORAGE_KEY,
+  PREVIOUS_APPEARANCE_STORAGE_KEY,
   DEFAULT_APPEARANCE_PREFERENCES,
+  migratePreviousAppearance,
   normalizeAppearancePreferences,
   parseAppearancePreferences,
   type AppearancePreferences,
@@ -38,8 +40,11 @@ export function AppAppearanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     AsyncStorage.getItem(APPEARANCE_STORAGE_KEY)
-      .then((serialized) => {
-        if (active && !userChangedPreferences.current) setPreferences(parseAppearancePreferences(serialized));
+      .then(async (serialized) => {
+        const restored = serialized !== null
+          ? parseAppearancePreferences(serialized)
+          : migratePreviousAppearance(await AsyncStorage.getItem(PREVIOUS_APPEARANCE_STORAGE_KEY));
+        if (active && !userChangedPreferences.current) setPreferences(restored);
       })
       .catch(() => undefined)
       .finally(() => {

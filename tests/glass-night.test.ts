@@ -9,6 +9,7 @@ import {
   glassAlpha,
   glassEmptyAccent,
   glassQuietTabInk,
+  glassSectionAccent,
   glassTabAccent,
   glassAmbient,
   glassNestedSurfaceColor,
@@ -111,13 +112,20 @@ describe("transparent surface legibility", () => {
 describe("the casts on offer", () => {
   it("offers the two glass colours the member chooses between", () => {
     /*
-     * White and black, then sky blue and white. White is the shipped default: its
-     * fill is a true neutral, so the glass carries no colour of its own and the
-     * combination is exactly the "white glass, black ink" the member asked for.
+     * Sky blue is shipped, White remains an explicit neutral alternative.
      */
     expect(GLASS_TINT_OPTIONS).toEqual(["white", "sky"]);
     expect(GLASS_TINT_LABEL.white).toBe("White");
     expect(GLASS_TINT_LABEL.sky).toBe("Sky blue");
+  });
+
+  it("uses the supplied #00BFFF on Sky accents without colouring optional White", () => {
+    for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
+      expect(glassSectionAccent(section, "sky").tile).toBe("#00BFFF");
+      const neutral = glassSectionAccent(section, "white").tile;
+      expect(neutral[1]).toBe(neutral[3]);
+      expect(neutral[3]).toBe(neutral[5]);
+    }
   });
 
   it("carries white ink on every one of them", () => {
@@ -139,14 +147,14 @@ describe("the casts on offer", () => {
    * colour the picker no longer offers.
    */
   it("folds a retired cast back to the default instead of stranding it", () => {
-    // A member who had chosen ash, lemon or dusk lands on white rather than on a
+    // A member who had chosen ash, lemon or dusk lands on Sky rather than on a
     // surface with no cast at all.
-    expect(normalizeGlassTint("dusk")).toBe("white");
-    expect(normalizeGlassTint("ash")).toBe("white");
-    expect(normalizeGlassTint("lemon")).toBe("white");
+    expect(normalizeGlassTint("dusk")).toBe("sky");
+    expect(normalizeGlassTint("ash")).toBe("sky");
+    expect(normalizeGlassTint("lemon")).toBe("sky");
     expect(normalizeGlassTint("white")).toBe("white");
     expect(normalizeGlassTint("sky")).toBe("sky");
-    expect(normalizeGlassTint("nonsense")).toBe("white");
+    expect(normalizeGlassTint("nonsense")).toBe("sky");
   });
 
   it("keeps every preset reachable on the two surviving casts", () => {
@@ -479,7 +487,7 @@ describe("the active tab pill", () => {
      */
     for (const cast of ["white", "sky"] as const) {
       for (const section of ["chats", "groups", "hangouts", "bizz", "profile"] as const) {
-        expect(glassTabAccent(section, cast).ink).toBe("#3A3440");
+        expect(glassTabAccent(section, cast).ink).toBe("#363636");
       }
     }
   });
@@ -509,7 +517,7 @@ describe("the active tab pill", () => {
 
   it("falls back to the neutral pill for an unknown section", () => {
     // A bar with no section keeps a neutral glass rather than claiming a colour.
-    expect(glassTabAccent(null).ink).toBe("#3A3440");
+    expect(glassTabAccent(null).ink).toBe("#363636");
     expect(glassTabAccent(undefined).fill).toContain("rgba(");
   });
 });

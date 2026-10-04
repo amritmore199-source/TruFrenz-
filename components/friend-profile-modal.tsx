@@ -242,7 +242,7 @@ export function FriendProfileModal({ visible, profile, relationship, viewerTier,
             <View style={styles.actionGrid}>
               {viewerActions.map((action) => (
                 <Pressable key={action} onPress={() => handleAction(action)} accessibilityLabel={actionLabel(action)} style={({ pressed }) => [styles.actionButton, { backgroundColor: glassNestedSurfaceColor(isDestructive(action) ? "rgba(0, 0, 0, 0.10)" : "rgba(0, 0, 0, 0.10)", glassOpacity, glassTint), borderColor: glassNestedSurfaceColor("rgba(0, 0, 0, 0.10)", glassOpacity, glassTint) }, isPrimary(action) && styles.actionPrimary, pressed && styles.pressed]}>
-                  <MaterialIcons name={ACTION_ICONS[action]} size={16} color={isPrimary(action) ? "#FFFFFF" : isDestructive(action) ? "#A78FA9" : "#717171"} />
+                  <MaterialIcons name={ACTION_ICONS[action]} size={16} color={isPrimary(action) ? "#FFFFFF" : isDestructive(action) ? "#007AA8" : "#717171"} />
                   <Text style={[styles.actionText, isPrimary(action) && styles.actionTextPrimary, isDestructive(action) && styles.actionTextDanger]}>{actionLabel(action)}</Text>
                 </Pressable>
               ))}
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   sheetScroll: { flexGrow: 0, flexShrink: 1 },
   sheetContent: { padding: 16, paddingTop: 4 },
   header: { height: 30, alignItems: "center", justifyContent: "center" },
-  handle: { width: 34, height: 4, borderRadius: 4, backgroundColor: "rgba(142, 111, 145, 0.35)" },
+  handle: { width: 34, height: 4, borderRadius: 4, backgroundColor: "rgba(0, 191, 255, 0.35)" },
   close: { position: "absolute", right: 11, top: 3, width: 31, height: 31, borderRadius: 12, backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder(), alignItems: "center", justifyContent: "center" },
   galleryFrame: { width: "100%", height: 208, borderRadius: 20, overflow: "hidden", backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassFieldBorder() },
   gallery: { width: "100%", height: "100%" },
@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
   counter: { position: "absolute", left: 9, top: 9, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: "rgba(40, 36, 20, 0.72)" },
   counterText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   dots: { flexDirection: "row", justifyContent: "center", gap: 5, marginTop: 8 },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(142, 111, 145, 0.38)" },
-  dotActive: { backgroundColor: "#A78FA9", width: 14 },
+  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(0, 191, 255, 0.38)" },
+  dotActive: { backgroundColor: "#007AA8", width: 14 },
   identity: { alignItems: "center", paddingTop: 11, paddingBottom: 12 },
   statusChip: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "center", marginTop: 7, maxWidth: 250, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "rgba(0, 0, 0, 0.10)", borderWidth: 1, borderColor: glassFieldBorder() },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#6B6B6B" },
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   // tinting it, and it ignored their glass setting. The declared alpha is kept there
   // as an ordering below the sheet, so a button is always lighter than its panel.
   actionButton: { flexGrow: 1, flexBasis: "46%", minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#DCE5EC", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
-  actionPrimary: { backgroundColor: "#A78FA9", borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.14 },
+  actionPrimary: { backgroundColor: "#007AA8", borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.14 },
   actionText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
   actionTextPrimary: { color: "#F5F5F7" },
   actionTextDanger: { color: "#F5F5F7" },

@@ -1,4 +1,5 @@
-export const APPEARANCE_STORAGE_KEY = "trufrenz.appearance.v1";
+export const APPEARANCE_STORAGE_KEY = "trufrenz.appearance.v2";
+export const PREVIOUS_APPEARANCE_STORAGE_KEY = "trufrenz.appearance.v1";
 /*
  * The glass recipe lives in its own module so it can be reasoned about and
  * tested on its own. It is re-exported here because every surface in the app
@@ -27,28 +28,15 @@ import type { GlassTint } from "./glass";
 export const DEFAULT_GLASS_OPACITY = 80;
 export const GLASS_OPACITY_STEPS = [50, 60, 70, 80, 90, 95] as const;
 
-/**
- * The glass casts a member can choose between.
- *
- * Dusk is the night-glass look: the same frosted surfaces, cast in a deeper
- * slate so the app carries bright white text rather than dark. It is an option
- * rather than a replacement, so a member who liked the pale daytime glass keeps
- * it and nothing about the default changes for them.
- */
+/** The two casts available in Profile > Appearance. */
 export const GLASS_TINT_OPTIONS = ["white", "sky"] as const;
 
 /*
- * White and black, then sky blue and white - the two combinations the member
- * asked to choose between. Ash grey and lemon were retired with them: four casts
- * that all rendered almost identically, because none of them was calibrated to a
- * depth that could be seen, is a choice that is not really a choice.
- *
- * White is the default. Its fill is a true neutral, so the glass carries no
- * colour of its own; the black is the ink on it. Both casts are fitted to the
- * same luminance, so choosing a colour changes only the hue and never how visible
- * the glass is.
+ * Sky is the shipped default with light text on deep translucent blue glass.
+ * White remains selectable as the achromatic glass cast. Old v1 settings that
+ * stored White as their default migrate once to Sky; v2 explicit White remains White.
  */
-export const DEFAULT_GLASS_TINT: GlassTint = "white";
+export const DEFAULT_GLASS_TINT: GlassTint = "sky";
 
 export type AppearancePreferences = {
   glassOpacity: number;
@@ -122,4 +110,13 @@ export function parseAppearancePreferences(serialized: string | null): Appearanc
   } catch {
     return DEFAULT_APPEARANCE_PREFERENCES;
   }
+}
+
+/** v1 wrote White as the default for everyone, including people who never selected it.
+ * Move that old default to Sky once, retaining opacity and wallpaper visibility.
+ * Choices saved in v2 (including an explicitly selected White) are left alone.
+ */
+export function migratePreviousAppearance(serialized: string | null): AppearancePreferences {
+  const previous = parseAppearancePreferences(serialized);
+  return { ...previous, glassTint: previous.glassTint === "white" ? "sky" : previous.glassTint };
 }

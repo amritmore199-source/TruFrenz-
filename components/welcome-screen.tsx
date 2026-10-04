@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#A78FA9",
+    backgroundColor: "#007AA8",
     borderWidth: 1,
     borderColor: glassFieldBorder(),
     shadowColor: "#1A1A1A",
@@ -538,13 +538,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     /*
-     * The primary action takes the solid brand mauve, which is the one place in the app a
-     * saturated fill belongs: "Sign Up" is the main way in and the ghost beside it is the
+     * The primary action takes a deeper cyan-blue derived from #00BFFF so white
+     * lettering stays readable. "Sign Up" is the main way in and the ghost beside it is the
      * secondary, so the two have to be told apart at a glance. They were nearly identical
-     * outlined pills before this, which left the member no hierarchy to follow. White on
-     * this fill is 6.4:1, so the label is comfortable rather than merely legal.
+     * outlined pills before this, which left the member no hierarchy to follow.
      */
-    backgroundColor: "#7A5A7E",
+    backgroundColor: "#00658B",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.30)",
     shadowColor: "#1A1A1A",
@@ -568,15 +567,15 @@ const styles = StyleSheet.create({
      * the line was faint enough to dissolve where the curve met the straight edge, so
      * the shape read as two arcs rather than one pill.
      *
-     * Only full opacity clears the floor. Over the panel, the mauve composites to
-     * 3.01:1 at 1.0 and to 2.65:1 at 0.9, so there is no translucent value that works
-     * and the outline is opaque. Its *face* is deliberately left translucent - a face
+     * The pale blue outline clears the control-boundary floor on dark glass; the
+     * deeper blue remains the fill for selected actions with white text.
+     * Its *face* is deliberately left translucent - a face
      * cannot carry 3:1 by translucency at any alpha (the best it reaches over this
      * panel is 1.30:1 at 0.7), which is why a ghost button is defined by its line and
      * not by its body, and why the body stays glass.
      */
     borderWidth: 1,
-    borderColor: "#A78FA9",
+    borderColor: "#00BFFF",
   },
   ghostButtonText: { color: "#F5F5F7", fontSize: 13.5, fontWeight: "700", letterSpacing: 0.3 },
   buttonMuted: { opacity: 0.62 },
@@ -612,7 +611,7 @@ const styles = StyleSheet.create({
   slideBody: { color: PAGE_INK.body, fontSize: 12, lineHeight: 17, textAlign: "center", paddingHorizontal: 8 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(28, 27, 25, 0.28)" },
-  dotActive: { width: 20, backgroundColor: "#A78FA9" },
+  dotActive: { width: 20, backgroundColor: "#007AA8" },
   swipeHint: { color: PAGE_INK.body, fontSize: 12, marginTop: 3, marginBottom: 4 },
   companyGlass: {
     borderRadius: 20,
@@ -636,7 +635,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: glassFieldBorder(),
   },
-  checkboxOn: { backgroundColor: "#A78FA9", borderColor: "#A78FA9" },
+  checkboxOn: { backgroundColor: "#007AA8", borderColor: "#00BFFF" },
   termsText: { flex: 1, color: "#F5F5F7", fontSize: 12, lineHeight: 17 },
   termsStrong: { color: "#F5F5F7", fontWeight: "700" },
   termsLink: { alignSelf: "flex-start", paddingVertical: 2 },

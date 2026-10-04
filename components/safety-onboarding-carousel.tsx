@@ -57,7 +57,7 @@ export function SafetyOnboardingCarousel({ onComplete }: { onComplete: () => voi
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.body}>{slide.body}</Text>
             <View style={styles.ruleCard}>
-              <View style={styles.ruleIcon}><MaterialIcons name={index === 2 ? "shield" : "favorite-border"} size={17} color={index === 2 ? "#8E8E8E" : "#A78FA9"} /></View>
+              <View style={styles.ruleIcon}><MaterialIcons name={index === 2 ? "shield" : "favorite-border"} size={17} color={index === 2 ? "#8E8E8E" : "#007AA8"} /></View>
               <View style={styles.ruleCopy}><Text style={styles.ruleTitle}>{slide.ruleTitle}</Text><Text style={styles.ruleBody}>{slide.ruleBody}</Text></View>
             </View>
             <View style={styles.stepLabel}><Text style={styles.stepText}>A KINDER WAY TO CONNECT</Text><Text style={styles.stepNumber}>0{index + 1} / 0{ safetyOnboardingSlides.length }</Text></View>
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   container: { width: "100%", paddingTop: 5 },
   progressRow: { flexDirection: "row", gap: 6, marginBottom: 14 },
   progressTrack: { flex: 1, height: 4, borderRadius: 3, backgroundColor: "rgba(255, 255, 255, 0.24)" },
-  progressTrackActive: { backgroundColor: "#A78FA9" },
+  progressTrackActive: { backgroundColor: "#007AA8" },
   slideAnimated: { width: "100%" },
   glassCard: { overflow: "hidden", borderRadius: 22, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: "transparent" },
   cardContent: { paddingHorizontal: 17, paddingTop: 18, paddingBottom: 14 },
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   backButton: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8 },
   backText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   backPlaceholder: { width: 58 },
-  nextButton: { minHeight: 44, flex: 1, maxWidth: 220, borderRadius: 14, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: "#A78FA9", paddingHorizontal: 13 },
+  nextButton: { minHeight: 44, flex: 1, maxWidth: 220, borderRadius: 14, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: "#007AA8", paddingHorizontal: 13 },
   nextText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
   swipeHint: { color: "#F5F5F7", fontSize: 12, textAlign: "center", marginTop: 10 },

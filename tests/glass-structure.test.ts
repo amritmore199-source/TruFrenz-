@@ -122,13 +122,12 @@ describe("the rim and the colour field", () => {
     }
   });
 
-  it("still renders the two-line form in the appearance sample", () => {
+  it("keeps the appearance sample's optional inset neutral for White and blue for Sky", () => {
     /*
      * The sample is the one place the pair is legible, so it keeps both lines - and it
      * has to keep the *accent* in the inner one, which is the reading that makes the
-     * pair worth showing at all. The samples' inner line carries the accent - saturated
-     * blue in the sky sample, bright yellow in the warm one - while the outer rim stays
-     * near-white in both.
+     * pair worth showing at all. Only Sky carries a blue accent; White has no
+     * legacy mauve. Production surfaces use only the single outer rim.
      */
     const channels = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
     const [sr, sg, sb] = channels(glassInnerRim("sky"));
@@ -136,17 +135,14 @@ describe("the rim and the colour field", () => {
     expect(sb).toBeGreaterThan(sg);
 
     const [nr, ng, nb] = channels(glassInnerRim("white"));
-    expect(nr).toBeGreaterThan(ng);               // the mauve signature: green is lowest
-    expect(nb).toBeGreaterThan(ng);
+    expect(nr).toBe(ng);
+    expect(ng).toBe(nb);
     // And the two casts must not produce the same line.
     expect(glassInnerRim("white")).not.toBe(glassInnerRim("sky"));
 
-    // The outer rim it pairs with stays achromatic, which is what makes the pair read
-    // as light plus colour rather than as two colours.
-    for (const cast of ["white", "sky"] as const) {
-      const [r, g, b] = channels(glassEdge("card", cast));
-      expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(30);
-    }
+    // The supplied bright cyan is visible at the edge; optional White is neutral.
+    expect(glassEdge("card", "sky")).toBe("rgba(0, 191, 255, 1)");
+    expect(glassEdge("card", "white")).toBe("rgba(255, 255, 255, 1)");
   });
 
   /*
@@ -202,16 +198,14 @@ describe("the rim and the colour field", () => {
     const white = glassSwitchTrack("white");
     expect(sky.on).not.toBe(white.on);
     /*
-     * The sky track is blue-leading; the neutral one carries the brand's mauve, which
-     * is what makes a switched-on control read as *this* app's accent rather than as a
-     * neutral that could belong to any product. Both follow their cast, which is the
-     * property under test.
+     * Sky is blue-leading while White is truly achromatic. Neither cast brings
+     * the retired mauve accent back into controls.
      */
     const ch = (v: string) => v.match(/\d+/g)!.slice(0, 3).map(Number);
     expect(ch(sky.on)[2]).toBeGreaterThan(ch(sky.on)[0]);
     const [nr, ng, nb] = ch(white.on);
-    expect(nr).toBeGreaterThan(ng);
-    expect(nb).toBeGreaterThan(ng);
+    expect(nr).toBe(ng);
+    expect(ng).toBe(nb);
     for (const cast of ["white", "sky"] as const) {
       const track = glassSwitchTrack(cast);
       for (const value of [track.off, track.on]) expect(value).toMatch(/^rgba\(/);
@@ -509,11 +503,17 @@ describe("the single rim, the grain and the rounded corners", () => {
      * surface is lifted to match. A rim that faded back to the old values would leave
      * the app with no visible edge at all, which is the failure this pins.
      */
-    expect(glassEdge("card")).toBe("rgba(255, 255, 255, 1)");
-    expect(glassEdge("tab")).toBe("rgba(255, 255, 255, 1)");
-    for (const surface of ["row", "chip", "panel", "field", "floater"] as const) {
-      const alpha = Number(glassEdge(surface).match(/, ([\d.]+)\)$/)![1]);
-      expect(alpha).toBeGreaterThanOrEqual(0.75);
+    for (const cast of ["sky", "white"] as const) {
+      const rim = glassEdge("card", cast);
+      expect(glassEdge("tab", cast)).toBe(rim);
+      const [r, g, b, opacity] = rim.match(/[\d.]+/g)!.map(Number);
+      expect(opacity).toBe(1);
+      if (cast === "sky") expect([r, g, b]).toEqual([0, 191, 255]);
+      else expect([r, g, b]).toEqual([255, 255, 255]);
+      for (const surface of ["row", "chip", "panel", "field", "floater"] as const) {
+        const alpha = Number(glassEdge(surface, cast).match(/, ([\d.]+)\)$/)![1]);
+        expect(alpha).toBeGreaterThanOrEqual(0.75);
+      }
     }
   });
 
@@ -701,10 +701,10 @@ describe("a full-screen sheet", () => {
 });
 
 describe("rounded translucent panes", () => {
-  it("lets about 44% of the artwork show through at the default weight", () => {
+  it("keeps artwork visible and white labels legible under both casts", () => {
     for (const cast of ["white", "sky"] as const) {
       const fill = glassTranslucentPane(80, cast);
-      expect(Number(fill.match(/([\d.]+)\)$/)?.[1])).toBeCloseTo(cast === "sky" ? 0.59 : 0.56, 2);
+      expect(Number(fill.match(/([\d.]+)\)$/)?.[1])).toBeCloseTo(cast === "sky" ? 0.80 : 0.56, 2);
       // The darkest page pixel may be black; the brightest may be white. On
       // white, this is the lowest possible contrast for the pane's white ink.
       const rgba = fill.match(/[\d.]+/g)!.map(Number);

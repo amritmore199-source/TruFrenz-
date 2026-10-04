@@ -22,7 +22,7 @@ import { glassFieldBorder } from "@/lib/glass";
 const colors = {
   ink: "#43423d",
   muted: "#F5F5F7",
-  purple: "#A78FA9",
+  purple: "#007AA8",
   glass: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   stroke: glassNestedFill("rgba(0, 0, 0, 0.10)"),
   green: "#6AA082",

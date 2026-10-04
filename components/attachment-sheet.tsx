@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   waveBar: { flex: 1, borderRadius: 3, backgroundColor: "rgba(199, 185, 116, 0.7)" },
   waveBarLive: { backgroundColor: "#6B6B6B" },
   actions: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 13, flexWrap: "wrap" },
-  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder() },
+  primary: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 9, backgroundColor: "#007AA8", borderWidth: 1, borderColor: glassFieldBorder() },
   primaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   ghost: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)") },
   ghostText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },

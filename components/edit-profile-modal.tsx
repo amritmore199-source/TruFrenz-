@@ -365,11 +365,11 @@ export function EditProfileModal({ visible, profile, onChange, onClose, onAddPho
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide from discovery</Text><Text style={styles.switchSub}>You stay invisible in suggestions.</Text></View>
-                    <GlassSwitch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
+                    <GlassSwitch accessibilityLabel="Hide from discovery" value={profile.privacy.hideFromDiscovery} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideFromDiscovery: value } })} trackColor={{ false: "#D6DBDE", true: "#007AA8" }} thumbColor="#FFFFFF" />
                   </View>
                   <View style={styles.switchRow}>
                     <View style={styles.switchText}><Text style={styles.switchTitle}>Hide exact locality</Text><Text style={styles.switchSub}>Show only a broad “~X km” range.</Text></View>
-                    <GlassSwitch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#D6DBDE", true: "#A78FA9" }} thumbColor="#FFFFFF" />
+                    <GlassSwitch accessibilityLabel="Hide exact locality" value={profile.privacy.hideExactLocality} onValueChange={(value) => patch({ privacy: { ...profile.privacy, hideExactLocality: value } })} trackColor={{ false: "#D6DBDE", true: "#007AA8" }} thumbColor="#FFFFFF" />
                   </View>
                   <Pressable onPress={() => onNotify(`Block list · ${profile.privacy.blockedIds.length} blocked member(s).`)} accessibilityLabel="Open block list" style={({ pressed }) => [styles.blockList, pressed && styles.pressed]}>
                     <MaterialIcons name="block" size={15} color="#F5F5F7" />
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   badgePhone: { backgroundColor: glassNestedFill("#EDF1F4") },
   badgeText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   badgeTextPhone: { color: "#F5F5F7" },
-  verifyButton: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder() },
+  verifyButton: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 10, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: "#007AA8", borderWidth: 1, borderColor: glassFieldBorder() },
   verifyButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   sectionLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 1, marginTop: 15, marginBottom: 7 },
   photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", gap: 9, padding: 14, borderTopWidth: 1, borderTopColor: "rgba(255, 255, 255, 0.55)" },
   ghostButton: { flex: 1, minHeight: 42, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), borderWidth: 1, borderColor: glassFieldBorder() },
   ghostText: { color: "#F5F5F7", fontSize: 12, fontWeight: "700" },
-  saveButton: { flex: 1.4, minHeight: 42, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  saveButton: { flex: 1.4, minHeight: 42, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#007AA8", borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   saveText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
 });

@@ -96,7 +96,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
               <View style={styles.chipWrap}>
                 {(["hangout", "meetup"] as PlanKind[]).map((option) => (
                   <Pressable key={option} accessibilityRole="radio" accessibilityState={{ selected: kind === option }} accessibilityLabel={PLAN_KIND_LABEL[option]} onPress={() => setKind(option)} style={[styles.chip, kind === option && styles.chipActive]}>
-                    <MaterialIcons name={option === "meetup" ? "event-available" : "local-cafe"} size={13} color={kind === option ? "#FFFFFF" : "#A78FA9"} />
+                    <MaterialIcons name={option === "meetup" ? "event-available" : "local-cafe"} size={13} color={kind === option ? "#FFFFFF" : "#007AA8"} />
                     <Text style={[styles.chipText, kind === option && styles.chipTextActive]}>{PLAN_KIND_LABEL[option]}</Text>
                   </Pressable>
                 ))}
@@ -124,7 +124,7 @@ export function PlanComposerModal({ visible, initialKind, friendName, nudge, onC
               <View style={styles.chipWrap}>
                 {venues.map((item) => (
                   <Pressable key={item.name} accessibilityRole="radio" accessibilityState={{ selected: venue?.name === item.name }} accessibilityLabel={`Venue ${item.name} in ${item.area}`} onPress={() => setVenueName(item.name)} style={[styles.chip, venue?.name === item.name && styles.chipActive]}>
-                    <MaterialIcons name="place" size={12} color={venue?.name === item.name ? "#FFFFFF" : "#A78FA9"} />
+                    <MaterialIcons name="place" size={12} color={venue?.name === item.name ? "#FFFFFF" : "#007AA8"} />
                     <Text style={[styles.chipText, venue?.name === item.name && styles.chipTextActive]}>{item.name}</Text>
                   </Pressable>
                 ))}
@@ -175,13 +175,13 @@ const styles = StyleSheet.create({
   sectionLabel: { color: "#F5F5F7", fontSize: 12, fontWeight: "700", letterSpacing: 0.9, marginTop: 13 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 7 },
   chip: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 12, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 10, paddingVertical: 7, shadowColor: "#DCE5EC", shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  chipActive: { backgroundColor: "#A78FA9", borderColor: glassFieldBorder() },
+  chipActive: { backgroundColor: "#007AA8", borderColor: glassFieldBorder() },
   chipText: { color: "#F5F5F7", fontSize: 12, fontWeight: "650" as any },
   chipTextActive: { color: "#F5F5F7" },
   mapRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 7, backgroundColor: "rgba(0, 0, 0, 0.10)" },
   mapText: { flex: 1, color: "#F5F5F7", fontSize: 12, fontWeight: "600" },
   input: { marginTop: 7, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: glassFieldBorder(), backgroundColor: glassNestedFill("rgba(0, 0, 0, 0.10)"), paddingHorizontal: 12, paddingVertical: 9, color: "#F5F5F7", fontSize: 12, outlineStyle: "none" as any },
-  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#A78FA9", borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  share: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 15, borderRadius: 15, paddingVertical: 12, backgroundColor: "#007AA8", borderWidth: 1, borderColor: glassFieldBorder(), shadowColor: "#E8F2FA", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   shareText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   cancel: { alignItems: "center", paddingVertical: 11, marginTop: 2 },
   cancelText: { color: "#F5F5F7", fontSize: 12, fontWeight: "600" },

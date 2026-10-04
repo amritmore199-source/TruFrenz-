@@ -42,7 +42,7 @@ export const CHAT_NIGHT = {
   primaryText: "#4B4651",
   secondaryText: "#5A5563",
   subtleText: "#6E6C67",
-  accentText: "#8E6F91",
+  accentText: "#00BFFF",
   border: "rgba(0, 0, 0, 0.10)",
   divider: "rgba(0, 0, 0, 0.10)",
 } as const;

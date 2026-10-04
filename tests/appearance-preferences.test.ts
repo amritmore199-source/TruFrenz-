@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_APPEARANCE_PREFERENCES,
+  DEFAULT_GLASS_TINT,
+  APPEARANCE_STORAGE_KEY,
+  PREVIOUS_APPEARANCE_STORAGE_KEY,
+  migratePreviousAppearance,
   GLASS_OPACITY_STEPS,
   GLASS_TINT_OPTIONS,
   MAX_GLASS_ALPHA,
@@ -19,7 +23,7 @@ import { GLASS_PRESETS, activeGlassTint, glassNestedSurfaceColor, glassSwatch, g
 
 describe("appearance preferences", () => {
   it("provides a readable default appearance and opacity presets", () => {
-    expect(DEFAULT_APPEARANCE_PREFERENCES).toEqual({ glassOpacity: 80, glassTint: "white", wallpaperVisible: true });
+    expect(DEFAULT_APPEARANCE_PREFERENCES).toEqual({ glassOpacity: 80, glassTint: "sky", wallpaperVisible: true });
     expect(GLASS_OPACITY_STEPS).toContain(DEFAULT_APPEARANCE_PREFERENCES.glassOpacity);
   });
 
@@ -31,10 +35,10 @@ describe("appearance preferences", () => {
   });
 
   it("loads valid settings and safely falls back when saved data is malformed", () => {
-    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 90, wallpaperVisible: false }))).toEqual({ glassOpacity: 90, glassTint: "white", wallpaperVisible: false });
+    expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 90, wallpaperVisible: false }))).toEqual({ glassOpacity: 90, glassTint: "sky", wallpaperVisible: false });
     expect(parseAppearancePreferences("not json")).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
     expect(parseAppearancePreferences(null)).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
-    expect(normalizeAppearancePreferences({ glassOpacity: 75, wallpaperVisible: "false" })).toEqual({ glassOpacity: 75, glassTint: "white", wallpaperVisible: true });
+    expect(normalizeAppearancePreferences({ glassOpacity: 75, wallpaperVisible: "false" })).toEqual({ glassOpacity: 75, glassTint: "sky", wallpaperVisible: true });
   });
 
   it("applies opacity while preserving each glass surface's tint", () => {
@@ -67,14 +71,14 @@ describe("appearance preferences", () => {
      * The rim is white and fully opaque: it is the whole edge now that the inner hairline
      * is gone, so it cannot be the fainter half of a pair any more.
      */
-    expect(glassEdge("card")).toBe("rgba(255, 255, 255, 1)");
+    expect(glassEdge("card", "white")).toBe("rgba(255, 255, 255, 1)");
     /*
      * The sheen is white and *faint*. On a dark face a strong light wash lifts the pane
      * toward grey and it loses the depth that makes it read as glass, so the alpha is
      * bounded rather than pinned: enough to stop the face reading as flat paint, never
      * enough to wash the white ink off it.
      */
-    const veil = glassVeil("card", 80);
+    const veil = glassVeil("card", 80, "white");
     expect(veil).toMatch(/^rgba\(255, 255, 255, 0\.\d+\)$/);
     const alpha = Number(veil.match(/, ([\d.]+)\)$/)![1]);
     expect(alpha).toBeGreaterThan(0.04);
@@ -92,7 +96,7 @@ describe("appearance preferences", () => {
 });
 
 describe("glass colour choice", () => {
-  afterEach(() => setActiveGlassTint("white"));
+  afterEach(() => setActiveGlassTint(DEFAULT_GLASS_TINT));
 
   it("offers the two combinations the member asked for", () => {
     /*
@@ -105,25 +109,40 @@ describe("glass colour choice", () => {
      * choice that is not really a choice.
      */
     expect(GLASS_TINT_OPTIONS).toEqual(["white", "sky"]);
-    expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("white");
+    expect(DEFAULT_APPEARANCE_PREFERENCES.glassTint).toBe("sky");
   });
 
   it("falls back to the default for anything it does not recognise", () => {
     // A stored value from an older build, or a typo, must not produce a
     // half-tinted surface. The retired casts are covered by this too: a member who
-    // had chosen ash or lemon simply lands on white rather than on a blank glass.
-    expect(normalizeGlassTint("ash")).toBe("white");
-    expect(normalizeGlassTint("lemon")).toBe("white");
+    // had chosen ash or lemon simply lands on Sky rather than on a blank glass.
+    expect(normalizeGlassTint("ash")).toBe(DEFAULT_GLASS_TINT);
+    expect(normalizeGlassTint("lemon")).toBe(DEFAULT_GLASS_TINT);
     expect(normalizeGlassTint("Sky")).toBe("sky");
-    expect(normalizeGlassTint(undefined)).toBe("white");
-    expect(normalizeGlassTint(42)).toBe("white");
+    expect(normalizeGlassTint(undefined)).toBe(DEFAULT_GLASS_TINT);
+    expect(normalizeGlassTint(42)).toBe(DEFAULT_GLASS_TINT);
   });
 
-  it("keeps the existing choice when older saved settings omit it", () => {
+  it("uses Sky when saved settings omit a cast", () => {
     // Settings written before this option existed must still load, and they must
     // not lose their opacity.
     expect(parseAppearancePreferences(JSON.stringify({ glassOpacity: 60, wallpaperVisible: false })))
-      .toEqual({ glassOpacity: 60, glassTint: "white", wallpaperVisible: false });
+      .toEqual({ glassOpacity: 60, glassTint: "sky", wallpaperVisible: false });
+  });
+
+  it("migrates the v1 default to Sky without losing opacity or wallpaper settings", () => {
+    expect(APPEARANCE_STORAGE_KEY).not.toBe(PREVIOUS_APPEARANCE_STORAGE_KEY);
+    expect(migratePreviousAppearance(JSON.stringify({
+      glassOpacity: 65, glassTint: "white", wallpaperVisible: false,
+    }))).toEqual({ glassOpacity: 65, glassTint: "sky", wallpaperVisible: false });
+    expect(migratePreviousAppearance(JSON.stringify({
+      glassOpacity: 90, glassTint: "sky", wallpaperVisible: true,
+    }))).toEqual({ glassOpacity: 90, glassTint: "sky", wallpaperVisible: true });
+    expect(migratePreviousAppearance(null)).toEqual(DEFAULT_APPEARANCE_PREFERENCES);
+    // A White selection stored in v2 is parsed directly, not passed through migration.
+    expect(parseAppearancePreferences(JSON.stringify({
+      glassOpacity: 70, glassTint: "white", wallpaperVisible: false,
+    }))).toEqual({ glassOpacity: 70, glassTint: "white", wallpaperVisible: false });
   });
 
   it("colours a neutral surface according to the chosen cast", () => {
@@ -182,7 +201,7 @@ describe("glass colour choice", () => {
 
   it("treats an unrecognised active cast as the system default", () => {
     setActiveGlassTint("chartreuse" as never);
-    expect(activeGlassTint()).toBe("white");
+    expect(activeGlassTint()).toBe(DEFAULT_GLASS_TINT);
   });
 
   it("shows a legible colour chip for each cast", () => {
@@ -236,6 +255,7 @@ describe("glass presets", () => {
       // colour the manual control could not produce.
       expect(GLASS_TINT_OPTIONS as readonly string[]).toContain(preset.glassTint);
       expect(matchGlassPreset(preset.glassOpacity, preset.glassTint)).toBe(preset.id);
+      expect(matchGlassPreset(preset.glassOpacity, "white")).toBe(preset.id);
     }
   });
 

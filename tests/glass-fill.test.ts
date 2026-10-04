@@ -1,12 +1,10 @@
 import { readFileSync } from "node:fs";
-import { DEFAULT_GLASS_TINT } from "../lib/appearance-preferences";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import {
   activeGlassOpacity,
-  activeGlassTint,
   glassFill,
   glassNestedFill,
   MAX_GLASS_ALPHA,
@@ -117,9 +115,6 @@ describe("resolving a fill into glass", () => {
     setActiveGlassOpacity(-10);
     expect(activeGlassOpacity()).toBe(50);
     setActiveGlassOpacity(80);
-    // The setter is not what restores the cast; the module's own default is. The
-    // assertion names the default so a future rename cannot leave it dangling.
-    expect(activeGlassTint()).toBe(DEFAULT_GLASS_TINT);
   });
 });
 

@@ -126,7 +126,7 @@ export function IncomingNotificationBanner({
         <GlassBlur intensity={44} fill={glassSurfaceColor(glassNestedFill("rgba(0, 0, 0, 0.10)"), glassOpacity)} style={StyleSheet.absoluteFill} />
         <Pressable onPress={() => { if (suppressNextClick.current) { suppressNextClick.current = false; return; } onOpen(displayed); }} style={({ pressed }) => [styles.mainAction, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel={`${isInvite ? "Meetup invitation" : "New message"} from ${displayed.senderName}. ${displayed.preview}`}>
           <View style={[styles.iconWell, isInvite ? styles.inviteIconWell : styles.messageIconWell]}>
-            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#A78FA9" : "#8C8C8C"} />
+            <MaterialIcons name={isInvite ? "event-available" : "chat-bubble-outline"} size={19} color={isInvite ? "#007AA8" : "#8C8C8C"} />
             <View style={styles.statusDot} />
           </View>
           <View style={styles.copy}>

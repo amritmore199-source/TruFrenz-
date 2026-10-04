@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    backgroundColor: "#A78FA9",
+    backgroundColor: "#007AA8",
   },
   archiveLabel: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   actionsLayer: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     borderColor: glassFieldBorder(),
   },
   muteAction: { backgroundColor: "#949494" },
-  archiveAction: { backgroundColor: "#A78FA9" },
+  archiveAction: { backgroundColor: "#007AA8" },
   actionPressed: { opacity: 0.8 },
   rowBlur: { borderRadius: 16, overflow: "hidden" },
   rowTint: { borderRadius: 16 },
